@@ -4,7 +4,7 @@ from academic.serializers.common.Student import StudentSerializer
 from django.db.models import Q
 
 class StudentMVS(AllMVS):
-    queryset = Student.objects.select_related('country', 'directorate', 'organization', 'user').all()
+    queryset = Student.objects.select_related('country', 'directorate', 'organization', 'user', 'class_track').all()
     serializer_class = StudentSerializer
     enable_actions = [
         'all', 'select', 'list', 'second_list', 'filter', 'filter_paginate',
@@ -17,6 +17,7 @@ class StudentMVS(AllMVS):
         'organization__institution_type': ['exact'],
         'country': ['exact'],
         'directorate': ['exact'],
+        'class_track': ['exact'],
         'academic_number': ['exact', 'icontains'],
         'phone_number': ['exact', 'icontains'],
     }
@@ -53,6 +54,11 @@ class StudentMVS(AllMVS):
         directorate_id = self.request.query_params.get('directorate') or self.request.query_params.get('directorate_id')
         if directorate_id:
             qs = qs.filter(directorate_id=directorate_id)
+
+        # Class Track filter
+        class_track_id = self.request.query_params.get('class_track') or self.request.query_params.get('class_track_id')
+        if class_track_id:
+            qs = qs.filter(class_track_id=class_track_id)
 
         # Active filter
         is_active = self.request.query_params.get('is_active')

@@ -5,6 +5,7 @@ from rest_framework import status
 from django.db import transaction
 import random
 import uuid
+import math
 
 from exams.models.Exam import Exam
 from exams.models.ExamGenerationSetting import ExamGenerationSetting
@@ -305,6 +306,128 @@ class ExamCreateMVS(AllMVS):
         return tf_list + mcq_list
 
     # ═══════════════════════════════════════════════════════════
+    # Helper: Auto-register students by classTrack + geographic scope
+    # ═══════════════════════════════════════════════════════════
+    def _auto_register_students(self, exam, created_versions, class_track_id,
+                                 target_scope_level, target_scopes_data,
+                                 governorate_id, directorate_id, region_id):
+        """
+        Find all active students matching the class_track and geographic scope,
+        then register them into exam versions in round-robin distribution.
+        Returns the count of registered students.
+        """
+        from academic.models.common.Student import Student
+        from academic.models.schools.SchoolSection import SchoolSection
+
+        # Build student queryset filtered by class_track
+        student_qs = Student.objects.filter(
+            is_active=True,
+            is_deleted=False,
+            class_track_id=class_track_id
+        )
+
+        # Apply geographic filters based on target scope
+        if target_scope_level == 'all':
+            # No geographic filtering - include all students in this class_track
+            pass
+        elif target_scope_level == 'school' and target_scopes_data:
+            # Filter by specific school organizations
+            raw_org_ids = [s.get('organization_id') or s.get('organization') for s in target_scopes_data if s.get('organization_id') or s.get('organization')]
+            if raw_org_ids:
+                try:
+                    from OpenSoftCoreV41.common.models.Branch import Organization as BranchOrg
+                    from academic.models.common.Organization import Organization as AcademicOrg
+                    branch_names = list(BranchOrg.objects.filter(id__in=raw_org_ids).values_list('name_ar', flat=True))
+                    academic_ids = list(AcademicOrg.objects.filter(name_ar__in=branch_names).values_list('id', flat=True))
+                    all_org_ids = list(set([int(x) for x in raw_org_ids if str(x).isdigit()] + academic_ids))
+                    student_qs = student_qs.filter(organization_id__in=all_org_ids)
+                except Exception:
+                    student_qs = student_qs.filter(organization_id__in=raw_org_ids)
+        elif target_scope_level == 'directorate' and target_scopes_data:
+            # Filter by directorate(s)
+            raw_dir_ids = [s.get('directorate_id') or s.get('directorate') for s in target_scopes_data if s.get('directorate_id') or s.get('directorate')]
+            if raw_dir_ids:
+                try:
+                    from OpenSoftCoreV41.common.models.Branch import Organization as BranchOrg
+                    branch_dir_ids = list(BranchOrg.objects.filter(id__in=raw_dir_ids, fk_directorate__isnull=False).values_list('fk_directorate_id', flat=True))
+                    all_dir_ids = list(set([int(x) for x in raw_dir_ids if str(x).isdigit()] + branch_dir_ids))
+                    student_qs = student_qs.filter(directorate_id__in=all_dir_ids)
+                except Exception:
+                    student_qs = student_qs.filter(directorate_id__in=raw_dir_ids)
+        elif target_scope_level == 'governorate' and target_scopes_data:
+            # Filter by governorate(s)
+            raw_gov_ids = [s.get('governorate_id') or s.get('governorate') for s in target_scopes_data if s.get('governorate_id') or s.get('governorate')]
+            if raw_gov_ids:
+                try:
+                    from OpenSoftCoreV41.common.models.Branch import Organization as BranchOrg
+                    branch_gov_ids = list(BranchOrg.objects.filter(id__in=raw_gov_ids, fk_governorate__isnull=False).values_list('fk_governorate_id', flat=True))
+                    all_gov_ids = list(set([int(x) for x in raw_gov_ids if str(x).isdigit()] + branch_gov_ids))
+                    student_qs = student_qs.filter(directorate__governorate_id__in=all_gov_ids)
+                except Exception:
+                    from django.db.models import Q
+                    student_qs = student_qs.filter(
+                        Q(directorate__governorate_id__in=raw_gov_ids) |
+                        Q(organization__parent__fk_governorate_id__in=raw_gov_ids)
+                    )
+        else:
+            # Fallback: use exam-level geographic fields
+            if directorate_id:
+                student_qs = student_qs.filter(directorate_id=directorate_id)
+            elif governorate_id:
+                student_qs = student_qs.filter(directorate__governorate_id=governorate_id)
+
+        students = list(student_qs.order_by('academic_number'))
+        if not students:
+            return 0
+
+        # Distribute students across versions in round-robin
+        registrations_to_create = []
+        num_versions = len(created_versions)
+
+        for idx, student in enumerate(students):
+            version = created_versions[idx % num_versions]
+            seat_number = f"{exam.uniqueCode}-{str(idx + 1).zfill(4)}"
+            secret_number = f"S{uuid.uuid4().hex[:6].upper()}"
+
+            user_id = student.user_id
+            if not user_id:
+                try:
+                    from django.contrib.auth import get_user_model
+                    from OpenSoftCoreV41.usermanager.models.UserType import UserType
+                    User = get_user_model()
+                    ut = UserType.objects.filter(name_en__iexact="student").first() or UserType.objects.first()
+                    username = f"std_{student.academic_number or student.id}"
+                    u_defaults = {
+                        'first_name': (student.name_ar or 'طالب')[:30],
+                        'is_active': True
+                    }
+                    if ut:
+                        u_defaults['fk_user_type_id'] = ut.id
+                    u, _ = User.objects.get_or_create(username=username, defaults=u_defaults)
+                    student.user = u
+                    student.save(update_fields=['user'])
+                    user_id = u.id
+                except Exception:
+                    pass
+
+            registrations_to_create.append(StudentExamRegistration(
+                student_id=user_id,
+                student_profile=student,
+                examVersion=version,
+                seatNumber=seat_number,
+                secretNumber=secret_number,
+                isPresent=False,
+            ))
+
+        if registrations_to_create:
+            StudentExamRegistration.objects.bulk_create(
+                registrations_to_create,
+                ignore_conflicts=True  # Skip if student already registered
+            )
+
+        return len(registrations_to_create)
+
+    # ═══════════════════════════════════════════════════════════
     # CHECK SHORTAGE
     # ═══════════════════════════════════════════════════════════
     @action(detail=False, methods=['post'], url_path='check-shortage')
@@ -404,6 +527,7 @@ class ExamCreateMVS(AllMVS):
         governorate_id = data.get('governorate') or data.get('governorateId')
         directorate_id = data.get('directorate') or data.get('directorateId')
         region_id = data.get('region') or data.get('regionId')
+        class_track_id = data.get('classTrack') or data.get('classTrackId')
 
         questions_count = int(data.get('questionsCount', 40))
         models_count = int(data.get('modelsCount', 4))
@@ -484,6 +608,7 @@ class ExamCreateMVS(AllMVS):
                     governorate_id=exam_geo.get('governorate_id'),
                     directorate_id=exam_geo.get('directorate_id'),
                     region_id=exam_geo.get('region_id'),
+                    class_track_id=class_track_id,
                     bloom_enabled=bloom_enabled,
                     models_mode=models_mode,
                     model_groups_config=model_groups if models_mode == 'advanced' else None,
@@ -600,6 +725,17 @@ class ExamCreateMVS(AllMVS):
                     if assignments_to_create:
                         ExamModelRegionAssignment.objects.bulk_create(assignments_to_create)
 
+                # ═══════════════════════════════════════════════════════════
+                # 6. Auto-Register Students Based on ClassTrack + Geographic Scope
+                # ═══════════════════════════════════════════════════════════
+                registered_students_count = 0
+                if created_versions and class_track_id:
+                    registered_students_count = self._auto_register_students(
+                        exam, created_versions, class_track_id,
+                        target_scope_level, target_scopes_data,
+                        governorate_id, directorate_id, region_id
+                    )
+
                 # Calculate total models and questions
                 total_models = len(created_versions)
                 total_questions = len(set(q.id for q in candidate_questions[:questions_count])) if models_mode == 'uniform' else questions_count
@@ -608,9 +744,10 @@ class ExamCreateMVS(AllMVS):
                 serializer = ExamSerializer(exam)
                 return Response({
                     "success": True,
-                    "message": f"تم توليد الاختبار بنجاح مع {total_models} نماذج و {total_questions} سؤالاً",
+                    "message": f"تم توليد الاختبار بنجاح مع {total_models} نماذج و {total_questions} سؤالاً و {registered_students_count} طالب مسجل",
                     "data": serializer.data,
-                    "examId": exam.id
+                    "examId": exam.id,
+                    "registeredStudentsCount": registered_students_count
                 }, status=status.HTTP_201_CREATED)
 
         except Exception as e:

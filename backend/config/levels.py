@@ -229,21 +229,21 @@ class TypeOfMainSystemChoices(models.TextChoices):
 from decouple import config
 
 SYSTEM_BACKEND_LINKS = {
-    TypeOfMainSystemChoices.UNIVERSITY: config("UMS_BACKEND_URL"),
-    TypeOfMainSystemChoices.SCHOOL: config("SMS_BACKEND_URL"),
-    TypeOfMainSystemChoices.PORTAL: config("PORTAL_BACKEND_URL"),
-    TypeOfMainSystemChoices.CONTROL: config("CONTROL_BACKEND_URL"),
+    TypeOfMainSystemChoices.UNIVERSITY: config("UMS_BACKEND_URL", default="http://localhost:33366"),
+    TypeOfMainSystemChoices.SCHOOL: config("SMS_BACKEND_URL", default="http://localhost:33369"),
+    TypeOfMainSystemChoices.PORTAL: config("PORTAL_BACKEND_URL", default="http://localhost:33364"),
+    TypeOfMainSystemChoices.CONTROL: config("CONTROL_BACKEND_URL", default="http://localhost:33363"),
     TypeOfMainSystemChoices.INSTITUTE: config("INSTITUTE_BACKEND_URL", default=""),
     TypeOfMainSystemChoices.UNIFIED_EDUCATIONAL_PLATFORM: config("UEPS_BACKEND_URL", default=""),
-    TypeOfMainSystemChoices.ERP: config("ERP_BACKEND_URL"),
+    TypeOfMainSystemChoices.ERP: config("ERP_BACKEND_URL", default="http://localhost:33362"),
 }
 SYSTEM_LINKS = {
-    'access-login-role-unified-educational-platform': config("UEPS_FRONTEND_URL"),
+    'access-login-role-unified-educational-platform': config("UEPS_FRONTEND_URL", default="http://localhost:35353/sso-login"),
     'access-login-role-control': config("CONTROL_FRONTEND_URL", default="disable"),
-    'access-login-role-enterprise-resource-planning': config("ERP_FRONTEND_URL"),
-    'access-login-role-portal': config("PORTAL_FRONTEND_URL"),
-    'access-login-role-school': config("SMS_FRONTEND_URL"),
-    'access-login-role-university-management-system': config("UMS_FRONTEND_URL"),
+    'access-login-role-enterprise-resource-planning': config("ERP_FRONTEND_URL", default="http://localhost:5178/sso-login"),
+    'access-login-role-portal': config("PORTAL_FRONTEND_URL", default="http://localhost:5177/sso-login"),
+    'access-login-role-school': config("SMS_FRONTEND_URL", default="http://localhost:5179/sso-login"),
+    'access-login-role-university-management-system': config("UMS_FRONTEND_URL", default="http://localhost:5173/sso-login"),
     'access-login-role-institute': config("INSTITUTE_FRONTEND_URL", default="disable"),
 }
 

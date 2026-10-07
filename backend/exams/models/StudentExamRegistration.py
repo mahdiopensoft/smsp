@@ -7,6 +7,8 @@ class StudentExamRegistration(SoftDeleteModel):
     student = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE, 
+        null=True,
+        blank=True,
         related_name='exam_registrations',
         verbose_name=_("حساب الطالب")
     )
