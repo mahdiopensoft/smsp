@@ -1,0 +1,148 @@
+/*
+  Layout — Enterprise Page Structure
+  
+  Unified design tokens:
+  - Page bg:        #F5F5F9
+  - Card bg:        rgb(var(--v-theme-surface))
+  - Card radius:    0.625rem
+  - Card border:    rgba(var(--v-border-color), 0.06)
+  - Card shadow:    3-layer (0.02 / 0.03 / 0.03)
+  - Content padding: 1.25rem
+  - Drawer width:   260px
+*/
+
+/* ══════════════════════════════════════════════════════
+   1. Application Background
+══════════════════════════════════════════════════════ */
+.v-application {
+  background-color: rgb(var(--v-theme-background)) !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   2. Main Content Wrapper
+══════════════════════════════════════════════════════ */
+.v-main {
+  background-color: rgb(var(--v-theme-background)) !important;
+  transition: padding-inline-start 0.25s ease !important;
+  height: 100vh !important;
+  overflow: hidden !important; /* Main shell is rigid */
+  display: flex;
+  flex-direction: column;
+}
+
+.v-main > .v-main__wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: min-content; /* Allow content to dictate height */
+}
+
+/* ══════════════════════════════════════════════════════
+   3. Page Content Area
+   Breathing room around all content.
+══════════════════════════════════════════════════════ */
+.sneat-page-content-pro {
+  /* flex: 1; */
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  padding-top: 64px; /* Standard AppBar height - Flush look */
+  overflow-y: auto !important; /* This is the scroll container */
+  position: relative;
+  gap: 1.25rem;
+}
+
+@media (max-width: 959px) {
+  .sneat-page-content-pro {
+    padding: 0.75rem;
+    padding-top: 56px;
+    gap: 0.75rem;
+  }
+}
+
+
+
+/* ══════════════════════════════════════════════════════
+   5. Content Card — Main router-view wrapper
+══════════════════════════════════════════════════════ */
+.sneat-content-card.v-card,
+.sneat-content-card-pro.v-card {
+  flex-grow: 1; /* Ensures it fills height if needed */
+  display: flex;
+  flex-direction: column;
+  background: rgb(var(--v-theme-surface)) !important;
+  border-radius: var(--radius-xl) !important;
+  border: 1px solid rgba(var(--v-border-color), 0.08) !important;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.02),
+    0 8px 16px rgba(0, 0, 0, 0.04) !important;
+  min-height: min-content; /* Let content dictate minimum */
+  padding: 1.5rem !important; /* Inner breathing room */
+  margin-bottom: 1.5rem; /* Space at bottom of scroll */
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* Fix v-row stretching inside flex column cards */
+.sneat-content-card.v-card .v-row,
+.sneat-content-card-pro.v-card .v-row {
+  flex: 0 0 auto !important;
+}
+
+.sneat-content-card.v-card {
+  padding: 1.25rem !important;
+}
+
+.sneat-content-card-pro > .v-card-text {
+  flex-grow: 1;
+  padding: 1.5rem !important;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Smooth scrollbar */
+.sneat-content-card::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sneat-content-card::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sneat-content-card::-webkit-scrollbar-thumb {
+  background: rgba(var(--v-theme-on-surface), 0.1);
+  border-radius: 9999px;
+}
+
+.sneat-content-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--v-theme-on-surface), 0.2);
+}
+
+/* ══════════════════════════════════════════════════════
+   6. Navigation Drawer Width
+══════════════════════════════════════════════════════ */
+.sneat-sidebar.v-navigation-drawer {
+  width: 260px !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   7. Responsive — Mobile
+══════════════════════════════════════════════════════ */
+@media (max-width: 959px) {
+  .sneat-page-content {
+    padding: 0.75rem;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   8. Footer
+══════════════════════════════════════════════════════ */
+.sneat-footer {
+  padding: 0 1.25rem;
+}
+
+.sneat-footer .footer-content {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  border-radius: 0.625rem 0.625rem 0 0;
+}

@@ -1,0 +1,23 @@
+/* 
+  Design System Root
+  Follows Sneat Admin Template aesthetics
+*/
+
+/* 1. Base / Reset */
+@import './base/reset.css';
+@import './base/typography.css';
+
+/* 2. Design Tokens */
+@import './tokens/colors.css';
+@import './tokens/spacing.css';
+@import './tokens/radius.css';
+@import './tokens/shadows.css';
+@import './tokens/motion.css';
+/* 3. Components */
+@import './components/buttons.css';
+@import './components/sidebar.css';
+@import './components/navbar.css';
+@import './components/filter.css';
+@import './components/layout.css';
+@import './components/datatable.css';
+@import './components/question-bank.css';

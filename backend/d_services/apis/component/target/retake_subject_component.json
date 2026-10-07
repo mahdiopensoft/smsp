@@ -1,0 +1,18 @@
+{
+    "label_ar": "إعادة مادة",
+    "label_en": "Retake Subject ",
+    "attrs": {},
+    "fields": [
+        {
+            "cols": 6,
+            "name": "fk_student_subject",
+            "null": false,
+            "type": "ForeignKey",
+            "label_ar": "المادة",
+            "model": "StudentsCourses",
+            "default": "",
+            "name_list": "StudentsCoursesForServices",
+            "placeholder": ""
+        }
+    ]
+}

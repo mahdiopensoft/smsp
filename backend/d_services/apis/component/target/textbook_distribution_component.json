@@ -1,0 +1,19 @@
+{
+    "label_ar": "صرف الكتب المدرسية ",
+    "label_en": "Textbook Distribution",
+    "attrs": {},
+    "fields": [
+        {
+            "name": "fk_branch_class_subject",
+            "type": "ForeignKey",
+            "null": false,
+            "name_list": "StudentsCoursesForServices",
+            "default": null,
+            "model": "StudentsCourses",
+            "is_main": false,
+            "add": false,
+            "cols": 3,
+            "multiple": true
+        }
+    ]
+}

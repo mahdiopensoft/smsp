@@ -1,0 +1,171 @@
+/*
+  FilterTable / Advanced Filter Dialog — Sneat-Aligned Enterprise Design
+  Uses dynamic theme variables for full theme compatibility
+*/
+
+/* ══════════════════════════════════════════════════════
+   Filter Dialog Card
+══════════════════════════════════════════════════════ */
+.sneat-filter-card.v-card {
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
+  border: none !important;
+  overflow: hidden;
+  background: rgb(var(--v-theme-surface)) !important;
+}
+
+/* ── Filter Header ── */
+.sneat-filter-header {
+  background: rgb(var(--v-theme-surface)) !important;
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08) !important;
+  padding: var(--space-md) var(--space-lg) !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sneat-filter-header .filter-header-title {
+  font-size: var(--font-size-base) !important;
+  font-weight: var(--font-weight-semibold) !important;
+  color: rgb(var(--v-theme-on-surface)) !important;
+}
+
+.sneat-filter-header .filter-header-subtitle {
+  font-size: var(--font-size-xs) !important;
+  color: rgba(var(--v-theme-on-surface), 0.5) !important;
+  margin-top: 2px;
+}
+
+.sneat-filter-header .filter-count-chip.v-chip {
+  font-size: var(--font-size-xs) !important;
+  font-weight: var(--font-weight-bold) !important;
+  height: 24px !important;
+}
+
+/* ── Filter Content ── */
+.sneat-filter-content {
+  background: rgba(var(--v-theme-primary), 0.02) !important;
+  /* padding: var(--space-md) var(--space-lg) !important; */
+}
+
+/* ── Filter Footer / Actions ── */
+.sneat-filter-footer {
+  background: rgb(var(--v-theme-surface)) !important;
+  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08) !important;
+  padding: var(--space-sm) var(--space-lg) !important;
+  display: flex;
+  align-items: center;
+}
+
+/* ══════════════════════════════════════════════════════
+   Filter Group — Operator Toggle
+══════════════════════════════════════════════════════ */
+.sneat-operator-toggle.v-btn-toggle {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.12) !important;
+  border-radius: var(--radius-full) !important;
+  box-shadow: var(--shadow-xs) !important;
+  height: 34px !important;
+  overflow: hidden;
+}
+
+.sneat-operator-toggle .v-btn {
+  font-size: var(--font-size-xs) !important;
+  font-weight: var(--font-weight-bold) !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  min-width: 52px !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   Filter Row (Individual Rule)
+══════════════════════════════════════════════════════ */
+.sneat-filter-row.v-sheet {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08) !important;
+  border-radius: var(--radius-lg) !important;
+  padding: var(--space-sm) var(--space-md) !important;
+  margin-bottom: var(--space-sm) !important;
+  transition: var(--transition-hover);
+}
+
+.sneat-filter-row.v-sheet:hover {
+  border-color: rgba(var(--v-theme-primary), 0.4) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+/* ── Field Labels ── */
+.sneat-field-label {
+  font-size: var(--font-size-xs) !important;
+  font-weight: var(--font-weight-semibold) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+  color: rgba(var(--v-theme-on-surface), 0.45) !important;
+  margin-bottom: var(--space-xs) !important;
+}
+
+/* ── Filter Inputs ── */
+.sneat-filter-input :deep(.v-field) {
+  font-size: var(--font-size-sm) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.sneat-filter-input :deep(.v-field__input) {
+  min-height: 38px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.sneat-filter-input :deep(.v-input__details) {
+  padding-inline: var(--space-sm) !important;
+}
+
+.sneat-filter-input :deep(.v-field__outline) {
+  --v-field-border-opacity: 0.12;
+}
+
+.sneat-filter-input :deep(.v-field--focused .v-field__outline) {
+  --v-field-border-opacity: 1;
+}
+
+/* ══════════════════════════════════════════════════════
+   Nested Group Box
+══════════════════════════════════════════════════════ */
+.sneat-nested-group {
+  padding: var(--space-md) var(--space-md) var(--space-xs) var(--space-sm);
+  margin-bottom: var(--space-md);
+  border-radius: var(--radius-lg);
+  transition: var(--transition-default);
+}
+
+@media (max-width: 600px) {
+  .sneat-nested-group {
+    padding: var(--space-sm) var(--space-xs);
+    margin-inline-start: var(--space-xs) !important;
+  }
+
+  .sneat-filter-content {
+    padding: var(--space-sm) !important;
+  }
+}
+
+/* ── Group Header ── */
+.sneat-group-header {
+  padding: var(--space-xs) var(--space-sm);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+/* ── Action Buttons ── */
+.sneat-filter-action-btn.v-btn {
+  text-transform: none !important;
+  letter-spacing: 0.01em !important;
+  font-weight: var(--font-weight-semibold) !important;
+  height: 36px !important;
+  border-radius: var(--radius-md) !important;
+}

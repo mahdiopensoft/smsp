@@ -1,0 +1,514 @@
+@import "./fonts/tajawal.css";
+
+/* --- Global Overrides --- */
+:root {
+    --v-font-family: "Tajawal", sans-serif !important;
+}
+
+/* --- Global Base & Typography --- */
+html,
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    font-family: "Tajawal", sans-serif !important;
+}
+
+body {
+    background-color: rgb(var(--v-theme-background)) !important;
+    color: rgb(var(--v-theme-on-surface));
+    /* Atmospheric Aura — Soft depth using primary color hints */
+    background-image:
+        radial-gradient(at 0% 0%, rgba(var(--v-theme-primary), 0.05) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(var(--v-theme-primary), 0.05) 0px, transparent 50%);
+    background-attachment: fixed;
+    transition: background-color 0.3s ease;
+    font-family: "Tajawal", sans-serif !important;
+
+}
+
+/* Global Font Override */
+.v-application,
+.v-application *:not(svg, svg *) {
+    font-family: "Tajawal", sans-serif !important;
+}
+
+/* Force Tajawal globally except for icons and SVG graphics */
+*:not(svg, svg *, .v-icon, .mdi, [class*="mdi-"]) {
+    font-family: "Tajawal", sans-serif !important;
+}
+
+*:not(svg, svg *, h1, h2, h3, h4, h5, h6, p, small, strong, .v-icon, tr, td, .text-caption) {
+    font-size: 13px !important;
+}
+
+/* --- Typography (Tajawal Weights) --- */
+h1 {
+    font-weight: 800 !important;
+}
+
+h2,
+h3 {
+    font-weight: 700 !important;
+}
+
+h4,
+h5,
+h6 {
+    font-weight: 500 !important;
+}
+
+p {
+    font-weight: 400;
+}
+
+strong,
+b,
+th {
+    font-weight: 700 !important;
+}
+
+small {
+    font-weight: 300;
+}
+
+.v-row {
+    margin: 0 !important;
+}
+
+/* --- Sidebar & Navigation --- */
+.sidebar .v-card {
+    cursor: pointer;
+    overflow-y: auto !important;
+}
+
+/* Sidebar Custom Scrollbar — Theme Aware */
+.sidebar .v-card::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.sidebar .v-card::-webkit-scrollbar-track {
+    background: rgba(var(--v-theme-on-surface), 0.02);
+}
+
+.sidebar .v-card::-webkit-scrollbar-thumb {
+    background: rgba(var(--v-theme-on-surface), 0.1);
+    border-radius: var(--radius-full);
+}
+
+.sidebar .v-card::-webkit-scrollbar-thumb:hover {
+    background: rgba(var(--v-theme-on-surface), 0.2);
+}
+
+.sidebar .v-list--slim .v-list-group {
+    --prepend-width: -9px;
+}
+
+/* --- Table & Data Display --- */
+.search {
+    margin-bottom: 0px !important;
+    margin-top: 20px !important;
+}
+
+.search .v-input__control .v-field {
+    height: 28px;
+}
+
+.search .v-field__prepend-inner {
+    margin-bottom: 7px;
+}
+
+.search input {
+    padding-top: 0;
+}
+
+.v-data-table-header__content {
+    white-space: nowrap;
+}
+
+.tree-view {
+    height: 100%;
+}
+
+.tree-view .v-col:first-child {
+    height: 100%;
+    overflow: auto;
+}
+
+/* --- Helper Classes --- */
+/* .show-item {
+  display: none;
+}
+
+.hide-item {
+  display: none;
+} */
+
+.vertical-text {
+    writing-mode: vertical-rl;
+    width: 50px !important;
+    padding-top: 20px !important;
+    padding-bottom: 20px !important;
+    height: auto !important;
+}
+
+div:has(> .v-col.create),
+div:has(> .v-col.export) {
+    display: flex;
+}
+
+/* --- Media Queries --- */
+
+/* Desktop Fixes */
+/* @media (min-width: 769px) {
+  .v-overlay__content.v-select__content {
+    position: absolute !important;
+    max-height: unset !important;
+  }
+} */
+
+/* Print Styles */
+@media print {
+    #printView {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+    }
+
+    .no_print,
+    .print-btn,
+    .print,
+    footer,
+    #footer,
+    #sidebar,
+    #toolbar,
+    .v-toolbar,
+    #printbtn,
+    .v-data-table__footer,
+    .v-data-footer {
+        display: none !important;
+    }
+
+    html,
+    body {
+        background-color: white !important;
+    }
+
+    body {
+        font-family: 'Tajawal', sans-serif !important;
+    }
+
+    .v-table__wrapper,
+    .v-table--fixed-height>.v-table__wrapper {
+        overflow: hidden !important;
+    }
+
+    .v-data-table {
+        direction: rtl;
+        font-size: 1px !important;
+    }
+
+    .hide-item {
+        display: none;
+    }
+
+    .show-item {
+        display: block;
+    }
+
+    .v-table__wrapper {
+        font-size: 1px !important;
+        color: black !important;
+    }
+
+    @page {
+        margin: 10px !important;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════
+   SCOPED STYLES — AdvancedExcelUploader Design System
+   الاستراتيجية: CSS @layer لعزل الأنماط ومنع التداخل
+   ═══════════════════════════════════════════════════════ */
+
+
+   /*
+     نعرّف طبقة (layer) خاصة بنا.
+     أي CSS خارجي بدون layer سيأخذ أولوية أعلى تلقائياً،
+     لكن داخل الـ layer نحن نتحكم بالأولوية بدقة.
+   */
+   @layer aeu-base, aeu-components;
+   
+   /* ══ 1. CSS Variables على :root — الأسماء مسبوقة بـ --aeu لتفادي التداخل ══ */
+   @layer aeu-base {
+     :root {
+       /* Brand Colors */
+       --aeu-primary:        #2563eb;
+       --aeu-primary-dark:   #1d4ed8;
+       --aeu-primary-soft:   #eff6ff;
+       --aeu-primary-border: #bfdbfe;
+   
+       --aeu-success:        #059669;
+       --aeu-success-soft:   #f0fdf4;
+       --aeu-success-border: #86efac;
+   
+       --aeu-danger:         #dc2626;
+       --aeu-danger-soft:    #fef2f2;
+       --aeu-danger-border:  #fca5a5;
+   
+       --aeu-warning:        #d97706;
+       --aeu-warning-soft:   #fffbeb;
+       --aeu-warning-border: #fcd34d;
+   
+       /* Neutrals */
+       --aeu-bg:          #f1f5f9;
+       --aeu-surface:     #ffffff;
+       --aeu-border:      #e2e8f0;
+       --aeu-border-soft: #f1f5f9;
+   
+       --aeu-text:        #0f172a;
+       --aeu-text-sec:    #475569;
+       --aeu-text-muted:  #94a3b8;
+   
+       /* Typography */
+       --aeu-font: 'IBM Plex Sans Arabic', 'Segoe UI', system-ui, sans-serif;
+   
+       /* Radius */
+       --aeu-radius-sm:  6px;
+       --aeu-radius:     10px;
+       --aeu-radius-lg:  14px;
+       --aeu-radius-xl:  18px;
+   
+       /* Shadows */
+       --aeu-shadow-xs: 0 1px 2px rgba(0,0,0,.06);
+       --aeu-shadow-sm: 0 2px 6px rgba(0,0,0,.08);
+       --aeu-shadow:    0 4px 14px rgba(0,0,0,.10);
+       --aeu-shadow-lg: 0 10px 40px rgba(0,0,0,.14);
+       --aeu-shadow-xl: 0 20px 60px rgba(0,0,0,.18);
+   
+       /* Z-Index System */
+       --aeu-z-base:     1;
+       --aeu-z-dropdown: 200;
+       --aeu-z-toolbar:  300;
+       --aeu-z-overlay:  500;
+       --aeu-z-drawer:   9000;
+       --aeu-z-modal:    9999;
+       --aeu-z-tooltip:  99999;
+   
+       /*
+         aliases للمكونات الحالية التي تستخدم --c-*
+         هذه مجرد مؤشرات للمتغيرات الرئيسية، لا تؤثر على أي نظام خارجي
+         لأن النظام الآخر يجب أن يستخدم أسماءه الخاصة
+       */
+       --c-primary:        var(--aeu-primary);
+       --c-primary-dark:   var(--aeu-primary-dark);
+       --c-primary-soft:   var(--aeu-primary-soft);
+       --c-primary-border: var(--aeu-primary-border);
+   
+       --c-success:        var(--aeu-success);
+       --c-success-soft:   var(--aeu-success-soft);
+       --c-success-border: var(--aeu-success-border);
+   
+       --c-danger:         var(--aeu-danger);
+       --c-danger-soft:    var(--aeu-danger-soft);
+       --c-danger-border:  var(--aeu-danger-border);
+   
+       --c-warning:        var(--aeu-warning);
+       --c-warning-soft:   var(--aeu-warning-soft);
+       --c-warning-border: var(--aeu-warning-border);
+   
+       --c-bg:          var(--aeu-bg);
+       --c-surface:     var(--aeu-surface);
+       --c-border:      var(--aeu-border);
+       --c-border-soft: var(--aeu-border-soft);
+   
+       --c-text:        var(--aeu-text);
+       --c-text-sec:    var(--aeu-text-sec);
+       --c-text-muted:  var(--aeu-text-muted);
+   
+       --font:          var(--aeu-font);
+   
+       --radius-sm:  var(--aeu-radius-sm);
+       --radius:     var(--aeu-radius);
+       --radius-lg:  var(--aeu-radius-lg);
+       --radius-xl:  var(--aeu-radius-xl);
+   
+       --shadow-xs: var(--aeu-shadow-xs);
+       --shadow-sm: var(--aeu-shadow-sm);
+       --shadow:    var(--aeu-shadow);
+       --shadow-lg: var(--aeu-shadow-lg);
+       --shadow-xl: var(--aeu-shadow-xl);
+   
+       --z-base:     var(--aeu-z-base);
+       --z-dropdown: var(--aeu-z-dropdown);
+       --z-toolbar:  var(--aeu-z-toolbar);
+       --z-overlay:  var(--aeu-z-overlay);
+       --z-drawer:   var(--aeu-z-drawer);
+       --z-modal:    var(--aeu-z-modal);
+       --z-tooltip:  var(--aeu-z-tooltip);
+     }
+   
+     /* Dark Mode */
+     @media (prefers-color-scheme: dark) {
+       :root {
+         --aeu-primary:        #3b82f6;
+         --aeu-primary-dark:   #2563eb;
+         --aeu-primary-soft:   #1e3a5f;
+         --aeu-primary-border: #1e40af;
+   
+         --aeu-success:        #22c55e;
+         --aeu-success-soft:   #052e16;
+         --aeu-success-border: #166534;
+   
+         --aeu-danger:         #ef4444;
+         --aeu-danger-soft:    #2d0a0a;
+         --aeu-danger-border:  #7f1d1d;
+   
+         --aeu-warning:        #f59e0b;
+         --aeu-warning-soft:   #1c1505;
+         --aeu-warning-border: #92400e;
+   
+         --aeu-bg:          #0f172a;
+         --aeu-surface:     #1e293b;
+         --aeu-border:      #334155;
+         --aeu-border-soft: #1e293b;
+   
+         --aeu-text:        #f1f5f9;
+         --aeu-text-sec:    #94a3b8;
+         --aeu-text-muted:  #475569;
+       }
+     }
+   
+     /*
+       ══ Reset محصور داخل .aeu-scope فقط ══
+       لا يؤثر على أي عنصر خارج مكوّنات هذا النظام
+     */
+     .aeu-scope *,
+     .aeu-scope *::before,
+     .aeu-scope *::after {
+       box-sizing: border-box;
+       margin: 0;
+       padding: 0;
+
+     }
+   
+     /*
+       ══ Reset للـ teleported elements (المودالات والشاشات المنفصلة) ══
+       نطبّقه على العناصر ذات classes الخاصة بنا مباشرةً
+     */
+     .vp-overlay, .vp-drawer,
+     .vrm-overlay, .vrm-panel,
+     [class^="aeu-"], [class*=" aeu-"] {
+       box-sizing: border-box;
+     }
+   
+     .aeu-scope {
+       font-family: var(--aeu-font);
+
+       direction: rtl;
+       -webkit-font-smoothing: antialiased;
+
+     }
+   
+     div.aeu-scope:not(.vp-overlay):not(.vrm-overlay):not(.ug-overlay):not(.ot-overlay):not(.cm-overlay):not(.ch-bar) {
+       
+       min-height: 100vh;
+     }
+   
+     /* الخط على العناصر التفاعلية — محصور داخل .aeu-scope */
+     .aeu-scope button,
+     .aeu-scope input,
+     .aeu-scope select {
+       font-family: var(--aeu-font);
+     }
+   
+     /*
+       ══ الخط للـ teleported elements (المودالات) ══
+       نضمن أن المودالات تستخدم الخط الصحيح حتى لو خرجت من aeu-scope
+     */
+     .vp-overlay button, .vp-overlay input, .vp-overlay select,
+     .vrm-overlay button, .vrm-overlay input, .vrm-overlay select,
+     .vp-drawer, .vrm-panel {
+       font-family: var(--aeu-font);
+       direction: rtl;
+     }
+   
+     /* ══ Scrollbar — محصور داخل aeu-scope ══ */
+     .aeu-scope ::-webkit-scrollbar       { width: 6px; height: 6px; }
+
+     .aeu-scope ::-webkit-scrollbar-thumb  {  border-radius: 99px; }
+
+   
+
+   }
+   
+   /* ══ 2. Global Components ══ */
+   /* @layer aeu-components {
+ 
+     .aeu-scope .btn {
+       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+       padding: 10px 20px;
+       border-radius: var(--aeu-radius-sm);
+       font-size: 14px; font-weight: 600;
+       border: 1px solid transparent;
+       cursor: pointer;
+       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+       white-space: nowrap;
+       font-family: var(--aeu-font);
+     }
+     .aeu-scope .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+   
+     .aeu-scope .btn-primary {
+       background: var(--aeu-primary); color: white;
+       box-shadow: 0 2px 8px rgba(37,99,235,0.2);
+     }
+     .aeu-scope .btn-primary:hover:not(:disabled) {
+       background: var(--aeu-primary-dark);
+       transform: translateY(-1px);
+       box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+     }
+   
+     .aeu-scope .btn-success {
+       background: var(--aeu-success); color: white;
+       box-shadow: 0 2px 8px rgba(5,150,105,0.2);
+     }
+     .aeu-scope .btn-success:hover:not(:disabled) {
+       background: #047857;
+       transform: translateY(-1px);
+       box-shadow: 0 4px 12px rgba(5,150,105,0.3);
+     }
+   
+     .aeu-scope .btn-danger {
+       background: var(--aeu-danger-soft); color: var(--aeu-danger);
+       border-color: var(--aeu-danger-border);
+     }
+     .aeu-scope .btn-danger:hover:not(:disabled) { background: #fee2e2; }
+   
+     .aeu-scope .btn-warning {
+       background: var(--aeu-warning-soft); color: var(--aeu-warning);
+       border-color: var(--aeu-warning-border);
+     }
+     .aeu-scope .btn-warning:hover:not(:disabled) { background: #fef3c7; }
+   
+     .aeu-scope .btn-ghost {
+       background: transparent; color: var(--aeu-text-sec);
+       border-color: var(--aeu-border);
+     }
+     .aeu-scope .btn-ghost:hover:not(:disabled) {
+       background: var(--aeu-bg);
+       color: var(--aeu-text);
+     }
+   
+     .aeu-scope .spinner {
+       width: 16px; height: 16px;
+       border: 2px solid rgba(255,255,255,0.3);
+       border-top-color: currentColor;
+       border-radius: 50%;
+       animation: aeu-spin 0.8s linear infinite;
+     }
+     @keyframes aeu-spin { to { transform: rotate(360deg); } }
+   
+     .aeu-scope .d-none { display: none !important; }
+   }
+    */

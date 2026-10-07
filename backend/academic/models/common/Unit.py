@@ -1,0 +1,43 @@
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+from .BaseSyncModel import BaseSyncModel
+
+class Unit(BaseSyncModel):
+    name_ar = models.CharField(max_length=255, verbose_name=_("اسم الوحدة (عربي)"))
+    name_en = models.CharField(max_length=255, null=True, blank=True, verbose_name=_("اسم الوحدة (إنجليزي)"))
+    class_subject = models.ForeignKey(
+        'academic.SchoolClassSubject', 
+        on_delete=models.CASCADE, 
+        related_name='units', 
+        verbose_name=_("مادة مسار الصف"),
+        null=True, 
+        blank=True
+    )
+    semester_subject = models.ForeignKey(
+        'academic.UniversitySemesterSubject', 
+        on_delete=models.CASCADE, 
+        related_name='units', 
+        verbose_name=_("مادة الفصل الجامعية"),
+        null=True, 
+        blank=True
+    )
+    semester = models.ForeignKey(
+        'academic.UniversitySemester', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='units', 
+        verbose_name=_("الفصل الدراسي")
+    )
+    order = models.IntegerField(default=1, verbose_name=_("الترتيب"))
+    is_active = models.BooleanField(default=True, verbose_name=_("مفعل"))
+    enable_learning_outcomes = models.BooleanField(default=True, verbose_name=_("تفعيل مخرجات التعلم لهذه الوحدة"))
+
+    class Meta:
+        ordering = ['order']
+        verbose_name = _('وحدة دراسية')
+        verbose_name_plural = _('الوحدات الدراسية')
+
+    def __str__(self):
+        subject_name = f" ({self.class_subject})" if self.class_subject else ""
+        return f"{self.name_ar}{subject_name}"

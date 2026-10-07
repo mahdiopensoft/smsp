@@ -1,0 +1,854 @@
+/*
+  ═══════════════════════════════════════════════════════════════
+  Navbar — Enterprise App-Bar Design System
+  ═══════════════════════════════════════════════════════════════
+  
+  Design Philosophy (SaaS-Grade):
+  ─────────────────────────────────
+  • Spatial hierarchy:  Flat full-width bar → clear zone separation
+  • Visual weight:      Light surface, hair-line bottom border
+  • Micro-interactions: 200ms ease transitions, scale/lift on hover
+  • Typography:         Semi-bold labels, muted secondary text
+  • Spacing:            8px grid, 12-16px inner gaps
+  • Depth:              Single-layer shadow, backdrop-blur on dropdowns
+  
+  Layout Zones (L→R in RTL):
+  ─────────────────────────────
+  [≡ Toggle] [| Divider |] [System Picker] ←spacer→ [SSO Badge] [| Theme | Lang | Bell |] [| Avatar |]
+*/
+
+/* ══════════════════════════════════════════════════════
+   1. Outer Shell — Transparent wrapper
+   Vuetify manages position/width. We make the toolbar
+   invisible and pass pointer-events to children.
+══════════════════════════════════════════════════════ */
+.sneat-navbar.v-toolbar {
+  z-index: 11 !important;
+  height: auto !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  pointer-events: none;
+}
+
+.sneat-navbar .v-toolbar__content > * {
+  pointer-events: auto;
+}
+
+/* ══════════════════════════════════════════════════════
+   2. Visible Bar — The floating content strip
+   Flat full-width design with hair-line bottom border.
+══════════════════════════════════════════════════════ */
+.sneat-navbar .v-toolbar__content {
+  pointer-events: auto;
+  margin: 0 !important;
+  width: 100% !important;
+  padding: 0 !important;
+  height: 56px !important;
+
+  /* Layer 1: Pure surface — cleanest layer */
+  background: rgb(var(--v-theme-surface)) !important;
+  border-bottom: 1px solid rgba(var(--v-border-color), 0.06) !important;
+  box-shadow: none !important;
+
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease !important;
+}
+
+@media (max-width: 600px) {
+  .sneat-navbar .v-toolbar__content {
+    height: 52px !important;
+  }
+}
+
+/* Zone containers — control edge padding here */
+.navbar-zone-left {
+  padding-inline-start: 16px;
+}
+.navbar-zone-right {
+  padding-inline-end: 16px;
+  gap: 8px;
+}
+@media (max-width: 600px) {
+  .navbar-zone-left { padding-inline-start: 10px; }
+  .navbar-zone-right { padding-inline-end: 10px; gap: 4px; }
+}
+
+
+
+/* ══════════════════════════════════════════════════════
+   3. Hamburger Toggle
+══════════════════════════════════════════════════════ */
+.sneat-navbar .navbar-toggle.v-btn {
+  color: rgba(var(--v-theme-on-surface), 0.55) !important;
+  border-radius: 8px !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+}
+
+.sneat-navbar .navbar-toggle.v-btn:hover {
+  color: rgb(var(--v-theme-primary)) !important;
+  background: rgba(var(--v-theme-primary), 0.08) !important;
+}
+
+.sneat-navbar .navbar-toggle.v-btn:active {
+  transform: none !important;
+}
+
+@media (max-width: 600px) {
+  .sneat-navbar .navbar-toggle.v-btn {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+  }
+  .sneat-navbar .navbar-toggle .v-icon {
+    font-size: 20px !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   4. Zone Separator
+══════════════════════════════════════════════════════ */
+.navbar-zone-divider {
+  width: 1px;
+  height: 22px;
+  background: rgba(var(--v-border-color), 0.1);
+  margin: 0 10px;
+  flex-shrink: 0;
+}
+
+/* Actions group spacing */
+.navbar-actions-group {
+  gap: 2px;
+}
+
+.navbar-system-picker {
+  min-width: 170px;
+  max-width: 240px;
+}
+
+@media (max-width: 600px) {
+  .navbar-system-picker {
+    min-width: 36px !important;
+    max-width: 36px !important;
+    margin: 0 !important;
+  }
+  .navbar-system-picker :deep(.v-field) {
+    min-height: 36px !important;
+    height: 36px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .navbar-system-picker :deep(.v-field__prepend-inner .v-icon) {
+    font-size: 18px !important;
+    opacity: 0.7 !important;
+  }
+}
+
+.navbar-system-picker :deep(.v-field) {
+  background: rgba(var(--v-theme-on-surface), 0.03) !important;
+  border-radius: 8px !important;
+  min-height: 36px !important;
+  padding-inline: 12px !important;
+  border: 1px solid rgba(var(--v-border-color), 0.06) !important;
+  box-shadow: none !important;
+}
+
+.navbar-system-picker :deep(.v-field:hover) {
+  background: rgba(var(--v-theme-primary), 0.04) !important;
+  border-color: rgba(var(--v-theme-primary), 0.15) !important;
+}
+
+.navbar-system-picker :deep(.v-field--focused) {
+  background: rgb(var(--v-theme-surface)) !important;
+  border-color: rgba(var(--v-theme-primary), 0.4) !important;
+  box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.08) !important;
+}
+
+.navbar-system-picker :deep(.v-field__input) {
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  color: rgba(var(--v-theme-on-surface), 0.78) !important;
+  min-height: 36px !important;
+  padding-block: 0 !important;
+  padding-inline: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.navbar-system-picker :deep(.v-field__input .v-select__selection) {
+  margin: 0 auto !important;
+  width: 100% !important;
+  justify-content: center !important;
+}
+
+.navbar-system-picker :deep(.v-field__input::placeholder) {
+  width: 100%;
+  text-align: center;
+  opacity: 0.55 !important;
+}
+
+.navbar-system-picker :deep(.v-field__prepend-inner) {
+  padding-top: 0 !important;
+  align-items: center !important;
+}
+
+.navbar-system-picker :deep(.v-field__append-inner) {
+  padding-top: 0 !important;
+  align-items: center !important;
+}
+
+.navbar-system-picker :deep(.v-field__prepend-inner .v-icon) {
+  color: rgb(var(--v-theme-primary)) !important;
+  font-size: 20px !important;
+  margin-inline-end: 10px !important;
+  opacity: 0.7 !important;
+}
+
+.navbar-system-picker :deep(.v-field:hover .v-field__prepend-inner .v-icon) {
+  opacity: 1 !important;
+}
+
+.navbar-system-picker :deep(.v-field__append-inner .v-icon) {
+  font-size: 1rem !important;
+  color: rgba(var(--v-theme-on-surface), 0.35) !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   5. Action Icon Buttons — Primary hover, no animation
+══════════════════════════════════════════════════════ */
+.navbar-icon-btn.v-btn {
+  color: rgba(var(--v-theme-on-surface), 0.5) !important;
+  border-radius: 8px !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  background: transparent !important;
+}
+
+.navbar-icon-btn.v-btn:hover {
+  background: rgba(var(--v-theme-primary), 0.08) !important;
+  color: rgb(var(--v-theme-primary)) !important;
+}
+
+.navbar-icon-btn.v-btn:active {
+  transform: none !important;
+}
+
+/* Ensure no Vuetify ripple movement */
+.navbar-icon-btn .v-btn__overlay,
+.navbar-icon-btn .v-btn__underlay,
+.navbar-toggle .v-btn__overlay,
+.navbar-toggle .v-btn__underlay {
+  display: none !important;
+}
+
+@media (max-width: 600px) {
+  .navbar-icon-btn.v-btn {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+  }
+  .navbar-icon-btn.v-btn .v-icon {
+    font-size: 17px !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   6. SSO Auth Chip
+══════════════════════════════════════════════════════ */
+.navbar-auth-chip.v-chip {
+  font-size: 0.6875rem !important;
+  font-weight: 600 !important;
+  height: 26px !important;
+  border-radius: 6px !important;
+  letter-spacing: 0.02em;
+  padding-inline: 0.625rem !important;
+}
+
+.navbar-auth-chip.v-chip .v-icon {
+  font-size: 0.875rem !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   7. Vertical Dividers
+══════════════════════════════════════════════════════ */
+.navbar-divider-subtle.v-divider {
+  border-color: rgba(var(--v-theme-on-surface), 0.08) !important;
+  opacity: 1 !important;
+  margin-inline: 0.5rem !important;
+  max-height: 20px !important;
+  align-self: center !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   8. Profile Trigger — Capsule with user identity
+   No animations. Clean primary hover. Proper spacing.
+══════════════════════════════════════════════════════ */
+.navbar-profile-trigger.v-btn {
+  padding: 4px 5px 4px 14px !important;
+  min-width: auto !important;
+  width: auto !important;
+  height: 44px !important;
+  border-radius: 22px !important;
+  background: transparent !important;
+  border: 1px solid rgba(var(--v-border-color), 0.08) !important;
+  box-shadow: none !important;
+}
+
+.navbar-profile-trigger.v-btn:hover {
+  background: rgba(var(--v-theme-primary), 0.05) !important;
+  border-color: rgba(var(--v-theme-primary), 0.15) !important;
+}
+
+.navbar-profile-trigger.v-btn:active {
+  transform: none !important;
+}
+
+@media (max-width: 600px) {
+  .navbar-profile-trigger.v-btn {
+    width: 36px !important;
+    height: 36px !important;
+    padding: 2px !important;
+    border-radius: 50% !important;
+    border: none !important;
+  }
+}
+
+/* Remove Vuetify's default overlays */
+.navbar-profile-trigger .v-btn__overlay,
+.navbar-profile-trigger .v-btn__underlay {
+  display: none !important;
+}
+
+/* ── Profile info text container ── */
+.navbar-profile-info {
+  margin-inline-end: 8px; /* Tighter gap for smaller text */
+  line-height: 1.1;
+  max-width: 110px;
+  text-align: end;
+  justify-content: center;
+}
+
+/* ── Profile avatar ── */
+.navbar-profile-avatar.v-avatar {
+  flex-shrink: 0;
+  border: 2px solid rgba(var(--v-theme-primary), 0.2) !important;
+}
+
+.navbar-profile-trigger:hover .navbar-profile-avatar.v-avatar {
+  border-color: rgba(var(--v-theme-primary), 0.45) !important;
+}
+
+/* ── Profile text typography ── */
+.navbar-profile-name {
+  font-size: 0.75rem; /* Smaller, sharper name */
+  font-weight: 600;
+  color: rgb(var(--v-theme-on-surface));
+  max-width: 110px;
+  line-height: 1.2;
+}
+
+.navbar-profile-role {
+  font-size: 0.625rem; /* Subtitle even smaller */
+  font-weight: 400;
+  color: rgba(var(--v-theme-on-surface), 0.45);
+  max-width: 110px;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+/* ══════════════════════════════════════════════════════
+   9. Profile Dropdown Card — Premium floating menu
+   Gradient header, icon-boxed items, danger zone.
+══════════════════════════════════════════════════════ */
+.navbar-profile-card.v-card {
+  border: 1px solid rgba(var(--v-border-color), 0.08) !important;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.06),
+    0 10px 25px -5px rgba(0, 0, 0, 0.1),
+    0 20px 50px -12px rgba(0, 0, 0, 0.08) !important;
+  overflow: hidden;
+}
+
+/* Profile header with subtle gradient wash */
+.profile-header-section-pro {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--v-theme-primary), 0.04) 0%,
+    rgba(var(--v-theme-primary), 0.01) 50%,
+    transparent 100%
+  );
+  position: relative;
+}
+
+.profile-header-section-pro::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(var(--v-border-color), 0.08), transparent);
+}
+
+.border-subtle {
+  border: 1.5px solid rgba(var(--v-border-color), 0.08) !important;
+}
+
+.border-bottom-subtle {
+  border-bottom: 1px solid rgba(var(--v-border-color), 0.06);
+}
+
+/* ══════════════════════════════════════════════════════
+   10. Menu Item — Icon-boxed list items
+══════════════════════════════════════════════════════ */
+.theme-menu-item-pro.v-list-item {
+  min-height: 44px !important;
+  border-radius: var(--radius-lg) !important;
+  transition: background var(--motion-duration-fast) var(--motion-easing-out),
+              transform var(--motion-duration-fast) var(--motion-easing-out) !important;
+}
+
+.theme-menu-item-pro:hover {
+  background: rgba(var(--v-theme-primary), 0.05) !important;
+}
+
+.theme-menu-item-pro:active {
+  transform: scale(0.98);
+}
+
+/* Icon box — neutral */
+.theme-icon-box {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--v-theme-on-surface), 0.04);
+  border-radius: var(--radius-lg);
+  transition: var(--transition-hover);
+}
+
+.theme-menu-item-pro:hover .theme-icon-box {
+  background: rgba(var(--v-theme-primary), 0.1);
+}
+
+.theme-menu-item-pro:hover .theme-icon-box .v-icon {
+  color: rgb(var(--v-theme-primary)) !important;
+}
+
+.theme-menu-item-pro.v-list-item--active .theme-icon-box {
+  background: rgba(var(--v-theme-primary), 0.12);
+}
+
+.theme-menu-item-pro.v-list-item--active {
+  background: rgba(var(--v-theme-primary), 0.04) !important;
+}
+
+.theme-menu-item-pro.v-list-item--active .v-list-item-title {
+  color: rgb(var(--v-theme-primary)) !important;
+  font-weight: 700 !important;
+}
+
+/* Icon box — error (logout) */
+.theme-icon-box-error {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--v-theme-error), 0.07);
+  border-radius: var(--radius-lg);
+  color: rgb(var(--v-theme-error));
+  transition: var(--transition-hover);
+}
+
+.profile-logout-pro:hover .theme-icon-box-error {
+  background: rgb(var(--v-theme-error)) !important;
+  color: white !important;
+}
+
+.profile-logout-pro:hover .theme-icon-box-error .v-icon {
+  color: white !important;
+}
+
+.profile-logout-pro:hover .v-list-item-title {
+  color: rgb(var(--v-theme-error)) !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   11. Page Toolbar — Premium Breadcrumb + Actions Bar
+   Surface-backed strip with breadcrumb trail,
+   page identity, and semantic action buttons.
+══════════════════════════════════════════════════════ */
+.page-toolbar-pro {
+  position: fixed !important;
+  top: 56px !important;
+  left: var(--v-layout-left) !important;
+  right: var(--v-layout-right) !important;
+  z-index: 20;
+  margin-bottom: 0;
+
+  /* Layer 2: Surface + micro-tint — subtly distinct from app-bar */
+  background: rgb(var(--v-theme-surface)) !important;
+  border-radius: 0;
+  border-bottom: 1px solid rgba(var(--v-border-color), 0.06);
+  border-top: none;
+  box-shadow: none !important;
+
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+/* Inner flex container */
+.toolbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  min-height: 42px;
+  gap: 0.75rem;
+}
+
+/* ── Navigation Section ── */
+.toolbar-nav-section {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+  flex: 1;
+}
+
+/* Home icon */
+.toolbar-home {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  color: rgba(var(--v-theme-on-surface), 0.4);
+  cursor: pointer;
+  transition: var(--transition-hover);
+  flex-shrink: 0;
+}
+
+.toolbar-home .v-icon {
+  font-size: 18px !important; /* Primary Anchor */
+}
+
+.toolbar-home:hover {
+  background: rgba(var(--v-theme-primary), 0.08);
+  color: rgb(var(--v-theme-primary));
+}
+
+.toolbar-home:active {
+  transform: scale(0.92);
+}
+
+/* Path arrow separators */
+.toolbar-path-arrow {
+  display: flex;
+  align-items: center;
+  color: rgba(var(--v-theme-on-surface), 0.18);
+  margin: 0 3px;
+  flex-shrink: 0;
+}
+
+/* Crumb trail */
+.toolbar-crumb-trail {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+/* Individual crumb */
+.toolbar-crumb {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(var(--v-theme-on-surface), 0.45);
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-md);
+  transition: color var(--motion-duration-fast) var(--motion-easing-out),
+              background var(--motion-duration-fast) var(--motion-easing-out);
+}
+
+.toolbar-crumb:hover:not(.toolbar-crumb--active) {
+  color: rgba(var(--v-theme-on-surface), 0.75);
+  background: rgba(var(--v-theme-on-surface), 0.04);
+}
+
+/* Active crumb */
+.toolbar-crumb--active {
+  color: rgb(var(--v-theme-primary));
+  font-weight: 700;
+  font-size: 13px;
+  background: rgba(var(--v-theme-primary), 0.06);
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  cursor: default;
+}
+
+/* Removed toolbar-page-title — Logic moved to active breadcrumb */
+
+/* ── Quick Action Buttons ── */
+.toolbar-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.tqa-btn.v-btn {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  border-radius: var(--radius-lg) !important;
+  color: rgba(var(--v-theme-on-surface), 0.4) !important;
+  transition: color var(--motion-duration-fast) var(--motion-easing-out),
+              background var(--motion-duration-fast) var(--motion-easing-out) !important;
+}
+
+.tqa-btn:active {
+  transform: none !important;
+}
+
+.tqa-btn .v-btn__overlay,
+.tqa-btn .v-btn__underlay {
+  display: none !important;
+}
+
+/* Semantic hover colors */
+.tqa-report:hover {
+  color: rgb(var(--v-theme-warning)) !important;
+  background: rgba(var(--v-theme-warning), 0.08) !important;
+}
+
+.tqa-settings:hover {
+  color: rgb(var(--v-theme-info)) !important;
+  background: rgba(var(--v-theme-info), 0.08) !important;
+}
+
+.tqa-refresh:hover {
+  color: rgb(var(--v-theme-success)) !important;
+  background: rgba(var(--v-theme-success), 0.08) !important;
+}
+
+/* Mini divider between actions */
+.tqa-divider {
+  width: 1px;
+  height: 16px;
+  background: rgba(var(--v-border-color), 0.08);
+  margin: 0 3px;
+  flex-shrink: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 959px) {
+  .page-toolbar-pro {
+    top: 56px !important;
+  }
+
+  .toolbar-inner {
+    padding: 0 12px;
+    min-height: 38px;
+  }
+
+  .toolbar-home {
+    width: 28px;
+    height: 28px;
+  }
+
+  .toolbar-crumb {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.375rem;
+  }
+
+  .tqa-btn.v-btn {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .page-toolbar-pro {
+    top: 52px !important;
+  }
+
+  .toolbar-inner {
+    padding: 0 10px;
+    min-height: 36px;
+    gap: 0.5rem;
+  }
+
+  .toolbar-crumb {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.3rem;
+  }
+
+  .toolbar-crumb--active {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+  }
+
+  .toolbar-path-arrow {
+    margin: 0 1px;
+  }
+
+  .tqa-btn.v-btn {
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+  }
+
+  .tqa-divider {
+    display: none;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   12. Layout HD — Main view wrapper & Content Card
+   Background hierarchy:
+   ┌─────────────────────────┐
+   │ App-bar      → surface  │  Layer 1 (cleanest)
+   │ Toolbar      → surface  │  Layer 2 (same, separated by border)
+   ├─────────────────────────┤
+   │ Layout bg    → background│  Layer 3 (recessed)
+   │  └ Content   → surface  │  Layer 4 (elevated card)
+   └─────────────────────────┘
+══════════════════════════════════════════════════════ */
+.layout-main-hd {
+  background-color: rgb(var(--v-theme-background)) !important;
+}
+
+.sneat-page-content-pro {
+  padding: 1.25rem;
+  padding-top: 56px;
+  min-height: calc(100vh - 56px);
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 959px) {
+  .sneat-page-content-pro {
+    padding: 1rem;
+    padding-top: 50px;
+    min-height: calc(100vh - 56px);
+  }
+}
+
+@media (max-width: 600px) {
+  .sneat-page-content-pro {
+    padding: 0.75rem;
+    padding-top: 46px;
+    min-height: calc(100vh - 52px);
+  }
+}
+
+/* Content Card — elevated surface on recessed background */
+.sneat-content-card-pro.v-card {
+  flex: 1;
+  background: rgb(var(--v-theme-surface)) !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(var(--v-border-color), 0.06) !important;
+  box-shadow: none !important;
+  overflow: auto !important;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 600px) {
+  .sneat-content-card-pro.v-card {
+    border-radius: 8px !important;
+  }
+}
+
+.sneat-content-card-pro > .v-card-text {
+  flex: 1;
+  padding: 1.5rem !important;
+}
+
+
+/* ══════════════════════════════════════════════════════
+   13. Logout Dialog
+══════════════════════════════════════════════════════ */
+.logout-dialog-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25) !important;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1) !important;
+}
+
+.logout-card-header {
+  background: linear-gradient(180deg, rgba(var(--v-theme-error), 0.05) 0%, transparent 100%);
+}
+
+.logout-dialog-card .icon-circle {
+  width: 72px;
+  height: 72px;
+  background: rgba(var(--v-theme-error), 0.1);
+  border-radius: 50%;
+  margin-bottom: 8px;
+}
+
+.logout-dialog-card .color-text-heading {
+  color: rgba(var(--v-theme-on-surface), 0.87);
+}
+
+.logout-dialog-card .shadow-sm {
+  box-shadow: 0 4px 12px rgba(var(--v-theme-error), 0.2) !important;
+}
+
+.logout-dialog-card .v-btn {
+  text-transform: none !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   14. Notification Badge Enhancement
+══════════════════════════════════════════════════════ */
+.navbar-icon-btn .v-badge .v-badge__badge {
+  min-width: 8px !important;
+  height: 8px !important;
+  padding: 0 !important;
+  border: 1.5px solid rgb(var(--v-theme-surface));
+}
+
+/* ══════════════════════════════════════════════════════
+   15. Responsive — Mobile overrides
+══════════════════════════════════════════════════════ */
+@media (max-width: 959px) {
+  .sneat-navbar .v-toolbar__content {
+    margin: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+    height: 56px !important;
+    border-radius: 0 !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .sneat-navbar .v-toolbar__content {
+    height: 52px !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   16. Responsive — Tablet
+══════════════════════════════════════════════════════ */
+@media (min-width: 960px) and (max-width: 1264px) {
+  .navbar-system-picker {
+    min-width: 160px;
+    max-width: 200px;
+  }
+}

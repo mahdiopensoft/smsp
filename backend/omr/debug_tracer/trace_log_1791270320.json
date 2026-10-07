@@ -1,0 +1,28 @@
+{
+  "timestamp": 1791270320,
+  "total_crops": 2,
+  "results": [
+    {
+      "crop_index": 0,
+      "label": "filled",
+      "confidence": 0.8846,
+      "distribution": {
+        "empty": 0.05767560005187988,
+        "filled": 0.8846487998962402,
+        "crossed": 0.05767560005187988
+      },
+      "needs_review": false
+    },
+    {
+      "crop_index": 1,
+      "label": "empty",
+      "confidence": 0.9572,
+      "distribution": {
+        "empty": 0.9571582078933716,
+        "filled": 0.02142089605331421,
+        "crossed": 0.02142089605331421
+      },
+      "needs_review": false
+    }
+  ]
+}

@@ -1,0 +1,1741 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-11-17 09:33+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: .\config\levels.py:5
+msgid "مدير النظام"
+msgstr "System Administrator"
+
+#: .\config\levels.py:6
+msgid "وزارة"
+msgstr "Ministry"
+
+#: .\config\levels.py:7
+msgid "محافظة"
+msgstr "Governorate"
+
+#: .\config\levels.py:8
+msgid " مديرية"
+msgstr "Directorate"
+
+#: .\config\levels.py:9
+msgid "مدرسة"
+msgstr "School"
+
+#: .\config\levels.py:10
+msgid "كلية/فرع"
+msgstr "College/Branch"
+
+#: .\school\apis\BranchClass.py:74
+msgid "لم يتم العثور على إعدادات النظام للسنة المحددة"
+msgstr "System settings for the specified year were not found"
+
+#: .\school\apis\BranchClass.py:77
+msgid "يرجى مراجعة إعدادات المدرسة "
+msgstr "Please review school settings"
+
+#: .\school\apis\BranchClass.py:83
+msgid "لم يتم تحديد انتهاء الخطة في إعدادات النظام"
+msgstr "Plan end date was not specified in system settings"
+
+#: .\school\apis\BranchClass.py:86
+msgid "يرجى مراجعة مكتب الوزارة للسماح بالتعديل على الخطة"
+msgstr "Please contact the ministry office to allow plan modification"
+
+#: .\school\apis\BranchClassSubject.py:43
+msgid "لا يمكن تعديل مادة محددة من الوزارة"
+msgstr "Cannot modify ministry-specified subject"
+
+#: .\school\apis\BranchClassSubject.py:46
+#: .\system_management\apis\ClassSubject.py:33
+msgid "لا يمكن تغيير المادة او الصف"
+msgstr "Cannot change subject or class"
+
+#: .\school\apis\BranchClassSubject.py:69
+msgid "لا يمكن حذف مادة محددة من الوزارة"
+msgstr "Cannot delete ministry-specified subject"
+
+#: .\school\apis\BranchMonth.py:37 .\school\apis\Student.py:59
+#: .\school\apis\Student.py:141
+msgid "المستخدم غير مرتبط بمدرسة"
+msgstr "User is not associated with a school"
+
+#: .\school\apis\BranchSettingStudentNo.py:92
+msgid "قيمة عدد الطلاب غير صحيحة"
+msgstr "Invalid student count value"
+
+#: .\school\apis\BranchSettingStudentNo.py:94
+#, python-brace-format
+msgid ""
+"عدد الطلاب الحالي ({current_student_no})  اكبر من العدد المحدد ({student_no})"
+msgstr ""
+"Current student count ({current_student_no}) is greater than the specified "
+"limit ({student_no})"
+
+#: .\school\apis\ClassDivisionAssign.py:48
+msgid "يجب ارسال قائمه من العناصر"
+msgstr "A list of items must be sent"
+
+#: .\school\apis\ClassDivisionHall.py:81
+msgid "تم تحديث الشعب بنجاح"
+msgstr "Sections updated successfully"
+
+#: .\school\apis\Student.py:59 .\school\apis\Student.py:141
+#: .\school\apis\StudentClass.py:68
+msgid "خطاء"
+msgstr "Error"
+
+#: .\school\apis\Student.py:275
+msgid "السنة الاكاديمية غير موجود"
+msgstr "Academic year does not exist"
+
+#: .\school\apis\Student.py:278
+msgid "لا توجد إعدادات المدرسة لهذا السنة"
+msgstr "No school settings for this year"
+
+#: .\school\apis\Student.py:281 .\school\apis\StudentClass.py:68
+msgid "لقد تجاوزت عدد الطلاب المسموح به"
+msgstr "You have exceeded the allowed number of students"
+
+#: .\school\apis\Student.py:285
+msgid "لا يمكن تسجيل طالبة في مدرسة طلاب"
+msgstr "Cannot register a female student in a male school"
+
+#: .\school\apis\Student.py:288
+msgid "لا يمكن تسجيل طالب في مدرسة طالبات"
+msgstr "Cannot register a male student in a female school"
+
+#: .\school\apis\StudentAttendance.py:182
+msgid "لا توجد حصة في الجدول الاسبوعي"
+msgstr "No class in the weekly schedule"
+
+#: .\school\apis\StudentFee.py:48 .\school\apis\StudentFee.py:75
+msgid "لا يوجد فئة تخفيض او رسوم من هذا النوع"
+msgstr "No discount category or fee type of this kind"
+
+#: .\school\models\Activity.py:17 .\school\models\BranchClass.py:14
+#: .\school\models\BranchMonth.py:12 .\school\models\BranchOccasion.py:16
+#: .\school\models\BranchSettingSystem.py:10 .\school\models\Building.py:10
+#: .\school\models\Committees.py:15 .\school\models\DiscountCategories.py:15
+#: .\school\models\ExamSchedule.py:15 .\school\models\ExamsPeriod.py:11
+#: .\school\models\FeeType.py:13 .\school\models\Homework.py:21
+#: .\school\models\InstallmentSettings.py:10
+#: .\school\models\SchoolWeeklySchedule.py:20 .\school\models\SeatNumbers.py:15
+#: .\school\models\StudentClass.py:16 .\school\models\Teacher.py:14
+#: .\school_bus\models\Bus.py:17 .\school_bus\models\Driver.py:24
+msgid "Organization"
+msgstr "Organization"
+
+#: .\school\models\Activity.py:18 .\school\models\Attachment.py:12
+#: .\school\models\BranchClass.py:16 .\school\models\BranchOccasion.py:17
+#: .\school\models\BranchSettingSystem.py:11
+#: .\school_bus\models\StudentBusFee.py:17
+#: .\system_management\models\Generalizations.py:16
+#: .\system_management\models\Occasion.py:16
+#: .\system_management\models\SemesterPlan.py:12
+#: .\system_management\models\SettingSystem.py:16
+msgid "Year"
+msgstr "Year"
+
+#: .\school\models\Activity.py:19 .\system_management\models\Class.py:12
+msgid "Type"
+msgstr "Type"
+
+#: .\school\models\Activity.py:20 .\school\models\Building.py:11
+#: .\school\models\FeeType.py:9 .\school\models\Hall.py:10
+#: .\school\models\Homework.py:24 .\system_management\models\Day.py:10
+#: .\system_management\models\Division.py:9
+#: .\system_management\models\Lecture.py:12
+msgid "Name"
+msgstr "Name"
+
+#: .\school\models\Activity.py:21
+msgid "Responsible"
+msgstr "Responsible"
+
+#: .\school\models\Activity.py:22 .\school\models\Rating.py:15
+msgid "Start Date"
+msgstr "Start Date"
+
+#: .\school\models\Activity.py:23 .\school\models\Rating.py:16
+msgid "End Date"
+msgstr "End Date"
+
+#: .\school\models\Activity.py:24 .\school\models\Fees.py:16
+#: .\school\models\Fees.py:20 .\school\models\StudentFee.py:15
+#: .\school_bus\models\StudentBusFee.py:18
+msgid "Fee"
+msgstr "Fee"
+
+#: .\school\models\Activity.py:25
+msgid "is_ministry"
+msgstr "is_ministry"
+
+#: .\school\models\Activity.py:26 .\school\models\BranchClass.py:15
+#: .\school\models\ClassDivisionHall.py:17
+msgid "Student Count"
+msgstr "Student Count"
+
+#: .\school\models\Activity.py:27
+msgid "Location"
+msgstr "Location"
+
+#: .\school\models\Activity.py:29 .\school_bus\models\Driver.py:26
+#: .\school_bus\models\StudentBusFee.py:21
+#: .\system_management\models\Class.py:17
+#: .\system_management\models\ClassDocument.py:12
+#: .\system_management\models\ClassSubject.py:19
+#: .\system_management\models\Day.py:15
+#: .\system_management\models\Division.py:13
+#: .\system_management\models\EBook.py:21
+#: .\system_management\models\Estimate.py:13
+#: .\system_management\models\Generalizations.py:17
+#: .\system_management\models\Lecture.py:14
+#: .\system_management\models\News.py:21
+#: .\system_management\models\Occasion.py:17
+#: .\system_management\models\Schedule.py:17
+#: .\system_management\models\Semester.py:12
+#: .\system_management\models\Subject.py:14
+msgid "Note"
+msgstr "Note"
+
+#: .\school\models\Activity.py:37 .\school\models\StudentActivity.py:11
+msgid "Activity"
+msgstr "Activity"
+
+#: .\school\models\Activity.py:38
+msgid "Activities"
+msgstr "Activities"
+
+#: .\school\models\Activity.py:51 .\school\models\Activity.py:53
+msgid "صيغة التاريخ يجب أن تكون 1447-04-02"
+msgstr "Date format should be 1447-04-02"
+
+#: .\school\models\Activity.py:58
+msgid "صيغة التاريخ غير صحيح"
+msgstr "Invalid date format"
+
+#: .\school\models\Activity.py:60
+msgid "تاريخ النهاية يجب أن يكون بعد تاريخ البداية"
+msgstr "End date must be after start date"
+
+#: .\school\models\Attachment.py:9 .\school\models\BranchOccasion.py:11
+#: .\system_management\models\Generalizations.py:10
+#: .\system_management\models\News.py:12
+#: .\system_management\models\Occasion.py:11
+msgid "Title"
+msgstr "Title"
+
+#: .\school\models\Attachment.py:10
+msgid "file"
+msgstr "file"
+
+#: .\school\models\Attachment.py:11 .\school\models\BranchOccasion.py:13
+#: .\school\models\StudentAttendance.py:12
+#: .\system_management\models\Generalizations.py:12
+#: .\system_management\models\Generalizations.py:13
+#: .\system_management\models\News.py:15
+#: .\system_management\models\Occasion.py:13
+#: .\system_management\models\Occasion.py:14
+msgid "Date"
+msgstr "Date"
+
+#: .\school\models\Attachment.py:15 .\school\models\Attachment.py:16
+msgid "Attachment"
+msgstr "Attachment"
+
+#: .\school\models\BranchClass.py:13 .\system_management\models\Class.py:24
+#: .\system_management\models\ClassDocument.py:9
+msgid "Class"
+msgstr "Class"
+
+#: .\school\models\BranchClass.py:21 .\school\models\Fees.py:12
+msgid "Organization Class"
+msgstr "Organization Class"
+
+#: .\school\models\BranchClass.py:22
+msgid "Organization Classes"
+msgstr "Organization Classes"
+
+#: .\school\models\BranchClassSubject.py:14
+#: .\school\models\ClassDivisionHall.py:12
+#: .\school\models\SettingsStudentCommittees.py:11
+#: .\school\models\StudentClass.py:17
+msgid "Branch Class"
+msgstr "Branch Class"
+
+#: .\school\models\BranchClassSubject.py:15 .\school\models\Homework.py:17
+#: .\system_management\models\ClassSubject.py:14
+#: .\system_management\models\Subject.py:20
+msgid "Subject"
+msgstr "Subject"
+
+#: .\school\models\BranchClassSubject.py:16
+#: .\system_management\models\ClassSubject.py:15
+msgid "Minimum Score"
+msgstr "Minimum Score"
+
+#: .\school\models\BranchClassSubject.py:17
+#: .\system_management\models\ClassSubject.py:16
+msgid "Maximum Score"
+msgstr "Maximum Score"
+
+#: .\school\models\BranchClassSubject.py:18
+#: .\system_management\models\ClassSubject.py:17
+msgid "Added to Total"
+msgstr "Added to Total"
+
+#: .\school\models\BranchClassSubject.py:19
+#: .\system_management\models\Class.py:14
+#: .\system_management\models\Subject.py:13
+msgid "Is Ministerial"
+msgstr "Is Ministerial"
+
+#: .\school\models\BranchClassSubject.py:27
+msgid "Branch Class Subject"
+msgstr "Branch Class Subject"
+
+#: .\school\models\BranchClassSubject.py:28
+msgid "Branch Class Subjects"
+msgstr "Branch Class Subjects"
+
+#: .\school\models\BranchMonth.py:13 .\school_bus\models\StudentBusFee.py:16
+#: .\system_management\models\SemesterPlan.py:20
+msgid "Semester Plan"
+msgstr "Semester Plan"
+
+#: .\school\models\BranchMonth.py:14 .\system_management\models\Semester.py:11
+#: .\system_management\models\SemesterPlan.py:14
+msgid "Is Current"
+msgstr "Is Current"
+
+#: .\school\models\BranchMonth.py:18
+msgid "Branch Month"
+msgstr "Branch Month"
+
+#: .\school\models\BranchMonth.py:19
+msgid "Branch Months"
+msgstr "Branch Months"
+
+#: .\school\models\BranchOccasion.py:12
+#: .\system_management\models\Generalizations.py:11
+#: .\system_management\models\News.py:13
+#: .\system_management\models\Occasion.py:12
+msgid "Description"
+msgstr "Description"
+
+#: .\school\models\BranchOccasion.py:14
+#: .\system_management\models\Generalizations.py:14
+#: .\system_management\models\News.py:19
+#: .\system_management\models\Occasion.py:19
+msgid "active"
+msgstr "active"
+
+#: .\school\models\BranchOccasion.py:15
+#: .\system_management\models\Generalizations.py:15
+#: .\system_management\models\Occasion.py:15
+msgid "target audience"
+msgstr "target audience"
+
+#: .\school\models\BranchOccasion.py:20 .\school\models\BranchOccasion.py:21
+msgid "BranchOccasion"
+msgstr "BranchOccasion"
+
+#: .\school\models\BranchSettingSystem.py:9
+msgid "Type Numbering Seating Number"
+msgstr "Type Numbering Seating Number"
+
+#: .\school\models\BranchSettingSystem.py:12
+msgid "Allow change Plan"
+msgstr "Allow change Plan"
+
+#: .\school\models\BranchSettingSystem.py:14
+msgid "Student Number"
+msgstr "Student Number"
+
+#: .\school\models\BranchSettingSystem.py:15
+msgid "Attendance Mark"
+msgstr "Attendance Mark"
+
+#: .\school\models\BranchSettingSystem.py:16
+msgid "Assignments Mark"
+msgstr "Assignments Mark"
+
+#: .\school\models\BranchSettingSystem.py:17
+msgid "Oral Mark"
+msgstr "Oral Mark"
+
+#: .\school\models\BranchSettingSystem.py:18
+msgid "Exam Mark"
+msgstr "Exam Mark"
+
+#: .\school\models\BranchSettingSystem.py:21
+msgid "Attendance Editable "
+msgstr "Attendance Editable"
+
+#: .\school\models\BranchSettingSystem.py:23
+msgid "Branch Setting System"
+msgstr "Branch Setting System"
+
+#: .\school\models\BranchSettingSystem.py:24
+msgid "Branch Setting Systems"
+msgstr "Branch Setting Systems"
+
+#: .\school\models\Building.py:12 .\school\models\Teacher.py:31
+msgid "Place"
+msgstr "Place"
+
+#: .\school\models\Building.py:13
+msgid "Floors Number"
+msgstr "Floors Number"
+
+#: .\school\models\Building.py:14
+msgid "Rooms Number"
+msgstr "Rooms Number"
+
+#: .\school\models\Building.py:15
+msgid "Workshops Number"
+msgstr "Workshops Number"
+
+#: .\school\models\Building.py:16
+msgid "Cafeteria"
+msgstr "Cafeteria"
+
+#: .\school\models\Building.py:23 .\school\models\Hall.py:9
+msgid "Building"
+msgstr "Building"
+
+#: .\school\models\Building.py:24
+msgid "Buildings"
+msgstr "Buildings"
+
+#: .\school\models\ClassDivisionHall.py:13 .\school\models\Homework.py:19
+#: .\school\models\SchoolWeeklySchedule.py:16
+#: .\system_management\models\Division.py:19
+msgid "Division"
+msgstr "Division"
+
+#: .\school\models\ClassDivisionHall.py:14 .\school\models\Committees.py:12
+#: .\school\models\Hall.py:19
+msgid "Hall"
+msgstr "Hall"
+
+#: .\school\models\ClassDivisionHall.py:15
+#: .\school\models\SchoolWeeklySchedule.py:23
+#: .\school\models\StudentClass.py:19
+msgid "Year Of Study"
+msgstr "Year Of Study"
+
+#: .\school\models\ClassDivisionHall.py:20 .\school\models\StudentClass.py:18
+msgid "Class Division Hall"
+msgstr "Class Division Hall"
+
+#: .\school\models\ClassDivisionHall.py:21
+msgid "Class Division Halls"
+msgstr "Class Division Halls"
+
+#: .\school\models\Committees.py:13
+msgid "Committee Name"
+msgstr "Committee Name"
+
+#: .\school\models\Committees.py:14
+msgid "committee Number"
+msgstr "committee Number"
+
+#: .\school\models\Committees.py:19 .\school\models\SeatNumbers.py:12
+#: .\school\models\SettingsStudentCommittees.py:10
+msgid "Committee"
+msgstr "Committee"
+
+#: .\school\models\Committees.py:20
+msgid "Committees"
+msgstr "Committees"
+
+#: .\school\models\DiscountCategories.py:12
+msgid "Category"
+msgstr "Category"
+
+#: .\school\models\DiscountCategories.py:13 .\school\models\StudentClass.py:21
+msgid "Amount Type"
+msgstr "Amount Type"
+
+#: .\school\models\DiscountCategories.py:14
+msgid "Amount"
+msgstr "Amount"
+
+#: .\school\models\DiscountCategories.py:22 .\school\models\StudentFee.py:13
+msgid "Discount Category"
+msgstr "Discount Category"
+
+#: .\school\models\DiscountCategories.py:23
+msgid "Discount Categories"
+msgstr "Discount Categories"
+
+#: .\school\models\ExamSchedule.py:16 .\school\models\Rating.py:13
+#: .\school\models\SchoolWeeklySchedule.py:15
+#: .\school\models\StudentSubject.py:15
+msgid "Organization Class Subject"
+msgstr "Organization Class Subject"
+
+#: .\school\models\ExamSchedule.py:17
+#: .\school\models\SchoolWeeklySchedule.py:17
+#: .\school\models\StudentSubject.py:16 .\system_management\models\EBook.py:14
+#: .\system_management\models\Semester.py:19
+#: .\system_management\models\SemesterPlan.py:11
+msgid "Semester"
+msgstr "Semester"
+
+#: .\school\models\ExamSchedule.py:18
+msgid "Exam Period"
+msgstr "Exam Period"
+
+#: .\school\models\ExamSchedule.py:19
+msgid "Exam Date"
+msgstr "Exam Date"
+
+#: .\school\models\ExamSchedule.py:24
+msgid "Exam Schedule"
+msgstr "Exam Schedule"
+
+#: .\school\models\ExamSchedule.py:25
+msgid "Exam Schedules"
+msgstr "Exam Schedules"
+
+#: .\school\models\ExamsPeriod.py:12 .\system_management\models\Schedule.py:15
+msgid "Period"
+msgstr "Period"
+
+#: .\school\models\ExamsPeriod.py:13
+msgid "Start At"
+msgstr "Start At"
+
+#: .\school\models\ExamsPeriod.py:14
+msgid "End At"
+msgstr "End At"
+
+#: .\school\models\ExamsPeriod.py:18
+msgid "Exams Period"
+msgstr "Exams Period"
+
+#: .\school\models\ExamsPeriod.py:19
+msgid "Exams Periods"
+msgstr "Exams Periods"
+
+#: .\school\models\FeeType.py:10
+msgid "Reducible"
+msgstr "Reducible"
+
+#: .\school\models\FeeType.py:11
+msgid "Installment Available"
+msgstr "Installment Available"
+
+#: .\school\models\FeeType.py:12
+msgid "Subscribe Type"
+msgstr "Subscribe Type"
+
+#: .\school\models\FeeType.py:20 .\school\models\Fees.py:15
+msgid "Fee Type"
+msgstr "Fee Type"
+
+#: .\school\models\FeeType.py:21
+msgid "Fee Types"
+msgstr "Fee Types"
+
+#: .\school\models\Fees.py:14
+msgid "Academic Year"
+msgstr "Academic Year"
+
+#: .\school\models\Fees.py:21
+msgid "Fees"
+msgstr "Fees"
+
+#: .\school\models\Hall.py:11
+msgid "Seats Number"
+msgstr "Seats Number"
+
+#: .\school\models\Hall.py:12
+msgid "Floor Number"
+msgstr "Floor Number"
+
+#: .\school\models\Hall.py:20
+msgid "Halls"
+msgstr "Halls"
+
+#: .\school\models\Homework.py:18
+msgid "Employee"
+msgstr "Employee"
+
+#: .\school\models\Homework.py:20 .\system_management\models\Month.py:15
+#: .\system_management\models\SemesterPlan.py:13
+msgid "Month"
+msgstr "Month"
+
+#: .\school\models\Homework.py:22 .\system_management\models\Lecture.py:20
+#: .\system_management\models\Lecture.py:21
+msgid "Lecture"
+msgstr "Lecture"
+
+#: .\school\models\Homework.py:25
+msgid "Deadline"
+msgstr "Deadline"
+
+#: .\school\models\Homework.py:26
+msgid "Is Check"
+msgstr "Is Check"
+
+#: .\school\models\Homework.py:32 .\school\models\StudentHomework.py:11
+msgid "Homework"
+msgstr "Homework"
+
+#: .\school\models\Homework.py:33
+msgid "Homeworks"
+msgstr "Homeworks"
+
+#: .\school\models\InstallmentSettings.py:8
+msgid "Percentage"
+msgstr "Percentage"
+
+#: .\school\models\InstallmentSettings.py:9
+msgid "Index"
+msgstr "Index"
+
+#: .\school\models\InstallmentSettings.py:14
+msgid "Installment Setting"
+msgstr "Installment Setting"
+
+#: .\school\models\InstallmentSettings.py:15
+msgid "Installment Settings"
+msgstr "Installment Settings"
+
+#: .\school\models\InstallmentsPayments.py:10
+#: .\school\models\PaymentsReciept.py:8 .\school\models\StudentFee.py:24
+msgid "Student Fee"
+msgstr "Student Fee"
+
+#: .\school\models\InstallmentsPayments.py:11
+msgid "Installment Number"
+msgstr "Installment Number"
+
+#: .\school\models\InstallmentsPayments.py:12
+#: .\school\models\StudentActivity.py:12
+msgid "Is Paid"
+msgstr "Is Paid"
+
+#: .\school\models\InstallmentsPayments.py:13 .\school\models\PayReciept.py:8
+#: .\school\models\PaymentsReciept.py:9 .\school\models\StudentFee.py:18
+#: .\school_bus\models\StudentBusFee.py:19
+msgid "Paid Amount"
+msgstr "Paid Amount"
+
+#: .\school\models\InstallmentsPayments.py:14
+msgid "Installment Date"
+msgstr "Installment Date"
+
+#: .\school\models\InstallmentsPayments.py:21
+msgid "Installment Payment"
+msgstr "Installment Payment"
+
+#: .\school\models\InstallmentsPayments.py:22
+msgid "Installment Payments"
+msgstr "Installment Payments"
+
+#: .\school\models\LectureOperation.py:11
+msgid "lecture"
+msgstr "lecture"
+
+#: .\school\models\LectureOperation.py:12
+msgid "Class Division"
+msgstr "Class Division"
+
+#: .\school\models\LectureOperation.py:14
+msgid "description"
+msgstr "description"
+
+#: .\school\models\LectureOperation.py:15
+#: .\system_management\models\Lecture.py:13
+msgid "Take Date"
+msgstr "Take Date"
+
+#: .\school\models\LectureOperation.py:16
+msgid "Is Taken"
+msgstr "Is Taken"
+
+#: .\school\models\LectureOperation.py:23
+#: .\school\models\LectureOperation.py:24
+msgid "LectureOperation"
+msgstr "LectureOperation"
+
+#: .\school\models\PayReciept.py:7 .\school_bus\models\StudentBusFee.py:26
+msgid "Student Bus Fee"
+msgstr "Student Bus Fee"
+
+#: .\school\models\PayReciept.py:9 .\school\models\PaymentsReciept.py:10
+msgid "Paid By"
+msgstr "Paid By"
+
+#: .\school\models\PayReciept.py:12 .\school\models\PaymentsReciept.py:14
+msgid "Payment Receipt"
+msgstr "Payment Receipt"
+
+#: .\school\models\PayReciept.py:13 .\school\models\PaymentsReciept.py:15
+msgid "Payment Receipts"
+msgstr "Payment Receipts"
+
+#: .\school\models\Rating.py:12 .\school\models\Student.py:45
+#: .\school\models\StudentClass.py:15 .\school\models\StudentDocument.py:13
+#: .\school\models\StudentFee.py:14 .\school\models\StudentHomework.py:10
+#: .\school_bus\models\StudentBus.py:10
+msgid "Student"
+msgstr "Student"
+
+#: .\school\models\Rating.py:14 .\school\models\SchoolWeeklySchedule.py:18
+#: .\school\models\Teacher.py:43 .\school_bus\models\Bus.py:15
+msgid "Teacher"
+msgstr "Teacher"
+
+#: .\school\models\Rating.py:17 .\school\models\StudentSubject.py:21
+#: .\system_management\models\Estimate.py:19
+msgid "Estimate"
+msgstr "Estimate"
+
+#: .\school\models\Rating.py:21
+msgid "Rating"
+msgstr "Rating"
+
+#: .\school\models\Rating.py:22
+msgid "Ratings"
+msgstr "Ratings"
+
+#: .\school\models\SchoolWeeklySchedule.py:19
+#: .\system_management\models\Schedule.py:24
+msgid "Schedule"
+msgstr "Schedule"
+
+#: .\school\models\SchoolWeeklySchedule.py:21
+msgid "Morning Period"
+msgstr "Morning Period"
+
+#: .\school\models\SchoolWeeklySchedule.py:22
+#: .\system_management\models\Day.py:21
+msgid "Day"
+msgstr "Day"
+
+#: .\school\models\SchoolWeeklySchedule.py:26
+msgid "School Weekly Schedule"
+msgstr "School Weekly Schedule"
+
+#: .\school\models\SchoolWeeklySchedule.py:27
+msgid "School Weekly Schedules"
+msgstr "School Weekly Schedules"
+
+#: .\school\models\SeatNumbers.py:11 .\school\models\StudentAttendance.py:10
+#: .\school\models\StudentClass.py:32 .\school\models\StudentSubject.py:14
+msgid "Student Class"
+msgstr "Student Class"
+
+#: .\school\models\SeatNumbers.py:13 .\school\models\SeatNumbers.py:19
+#: .\school_bus\models\Bus.py:21
+msgid "Seat Number"
+msgstr "Seat Number"
+
+#: .\school\models\SeatNumbers.py:14
+msgid "Secret Number"
+msgstr "Secret Number"
+
+#: .\school\models\SeatNumbers.py:20
+msgid "Seat Numbers"
+msgstr "Seat Numbers"
+
+#: .\school\models\SettingsStudentCommittees.py:13
+msgid "Student Number per Class"
+msgstr "Student Number per Class"
+
+#: .\school\models\SettingsStudentCommittees.py:16
+msgid "Student Committee Setting"
+msgstr "Student Committee Setting"
+
+#: .\school\models\SettingsStudentCommittees.py:17
+msgid "Student Committee Settings"
+msgstr "Student Committee Settings"
+
+#: .\school\models\Student.py:18
+msgid "Parent"
+msgstr "Parent"
+
+#: .\school\models\Student.py:19 .\school\models\Teacher.py:13
+#: .\system_management\models\Notifications.py:18
+msgid "User"
+msgstr "User"
+
+#: .\school\models\Student.py:20 .\school\models\Teacher.py:15
+#: .\system_management\models\Class.py:9
+#: .\system_management\models\Estimate.py:9
+#: .\system_management\models\Semester.py:9
+#: .\system_management\models\Subject.py:11
+msgid "Arabic Name"
+msgstr "Arabic Name"
+
+#: .\school\models\Student.py:21 .\school\models\Teacher.py:16
+#: .\system_management\models\Class.py:10 .\system_management\models\Day.py:11
+#: .\system_management\models\Estimate.py:10
+#: .\system_management\models\Semester.py:10
+#: .\system_management\models\Subject.py:12
+msgid "English Name"
+msgstr "English Name"
+
+#: .\school\models\Student.py:22 .\school\models\Teacher.py:35
+msgid "Gender"
+msgstr "Gender"
+
+#: .\school\models\Student.py:23 .\school\models\Teacher.py:17
+msgid "Nationality"
+msgstr "Nationality"
+
+#: .\school\models\Student.py:24 .\school\models\Teacher.py:18
+msgid "Birthdate"
+msgstr "Birthdate"
+
+#: .\school\models\Student.py:25
+msgid "Birth Place"
+msgstr "Birth Place"
+
+#: .\school\models\Student.py:26 .\school\models\Teacher.py:20
+#: .\school_bus\models\Driver.py:13
+msgid "Address"
+msgstr "Address"
+
+#: .\school\models\Student.py:27
+msgid "Country"
+msgstr "Country"
+
+#: .\school\models\Student.py:28 .\school\models\Teacher.py:29
+msgid "Directorate"
+msgstr "Directorate"
+
+#: .\school\models\Student.py:29
+msgid "Parent Relation"
+msgstr "Parent Relation"
+
+#: .\school\models\Student.py:30 .\school\models\Teacher.py:21
+#: .\school_bus\models\Driver.py:14
+msgid "Phone Number"
+msgstr "Phone Number"
+
+#: .\school\models\Student.py:31 .\school\models\Teacher.py:22
+#: .\school_bus\models\Driver.py:15
+msgid "Home Number"
+msgstr "Home Number"
+
+#: .\school\models\Student.py:32
+msgid "Student Image"
+msgstr "Student Image"
+
+#: .\school\models\Student.py:33
+msgid "Registration Form"
+msgstr "Registration Form"
+
+#: .\school\models\Student.py:34
+msgid "Academic Number"
+msgstr "Academic Number"
+
+#: .\school\models\Student.py:35
+msgid "Registration Date"
+msgstr "Registration Date"
+
+#: .\school\models\Student.py:46
+msgid "Students"
+msgstr "Students"
+
+#: .\school\models\StudentActivity.py:10
+#: .\school_bus\models\StudentBusFee.py:14
+msgid "StudentClass"
+msgstr "StudentClass"
+
+#: .\school\models\StudentActivity.py:16
+msgid "Student Activity"
+msgstr "Student Activity"
+
+#: .\school\models\StudentActivity.py:17
+msgid "Student Activities"
+msgstr "Student Activities"
+
+#: .\school\models\StudentAttendance.py:11
+msgid "SemesterPlan"
+msgstr "SemesterPlan"
+
+#: .\school\models\StudentAttendance.py:13
+#: .\school\models\StudentAttendanceSchedule.py:13
+msgid "Is Attendance"
+msgstr "Is Attendance"
+
+#: .\school\models\StudentAttendance.py:14
+#: .\school\models\StudentAttendanceSchedule.py:14
+msgid "Is Permitted"
+msgstr "Is Permitted"
+
+#: .\school\models\StudentAttendance.py:15
+msgid "After Break"
+msgstr "After Break"
+
+#: .\school\models\StudentAttendance.py:23
+#: .\school\models\StudentAttendanceSchedule.py:21
+#: .\school\models\StudentPermission.py:12
+#: .\school\models\StudentPermission.py:13
+msgid "Student Attendance"
+msgstr "Student Attendance"
+
+#: .\school\models\StudentAttendance.py:24
+#: .\school\models\StudentAttendanceSchedule.py:22
+msgid "Student Attendances"
+msgstr "Student Attendances"
+
+#: .\school\models\StudentAttendanceSchedule.py:11
+msgid "Student attendance"
+msgstr "Student attendance"
+
+#: .\school\models\StudentAttendanceSchedule.py:12
+msgid "period"
+msgstr "period"
+
+#: .\school\models\StudentClass.py:22 .\school\models\StudentSubject.py:20
+msgid "Total"
+msgstr "Total"
+
+#: .\school\models\StudentClass.py:23 .\school\models\StudentSubject.py:18
+msgid "Status"
+msgstr "Status"
+
+#: .\school\models\StudentClass.py:25
+msgid "Registration Mode"
+msgstr "Registration Mode"
+
+#: .\school\models\StudentClass.py:33
+msgid "Student Classes"
+msgstr "Student Classes"
+
+#: .\school\models\StudentDocument.py:12
+#: .\system_management\models\ClassDocument.py:8
+msgid "Document"
+msgstr "Document"
+
+#: .\school\models\StudentDocument.py:14 .\system_management\models\EBook.py:15
+#: .\system_management\models\News.py:14
+msgid "Image"
+msgstr "Image"
+
+#: .\school\models\StudentDocument.py:15
+msgid "Issuer"
+msgstr "Issuer"
+
+#: .\school\models\StudentDocument.py:16
+msgid "Released Date"
+msgstr "Released Date"
+
+#: .\school\models\StudentDocument.py:17
+msgid "Acquired"
+msgstr "Acquired"
+
+#: .\school\models\StudentDocument.py:23
+msgid "Student Document"
+msgstr "Student Document"
+
+#: .\school\models\StudentDocument.py:24
+msgid "Student Documents"
+msgstr "Student Documents"
+
+#: .\school\models\StudentFee.py:16
+msgid "Installments Number"
+msgstr "Installments Number"
+
+#: .\school\models\StudentFee.py:17
+msgid "Discount Value"
+msgstr "Discount Value"
+
+#: .\school\models\StudentFee.py:19
+msgid "Remaining Amount"
+msgstr "Remaining Amount"
+
+#: .\school\models\StudentFee.py:20
+msgid "First Installment Date"
+msgstr "First Installment Date"
+
+#: .\school\models\StudentFee.py:21
+msgid "Days Between Installments"
+msgstr "Days Between Installments"
+
+#: .\school\models\StudentFee.py:25
+msgid "Student Fees"
+msgstr "Student Fees"
+
+#: .\school\models\StudentHomework.py:12
+msgid "Is Checked"
+msgstr "Is Checked"
+
+#: .\school\models\StudentHomework.py:19
+msgid "Student Homework"
+msgstr "Student Homework"
+
+#: .\school\models\StudentHomework.py:20
+msgid "Student Homeworks"
+msgstr "Student Homeworks"
+
+#: .\school\models\StudentPermission.py:15
+msgid "Permission Type"
+msgstr "Permission Type"
+
+#: .\school\models\StudentPermission.py:16
+msgid "Permission Mobile"
+msgstr "Permission Mobile"
+
+#: .\school\models\StudentPermission.py:17
+msgid "Permission Name"
+msgstr "Permission Name"
+
+#: .\school\models\StudentPermission.py:18
+msgid "Permission Reason"
+msgstr "Permission Reason"
+
+#: .\school\models\StudentPermission.py:19
+msgid "Permission Time"
+msgstr "Permission Time"
+
+#: .\school\models\StudentPermission.py:25
+#: .\school\models\StudentPermission.py:26
+msgid "Student Permission"
+msgstr "Student Permission"
+
+#: .\school\models\StudentSubject.py:17
+msgid "Collector"
+msgstr "Collector"
+
+#: .\school\models\StudentSubject.py:19
+msgid "Final Exam"
+msgstr "Final Exam"
+
+#: .\school\models\StudentSubject.py:36
+msgid "Student Subject"
+msgstr "Student Subject"
+
+#: .\school\models\StudentSubject.py:37
+msgid "Student Subjects"
+msgstr "Student Subjects"
+
+#: .\school\models\Teacher.py:19
+msgid "Is Approved"
+msgstr "Is Approved"
+
+#: .\school\models\Teacher.py:23
+msgid "Job ID"
+msgstr "Job ID"
+
+#: .\school\models\Teacher.py:24
+msgid "Job Title"
+msgstr "Job Title"
+
+#: .\school\models\Teacher.py:25
+msgid "Children Count"
+msgstr "Children Count"
+
+#: .\school\models\Teacher.py:26
+msgid "Service Status"
+msgstr "Service Status"
+
+#: .\school\models\Teacher.py:27
+msgid "Role "
+msgstr "Role"
+
+#: .\school\models\Teacher.py:32
+msgid "Date of Employment"
+msgstr "Date of Employment"
+
+#: .\school\models\Teacher.py:34
+msgid "Work Period"
+msgstr "Work Period"
+
+#: .\school\models\Teacher.py:36 .\school_bus\models\Driver.py:18
+msgid "Marital Status"
+msgstr "Marital Status"
+
+#: .\school\models\Teacher.py:44
+msgid "Teachers"
+msgstr "Teachers"
+
+#: .\school\serializers\Committees.py:25
+msgid "هذه القاعة مرتبطة بالفعل بلجنة اخرى"
+msgstr "This hall is already associated with another committee"
+
+#: .\school\serializers\Committees.py:42
+msgid "القاعة المحددة غير موجودة"
+msgstr "The specified hall does not exist"
+
+#: .\school\serializers\Committees.py:45
+msgid "لا يمكن الحصول على سعة القاعة"
+msgstr "Cannot get hall capacity"
+
+#: .\school\serializers\DiscountCategories.py:22
+msgid "النسبة المئوية لا يجب ان تتعدى 100"
+msgstr "Percentage should not exceed 100"
+
+#: .\school_bus\models\Bus.py:16 .\school_bus\models\Driver.py:31
+msgid "Driver"
+msgstr "Driver"
+
+#: .\school_bus\models\Bus.py:18
+msgid "Itinerary"
+msgstr "Itinerary"
+
+#: .\school_bus\models\Bus.py:19
+msgid "Bus Type"
+msgstr "Bus Type"
+
+#: .\school_bus\models\Bus.py:20
+msgid "Bus Number"
+msgstr "Bus Number"
+
+#: .\school_bus\models\Bus.py:22
+msgid "Color"
+msgstr "Color"
+
+#: .\school_bus\models\Bus.py:23
+msgid "Car Card"
+msgstr "Car Card"
+
+#: .\school_bus\models\Bus.py:24
+msgid "Card Issuance"
+msgstr "Card Issuance"
+
+#: .\school_bus\models\Bus.py:25
+msgid "Card Expiration"
+msgstr "Card Expiration"
+
+#: .\school_bus\models\Bus.py:29 .\school_bus\models\StudentBus.py:11
+#: .\school_bus\models\StudentBusFee.py:15
+msgid "Bus"
+msgstr "Bus"
+
+#: .\school_bus\models\Bus.py:30
+msgid "Buses"
+msgstr "Buses"
+
+#: .\school_bus\models\Driver.py:12
+msgid "Driver Name"
+msgstr "Driver Name"
+
+#: .\school_bus\models\Driver.py:16
+msgid "Email"
+msgstr "Email"
+
+#: .\school_bus\models\Driver.py:17
+msgid "Age"
+msgstr "Age"
+
+#: .\school_bus\models\Driver.py:19
+msgid "Identity Type"
+msgstr "Identity Type"
+
+#: .\school_bus\models\Driver.py:20
+msgid "Identity Number"
+msgstr "Identity Number"
+
+#: .\school_bus\models\Driver.py:21
+msgid "Identity Issuance"
+msgstr "Identity Issuance"
+
+#: .\school_bus\models\Driver.py:22
+msgid "Identity Issuer"
+msgstr "Identity Issuer"
+
+#: .\school_bus\models\Driver.py:23
+msgid "Identity Expiration"
+msgstr "Identity Expiration"
+
+#: .\school_bus\models\Driver.py:27 .\school_bus\models\StudentBusFee.py:22
+#: .\system_management\models\Generalizations.py:18
+#: .\system_management\models\News.py:22
+#: .\system_management\models\Occasion.py:18
+msgid "Created At"
+msgstr "Created At"
+
+#: .\school_bus\models\Driver.py:28 .\school_bus\models\StudentBusFee.py:23
+msgid "Updated At"
+msgstr "Updated At"
+
+#: .\school_bus\models\Driver.py:32
+msgid "Drivers"
+msgstr "Drivers"
+
+#: .\school_bus\models\StudentBus.py:13
+msgid "is_active"
+msgstr "is_active"
+
+#: .\school_bus\models\StudentBus.py:18
+msgid "Student Bus"
+msgstr "Student Bus"
+
+#: .\school_bus\models\StudentBus.py:19
+msgid "Student Buses"
+msgstr "Student Buses"
+
+#: .\school_bus\models\StudentBusFee.py:27
+msgid "Student Bus Fees"
+msgstr "Student Bus Fees"
+
+#: .\system_management\apis\Branch.py:131
+msgid "البيانات المرسلة غير صحيحة"
+msgstr "Sent data is incorrect"
+
+#: .\system_management\apis\Branch.py:133
+msgid "هذه المديرية غير موجودة"
+msgstr "This directorate does not exist"
+
+#: .\system_management\apis\Branch.py:177
+msgid "اسم المستخدم مطلوب"
+msgstr "Username is required"
+
+#: .\system_management\apis\Branch.py:179
+msgid "اسم المستخدم موووووووجود"
+msgstr "Username already exists"
+
+#: .\system_management\apis\Generalizations.py:42
+#: .\system_management\apis\Occasion.py:40
+#: .\system_management\apis\Semester.py:25
+#: .\system_management\apis\Semester.py:37
+msgid "ليس لديك الصلاحيات للقيام بهذا"
+msgstr "You don't have permissions to do this"
+
+#: .\system_management\apis\Semester.py:52
+msgid "لا يمكن تحديد اشهر محددة من قبل"
+msgstr "Cannot specify months in advance"
+
+#: .\system_management\apis\SemesterPlan.py:65
+msgid "هذه الشهر قد تم إدخال سجلات فيه"
+msgstr "Records have been entered for this month"
+
+#: .\system_management\choices\choices.py:14
+msgid "مفعل"
+msgstr "Active"
+
+#: .\system_management\choices\choices.py:15
+msgid "غير مفعل"
+msgstr "Inactive"
+
+#: .\system_management\choices\choices.py:18
+msgid "ذكر"
+msgstr "Male"
+
+#: .\system_management\choices\choices.py:19
+msgid "انثى"
+msgstr "Female"
+
+#: .\system_management\choices\choices.py:22
+#: .\system_management\choices\choices.py:46
+msgid "عام"
+msgstr "General"
+
+#: .\system_management\choices\choices.py:23
+msgid "خاص"
+msgstr "Private"
+
+#: .\system_management\choices\choices.py:26
+msgid "شخصية"
+msgstr "Personal"
+
+#: .\system_management\choices\choices.py:27
+msgid "جواز"
+msgstr "Passport"
+
+#: .\system_management\choices\choices.py:28
+msgid "شهادة ميلاد"
+msgstr "Birth Certificate"
+
+#: .\system_management\choices\choices.py:31
+msgid "اساسي"
+msgstr "Primary"
+
+#: .\system_management\choices\choices.py:32
+msgid "اعدادي"
+msgstr "Preparatory"
+
+#: .\system_management\choices\choices.py:33
+msgid "ثانوي"
+msgstr "Secondary"
+
+#: .\system_management\choices\choices.py:36
+msgid "منتظم"
+msgstr "Regular"
+
+#: .\system_management\choices\choices.py:37
+msgid "مخصص"
+msgstr "Custom"
+
+#: .\system_management\choices\choices.py:40
+msgid "لا"
+msgstr "No"
+
+#: .\system_management\choices\choices.py:41
+msgid "نعم"
+msgstr "Yes"
+
+#: .\system_management\choices\choices.py:44
+msgid "بنين"
+msgstr "Boys"
+
+#: .\system_management\choices\choices.py:45
+msgid "بنات"
+msgstr "Girls"
+
+#: .\system_management\choices\choices.py:49
+msgid "أعزب"
+msgstr "Single"
+
+#: .\system_management\choices\choices.py:50
+msgid "متزوج"
+msgstr "Married"
+
+#: .\system_management\choices\choices.py:51
+msgid "مطلق"
+msgstr "Divorced"
+
+#: .\system_management\choices\choices.py:54
+msgid "ممتاز"
+msgstr "Excellent"
+
+#: .\system_management\choices\choices.py:55
+msgid "جيد جدا"
+msgstr "Very Good"
+
+#: .\system_management\choices\choices.py:56
+msgid "جيد"
+msgstr "Good"
+
+#: .\system_management\choices\choices.py:57
+msgid "مقبول"
+msgstr "Acceptable"
+
+#: .\system_management\choices\choices.py:58
+msgid "ضعيف"
+msgstr "Weak"
+
+#: .\system_management\choices\choices.py:59
+msgid "-------"
+msgstr "-------"
+
+#: .\system_management\choices\choices.py:62
+msgid "الفترة الاولي"
+msgstr "First Period"
+
+#: .\system_management\choices\choices.py:63
+msgid "الفترة الثانية"
+msgstr "Second Period"
+
+#: .\system_management\choices\choices.py:64
+msgid "الفترة الثالثة"
+msgstr "Third Period"
+
+#: .\system_management\choices\choices.py:65
+msgid "الفترة الرابعة"
+msgstr "Fourth Period"
+
+#: .\system_management\choices\choices.py:66
+msgid "الفترة الخامسة"
+msgstr "Fifth Period"
+
+#: .\system_management\choices\choices.py:67
+msgid "الفترة السادسة"
+msgstr "Sixth Period"
+
+#: .\system_management\choices\choices.py:68
+msgid "الفترة السابعة"
+msgstr "Seventh Period"
+
+#: .\system_management\choices\choices.py:69
+msgid "الفترة الثامنة"
+msgstr "Eighth Period"
+
+#: .\system_management\choices\choices.py:72
+msgid "نشاط رياضي"
+msgstr "Sports Activity"
+
+#: .\system_management\choices\choices.py:73
+msgid "نشاط ثقافي"
+msgstr "Cultural Activity"
+
+#: .\system_management\choices\choices.py:74
+msgid "نشاط ترفيهي"
+msgstr "Recreational Activity"
+
+#: .\system_management\choices\choices.py:77
+msgid "هاتف"
+msgstr "Phone"
+
+#: .\system_management\choices\choices.py:78
+msgid "ايميل"
+msgstr "Email"
+
+#: .\system_management\choices\choices.py:79
+msgid "موبايل"
+msgstr "Mobile"
+
+#: .\system_management\choices\choices.py:80
+msgid "فيسبوك"
+msgstr "Facebook"
+
+#: .\system_management\choices\choices.py:81
+msgid "واتساب"
+msgstr "WhatsApp"
+
+#: .\system_management\choices\choices.py:84
+msgid "بالنسبة المئوية"
+msgstr "Percentage"
+
+#: .\system_management\choices\choices.py:85
+msgid "بالقيمة"
+msgstr "Fixed Amount"
+
+#: .\system_management\choices\choices.py:88
+msgid "مستمر"
+msgstr "Continuing"
+
+#: .\system_management\choices\choices.py:89
+msgid "منسحب"
+msgstr "Withdrawn"
+
+#: .\system_management\choices\choices.py:92
+msgid "اتصال هاتفي"
+msgstr "Phone Call"
+
+#: .\system_management\choices\choices.py:93
+msgid "حضور شخصي"
+msgstr "In-person"
+
+#: .\system_management\choices\choices.py:94
+msgid "طلب مسبق"
+msgstr "Pre-request"
+
+#: .\system_management\choices\choices.py:97
+msgid "انشطة"
+msgstr "Activities"
+
+#: .\system_management\choices\choices.py:98
+msgid "رصيد افتتاحي"
+msgstr "Opening Balance"
+
+#: .\system_management\choices\choices.py:99
+msgid "رسوم دراسية"
+msgstr "Tuition Fees"
+
+#: .\system_management\choices\choices.py:100
+msgid "اخرى"
+msgstr "Other"
+
+#: .\system_management\choices\choices.py:103
+msgid "حكومية"
+msgstr "Government"
+
+#: .\system_management\choices\choices.py:104
+msgid "اهلية"
+msgstr "Private"
+
+#: .\system_management\choices\choices.py:107
+msgid "تعميم"
+msgstr "Circular"
+
+#: .\system_management\choices\choices.py:108
+msgid "فعالية"
+msgstr "Event"
+
+#: .\system_management\choices\choices.py:109
+msgid "الأخبار"
+msgstr "News"
+
+#: .\system_management\choices\choices.py:112
+msgid "مدير مدرسة"
+msgstr "School Principal"
+
+#: .\system_management\choices\choices.py:113
+msgid "مدرس"
+msgstr "Teacher"
+
+#: .\system_management\choices\choices.py:116
+msgid "مرة واحدة"
+msgstr "Once"
+
+#: .\system_management\choices\choices.py:117
+msgid "مرتين"
+msgstr "Twice"
+
+#: .\system_management\choices\choices.py:118
+msgid "حسب الحصة"
+msgstr "Per Lecture"
+
+#: .\system_management\models\Class.py:8
+msgid "Phase"
+msgstr "Phase"
+
+#: .\system_management\models\Class.py:15
+msgid "Is Scientific"
+msgstr "Is Scientific"
+
+#: .\system_management\models\Class.py:16
+msgid "Class Order"
+msgstr "Semester Order"
+
+#: .\system_management\models\Class.py:25
+msgid "Classes"
+msgstr "Classes"
+
+#: .\system_management\models\ClassDocument.py:10
+msgid "Optional"
+msgstr "Optional"
+
+#: .\system_management\models\ClassDocument.py:18
+msgid "Class Document"
+msgstr "Class Document"
+
+#: .\system_management\models\ClassDocument.py:19
+msgid "Class Documents"
+msgstr "Class Documents"
+
+#: .\system_management\models\ClassSubject.py:13
+msgid " Class"
+msgstr "Class"
+
+#: .\system_management\models\ClassSubject.py:18
+msgid "Active"
+msgstr "Active"
+
+#: .\system_management\models\ClassSubject.py:20
+msgid "Is Optional"
+msgstr "Is Optional"
+
+#: .\system_management\models\ClassSubject.py:23
+msgid "Class Subject"
+msgstr "Class Subject"
+
+#: .\system_management\models\ClassSubject.py:24
+msgid "Organization Class Subjects"
+msgstr "Organization Class Subjects"
+
+#: .\system_management\models\Day.py:12
+msgid "Short Name"
+msgstr "Short Name"
+
+#: .\system_management\models\Day.py:13
+msgid "Is Holiday"
+msgstr "Is Holiday"
+
+#: .\system_management\models\Day.py:22
+msgid "Days"
+msgstr "Days"
+
+#: .\system_management\models\Division.py:10
+msgid "Symbol"
+msgstr "Symbol"
+
+#: .\system_management\models\Division.py:12
+msgid "Is Main"
+msgstr "Is Main"
+
+#: .\system_management\models\Division.py:20
+msgid "Divisions"
+msgstr "Divisions"
+
+#: .\system_management\models\EBook.py:13
+msgid " Subject Class"
+msgstr "Subject Class"
+
+#: .\system_management\models\EBook.py:18
+msgid "File"
+msgstr "File"
+
+#: .\system_management\models\EBook.py:24
+msgid "EBook"
+msgstr "EBook"
+
+#: .\system_management\models\EBook.py:25
+msgid "EBooks"
+msgstr "EBooks"
+
+#: .\system_management\models\Estimate.py:11
+msgid "Max Degree"
+msgstr "Max Degree"
+
+#: .\system_management\models\Estimate.py:12
+msgid "Min Degree"
+msgstr "Min Degree"
+
+#: .\system_management\models\Estimate.py:20
+msgid "Estimates"
+msgstr "Estimates"
+
+#: .\system_management\models\Generalizations.py:23
+msgid "Generalization"
+msgstr "Generalization"
+
+#: .\system_management\models\Generalizations.py:24
+msgid "Generalizations"
+msgstr "Generalizations"
+
+#: .\system_management\models\Lecture.py:10
+msgid "subjects"
+msgstr "subjects"
+
+#: .\system_management\models\Lecture.py:11
+msgid "attachment"
+msgstr "attachment"
+
+#: .\system_management\models\Month.py:8
+msgid "Month Name (M)"
+msgstr "Month Name (M)"
+
+#: .\system_management\models\Month.py:9
+msgid "Month Name (H)"
+msgstr "Month Name (H)"
+
+#: .\system_management\models\Month.py:16
+msgid "Months"
+msgstr "Months"
+
+#: .\system_management\models\News.py:16
+msgid "Date Hjri"
+msgstr "Date Hjri"
+
+#: .\system_management\models\News.py:18
+msgid "YearOfStudy"
+msgstr "YearOfStudy"
+
+#: .\system_management\models\News.py:25 .\system_management\models\News.py:26
+msgid "News"
+msgstr "News"
+
+#: .\system_management\models\Notifications.py:15
+msgid "notification type"
+msgstr "notification type"
+
+#: .\system_management\models\Notifications.py:16
+msgid "FK_Generalizations"
+msgstr "FK_Generalizations"
+
+#: .\system_management\models\Notifications.py:17
+#: .\system_management\models\Occasion.py:22
+msgid "Occasion"
+msgstr "Occasion"
+
+#: .\system_management\models\Notifications.py:21
+msgid "Notification"
+msgstr "Notification"
+
+#: .\system_management\models\Notifications.py:22
+msgid "Notifications"
+msgstr "Notifications"
+
+#: .\system_management\models\Occasion.py:23
+msgid "Occasions"
+msgstr "Occasions"
+
+#: .\system_management\models\Schedule.py:10
+msgid "Quotas"
+msgstr "Quotas"
+
+#: .\system_management\models\Schedule.py:11
+msgid "Start Time"
+msgstr "Start Time"
+
+#: .\system_management\models\Schedule.py:12
+msgid "End Time"
+msgstr "End Time"
+
+#: .\system_management\models\Schedule.py:16
+msgid "Add to Table"
+msgstr "Add to Table"
+
+#: .\system_management\models\Schedule.py:25
+msgid "Schedules"
+msgstr "Schedules"
+
+#: .\system_management\models\Semester.py:20
+msgid "Semesters"
+msgstr "Semesters"
+
+#: .\system_management\models\SemesterPlan.py:21
+msgid "Semester Plans"
+msgstr "Semester Plans"
+
+#: .\system_management\models\SettingSystem.py:11
+msgid "Use Hijri Calendar"
+msgstr "Use Hijri Calendar"
+
+#: .\system_management\models\SettingSystem.py:19
+msgid "System Setting"
+msgstr "System Setting"
+
+#: .\system_management\models\SettingSystem.py:20
+msgid "System Settings"
+msgstr "System Settings"
+
+#: .\system_management\models\SettingSystem.py:36
+#, python-brace-format
+msgid ""
+"  تاريخ بداية الخطة {start_year} يجب أن تطابق السنة الدراسية {year_value}"
+msgstr ""
+"Plan start date {start_year} must match the academic year {year_value}"
+
+#: .\system_management\models\SettingSystem.py:41
+#, python-brace-format
+msgid ""
+"تاريخ بداية التسجيل {start_study} يجب أن تطابق السنة الدراسية {year_value}"
+msgstr ""
+"Registration start date {start_study} must match the academic year "
+"{year_value}"
+
+#: .\system_management\models\SettingSystem.py:46 .\utils\utils.py:129
+msgid "صيغة التاريخ غير صحيحة (YYYY-MM-DD)"
+msgstr "Invalid date format (YYYY-MM-DD)"
+
+#: .\system_management\models\SettingSystem.py:52
+msgid "تاريخ نهاية الخطة يجب ان يكون اكبر من تاريخ البداية"
+msgstr "Plan end date must be greater than start date"
+
+#: .\system_management\models\SettingSystem.py:58
+msgid "تاريخ نهاية التسجيل يجب ان يكون اكبر من تاريخ البداية"
+msgstr "Registration end date must be greater than start date"
+
+#: .\system_management\models\Subject.py:21
+msgid "Subjects"
+msgstr "Subjects"
+
+#: .\system_management\serializers\Estimate.py:17
+msgid "اقل درجة لا يمكن ان تكون اكبر من اعلى درجة"
+msgstr "Minimum degree cannot be greater than maximum degree"
+
+#: .\system_management\serializers\Estimate.py:22
+msgid "هناك تداخل في حدود التقديرات"
+msgstr "There is overlap in estimate ranges"
+
+#: .\system_management\serializers\Schedule.py:17
+msgid "وقت النهاية لا يجب ان يكون قبل وقت البداية"
+msgstr "End time cannot be before start time"
+
+#: .\system_management\serializers\Schedule.py:22
+msgid "اوقات الحصص متداخلة"
+msgstr "Lecture times are overlapping"
+
+#: .\system_management\serializers\Semester.py:23
+msgid "لا يمكن الغاء الترم الحالي حتى يتم اختيار ترم اخر"
+msgstr "Cannot cancel current semester until another semester is selected"

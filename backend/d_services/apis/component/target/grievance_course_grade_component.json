@@ -1,0 +1,17 @@
+{
+    "label_ar": "تظلم على نتيجة مقرر",
+    "label_en": "Appeal on Subject Grade",
+    "attrs": {},
+    "fields": [
+        {
+            "cols": 3,
+            "name": "fk_student_subject",
+            "null": false,
+            "type": "ForeignKey",
+            "model": "StudentsCourses",
+            "label_ar": "المادة",
+            "label_en": "Subject",
+            "name_list": "StudentsCoursesForServices"
+        }
+    ]
+}

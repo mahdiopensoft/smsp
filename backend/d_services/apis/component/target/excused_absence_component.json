@@ -1,0 +1,18 @@
+{
+  "label_ar": "غياب بعذر",
+  "label_en": "Excused Absence ",
+  "attrs": {},
+  "fields": [
+    {
+      "cols": 3,
+      "name": "fk_student_subject",
+      "null": false,
+      "type": "ForeignKey",
+      "label_ar": "المادة",
+      "model": "StudentsCourses",
+      "default": "",
+      "name_list": "StudentsCoursesForServices",
+      "placeholder": ""
+    }
+  ]
+}

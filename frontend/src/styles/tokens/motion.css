@@ -1,0 +1,14 @@
+:root {
+  /* Transitions */
+  --motion-duration-fast: 150ms;
+  --motion-duration-normal: 250ms;
+  --motion-duration-slow: 350ms;
+
+  --motion-easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-easing-in: cubic-bezier(0.4, 0, 1, 1);
+  --motion-easing-out: cubic-bezier(0, 0, 0.2, 1);
+
+  /* Component Aliases */
+  --transition-default: all var(--motion-duration-normal) var(--motion-easing-standard);
+  --transition-hover: all var(--motion-duration-fast) var(--motion-easing-out);
+}
