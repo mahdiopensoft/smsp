@@ -124,6 +124,8 @@ def get_migration_modules(env: str, separate_envs: bool = False) -> dict:
         قاموس MIGRATION_MODULES
     """
     migration_modules = {
+        'auth': None,  # تعطيل هجرات auth لأننا نستخدم نموذج مستخدم مخصص
+        'gate_sync': None,  # تعطيل هجرات gate_sync لتجنب تبعيتها لهجرة screens.0054 غير الموجودة
     }
     
     if not separate_envs:
@@ -131,6 +133,8 @@ def get_migration_modules(env: str, separate_envs: bool = False) -> dict:
         return migration_modules
     
     # الوضع المنفصل - كل بيئة لها مجلد خاص
+    from .base import BASE_DIR
+    central_base = BASE_DIR / 'migrations' / env
     
     # قائمة تطبيقات third party (بدون نقطة)
     third_party_simple = {'captcha'}
@@ -143,16 +147,24 @@ def get_migration_modules(env: str, separate_envs: bool = False) -> dict:
             continue
         elif app.startswith('OpenSoftCoreV41.'):
             # تطبيقات OpenSoftCore
-            migration_modules[app_name] = f'migrations.{env}.opensoftcore.{app_name}'
+            target_path = central_base / 'opensoftcore' / app_name
+            if target_path.is_dir() and (target_path / '__init__.py').exists():
+                migration_modules[app_name] = f'migrations.{env}.opensoftcore.{app_name}'
         elif '.' in app:
             # تطبيقات third party مع نقطة (مثل rest_framework_simplejwt.token_blacklist)
-            migration_modules[app_name] = f'migrations.{env}.third_party.{app_name}'
+            target_path = central_base / 'third_party' / app_name
+            if target_path.is_dir() and (target_path / '__init__.py').exists():
+                migration_modules[app_name] = f'migrations.{env}.third_party.{app_name}'
         elif app in third_party_simple:
             # تطبيقات third party بسيطة (مثل captcha)
-            migration_modules[app_name] = f'migrations.{env}.{app_name}'
+            target_path = central_base / app_name
+            if target_path.is_dir() and (target_path / '__init__.py').exists():
+                migration_modules[app_name] = f'migrations.{env}.{app_name}'
         else:
             # تطبيقات المشروع
-            migration_modules[app_name] = f'migrations.{env}.{app_name}'
+            target_path = central_base / app_name
+            if target_path.is_dir() and (target_path / '__init__.py').exists():
+                migration_modules[app_name] = f'migrations.{env}.{app_name}'
     
     return migration_modules
 
@@ -162,7 +174,8 @@ def get_migration_modules(env: str, separate_envs: bool = False) -> dict:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 MIGRATION_MODULES_DEFAULT = {
-    # لا نعطل أي هجرات
+    'auth': None,  # تعطيل هجرات auth لأننا نستخدم نموذج مستخدم مخصص
+    'gate_sync': None,  # تعطيل هجرات gate_sync لتجنب تبعيتها لهجرة screens.0054 غير الموجودة
 }
 
 
@@ -172,6 +185,16 @@ MIGRATION_MODULES_DEFAULT = {
 
 if MIGRATIONS_SEPARATE_ENVS:
     # الخيار 2: هجرات منفصلة لكل بيئة
+    # التأكد من وجود حزمة migrations لتجنب ModuleNotFoundError
+    from pathlib import Path
+    from .base import BASE_DIR
+    for sub in ['', DJANGO_ENV, f'{DJANGO_ENV}/opensoftcore', f'{DJANGO_ENV}/third_party']:
+        target_dir = BASE_DIR / 'migrations' / sub
+        target_dir.mkdir(parents=True, exist_ok=True)
+        init_file = target_dir / '__init__.py'
+        if not init_file.exists():
+            init_file.touch()
+
     MIGRATION_MODULES = get_migration_modules(DJANGO_ENV, separate_envs=True)
 else:
     # الخيار 1: الهجرات الافتراضية (أبسط وموصى به)

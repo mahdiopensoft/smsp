@@ -12,7 +12,13 @@ except Exception:
     pass
 
 def auto_add_missing_columns():
-    app_models = apps.get_app_config('academic').get_models()
+    app_labels = ['academic', 'exams', 'bank']
+    app_models = []
+    for app_label in app_labels:
+        try:
+            app_models.extend(apps.get_app_config(app_label).get_models())
+        except Exception:
+            pass
     
     with connection.cursor() as cursor:
         for model in app_models:

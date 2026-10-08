@@ -49,6 +49,14 @@ class Student(BaseSyncModel):
         blank=True, 
         verbose_name=_("المدرسة / المؤسسة")
     )
+    class_track = models.ForeignKey(
+        'academic.SchoolClassTrack',
+        related_name='students',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("الصف والمسار الدراسي")
+    )
     is_active = models.BooleanField(default=True, verbose_name=_("نشط"))
 
     class Meta:

@@ -238,6 +238,13 @@
               </v-chip>
             </template>
 
+            <template v-else-if="key === 'studentsCount'">
+              <v-chip size="small" :color="(item.studentsCount || 0) > 0 ? 'success' : 'default'" variant="tonal" class="font-weight-bold">
+                <v-icon start size="x-small">mdi-account-group</v-icon>
+                {{ item.studentsCount || 0 }} طالب
+              </v-chip>
+            </template>
+
             <template v-else-if="key === 'actions'">
               <div class="d-flex align-center justify-center">
                 <custom-btn label="لوحة التحكم" icon="monitor-dashboard" variant="tonal" color="primary"
@@ -282,6 +289,13 @@
             الاختبار</v-tab>
           <v-tab :value="1" class="font-weight-bold"><v-icon start>mdi-file-document-multiple-outline</v-icon>النماذج
             والأسئلة</v-tab>
+          <v-tab :value="2" class="font-weight-bold">
+            <v-icon start>mdi-account-group</v-icon>
+            الطلاب المسجلون
+            <v-chip v-if="(totalStudentsCount || studentsTableItems.pagination?.count || 0) > 0" size="x-small" color="success" variant="tonal" class="font-weight-bold ms-2">
+              {{ totalStudentsCount || studentsTableItems.pagination?.count || 0 }}
+            </v-chip>
+          </v-tab>
         </v-tabs>
 
         <v-window v-model="dashboardTab">
@@ -304,6 +318,13 @@
                         <template v-slot:append><span class="font-weight-bold text-primary">{{ selectedExam.subjectName
                         }}</span></template>
                       </v-list-item>
+                      <v-list-item class="px-0" v-if="examDashboardData && examDashboardData.classTrack">
+                        <template v-slot:prepend><v-icon size="small"
+                            class="me-2 text-medium-emphasis">mdi-school</v-icon></template>
+                        <v-list-item-title>الصف والمسار</v-list-item-title>
+                        <template v-slot:append><span class="font-weight-bold text-secondary">{{ examDashboardData.classTrack.name
+                        }}</span></template>
+                      </v-list-item>
                       <v-list-item class="px-0">
                         <template v-slot:prepend><v-icon size="small"
                             class="me-2 text-medium-emphasis">mdi-layers-triple</v-icon></template>
@@ -317,6 +338,16 @@
                         <v-list-item-title>إجمالي الأسئلة</v-list-item-title>
                         <template v-slot:append><span class="font-weight-bold text-indigo">{{
                           selectedExam.questionsCount }} سؤال</span></template>
+                      </v-list-item>
+                      <v-list-item class="px-0">
+                        <template v-slot:prepend><v-icon size="small"
+                            class="me-2 text-medium-emphasis">mdi-account-group</v-icon></template>
+                        <v-list-item-title>الطلاب المسجلون</v-list-item-title>
+                        <template v-slot:append>
+                          <v-chip size="small" :color="totalStudentsCount > 0 ? 'success' : 'warning'" variant="tonal" class="font-weight-bold">
+                            {{ totalStudentsCount }} طالب
+                          </v-chip>
+                        </template>
                       </v-list-item>
                     </v-list>
                   </div>
@@ -460,6 +491,151 @@
             </div>
           </v-window-item>
 
+          <!-- TAB 3: REGISTERED STUDENTS -->
+          <v-window-item :value="2">
+            <div class="pa-6">
+              <!-- Summary Stats -->
+              <v-row class="mb-6" v-if="totalStudentsCount > 0 || (studentsTableItems.results && studentsTableItems.results.length > 0)">
+                <v-col cols="12" sm="4">
+                  <div class="pa-4 rounded-2xl border-subtle text-center">
+                    <v-icon size="28" color="primary" class="mb-2">mdi-account-group</v-icon>
+                    <div class="text-h5 font-weight-black text-primary">{{ totalStudentsCount || studentsTableItems.pagination?.count || 0 }}</div>
+                    <div class="text-caption font-weight-bold text-medium-emphasis">إجمالي الطلاب المسجلين</div>
+                  </div>
+                </v-col>
+                <v-col cols="12" sm="4">
+                  <div class="pa-4 rounded-2xl border-subtle text-center">
+                    <v-icon size="28" color="success" class="mb-2">mdi-domain</v-icon>
+                    <div class="text-h5 font-weight-black text-success">{{ backendUniqueSchoolsCount || 0 }}</div>
+                    <div class="text-caption font-weight-bold text-medium-emphasis">مدارس مشمولة</div>
+                  </div>
+                </v-col>
+                <v-col cols="12" sm="4">
+                  <div class="pa-4 rounded-2xl border-subtle text-center">
+                    <v-icon size="28" color="indigo" class="mb-2">mdi-file-document-multiple</v-icon>
+                    <div class="text-h5 font-weight-black text-indigo">{{ (selectedExam.versionsList || []).length }}</div>
+                    <div class="text-caption font-weight-bold text-medium-emphasis">نماذج موزعة</div>
+                  </div>
+                </v-col>
+              </v-row>
+
+              <!-- Controls Toolbar: Title + Filter by Version + Refresh -->
+              <div class="d-flex align-center justify-space-between mb-4 flex-wrap gap-2">
+                <h4 class="text-subtitle-1 font-weight-black d-flex align-center gap-2">
+                  <v-icon size="20" color="primary">mdi-format-list-bulleted</v-icon>
+                  قائمة الطلاب المسجلين
+                </h4>
+                <div class="d-flex align-center gap-2">
+                  <v-select
+                    v-if="totalStudentsCount > 0 || (studentsTableItems.results && studentsTableItems.results.length > 0)"
+                    v-model="studentsFilterVersion"
+                    :items="studentsVersionOptions"
+                    item-title="text"
+                    item-value="value"
+                    density="compact"
+                    variant="outlined"
+                    style="min-width: 170px;"
+                    hide-details
+                    placeholder="تصفية بالنموذج"
+                    prepend-inner-icon="mdi-filter-variant"
+                  />
+                  <custom-btn
+                    label="تحديث"
+                    icon="mdi-refresh"
+                    variant="tonal"
+                    color="primary"
+                    :loading="loadingStudents"
+                    :click="() => fetchRegisteredStudents()"
+                  />
+                </div>
+              </div>
+
+              <!-- Empty state alert if loaded and count is 0 -->
+              <v-alert
+                v-if="!loadingStudents && totalStudentsCount === 0 && (!studentsTableItems.results || studentsTableItems.results.length === 0)"
+                type="info"
+                variant="tonal"
+                class="rounded-xl mb-4"
+                icon="mdi-account-off-outline"
+              >
+                <div class="font-weight-bold mb-1">لا يوجد طلاب مسجلون</div>
+                <div class="text-body-2">
+                  لم يتم تسجيل أي طلاب في هذا الاختبار بعد. تأكد من أن الاختبار مرتبط بصف دراسي ونطاق جغرافي يحتوي على طلاب تم توليدهم.
+                </div>
+              </v-alert>
+
+              <!-- Custom Data Table -->
+              <div class="main-card rounded-2xl overflow-hidden mb-4">
+                <custom-data-table
+                  :headers="studentsHeaders"
+                  :items="studentsTableItems"
+                  :getData="fetchRegisteredStudents"
+                  :customLoading="loadingStudents"
+                  :hasFilter="false"
+                  :log="false"
+                  :restore="false"
+                  :showSelect="false"
+                  :actions="false"
+                  class="bg-transparent"
+                >
+                  <template v-slot:item-slot="{ item, key }">
+                    <!-- Student Name -->
+                    <template v-if="key === 'studentName'">
+                      <div class="d-flex align-center gap-2">
+                        <v-avatar size="30" :color="item.gender === 'ذكر' ? 'blue' : 'pink'" variant="tonal" class="flex-shrink-0">
+                          <v-icon size="16" :color="item.gender === 'ذكر' ? 'blue' : 'pink'">
+                            {{ item.gender === 'ذكر' ? 'mdi-gender-male' : 'mdi-gender-female' }}
+                          </v-icon>
+                        </v-avatar>
+                        <span class="font-weight-bold text-subtitle-2">{{ item.studentName }}</span>
+                      </div>
+                    </template>
+
+                    <!-- Academic Number -->
+                    <template v-else-if="key === 'academicNumber'">
+                      <v-chip size="x-small" color="indigo" variant="tonal" class="font-weight-bold">
+                        {{ item.academicNumber || '-' }}
+                      </v-chip>
+                    </template>
+
+                    <!-- Seat Number -->
+                    <template v-else-if="key === 'seatNumber'">
+                      <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
+                        {{ item.seatNumber || '-' }}
+                      </v-chip>
+                    </template>
+
+                    <!-- Secret Number -->
+                    <template v-else-if="key === 'secretNumber'">
+                      <span class="font-mono text-caption text-medium-emphasis">{{ item.secretNumber || '-' }}</span>
+                    </template>
+
+                    <!-- Version Code -->
+                    <template v-else-if="key === 'versionCode'">
+                      <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold">
+                        نموذج {{ item.versionCode }}
+                      </v-chip>
+                    </template>
+
+                    <!-- School Name -->
+                    <template v-else-if="key === 'schoolName'">
+                      <span class="text-body-2 font-weight-medium">{{ item.schoolName || '-' }}</span>
+                    </template>
+
+                    <!-- Directorate Name -->
+                    <template v-else-if="key === 'directorateName'">
+                      <span class="text-body-2 text-medium-emphasis">{{ item.directorateName || '-' }}</span>
+                    </template>
+
+                    <template v-else>
+                      {{ item[key] }}
+                    </template>
+                  </template>
+                </custom-data-table>
+              </div>
+            </div>
+          </v-window-item>
+
         </v-window>
       </div>
     </div>
@@ -514,6 +690,39 @@ export default {
     versionTotalScore() {
       return this.activeVersionQuestions.reduce((sum, q) => sum + (Number(q.assignedMark) || 0), 0)
     },
+
+    selectedSetting() {
+      return this.examDashboardData?.setting || null
+    },
+
+    difficultyBars() {
+      if (!this.selectedSetting) return []
+      return [
+        { label: 'سهل', pct: this.selectedSetting.easyPercentage || 0, color: 'success' },
+        { label: 'متوسط', pct: this.selectedSetting.mediumPercentage || 0, color: 'warning' },
+        { label: 'صعب', pct: this.selectedSetting.hardPercentage || 0, color: 'error' },
+      ]
+    },
+
+    studentsVersionOptions() {
+      const options = [{ text: 'جميع النماذج', value: 'all' }]
+      if (this.selectedExam && this.selectedExam.versionsList) {
+        this.selectedExam.versionsList.forEach(v => {
+          options.push({ text: `نموذج ${v.versionCode}`, value: v.versionCode })
+        })
+      }
+      return options
+    },
+
+    registeredStudents() {
+      return this.studentsTableItems?.results || []
+    },
+  },
+
+  watch: {
+    studentsFilterVersion() {
+      this.fetchRegisteredStudents({ params: { page: 1 } })
+    },
   },
 
   data() {
@@ -547,11 +756,28 @@ export default {
         { title: 'عنوان الاختبار', key: 'title', sortable: true },
         { title: 'النماذج', key: 'versionCode', sortable: false },
         { title: 'عدد الأسئلة', key: 'questionsCount', sortable: false, align: 'center' },
+        { title: 'الطلاب المسجلون', key: 'studentsCount', sortable: false, align: 'center' },
       ],
       selectedExam: null,
       dashboardTab: 0,
       activeVersionIndex: 0,
       versionSubTab: 0,
+      // Students
+      studentsTableItems: { results: [], pagination: { count: 0, num_pages: 1, current_page: 1, page_size: 10 } },
+      loadingStudents: false,
+      studentsFilterVersion: 'all',
+      totalStudentsCount: 0,
+      backendUniqueSchoolsCount: 0,
+      examDashboardData: null,
+      studentsHeaders: [
+        { title: 'اسم الطالب', key: 'studentName', sortable: true },
+        { title: 'الرقم الأكاديمي', key: 'academicNumber', align: 'center', sortable: true },
+        { title: 'رقم الجلوس', key: 'seatNumber', align: 'center', sortable: true },
+        { title: 'الرقم السري', key: 'secretNumber', align: 'center', sortable: true },
+        { title: 'النموذج', key: 'versionCode', align: 'center', sortable: true },
+        { title: 'المدرسة', key: 'schoolName', sortable: true },
+        { title: 'المديرية', key: 'directorateName', sortable: true },
+      ],
     }
   },
 
@@ -594,6 +820,7 @@ export default {
           subjectName: exam.subject_name || 'عام',
           versionsList: exam.versions_list || [],
           questionsCount: exam.questions_count || 0,
+          studentsCount: exam.students_count ?? exam.studentsCount ?? 0,
         }))
 
         this.items = Object.assign({}, raw, { results: enriched })
@@ -656,6 +883,11 @@ export default {
       this.dashboardTab = 0
       this.activeVersionIndex = 0
       this.versionSubTab = 0
+      this.examDashboardData = null
+      this.studentsFilterVersion = 'all'
+      this.totalStudentsCount = exam.students_count ?? exam.studentsCount ?? 0
+      this.backendUniqueSchoolsCount = 0
+      this.studentsTableItems = { results: [], pagination: { count: 0, num_pages: 1, current_page: 1, page_size: 10 } }
       
       try {
         const details = await examsService.getExamModelsDetails(exam.id)
@@ -663,11 +895,77 @@ export default {
       } catch (err) {
         console.error("Failed to load exam details for dashboard", err)
       }
+
+      // Load registered students via backend pagination
+      await this.fetchRegisteredStudents()
+
+      // Load dashboard data (for classTrack info etc.)
+      try {
+        const dashData = await examsService.getArchivedExamDashboard(exam.id)
+        this.examDashboardData = dashData
+      } catch (err) {
+        console.error("Failed to load dashboard data", err)
+      }
+    },
+
+    async fetchRegisteredStudents(tableParams = null) {
+      if (!this.selectedExam?.id) return
+      this.loadingStudents = true
+      try {
+        let queryParams = {}
+        if (tableParams && tableParams.params) {
+          queryParams = { ...tableParams.params, hasPagination: true }
+        } else if (tableParams && typeof tableParams === 'object' && ('page' in tableParams || 'page_size' in tableParams)) {
+          queryParams = { ...tableParams, hasPagination: true }
+        } else {
+          queryParams = { page: 1, page_size: 10, hasPagination: true }
+        }
+
+        if (this.studentsFilterVersion && this.studentsFilterVersion !== 'all') {
+          queryParams.version = this.studentsFilterVersion
+        }
+
+        const res = await examsService.getExamRegisteredStudents(this.selectedExam.id, queryParams)
+        const raw = res || {}
+        const results = raw.results || raw.students || (raw.data && raw.data.results) || []
+        const pagination = raw.pagination || {
+          count: raw.totalStudents ?? raw.count ?? results.length,
+          num_pages: raw.num_pages ?? 1,
+          current_page: raw.current_page ?? (queryParams.page || 1),
+          page_size: raw.page_size ?? (queryParams.page_size || 10),
+        }
+
+        this.studentsTableItems = {
+          ...raw,
+          results,
+          pagination,
+        }
+
+        if (raw.totalStudents !== undefined) {
+          this.totalStudentsCount = raw.totalStudents
+        } else if (pagination.count !== undefined) {
+          this.totalStudentsCount = pagination.count
+        }
+
+        if (raw.uniqueSchoolsCount !== undefined) {
+          this.backendUniqueSchoolsCount = raw.uniqueSchoolsCount
+        }
+      } catch (err) {
+        console.error("Failed to load registered students", err)
+        this.studentsTableItems = { results: [], pagination: { count: 0, num_pages: 1, current_page: 1 } }
+      } finally {
+        this.loadingStudents = false
+      }
     },
 
     closeDashboard() { 
       this.selectedExam = null 
       this.examDetails = null
+      this.examDashboardData = null
+      this.studentsFilterVersion = 'all'
+      this.totalStudentsCount = 0
+      this.backendUniqueSchoolsCount = 0
+      this.studentsTableItems = { results: [], pagination: { count: 0, num_pages: 1, current_page: 1, page_size: 10 } }
     },
 
     goToExamPrint(exam, type) {

@@ -75,6 +75,11 @@ export const examsService = {
         return data
     },
 
+    async getExamRegisteredStudents(id, params = {}) {
+        const { data } = await api.get(`${BASE}exam-archive/${id}/registered-students/`, { params })
+        return data
+    },
+
     // ========================================================
     // 4. جدول المواصفات (Table of Specifications Screen)
     // Endpoint: api/exams/table-of-specifications/

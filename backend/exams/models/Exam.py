@@ -62,6 +62,14 @@ class Exam(SoftDeleteModel):
         blank=True,
         verbose_name=_("المنطقة")
     )
+    class_track = models.ForeignKey(
+        'academic.SchoolClassTrack',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='exams',
+        verbose_name=_("الصف والمسار الدراسي")
+    )
 
     # Advanced Generation Options
     bloom_enabled = models.BooleanField(

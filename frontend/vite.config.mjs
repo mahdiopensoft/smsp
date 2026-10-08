@@ -42,8 +42,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
-      "external-components": path.resolve("/home/mahdi/Desktop/m/shared-project-v4/index.js"),
-      // "external-components": path.resolve("d:/shared-project-frontend/shared-project-v4/index.js"),
+      "external-components": path.resolve("C:/Users/ibrahim/Desktop/ibrahim/2026/portal/frontend/src/shared-project-v4/index.js"),
       "datalist": path.resolve('./src/utils/DataAutoList'),
       "headers": path.resolve("./src/utils/Headers.js"),
       "crypto-js": path.resolve("./node_modules/crypto-js"),
@@ -59,8 +58,8 @@ export default defineConfig({
     fs: {
       allow: [
         ".",
-        "/home/mahdi/Desktop/m/shared-project-v4",
+        "C:/Users/ibrahim/Desktop/ibrahim/2026/portal/frontend/src/shared-project-v4",
       ],
     },
   },
-});
+});
