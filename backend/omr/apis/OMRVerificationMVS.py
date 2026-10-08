@@ -38,8 +38,9 @@ class OMRVerificationMVS(ViewSet):
             missing_approx = total_printed - total_scanned
             if missing_approx < 0: missing_approx = 0
 
-            # Only show exams that have some printing or scanning activity
-            if total_printed > 0 or total_scanned > 0:
+            # Show exams that have registered students, printing, or scanning activity
+            if total_registered > 0 or total_printed > 0 or total_scanned > 0:
+                verif_status = "مكتمل" if (total_scanned >= total_registered and total_registered > 0) else ("بانتظار المسح" if total_printed > 0 else "بانتظار الطباعة")
                 results.append({
                     "id": exam.id,
                     "title": exam.title,
@@ -47,8 +48,8 @@ class OMRVerificationMVS(ViewSet):
                     "total_registered": total_registered,
                     "total_printed": total_printed,
                     "total_scanned": total_scanned,
-                    "missing_count": missing_approx,
-                    "status": "مكتمل" if missing_approx == 0 and total_scanned > 0 else "نقص في المطابقة",
+                    "missing_count": max(0, total_printed - total_scanned),
+                    "status": verif_status,
                     "created_at": exam.created_at.strftime("%Y-%m-%d %H:%M") if exam.created_at else ""
                 })
 
@@ -86,8 +87,12 @@ class OMRVerificationMVS(ViewSet):
         for reg in regs:
             has_scanned = reg.id in scanned_reg_ids
             status = "تم المسح" if has_scanned else ("مفقودة" if reg.is_printed else "لم تطبع ولم تمسح")
-            
-            s_name = reg.student_profile.name_ar if reg.student_profile and reg.student_profile.name_ar else (reg.student.get_full_name() or reg.student.username)
+            if reg.student_profile and reg.student_profile.name_ar:
+                s_name = reg.student_profile.name_ar
+            elif reg.student:
+                s_name = reg.student.get_full_name() or reg.student.username
+            else:
+                s_name = f"طالب ({reg.seatNumber})"
 
             students_list.append({
                 "id": reg.id,

@@ -199,7 +199,12 @@ class ExamLinkingMVS(ViewSet):
         from exams.models.StudentExamRegistration import StudentExamRegistration
         students_list = []
         for reg in StudentExamRegistration.objects.filter(examVersion__exam=exam, is_deleted=False).select_related('student_profile__organization', 'student_profile__directorate', 'student', 'examVersion').order_by('seatNumber'):
-            s_name = reg.student_profile.name_ar if reg.student_profile and reg.student_profile.name_ar else (reg.student.get_full_name() or reg.student.username)
+            if reg.student_profile and reg.student_profile.name_ar:
+                s_name = reg.student_profile.name_ar
+            elif reg.student:
+                s_name = reg.student.get_full_name() or reg.student.username
+            else:
+                s_name = f"طالب ({reg.seatNumber})"
             inst_name = reg.student_profile.organization.name_ar if (reg.student_profile and reg.student_profile.organization) else ""
             gov_name = exam.governorate.name_ar if exam.governorate else ""
             dir_name = reg.student_profile.directorate.name_ar if (reg.student_profile and reg.student_profile.directorate) else (exam.directorate.name_ar if exam.directorate else "")

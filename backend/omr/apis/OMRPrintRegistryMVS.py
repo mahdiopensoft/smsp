@@ -25,11 +25,22 @@ class OMRPrintRegistryMVS(ViewSet):
             print_batch__isnull=False
         ).select_related('examVersion__exam')
 
+        exam_id = request.query_params.get('exam_id')
+        if exam_id:
+            qs = qs.filter(examVersion__exam_id=exam_id)
+
         if search:
-            qs = qs.filter(
-                Q(print_batch__icontains=search) | 
-                Q(examVersion__exam__title__icontains=search)
-            )
+            if search.isdigit():
+                qs = qs.filter(
+                    Q(print_batch__icontains=search) | 
+                    Q(examVersion__exam__title__icontains=search) |
+                    Q(examVersion__exam_id=int(search))
+                )
+            else:
+                qs = qs.filter(
+                    Q(print_batch__icontains=search) | 
+                    Q(examVersion__exam__title__icontains=search)
+                )
 
         # Aggregate by batch and exam
         batches = qs.values('print_batch', 'examVersion__exam__id', 'examVersion__exam__title').annotate(
@@ -69,7 +80,12 @@ class OMRPrintRegistryMVS(ViewSet):
 
         students = []
         for reg in qs:
-            s_name = reg.student_profile.name_ar if reg.student_profile and reg.student_profile.name_ar else (reg.student.get_full_name() or reg.student.username)
+            if reg.student_profile and reg.student_profile.name_ar:
+                s_name = reg.student_profile.name_ar
+            elif reg.student:
+                s_name = reg.student.get_full_name() or reg.student.username
+            else:
+                s_name = f"طالب ({reg.seatNumber})"
             students.append({
                 "id": reg.id,
                 "student_name": s_name,

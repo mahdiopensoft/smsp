@@ -159,7 +159,12 @@ class ExamGradebookMVS(ViewSet):
 
         students_records = []
         for reg in registrations:
-            s_name = reg.student_profile.name_ar if reg.student_profile and reg.student_profile.name_ar else (reg.student.get_full_name() or reg.student.username)
+            if reg.student_profile and reg.student_profile.name_ar:
+                s_name = reg.student_profile.name_ar
+            elif reg.student:
+                s_name = reg.student.get_full_name() or reg.student.username
+            else:
+                s_name = f"طالب ({reg.seatNumber})"
             inst_name = reg.student_profile.organization.name_ar if (reg.student_profile and reg.student_profile.organization) else ""
             dir_name = reg.student_profile.directorate.name_ar if (reg.student_profile and reg.student_profile.directorate) else ""
 
