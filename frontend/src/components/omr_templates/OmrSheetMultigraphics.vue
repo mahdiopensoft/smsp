@@ -30,9 +30,9 @@ const props = withDefaults(
     startY?: number;
   }>(),
   {
-    studentName: 'أحمد علي عبد الله المحمدي',
-    examName: 'الكيمياء العامة — نموذج معاينة',
-    barcodeValue: '9671020324',
+    studentName: '................................',
+    examName: 'اختبار تجريبي معياري',
+    barcodeValue: '0000000000',
     studentAnswers: () => ({}),
     answerKey: () => ({}),
     showInspectionOverlay: false,

@@ -26,6 +26,15 @@
           class="font-weight-bold px-5"
           :click="() => $router.push('/omr-extraction')"
         />
+        <custom-btn
+          type="show"
+          icon="mdi-clipboard-check-outline"
+          label="سجل الدرجات والكنترول"
+          color="success"
+          variant="tonal"
+          class="font-weight-bold px-5"
+          :click="() => $router.push('/omr/gradebook')"
+        />
       </div>
     </div>
 

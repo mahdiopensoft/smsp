@@ -214,6 +214,9 @@ class ExamLinkingMVS(ViewSet):
                 "governorate": gov_name,
                 "directorate": dir_name,
                 "is_present": reg.isPresent,
+                "is_printed": reg.is_printed,
+                "printed_at": reg.printed_at.strftime("%Y-%m-%d %H:%M:%S") if reg.printed_at else None,
+                "print_batch": reg.print_batch,
                 "barcode_value": f"EXAM_{exam.id}_VER_{v_code}_SEAT_{reg.seatNumber}",
                 "qr_value": f"{exam.uniqueCode}|{v_code}|{reg.seatNumber}|{reg.secretNumber or ''}",
             })
@@ -343,4 +346,34 @@ class ExamLinkingMVS(ViewSet):
             "success": True,
             "message": f"تم تسجيل {created_count} طالباً فعلياً من قاعدة البيانات في الاختبار بنجاح",
             "created_count": created_count,
+        })
+
+    @action(detail=True, methods=['post'], url_path='mark-printed')
+    def mark_printed(self, request, pk=None):
+        """
+        Mark specific or all registered students as 'printed'.
+        Payload: { "student_ids": [1, 2, 3], "batch_id": "BATCH_A4" }
+        If student_ids is empty or 'all', marks all.
+        """
+        try:
+            exam = Exam.objects.get(pk=pk, is_deleted=False)
+        except Exam.DoesNotExist:
+            return Response({"success": False, "message": "الاختبار غير موجود"}, status=status.HTTP_404_NOT_FOUND)
+
+        student_ids = request.data.get('student_ids', 'all')
+        batch_id = request.data.get('batch_id', 'BATCH_DEFAULT')
+        
+        from django.utils import timezone
+        now = timezone.now()
+
+        qs = StudentExamRegistration.objects.filter(examVersion__exam=exam, is_deleted=False)
+        if isinstance(student_ids, list) and student_ids:
+            qs = qs.filter(id__in=student_ids)
+
+        updated_count = qs.update(is_printed=True, printed_at=now, print_batch=batch_id)
+
+        return Response({
+            "success": True,
+            "message": f"تم توثيق طباعة {updated_count} ورقة بنجاح في سجل الطباعة",
+            "updated_count": updated_count
         })

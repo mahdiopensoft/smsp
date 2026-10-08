@@ -256,97 +256,32 @@
 
           <!-- Actions -->
           <template v-else-if="key === 'actions'">
-            <div class="d-flex align-center justify-center gap-1">
-              <!-- 1. بناء وطباعة الأوراق -->
-              <custom-btn
-                is-icon
-                icon="printer-eye"
+            <div class="d-flex align-center justify-center gap-2">
+              <!-- 1. توجيه لمصمم القوالب (الخطوة الأولى) -->
+              <v-btn
                 color="primary"
+                variant="flat"
+                rounded="lg"
+                size="small"
+                class="font-weight-bold px-4"
+                prepend-icon="mdi-draw-pen"
+                @click.stop.prevent="openInTemplateDesigner(item)"
+              >
+                تصميم الأوراق
+              </v-btn>
+
+              <!-- 2. تحويل وتجهيز الطباعة (الخطوة الثانية) -->
+              <v-btn
+                color="secondary"
                 variant="tonal"
-                label="بناء ومعاينة وطباعة الأوراق (التظليل والأسئلة)"
-                :click="() => openExamHub(item, 'template')"
-              />
-
-              <!-- 2. التصحيح الضوئي -->
-              <custom-btn
-                is-icon
-                icon="scanner"
-                color="success"
-                variant="tonal"
-                label="بدء التصحيح الضوئي المباشر"
-                :click="() => startGradingExam(item)"
-              />
-
-              <!-- 3. كشف الطلاب والجلوس -->
-              <custom-btn
-                is-icon
-                icon="account-school-outline"
-                color="info"
-                variant="tonal"
-                label="كشف الطلاب والجلوس والباركود"
-                :click="() => openExamHub(item, 'roster')"
-              />
-
-              <!-- 4. قائمة الخيارات والتفاصيل السريعة -->
-              <v-menu location="bottom end" transition="slide-y-transition">
-                <template v-slot:activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    icon
-                    size="small"
-                    density="comfortable"
-                    variant="tonal"
-                    color="secondary"
-                    class="rounded-lg action-icon-btn"
-                    style="height: 32px; width: 32px; min-width: 32px;"
-                  >
-                    <v-icon size="18">mdi-dots-vertical</v-icon>
-                    <v-tooltip activator="parent" location="top">خيارات إضافية</v-tooltip>
-                  </v-btn>
-                </template>
-
-                <v-card elevation="8" rounded="xl" class="border py-1" min-width="240">
-                  <v-list density="compact" class="pa-1">
-                    <v-list-item
-                      prepend-icon="mdi-key-variant"
-                      title="نماذج الأسئلة ومفاتيح الحل"
-                      subtitle="استعراض الأسئلة والإجابات المعتمدة"
-                      class="rounded-lg mb-1"
-                      @click="openExamHub(item, 'keys')"
-                    />
-                    <v-list-item
-                      prepend-icon="mdi-check-decagram-outline"
-                      title="أوراق الإجابة المصححة"
-                      subtitle="نتائج التصحيح والدرجات وإحصائيات الطلاب"
-                      class="rounded-lg mb-1"
-                      @click="openExamHub(item, 'submissions')"
-                    />
-                    <v-divider class="my-1" />
-                    <v-list-item
-                      prepend-icon="mdi-printer-outline"
-                      title="طباعة أوراق التظليل دفعة واحدة"
-                      subtitle="طباعة سريعة لكافة الطلاب المقيدين"
-                      class="rounded-lg mb-1 text-primary font-weight-bold"
-                      @click="quickBatchPrint(item)"
-                    />
-                    <v-list-item
-                      prepend-icon="mdi-format-list-numbered"
-                      title="طباعة كشف المناداة والجلوس"
-                      subtitle="كشف التوقيع والحضور للمركز الامتحاني"
-                      class="rounded-lg mb-1 text-secondary font-weight-bold"
-                      @click="quickPrintRoster(item)"
-                    />
-                    <v-divider class="my-1" />
-                    <v-list-item
-                      prepend-icon="mdi-tune-vertical"
-                      title="فتح في مصمم القوالب المعياري"
-                      subtitle="للمهندسين ومصممي البابل شيت"
-                      class="rounded-lg text-medium-emphasis"
-                      @click="openInTemplateDesigner(item)"
-                    />
-                  </v-list>
-                </v-card>
-              </v-menu>
+                rounded="lg"
+                size="small"
+                class="font-weight-bold px-4"
+                prepend-icon="mdi-printer-check"
+                @click.stop.prevent="goToPrintRegistry(item)"
+              >
+                توجيه للطباعة
+              </v-btn>
             </div>
           </template>
         </template>
@@ -1816,10 +1751,27 @@ const batchPrintAllStudents = async () => {
   }
 
   if (elements.length > 0) {
+    const batchId = `BATCH_${Date.now()}`
     await printOmrBatch(elements, {
       title: `كشف_أوراق_تظليل_${activeExam.value?.uniqueCode || 'الاختبار'}`,
       isA5: selectedSheetLayout.value === 'compact_a5'
     })
+    
+    // تسجيل الطباعة في قاعدة البيانات (Print Registry)
+    if (activeExam.value && examDetails.value?.registered_students?.length > 0) {
+      try {
+        const studentIds = examDetails.value.registered_students.map(s => s.id)
+        await api.post(`/api/omr/exam-linking/${activeExam.value.id}/mark-printed/`, {
+          student_ids: studentIds,
+          batch_id: batchId
+        })
+        console.log("✅ تم تسجيل الطباعة بنجاح في قاعدة البيانات")
+        // تحديث كشف الطلاب ليعكس الحالة
+        await fetchExamHubDetails(activeExam.value) 
+      } catch (e) {
+        console.error("❌ فشل في توثيق حالة الطباعة", e)
+      }
+    }
   } else {
     printSingleSheet()
   }
@@ -1978,13 +1930,18 @@ const viewSubmissions = (exam) => {
 }
 
 const openInTemplateDesigner = (exam) => {
-  if (!exam) return
-  router.push({
-    path: '/omr/templates',
-    query: {
-      examId: exam.id,
-      mode: 'designer'
-    }
+  if (!exam?.id) return
+  const target = `/omr-template-builder?examId=${exam.id}&mode=designer`
+  router.push(target).catch(() => {
+    window.location.href = target
+  })
+}
+
+const goToPrintRegistry = (exam) => {
+  if (!exam?.id) return
+  const target = `/omr-print-registry?exam_id=${exam.id}`
+  router.push(target).catch(() => {
+    window.location.href = target
   })
 }
 

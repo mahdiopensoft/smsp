@@ -68,3 +68,4 @@ backup/
 .DS_Store
 Thumbs.db
 .git_old_sms/
+backend/omr/debug_tracer/

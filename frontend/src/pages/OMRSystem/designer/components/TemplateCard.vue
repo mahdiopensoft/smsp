@@ -12,6 +12,8 @@
             v-if="isYemeniMinistryPreset"
             :exam-subject="template.template_data?.header?.exam_name || template.name"
             :exam-year="template.template_data?.metadata?.academic_year || '1444هـ — 2022-2023م'"
+            :total-questions="questionsCount || 50"
+            :sections="template.template_data?.questions?.sections"
           />
           <OmrSheetMultigraphics
             v-else
@@ -217,22 +219,15 @@ const questionsCount = computed(() => {
   )
 })
 
-const isYemeniMinistryPreset = computed(() => {
+const isUniversityPreset = computed(() => {
   const name = props.template?.name || ''
   const tId = props.template?.template_data?.template_id || ''
   const numQ = questionsCount.value
-  return (
-    name.includes('وزارة التربية') ||
-    name.includes('الثانوية العامة') ||
-    tId === 'YEMEN_MINISTRY_50' ||
-    numQ === 50
-  )
+  return numQ === 180 || name.includes('الجامعات') || name.includes('التعليم العالي') || tId === 'YEMEN_UNIVERSITY_180' || props.template?.template_data?.display_mode === 'university_180'
 })
 
-const isUniversityPreset = computed(() => {
-  const name = props.template?.name || ''
-  const numQ = questionsCount.value
-  return numQ === 180 || name.includes('الجامعات') || name.includes('التعليم العالي')
+const isYemeniMinistryPreset = computed(() => {
+  return !isUniversityPreset.value
 })
 
 const columnsCount = computed(() => {

@@ -62,9 +62,8 @@
           مسح
         </v-btn>
 
-        <!-- Presentation / Layout Mode Switcher (For Yemeni Ministry 50) -->
+        <!-- Presentation / Layout Mode Switcher (Always available for all templates) -->
         <v-btn-toggle
-          v-if="isYemeniMinistryPreset"
           v-model="presentationMode"
           mandatory
           density="compact"
@@ -74,10 +73,13 @@
           class="ms-2"
         >
           <v-btn value="audit_a4" size="small" class="font-weight-bold" prepend-icon="mdi-file-document-check-outline">
-            النموذج الرسمي الشامل (A4 مع الترويسة والتدقيق)
+            النموذج الرسمي الشامل (A4 المعتمد)
           </v-btn>
           <v-btn value="compact_a5" size="small" class="font-weight-bold" prepend-icon="mdi-file-outline">
             ورقة إجابة الطالب (A5 للاختبار)
+          </v-btn>
+          <v-btn value="university_180" size="small" class="font-weight-bold" prepend-icon="mdi-school-outline">
+            نموذج الجامعات (180 سؤال)
           </v-btn>
         </v-btn-toggle>
       </div>
@@ -138,17 +140,20 @@
         
         <!-- Mode 1: Yemeni Official Electronic Audit & Correction Sheet (A4 Full) - DEFAULT -->
         <YemeniAuditReportSheet
-          v-if="isYemeniMinistryPreset && presentationMode === 'audit_a4'"
-          :student-name="config.header?.student_name || 'عمرو عبدالباسط عبدالله قائد الزمر'"
+          v-if="presentationMode === 'audit_a4'"
+          :student-name="config.header?.student_name || '................................'"
           :seat-number="config.header?.seat_number || '418485'"
-          :serial-number="config.header?.serial_number || '148'"
-          :exam-subject="config.header?.exam_name || 'القرآن الكريم'"
-          :exam-year="config.metadata?.academic_year || '1444هـ-2022-2023م'"
-          :center-name="config.header?.center_name || 'سالم قطن - معين'"
-          :center-code="config.header?.center_code || '164'"
-          :envelope-no="config.header?.envelope_no || '2'"
+          :serial-number="config.header?.serial_number || '101'"
+          :model-code="config.header?.model_code || '1'"
+          :form-number="config.header?.model_code || '1'"
+          :exam-subject="config.header?.exam_name || 'الرياضيات'"
+          :exam-stage-title="config.header?.sub_title || 'اختبار الشهادة العامة'"
+          :exam-year="config.metadata?.academic_year || '2026'"
+          :center-name="config.header?.center_name || 'المركز الاختباري الرئيسي'"
+          :center-code="config.header?.center_code || '101'"
+          :envelope-no="config.header?.envelope_no || '1'"
           :governorate="config.header?.governorate || 'أمانة العاصمة'"
-          :directorate="config.header?.directorate || 'معين'"
+          :directorate="config.header?.directorate || 'السبعين'"
           :barcode-value="config.barcode?.value || '41848501164148'"
           :qr-value="config.qr?.value || 'YE-MOE-1444-418485-SUB1'"
           :student-answers="simulatedAnswers"
@@ -157,7 +162,7 @@
           :choices-count="config.questions?.layout?.choices_count || 4"
           :bubble-radius="config.questions?.layout?.bubble_radius_mm || 2.1"
           :show-simulated-handwriting="config.instructions?.show_simulated_handwriting || false"
-          :total-questions="config.questions?.metadata?.num_questions"
+          :total-questions="config.questions?.metadata?.num_questions || 50"
           :sections="config.questions?.sections"
           :columns-count="config.questions?.layout?.columns_count || 4"
           :row-spacing="config.questions?.layout?.row_spacing_mm || 5.2"
@@ -165,23 +170,25 @@
 
         <!-- Mode 2: Student Exam Answer Sheet (A5 Compact) -->
         <YemeniMinistrySheet
-          v-else-if="isYemeniMinistryPreset && presentationMode === 'compact_a5'"
+          v-else-if="presentationMode === 'compact_a5'"
           layout-mode="compact_a5"
           :republic-name="config.header?.institution_name?.split('—')[0]?.trim() || config.header?.institution_name || 'الجمهورية اليمنية'"
           :ministry-name="config.header?.institution_name?.split('—')[1]?.trim() || 'وزارة التربية والتعليم'"
           :sector-name="config.header?.sub_title || 'قطاع المناهج والتوجيه — لجان الاختبارات'"
-          :exam-stage-title="config.header?.exam_stage_title || 'اختبار الشهادة الثانوية العامة (القسم العلمي)'"
-          :exam-subject="config.header?.exam_name || 'القرآن الكريم'"
-          :exam-year="config.metadata?.academic_year || '1444هـ — 2022-2023م'"
-          :student-name="config.header?.student_name || 'عمرو عبدالباسط عبدالله قائد الزمر'"
+          :exam-stage-title="config.header?.exam_stage_title || 'اختبار الشهادة العامة'"
+          :exam-subject="config.header?.exam_name || 'الرياضيات'"
+          :exam-year="config.metadata?.academic_year || '2026'"
+          :student-name="config.header?.student_name || '................................'"
           :seat-number="config.header?.seat_number || '418485'"
-          :serial-number="config.header?.serial_number || '148'"
-          :center-name="config.header?.center_name || 'سالم قطن — معين'"
-          :center-code="config.header?.center_code || '164'"
-          :envelope-no="config.header?.envelope_no || '2'"
+          :serial-number="config.header?.serial_number || '101'"
+          :model-code="config.header?.model_code || '1'"
+          :center-name="config.header?.center_name || 'المركز الاختباري الرئيسي'"
+          :center-code="config.header?.center_code || '101'"
+          :envelope-no="config.header?.envelope_no || '1'"
           :governorate="config.header?.governorate || 'أمانة العاصمة'"
-          :directorate="config.header?.directorate || 'معين'"
+          :directorate="config.header?.directorate || 'السبعين'"
           :barcode-value="config.barcode?.value || '41848501164148'"
+          :qr-value="config.qr?.value || 'YE-MOE-1444-418485-SUB1'"
           :student-answers="simulatedAnswers"
           :interactive="true"
           :mcq-bubble-type="config.questions?.layout?.bubble_type || 'numbers'"
@@ -194,14 +201,14 @@
           :instruction4="config.instructions?.rule4"
           :instruction-correct-label="config.instructions?.correct_label"
           :show-simulated-handwriting="config.instructions?.show_simulated_handwriting || false"
-          :total-questions="config.questions?.metadata?.num_questions"
+          :total-questions="config.questions?.metadata?.num_questions || 50"
           :sections="config.questions?.sections"
           :columns-count="config.questions?.layout?.columns_count || 4"
           :row-spacing="config.questions?.layout?.row_spacing_mm || 5.2"
           @bubble-click="onBubbleClick"
         />
 
-        <!-- Standard University / General Multigraphics Sheet -->
+        <!-- Mode 3: Standard University / General Multigraphics Sheet -->
         <OmrSheetMultigraphics
           v-else
           :total-questions="config.questions?.metadata?.num_questions || 180"
@@ -212,10 +219,12 @@
           :choices-per-question="config.questions?.layout?.choices_count || 4"
           :bubble-type="config.questions?.layout?.bubble_type || 'numbers'"
           :layout-direction="config.questions?.layout?.layout_direction || 'rtl'"
-          :primary-color="config.header?.primary_color || '#e6007e'"
+          :primary-color="config.header?.primary_color || '#1976D2'"
           :institution-name="config.header?.institution_name || 'الجمهورية اليمنية — وزارة التعليم العالي والبحث العلمي'"
-          :sub-title="config.header?.sub_title || 'جامعة صنعاء — الإدارة العامة للامتحانات والتقويم الآلي'"
-          :exam-name="config.header?.exam_name || 'الكيمياء العامة — نموذج معاينة'"
+          :sub-title="config.header?.sub_title || 'الإدارة العامة للامتحانات والتقويم الآلي'"
+          :exam-name="config.header?.exam_name || 'اختبار نهائي'"
+          :student-name="config.header?.student_name || 'طالب اختبار معياري'"
+          :barcode-value="config.barcode?.value || '41848501164148'"
           :student-answers="simulatedAnswers"
           :interactive="true"
           @bubble-click="onBubbleClick"
@@ -250,18 +259,17 @@ const YemeniAuditReportSheet = defineAsyncComponent(() =>
 )
 
 const isYemeniMinistryPreset = computed(() => {
-  const tId = props.config?.template_id || ''
-  const name = props.config?.template_name || ''
-  return tId === 'YEMEN_MINISTRY_50' || name.includes('وزارة التربية') || name.includes('الثانوية العامة') || props.config?.questions?.metadata?.num_questions === 50
+  return presentationMode.value === 'audit_a4' || presentationMode.value === 'compact_a5'
 })
 
-const presentationMode = ref<'audit_a4' | 'compact_a5'>(
-  props.config?.display_mode === 'audit_a4' ? 'audit_a4' : 'compact_a5'
+const presentationMode = ref<'audit_a4' | 'compact_a5' | 'university_180'>(
+  props.config?.display_mode === 'compact_a5' ? 'compact_a5' :
+  props.config?.display_mode === 'university_180' ? 'university_180' : 'audit_a4'
 )
 
 watch(() => props.config?.display_mode, (val) => {
   if (val && val !== presentationMode.value) {
-    presentationMode.value = val === 'audit_a4' ? 'audit_a4' : 'compact_a5'
+    presentationMode.value = val as any
   }
 })
 
@@ -272,10 +280,12 @@ watch(presentationMode, (val) => {
       props.config.paper.size = 'A5'
       props.config.paper.width_mm = 210
       props.config.paper.height_mm = 148.5
+      props.config.paper.orientation = 'landscape'
     } else {
       props.config.paper.size = 'A4'
       props.config.paper.width_mm = 210
       props.config.paper.height_mm = 297
+      props.config.paper.orientation = 'portrait'
     }
   }
 })
@@ -285,7 +295,7 @@ const zoomLevel = ref(1.0)
 const simulatedAnswers = ref<Record<number, any>>({})
 
 function zoomIn() {
-  if (zoomMode.value === 'fit' && isYemeniMinistryPreset.value && presentationMode.value === 'audit_a4') {
+  if (zoomMode.value === 'fit' && presentationMode.value === 'audit_a4') {
     zoomLevel.value = 0.68
   }
   zoomMode.value = 'custom'
@@ -293,7 +303,7 @@ function zoomIn() {
 }
 
 function zoomOut() {
-  if (zoomMode.value === 'fit' && isYemeniMinistryPreset.value && presentationMode.value === 'audit_a4') {
+  if (zoomMode.value === 'fit' && presentationMode.value === 'audit_a4') {
     zoomLevel.value = 0.68
   }
   zoomMode.value = 'custom'
@@ -313,7 +323,7 @@ watch(zoomMode, (mode) => {
 
 const currentZoomDisplay = computed(() => {
   if (zoomMode.value === 'fit') {
-    if (isYemeniMinistryPreset.value && presentationMode.value === 'audit_a4') {
+    if (presentationMode.value === 'audit_a4') {
       return 0.68
     }
     return 1.0
@@ -323,7 +333,7 @@ const currentZoomDisplay = computed(() => {
 })
 
 const currentAspectRatio = computed(() => {
-  if (isYemeniMinistryPreset.value && presentationMode.value === 'compact_a5') {
+  if (presentationMode.value === 'compact_a5') {
     return '210 / 148.5'
   }
   return '210 / 297'
@@ -333,7 +343,7 @@ const containerStyle = computed(() => {
   const ar = currentAspectRatio.value
 
   // معالجة هندسية خاصة لتقرير التدقيق A4 المعتمد لمنع انهيار وتداخل جداول HTML
-  if (isYemeniMinistryPreset.value && presentationMode.value === 'audit_a4') {
+  if (presentationMode.value === 'audit_a4') {
     const scaleFactor = zoomMode.value === 'fit' ? 0.68 : (zoomMode.value === 'actual' ? 1.0 : zoomLevel.value)
     return {
       width: '210mm',

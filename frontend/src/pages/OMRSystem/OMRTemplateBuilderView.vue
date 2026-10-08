@@ -1,7 +1,7 @@
 <template>
-  <OMRTemplatesView />
+  <OMRTemplateDesigner />
 </template>
 
 <script setup>
-import OMRTemplatesView from './OMRTemplatesView.vue'
+import OMRTemplateDesigner from './designer/index.vue'
 </script>

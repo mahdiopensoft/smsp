@@ -382,7 +382,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, defineAsyncComponent } from 'vue'
+import { ref, reactive, computed, onMounted, watch, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 
@@ -426,7 +426,7 @@ const previewingTemplate = ref<any>(null)
 
 const isPreviewYemeniMinistry = computed(() => {
   const t = previewingTemplate.value
-  if (!t) return false
+  if (!t) return true
   const name = t.name || ''
   const tId = t.template_data?.template_id || ''
   const numQ =
@@ -434,14 +434,13 @@ const isPreviewYemeniMinistry = computed(() => {
     t.template_data?.questions?.metadata?.num_questions ||
     t.template_data?.metadata?.num_questions ||
     0
-  return (
-    name.includes('وزارة التربية') ||
-    name.includes('الثانوية العامة') ||
-    numQ === 50 ||
-    tId === 'YEMEN_MINISTRY_50' ||
-    tId.includes('YEMEN_MINISTRY') ||
-    t.template_data?.template_name?.includes('وزارة التربية')
-  )
+  const isUniv =
+    numQ === 180 ||
+    name.includes('الجامعات') ||
+    name.includes('التعليم العالي') ||
+    tId === 'YEMEN_UNIVERSITY_180' ||
+    t.template_data?.display_mode === 'university_180'
+  return !isUniv
 })
 
 const previewWrapperStyle = computed(() => {
@@ -908,8 +907,18 @@ async function loadExamIntoDesigner(examId: string | number) {
       config.template_name = `قالب ${examData.title || 'الاختبار'}`
       config.description = `قالب OMR مولد تلقائياً للاختبار: ${examData.title || ''} (${questionsCount} سؤالاً)`
       
+      const isUniv = examData.institution_type === 'university'
+      // Always default to the official ministry/student sheet (compact_a5) unless explicitly a university exam
+      config.display_mode = isUniv ? 'university_180' : 'compact_a5'
+      
       if (config.header) {
-        config.header.exam_name = examData.subject_name || 'الامتحان النهائي'
+        config.header.institution_name = isUniv
+          ? 'الجمهورية اليمنية — وزارة التعليم العالي والبحث العلمي'
+          : 'الجمهورية اليمنية — وزارة التربية والتعليم'
+        config.header.sub_title = isUniv
+          ? (examData.center_name || 'جامعة صنعاء — الإدارة العامة للامتحانات والتقويم الآلي')
+          : 'قطاع المناهج والتوجيه — لجان الاختبارات'
+        config.header.exam_name = examData.subject_name || examData.title || 'الامتحان النهائي'
         config.header.governorate = examData.governorate || 'أمانة العاصمة'
         config.header.directorate = examData.directorate || 'المديرية'
         if (students.length > 0) {
@@ -917,6 +926,10 @@ async function loadExamIntoDesigner(examId: string | number) {
           config.header.seat_number = students[0].seat_number
           config.header.center_name = students[0].school_name
           config.header.serial_number = students[0].secret_number || '101'
+        } else {
+          config.header.student_name = '................................'
+          config.header.seat_number = '418485'
+          config.header.center_name = examData.directorate || 'المركز الرئيسي'
         }
       }
 
@@ -950,6 +963,15 @@ onMounted(() => {
     loadExamIntoDesigner(route.query.examId as string)
   }
 })
+
+watch(
+  () => route.query.examId,
+  (newId) => {
+    if (newId) {
+      loadExamIntoDesigner(newId as string)
+    }
+  }
+)
 </script>
 
 <style scoped>

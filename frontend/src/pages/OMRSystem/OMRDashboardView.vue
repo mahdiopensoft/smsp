@@ -36,6 +36,14 @@
           variant="tonal"
           class="font-weight-bold"
         />
+        <custom-btn
+          type="show"
+          :click="() => $router.push('/omr/gradebook')"
+          label="سجل الدرجات والكنترول"
+          color="primary"
+          variant="tonal"
+          class="font-weight-bold"
+        />
       </div>
     </div>
 

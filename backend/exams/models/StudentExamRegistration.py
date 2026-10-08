@@ -27,6 +27,11 @@ class StudentExamRegistration(SoftDeleteModel):
     seatNumber = models.CharField(max_length=50, verbose_name=_("رقم الجلوس في هذا الاختبار"))
     secretNumber = models.CharField(max_length=50, null=True, blank=True, verbose_name=_("الرقم السري"))
     isPresent = models.BooleanField(default=False, verbose_name=_("حاضر؟"))
+    
+    # ── Print Registry Tracking (سجل الطباعة) ──
+    is_printed = models.BooleanField(default=False, verbose_name=_("تمت طباعة الورقة؟"))
+    printed_at = models.DateTimeField(null=True, blank=True, verbose_name=_("تاريخ ووقت الطباعة"))
+    print_batch = models.CharField(max_length=100, null=True, blank=True, verbose_name=_("دفعة الطباعة"))
 
     class Meta:
         unique_together = ('student', 'examVersion')

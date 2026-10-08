@@ -9,10 +9,16 @@ from omr.apis.OMRScannerLabMVS import OMRScannerLabMVS
 from omr.apis.OMRBubbleSheetsMVS import OMRBubbleSheetsMVS
 from omr.apis.OMRTemplatesMVS import OMRTemplatesMVS
 from omr.apis.ExamLinkingMVS import ExamLinkingMVS
+from omr.apis.ExamGradebookMVS import ExamGradebookMVS
+from omr.apis.OMRPrintRegistryMVS import OMRPrintRegistryMVS
+from omr.apis.OMRVerificationMVS import OMRVerificationMVS
 
 from omr.api import grade_sheet, get_result, get_annotated_image, detect_template_api
 
 router = DefaultRouter()
+
+# 0. شاشة سجل درجات الاختبارات والترحيل لنظام الكنترول (Exam Gradebook & Control Dispatch)
+router.register(r'gradebook', ExamGradebookMVS, basename='gradebook')
 
 # Dedicated Screen MVS Endpoints
 # 1. شاشة المراجعة البشرية والتدقيق (Human Review Screen)
@@ -32,6 +38,12 @@ router.register(r'omr-templates', OMRTemplatesMVS, basename='omr-templates')
 
 # 6. شاشة ربط الاختبارات والتصحيح الضوئي (Exams OMR Linking Screen)
 router.register(r'exam-linking', ExamLinkingMVS, basename='exam-linking')
+
+# 7. شاشة سجل الطباعة (Print Registry Screen)
+router.register(r'print-registry', OMRPrintRegistryMVS, basename='print-registry')
+
+# 8. شاشة المطابقة والتحقق (Verification Screen)
+router.register(r'verification', OMRVerificationMVS, basename='verification')
 
 # Standard Tables
 router.register(r'omr-sheet-results', OMRSheetResultMVS, basename='omr-sheet-result')

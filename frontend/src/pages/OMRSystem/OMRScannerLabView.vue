@@ -39,6 +39,14 @@
           variant="tonal"
           class="font-weight-bold"
         />
+        <custom-btn
+          type="show"
+          :click="() => $router.push('/omr/gradebook')"
+          label="سجل الدرجات والكنترول"
+          color="primary"
+          variant="tonal"
+          class="font-weight-bold"
+        />
       </div>
     </div>
 
@@ -338,6 +346,22 @@
           </v-row>
         </v-card>
 
+
+        <!-- نمط المسح: ورقة فردية vs مسح ضوئي جماعي -->
+        <v-card class="pa-2 rounded-xl border elevation-0 mb-6 bg-grey-lighten-4">
+          <v-tabs v-model="scanSubMode" grow color="primary">
+            <v-tab value="single" class="font-weight-bold">
+              <v-icon start>mdi-file-outline</v-icon>
+              مسح وتصحيح ورقة فردية
+            </v-tab>
+            <v-tab value="batch" class="font-weight-bold">
+              <v-icon start>mdi-folder-multiple-image</v-icon>
+              المسح الضوئي الجماعي (دفعة دفاتر / PDF / ZIP)
+            </v-tab>
+          </v-tabs>
+        </v-card>
+
+        <div v-if="scanSubMode === 'single'">
         <!-- اختيار القالب المعتمد -->
         <v-card class="pa-4 rounded-xl border elevation-0 mb-6 bg-grey-lighten-5">
           <v-row class="align-center" dense>
@@ -710,6 +734,340 @@
           </div>
           <v-progress-linear :model-value="gradingProgress" height="8" rounded color="primary" striped />
         </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════════ -->
+        <!-- BATCH SCANNING SECTION (المسح الضوئي الجماعي للدفاتر)        -->
+        <!-- ════════════════════════════════════════════════════════════ -->
+        <div v-else class="batch-scan-section">
+          <!-- بطاقة خيارات وتجهيز الدفعة -->
+          <v-card class="pa-5 rounded-2xl border elevation-0 mb-6 bg-grey-lighten-5">
+            <div class="d-flex align-center gap-3 mb-4">
+              <v-avatar color="primary" variant="tonal" rounded="lg" size="44">
+                <v-icon size="24">mdi-folder-multiple-image</v-icon>
+              </v-avatar>
+              <div>
+                <h3 class="text-subtitle-1 font-weight-black mb-0">معالج المسح والتصحيح الضوئي الجماعي (Batch AI OMR)</h3>
+                <p class="text-caption text-medium-emphasis mb-0">
+                  ارفع حزمة أوراق كاملة كصور متعددة (JPG/PNG) أو ملف PDF مجمع أو أرشيف ZIP لتصحيح الدفعة بالتوازي ومطابقة كشوف الطلاب.
+                </p>
+              </div>
+            </div>
+
+            <v-row dense class="align-center">
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="batchName"
+                  label="اسم الدفعة المعالجة (اختياري)"
+                  placeholder="مثال: دفعة اختبار الكيمياء - القاعة الأولى"
+                  prepend-inner-icon="mdi-tag-outline"
+                  density="comfortable"
+                  variant="outlined"
+                  rounded="lg"
+                  hide-details
+                />
+              </v-col>
+              <v-col cols="12" md="6" class="d-flex align-center gap-2 justify-md-end flex-wrap">
+                <v-chip color="primary" variant="tonal" class="font-weight-bold">
+                  <v-icon start size="16">mdi-file-document-check</v-icon>
+                  {{ selectedExamObj ? selectedExamObj.title : 'اختبار عام (غير محدد)' }}
+                </v-chip>
+                <v-chip color="secondary" variant="tonal" class="font-weight-bold">
+                  <v-icon start size="16">mdi-format-list-checks</v-icon>
+                  {{ activeTemplateObj ? activeTemplateObj.name : 'كشف القالب آلياً (AUTO)' }}
+                </v-chip>
+              </v-col>
+            </v-row>
+          </v-card>
+
+          <!-- منطقة سحب وإفلات الدفعة الجماعية -->
+          <div
+            v-if="batchFiles.length === 0"
+            class="drop-zone pa-8 rounded-2xl mb-6 text-center cursor-pointer transition-all"
+            :class="{ 'drag-over': isDragging }"
+            @dragover.prevent="isDragging = true"
+            @dragleave="isDragging = false"
+            @drop.prevent="handleBatchDrop"
+            @click="$refs.batchFileInput.click()"
+          >
+            <input
+              ref="batchFileInput"
+              type="file"
+              multiple
+              accept="image/*,.pdf,.zip"
+              hidden
+              @change="handleBatchFileSelect"
+            />
+            <div class="py-4">
+              <v-avatar size="64" color="primary" variant="tonal" class="mb-3">
+                <v-icon size="36">mdi-folder-upload-outline</v-icon>
+              </v-avatar>
+              <h3 class="text-subtitle-1 font-weight-bold mb-1">
+                اسحب ملفات أوراق الإجابة هنا أو <span class="text-primary text-decoration-underline">اضغط لاختيار مجموعة ملفات</span>
+              </h3>
+              <p class="text-caption text-medium-emphasis mb-0">
+                يقبل ملفات صور متعددة (PNG / JPG / TIFF) أو ملف PDF متعدد الصفحات بدقة 300 DPI أو أرشيف ZIP
+              </p>
+            </div>
+          </div>
+
+          <!-- قائمة وحالة الملفات المحددة -->
+          <div v-else class="mb-6">
+            <input
+              ref="batchFileInput"
+              type="file"
+              multiple
+              accept="image/*,.pdf,.zip"
+              hidden
+              @change="handleBatchFileSelect"
+            />
+            <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3 pa-3 rounded-xl border bg-primary-lighten-5">
+              <div class="d-flex align-center gap-2">
+                <v-icon color="primary" size="22">mdi-checkbox-multiple-marked-circle-outline</v-icon>
+                <span class="text-body-2 font-weight-black text-primary">
+                  تم اختيار {{ batchFiles.length }} ملف / ورقة إجابة
+                </span>
+                <v-chip size="x-small" color="primary" variant="tonal" rounded="md">
+                  إجمالي الحجم: {{ formatTotalBatchSize() }}
+                </v-chip>
+              </div>
+              <div class="d-flex gap-2">
+                <v-btn
+                  color="primary"
+                  variant="tonal"
+                  size="small"
+                  rounded="lg"
+                  prepend-icon="mdi-plus"
+                  class="font-weight-bold"
+                  @click="$refs.batchFileInput.click()"
+                >
+                  إضافة ملفات أخرى
+                </v-btn>
+                <v-btn
+                  color="error"
+                  variant="text"
+                  size="small"
+                  rounded="lg"
+                  prepend-icon="mdi-trash-can-outline"
+                  class="font-weight-bold"
+                  @click="clearBatchFiles"
+                >
+                  إفراغ القائمة
+                </v-btn>
+              </div>
+            </div>
+
+            <!-- عرض الشرائح للملفات المختارة -->
+            <div class="d-flex flex-wrap gap-2 pa-3 border rounded-xl mb-4 bg-white" style="max-height: 160px; overflow-y: auto;">
+              <v-chip
+                v-for="(f, fIdx) in batchFiles.slice(0, 50)"
+                :key="fIdx"
+                size="small"
+                variant="outlined"
+                color="grey-darken-2"
+                closable
+                @click:close="removeBatchFile(fIdx)"
+              >
+                <v-icon start size="14">
+                  {{ f.name.endsWith('.pdf') ? 'mdi-file-pdf-box' : (f.name.endsWith('.zip') ? 'mdi-folder-zip' : 'mdi-file-image') }}
+                </v-icon>
+                {{ f.name }} ({{ formatSize(f.size) }})
+              </v-chip>
+              <v-chip v-if="batchFiles.length > 50" size="small" color="primary" variant="tonal">
+                + {{ batchFiles.length - 50 }} ملفات أخرى...
+              </v-chip>
+            </div>
+
+            <!-- Start Batch Processing CTA -->
+            <div class="d-flex justify-end gap-3 align-center mt-4">
+              <v-btn
+                color="primary"
+                rounded="xl"
+                size="x-large"
+                elevation="3"
+                class="font-weight-black px-8"
+                prepend-icon="mdi-rocket-launch"
+                :loading="isBatchGrading"
+                @click="startBatchGrading"
+              >
+                بدء التصحيح الضوئي الجماعي للدفعة (Bulk AI Grading)
+              </v-btn>
+            </div>
+          </div>
+
+          <!-- شريط تقدم معالجة الدفعة -->
+          <div v-if="isBatchGrading" class="mt-4 pa-5 rounded-xl border bg-primary-lighten-5">
+            <div class="d-flex justify-space-between align-center mb-2">
+              <div class="d-flex align-center gap-2">
+                <v-progress-circular indeterminate color="primary" size="20" width="3" />
+                <span class="text-subtitle-2 font-weight-bold text-primary">{{ batchGradingStatus }}</span>
+              </div>
+              <span class="text-caption font-weight-bold text-primary">{{ batchGradingProgress }}%</span>
+            </div>
+            <v-progress-linear :model-value="batchGradingProgress" height="10" rounded color="primary" striped />
+          </div>
+
+          <!-- نتائج معالجة الدفعة (Batch Results Dashboard) -->
+          <div v-if="batchResult" class="mt-6">
+            <v-alert
+              type="success"
+              variant="tonal"
+              rounded="xl"
+              class="mb-6 font-weight-bold"
+              icon="mdi-check-all"
+            >
+              {{ batchResult.message }}
+            </v-alert>
+
+            <!-- KPI Cards for the Batch -->
+            <v-row class="mb-6">
+              <v-col cols="12" sm="6" md="2">
+                <div class="stat-glass-card pa-4 rounded-xl shadow-indigo">
+                  <div class="text-caption text-medium-emphasis mb-1">إجمالي الأوراق</div>
+                  <div class="stat-value text-h4 font-weight-black text-indigo">{{ batchResult.batch?.total_papers || 0 }}</div>
+                  <div class="text-caption text-medium-emphasis mt-1">ورقة بالدفعة</div>
+                </div>
+              </v-col>
+              <v-col cols="12" sm="6" md="2">
+                <div class="stat-glass-card pa-4 rounded-xl shadow-emerald">
+                  <div class="text-caption text-medium-emphasis mb-1">مكتمل ومعتمد</div>
+                  <div class="stat-value text-h4 font-weight-black text-emerald">{{ batchResult.batch?.successful_papers || 0 }}</div>
+                  <div class="text-caption text-success mt-1 font-weight-bold">جاهزة للترحيل</div>
+                </div>
+              </v-col>
+              <v-col cols="12" sm="6" md="2">
+                <div class="stat-glass-card pa-4 rounded-xl shadow-amber">
+                  <div class="text-caption text-medium-emphasis mb-1">تحت التدقيق</div>
+                  <div class="stat-value text-h4 font-weight-black text-amber">{{ batchResult.batch?.needs_review_papers || 0 }}</div>
+                  <div class="text-caption text-amber-darken-2 mt-1 font-weight-bold">تتطلب مراجعة</div>
+                </div>
+              </v-col>
+              <v-col cols="12" sm="6" md="2">
+                <div class="stat-glass-card pa-4 rounded-xl shadow-rose">
+                  <div class="text-caption text-medium-emphasis mb-1">فشلت المعالجة</div>
+                  <div class="stat-value text-h4 font-weight-black text-rose">{{ batchResult.batch?.failed_papers || 0 }}</div>
+                  <div class="text-caption text-rose mt-1 font-weight-bold">تحتاج إعادة مسح</div>
+                </div>
+              </v-col>
+              <v-col cols="12" sm="6" md="4">
+                <div class="stat-glass-card pa-4 rounded-xl shadow-teal">
+                  <div class="text-caption text-medium-emphasis mb-1">متوسط درجات الدفعة</div>
+                  <div class="stat-value text-h4 font-weight-black text-teal">{{ batchResult.batch?.average_score || 0 }}</div>
+                  <div class="text-caption text-teal-darken-1 mt-1 font-weight-bold">معدل الدفعة العام</div>
+                </div>
+              </v-col>
+            </v-row>
+
+            <!-- Table of Extracted Sheets -->
+            <v-card class="rounded-2xl border overflow-hidden mb-6 elevation-1">
+              <div class="pa-4 bg-grey-lighten-4 d-flex justify-space-between align-center flex-wrap gap-2">
+                <h4 class="text-subtitle-1 font-weight-black mb-0">نتائج تصحيح أوراق الدفعة تفصيلياً</h4>
+                <div class="d-flex gap-2">
+                  <v-btn
+                    color="primary"
+                    variant="tonal"
+                    size="small"
+                    rounded="lg"
+                    prepend-icon="mdi-clipboard-check-outline"
+                    class="font-weight-bold"
+                    @click="$router.push(`/omr/gradebook${selectedExamId ? '?exam=' + selectedExamId : ''}`)"
+                  >
+                    الانتقال لسجل الدرجات والكنترول
+                  </v-btn>
+                  <v-btn
+                    color="secondary"
+                    variant="tonal"
+                    size="small"
+                    rounded="lg"
+                    prepend-icon="mdi-file-document-multiple-outline"
+                    class="font-weight-bold"
+                    @click="$router.push('/omr/submissions')"
+                  >
+                    عرض في سجل التسليمات
+                  </v-btn>
+                </div>
+              </div>
+
+              <v-table hover density="comfortable">
+                <thead>
+                  <tr class="bg-grey-lighten-5">
+                    <th class="font-weight-bold">#</th>
+                    <th class="font-weight-bold">اسم الملف</th>
+                    <th class="font-weight-bold">رقم الجلوس</th>
+                    <th class="font-weight-bold">اسم الطالب</th>
+                    <th class="text-center font-weight-bold">النموذج</th>
+                    <th class="text-center font-weight-bold">الدرجة</th>
+                    <th class="text-center font-weight-bold">النسبة %</th>
+                    <th class="text-center font-weight-bold">دقة OMR</th>
+                    <th class="text-center font-weight-bold">الحالة</th>
+                    <th class="text-center font-weight-bold">الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(sheet, sIdx) in (batchResult.sheets || [])" :key="sIdx">
+                    <td>{{ sIdx + 1 }}</td>
+                    <td class="text-caption font-mono">{{ sheet.filename }}</td>
+                    <td class="font-weight-bold font-mono text-primary">{{ sheet.seat_number }}</td>
+                    <td>{{ sheet.student_name }}</td>
+                    <td class="text-center">
+                      <v-chip size="x-small" color="primary" variant="flat">{{ sheet.model_code }}</v-chip>
+                    </td>
+                    <td class="text-center font-weight-bold">
+                      {{ sheet.score }} / {{ sheet.max_score }}
+                    </td>
+                    <td class="text-center font-weight-bold">
+                      {{ sheet.percentage }}%
+                    </td>
+                    <td class="text-center">
+                      <v-chip size="x-small" :color="sheet.confidence >= 0.9 ? 'success' : 'warning'" variant="tonal">
+                        {{ Math.round((sheet.confidence || 0.95) * 100) }}%
+                      </v-chip>
+                    </td>
+                    <td class="text-center">
+                      <v-chip
+                        size="x-small"
+                        :color="sheet.status === 'completed' ? 'success' : (sheet.status === 'needs_review' ? 'amber-darken-2' : 'error')"
+                        variant="flat"
+                        class="text-white font-weight-bold"
+                      >
+                        {{ sheet.status === 'completed' ? 'معتمد' : (sheet.status === 'needs_review' ? 'مراجعة' : 'فشل') }}
+                      </v-chip>
+                    </td>
+                    <td class="text-center">
+                      <v-btn
+                        v-if="sheet.id"
+                        icon="mdi-eye-outline"
+                        size="small"
+                        variant="text"
+                        color="primary"
+                        title="معاينة الورقة"
+                        @click="$router.push(`/omr/submissions/${sheet.id}`)"
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </v-table>
+            </v-card>
+
+            <!-- New Batch CTA -->
+            <div class="d-flex justify-center mt-4">
+              <v-btn
+                variant="outlined"
+                color="primary"
+                rounded="xl"
+                size="large"
+                prepend-icon="mdi-refresh"
+                class="font-weight-bold px-6"
+                @click="resetBatch"
+              >
+                بدء مسح دفعة أوراق جديدة
+              </v-btn>
+            </div>
+          </div>
+        </div>
+
+
+
       </v-card>
     </div>
 
@@ -1317,6 +1675,7 @@ import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import { printOmrElement } from './utils/omrPrint'
+import { submissionsAPI } from '@/services/omr/endpoints'
 
 const route = useRoute()
 const router = useRouter()
@@ -1335,6 +1694,98 @@ const YemeniAuditReportSheet = defineAsyncComponent(() =>
 
 // ── State ───────────────────────────────────────────────────────
 const currentStep = ref(0)
+
+// ── Batch Scanning State ─────────────────────────────────────────
+const scanSubMode = ref('single')
+const batchFiles = ref([])
+const batchName = ref('')
+const isBatchGrading = ref(false)
+const batchGradingProgress = ref(0)
+const batchGradingStatus = ref('')
+const batchResult = ref(null)
+const batchFileInput = ref(null)
+
+function formatTotalBatchSize() {
+  const total = batchFiles.value.reduce((acc, f) => acc + (f.size || 0), 0)
+  return formatSize(total)
+}
+
+function handleBatchFileSelect(e) {
+  const files = Array.from(e.target.files || [])
+  if (files.length > 0) {
+    batchFiles.value = [...batchFiles.value, ...files]
+  }
+}
+
+function handleBatchDrop(e) {
+  isDragging.value = false
+  const files = Array.from(e.dataTransfer.files || [])
+  if (files.length > 0) {
+    batchFiles.value = [...batchFiles.value, ...files]
+  }
+}
+
+function removeBatchFile(idx) {
+  batchFiles.value.splice(idx, 1)
+}
+
+function clearBatchFiles() {
+  batchFiles.value = []
+  if (batchFileInput.value) batchFileInput.value.value = ''
+}
+
+function resetBatch() {
+  clearBatchFiles()
+  batchResult.value = null
+  batchGradingProgress.value = 0
+  batchGradingStatus.value = ''
+}
+
+async function startBatchGrading() {
+  if (batchFiles.value.length === 0) return
+  isBatchGrading.value = true
+  batchGradingProgress.value = 15
+  batchGradingStatus.value = 'جاري رفع الأوراق وتحضير محرك OMR المتوازي...'
+
+  const timer = setInterval(() => {
+    if (batchGradingProgress.value < 85) {
+      batchGradingProgress.value += 10
+      batchGradingStatus.value = 'جاري تصحيح أوراق الدفعة وفحص الباركود ونماذج الإجابة...'
+    }
+  }, 400)
+
+  try {
+    const formData = new FormData()
+    batchFiles.value.forEach(f => {
+      formData.append('files', f)
+    })
+    if (selectedExamId.value) {
+      formData.append('exam_id', String(selectedExamId.value))
+    }
+    if (selectedTemplateId.value && selectedTemplateId.value !== 'AUTO') {
+      formData.append('template_id', String(selectedTemplateId.value))
+    }
+    if (batchName.value && batchName.value.trim()) {
+      formData.append('batch_name', batchName.value.trim())
+    }
+
+    const resp = await submissionsAPI.bulkUpload(formData)
+    clearInterval(timer)
+    batchGradingProgress.value = 100
+    batchGradingStatus.value = 'اكتملت معالجة الدفعة بنجاح!'
+    batchResult.value = resp.data
+    notify(resp.data?.message || 'تمت معالجة الدفعة بنجاح', 'success')
+  } catch (err) {
+    clearInterval(timer)
+    console.error('Batch grading error:', err)
+    const msg = err.response?.data?.message || 'حدث خطأ أثناء معالجة الدفعة'
+    notify(msg, 'error')
+    batchGradingStatus.value = 'فشلت معالجة الدفعة'
+  } finally {
+    isBatchGrading.value = false
+  }
+}
+
 const omrReady = ref(true)
 const uploadedFile = ref(null)
 const previewUrl = ref(null)
