@@ -78,6 +78,76 @@
       </div>
     </div>
 
+    <!-- ── Linked Exam Workflow Status Banner ──────────────────────────── -->
+    <v-card
+      v-if="linkedExam"
+      class="pa-4 pa-md-5 rounded-2xl mb-6 elevation-1 border bg-surface"
+      style="border-right: 6px solid rgb(var(--v-theme-primary)) !important;"
+    >
+      <div class="d-flex align-center justify-space-between flex-wrap gap-4">
+        <div class="d-flex align-center">
+          <v-avatar color="primary" variant="tonal" size="48" class="me-3 rounded-xl flex-shrink-0">
+            <v-icon size="26">mdi-check-decagram-outline</v-icon>
+          </v-avatar>
+          <div>
+            <div class="d-flex align-center gap-2 flex-wrap mb-1">
+              <span class="text-h6 font-weight-black text-on-surface">
+                تم استيراد وضبط قالب الاختبار: {{ linkedExam.title }}
+              </span>
+              <v-chip color="success" size="small" variant="flat" class="font-weight-bold">
+                <v-icon start size="14">mdi-check-circle</v-icon>
+                جاهز للاعتماد والطباعة
+              </v-chip>
+            </div>
+            <div class="text-caption text-medium-emphasis d-flex align-center gap-3 flex-wrap">
+              <span>المادة: <strong class="text-on-surface">{{ linkedExam.subject_name || 'عام' }}</strong></span>
+              <span>• الرمز: <strong class="font-mono text-on-surface">{{ linkedExam.uniqueCode }}</strong></span>
+              <span>• عدد الأسئلة: <strong class="text-primary">{{ config.questions.metadata.num_questions }} سؤالاً</strong></span>
+              <span>• النموذج المعتمد: <strong class="text-primary">{{ config.display_mode === 'compact_a5' ? 'ورقة الطالب A5 (الوزارية)' : 'الورقة الشاملة A4' }}</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex align-center gap-2 flex-wrap">
+          <v-btn
+            color="secondary"
+            variant="tonal"
+            rounded="lg"
+            class="font-weight-bold"
+            prepend-icon="mdi-arrow-right"
+            @click="goBackToExam"
+            title="الرجوع إلى شاشة استلام الاختبارات"
+          >
+            العودة للاختبار
+          </v-btn>
+
+          <v-btn
+            color="primary"
+            variant="flat"
+            rounded="lg"
+            class="font-weight-bold shadow-sm"
+            prepend-icon="mdi-printer-check"
+            @click="goToPrintForExam"
+            title="الانتقال إلى سجل الطباعة وتوليد أوراق الطلاب"
+          >
+            اعتماد وتوجيه للطباعة
+          </v-btn>
+
+          <v-btn
+            color="success"
+            variant="flat"
+            rounded="lg"
+            class="font-weight-bold shadow-sm"
+            prepend-icon="mdi-scanner"
+            @click="goToScannerForExam"
+            title="الانتقال مباشرة لمختبر المسح الضوئي والتصحيح"
+          >
+            الانتقال للتصحيح الضوئي
+          </v-btn>
+        </div>
+      </div>
+    </v-card>
+
     <!-- ── Mode Tabs Switcher (Unified OpenSoftCore Standard) ──────── -->
     <v-card class="mode-tabs-card pa-1 rounded-xl mb-6 elevation-0 border">
       <v-tabs
@@ -419,6 +489,7 @@ const savedTemplatesList = ref<any[]>([])
 const isLoadingTemplates = ref(false)
 const isSaving = ref(false)
 const savedDbId = ref<number | string | null>(null)
+const linkedExam = ref<any>(null)
 
 const showSaveModal = ref(false)
 const showPreviewModal = ref(false)
@@ -949,11 +1020,43 @@ async function loadExamIntoDesigner(examId: string | number) {
       }
 
       savedDbId.value = null
+      linkedExam.value = examData
       pageMode.value = 'designer'
       notify(`تم استيراد مواصفات الاختبار «${examData.title}» وبناء القالب (${questionsCount} سؤالاً) ديناميكياً!`)
     }
   } catch (err: any) {
     notify('تعذر استيراد بيانات الاختبار إلى المصمم: ' + extractErrorMessage(err), 'error')
+  }
+}
+
+const goBackToExam = () => {
+  if (linkedExam.value?.id) {
+    router.push({ path: '/omr-exams', query: { open_exam_id: linkedExam.value.id } })
+  } else {
+    router.push('/omr-exams')
+  }
+}
+
+const goToPrintForExam = () => {
+  if (linkedExam.value?.id) {
+    router.push({ path: '/omr-print-registry', query: { exam_id: linkedExam.value.id } })
+  } else {
+    router.push('/omr-print-registry')
+  }
+}
+
+const goToScannerForExam = () => {
+  if (linkedExam.value?.id) {
+    router.push({
+      path: '/omr/scanner-lab',
+      query: {
+        exam_id: linkedExam.value.id,
+        exam_code: linkedExam.value.uniqueCode,
+        exam_title: linkedExam.value.title,
+      }
+    })
+  } else {
+    router.push('/omr/scanner-lab')
   }
 }
 

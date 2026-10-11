@@ -175,14 +175,18 @@
         :restore="false"
       >
         <template v-slot:item-slot="{ item, key }">
-          <!-- Code & Title -->
+          <!-- Code & Title (Clickable) -->
           <template v-if="key === 'exam_info'">
-            <div class="d-flex align-center py-2">
-              <v-avatar color="primary" variant="tonal" size="38" class="me-3 rounded-lg">
+            <div
+              class="d-flex align-center py-2 cursor-pointer exam-row-title-trigger"
+              @click.stop="openExamHub(item)"
+              title="انقر لفتح كشوفات الطلاب والأسئلة ومفاتيح الحل وتوليد الأوراق"
+            >
+              <v-avatar color="primary" variant="tonal" size="38" class="me-3 rounded-lg flex-shrink-0">
                 <v-icon size="20">mdi-file-document-edit-outline</v-icon>
               </v-avatar>
               <div>
-                <div class="font-weight-black text-body-2 text-on-surface">{{ item.title }}</div>
+                <div class="font-weight-black text-body-2 text-on-surface exam-clickable-title">{{ item.title }}</div>
                 <div class="text-caption text-medium-emphasis d-flex align-center gap-2 mt-1">
                   <span class="font-mono bg-grey-lighten-4 px-2 py-0.5 rounded border text-caption">{{ item.uniqueCode }}</span>
                   <span>{{ item.created_at }}</span>
@@ -197,75 +201,108 @@
             <div class="text-caption text-medium-emphasis">{{ item.year_name }} ({{ item.institution_type_display }})</div>
           </template>
 
-          <!-- Versions & Questions -->
+          <!-- Versions & Questions (Clickable to open Keys Tab) -->
           <template v-else-if="key === 'versions_info'">
-            <div class="d-flex justify-center gap-1 mb-1">
-              <v-chip
-                v-for="v in item.versions"
-                :key="v.id"
-                size="x-small"
-                color="primary"
-                variant="tonal"
-                class="font-weight-bold unified-table-chip"
-              >
-                {{ v.versionCode }}
-              </v-chip>
-            </div>
-            <div class="text-caption font-weight-bold text-medium-emphasis">
-              {{ item.total_questions }} سؤال
-            </div>
-          </template>
-
-          <!-- Registered Students -->
-          <template v-else-if="key === 'students_count'">
-            <v-chip
-              :color="item.registered_students_count > 0 ? 'primary' : 'grey'"
-              variant="tonal"
-              size="small"
-              class="font-weight-bold unified-table-chip"
-              prepend-icon="mdi-account-school-outline"
+            <div
+              class="cursor-pointer py-1"
+              @click.stop="openExamHub(item, 'keys')"
+              title="انقر لمعاينة نماذج الأسئلة ومفاتيح الحل المعتمدة"
             >
-              {{ item.registered_students_count || 0 }} طالب
-            </v-chip>
-            <div v-if="item.registered_students_count > 0" class="text-caption text-success mt-1">
-              <v-icon size="12">mdi-check-circle</v-icon> كشف معتمد
-            </div>
-            <div v-else class="text-caption text-medium-emphasis mt-1">
-              يحتاج تسجيل
+              <div class="d-flex justify-center gap-1 mb-1">
+                <v-chip
+                  v-for="v in item.versions"
+                  :key="v.id"
+                  size="x-small"
+                  color="primary"
+                  variant="tonal"
+                  class="font-weight-bold unified-table-chip"
+                >
+                  {{ v.versionCode }}
+                </v-chip>
+              </div>
+              <div class="text-caption font-weight-bold text-primary">
+                {{ item.total_questions }} سؤال (مفاتيح الحل)
+              </div>
             </div>
           </template>
 
-          <!-- Grading Progress -->
-          <template v-else-if="key === 'progress'">
-            <div class="d-flex align-center justify-center gap-2">
-              <v-progress-linear
-                :model-value="item.submissions_total > 0 ? Math.min(100, Math.round((item.submissions_completed / item.submissions_total) * 100)) : 0"
-                color="success"
-                rounded
-                height="6"
-                style="width: 70px;"
-              />
-              <span class="text-caption font-weight-black font-mono">
-                {{ item.submissions_completed }}/{{ item.submissions_total }}
-              </span>
+          <!-- Registered Students (Clickable to open Roster Tab) -->
+          <template v-else-if="key === 'students_count'">
+            <div
+              class="cursor-pointer py-1"
+              @click.stop="openExamHub(item, 'roster')"
+              title="انقر لفتح كشف الطلاب وأرقام الجلوس"
+            >
+              <v-chip
+                :color="item.registered_students_count > 0 ? 'primary' : 'grey'"
+                variant="tonal"
+                size="small"
+                class="font-weight-bold unified-table-chip"
+                prepend-icon="mdi-account-school-outline"
+              >
+                {{ item.registered_students_count || 0 }} طالب
+              </v-chip>
+              <div v-if="item.registered_students_count > 0" class="text-caption text-success mt-1">
+                <v-icon size="12">mdi-check-circle</v-icon> كشف معتمد
+              </div>
+              <div v-else class="text-caption text-medium-emphasis mt-1">
+                يحتاج تسجيل
+              </div>
             </div>
-            <div v-if="item.average_score > 0" class="text-caption text-medium-emphasis mt-1">
-              متوسط: <strong class="text-primary">{{ item.average_score }}%</strong>
+          </template>
+
+          <!-- Grading Progress (Clickable to open Submissions Tab) -->
+          <template v-else-if="key === 'progress'">
+            <div
+              class="cursor-pointer py-1"
+              @click.stop="openExamHub(item, 'submissions')"
+              title="انقر لاستعراض أوراق الإجابة المصححة"
+            >
+              <div class="d-flex align-center justify-center gap-2">
+                <v-progress-linear
+                  :model-value="item.submissions_total > 0 ? Math.min(100, Math.round((item.submissions_completed / item.submissions_total) * 100)) : 0"
+                  color="success"
+                  rounded
+                  height="6"
+                  style="width: 70px;"
+                />
+                <span class="text-caption font-weight-black font-mono">
+                  {{ item.submissions_completed }}/{{ item.submissions_total }}
+                </span>
+              </div>
+              <div v-if="item.average_score > 0" class="text-caption text-medium-emphasis mt-1">
+                متوسط: <strong class="text-primary">{{ item.average_score }}%</strong>
+              </div>
             </div>
           </template>
 
           <!-- Actions -->
           <template v-else-if="key === 'actions'">
-            <div class="d-flex align-center justify-center gap-2">
+            <div class="d-flex align-center justify-center gap-2 flex-wrap">
+              <!-- 0. استعراض الكشوفات والأسئلة ومفاتيح الحل (النافذة الشاملة) -->
+              <v-btn
+                color="info"
+                variant="tonal"
+                rounded="lg"
+                size="small"
+                class="font-weight-bold px-3"
+                prepend-icon="mdi-card-search-outline"
+                @click.stop.prevent="openExamHub(item)"
+                title="عرض كشوفات الطلاب، نماذج الأسئلة ومفاتيح الحل، وتوليد أوراق التظليل"
+              >
+                الكشوفات والحلول
+              </v-btn>
+
               <!-- 1. توجيه لمصمم القوالب (الخطوة الأولى) -->
               <v-btn
                 color="primary"
                 variant="flat"
                 rounded="lg"
                 size="small"
-                class="font-weight-bold px-4"
+                class="font-weight-bold px-3"
                 prepend-icon="mdi-draw-pen"
                 @click.stop.prevent="openInTemplateDesigner(item)"
+                title="فتح مواصفات الاختبار وأقسام الأسئلة في مصمم قوالب التظليل OMR"
               >
                 تصميم الأوراق
               </v-btn>
@@ -276,9 +313,10 @@
                 variant="tonal"
                 rounded="lg"
                 size="small"
-                class="font-weight-bold px-4"
+                class="font-weight-bold px-3"
                 prepend-icon="mdi-printer-check"
                 @click.stop.prevent="goToPrintRegistry(item)"
+                title="تجهيز دفعة الطباعة وسجل أوراق الإجابة"
               >
                 توجيه للطباعة
               </v-btn>
@@ -1230,7 +1268,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/omr/client.js'
 import YemeniMinistrySheet from '@/components/omr_templates/YemeniMinistrySheet.vue'
 import YemeniAuditReportSheet from '@/components/omr_templates/YemeniAuditReportSheet.vue'
@@ -1238,6 +1276,7 @@ import YemeniOfficialQuestionPaper from '@/components/omr_templates/YemeniOffici
 import { printOmrElement, printOmrBatch, printExamPackage } from './utils/omrPrint'
 
 const router = useRouter()
+const route = useRoute()
 
 const loading = ref(false)
 const exams = ref([])
@@ -1564,7 +1603,7 @@ const headers = computed(() => [
   { title: "النماذج والأسئلة", key: "versions_info", sortable: false, align: "center", width: "160px" },
   { title: "كشف الطلاب", key: "students_count", sortable: true, align: "center", width: "140px" },
   { title: "حالة التصحيح", key: "progress", sortable: false, align: "center", width: "160px" },
-  { title: "الاجراءات", key: "actions", sortable: false, align: "center", width: "170px" },
+  { title: "الاجراءات", key: "actions", sortable: false, align: "center", width: "320px" },
 ])
 
 const filteredExams = computed(() => {
@@ -1945,8 +1984,14 @@ const goToPrintRegistry = (exam) => {
   })
 }
 
-onMounted(() => {
-  fetchExams()
+onMounted(async () => {
+  await fetchExams()
+  if (route.query.open_exam_id) {
+    const targetExam = exams.value.find(e => String(e.id) === String(route.query.open_exam_id))
+    if (targetExam) {
+      openExamHub(targetExam)
+    }
+  }
 })
 </script>
 
@@ -2040,5 +2085,18 @@ onMounted(() => {
 .action-icon-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12) !important;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.exam-row-title-trigger {
+  transition: opacity 0.15s ease;
+}
+
+.exam-row-title-trigger:hover .exam-clickable-title {
+  color: rgb(var(--v-theme-primary)) !important;
+  text-decoration: underline;
 }
 </style>
