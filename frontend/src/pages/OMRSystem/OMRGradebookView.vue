@@ -188,6 +188,9 @@
             variant="outlined"
             class="mb-6"
             hide-details
+            @update:model-value="onSearchInput"
+            @keydown.enter="applyFilters"
+            @click:clear="onClearSearch"
           />
         </v-col>
 
@@ -205,6 +208,7 @@
             variant="outlined"
             class="mb-6"
             hide-details
+            @update:model-value="applyFilters"
           />
         </v-col>
 
@@ -222,6 +226,7 @@
             variant="outlined"
             class="mb-6"
             hide-details
+            @update:model-value="applyFilters"
           />
         </v-col>
       </v-row>
@@ -247,7 +252,7 @@
             <p class="text-caption text-medium-emphasis mb-0 mt-1">
               المادة: <span class="font-weight-bold text-on-surface">{{ selectedExamObj.subject_name || '—' }}</span>
               • العام: <span class="font-weight-bold text-on-surface">{{ selectedExamObj.year_name || '—' }}</span>
-              • الطلاب: <span class="font-weight-bold text-primary">{{ filteredRecords.length }}</span> طالب في الكشف الحالي
+              • الطلاب: <span class="font-weight-bold text-primary">{{ activeExamStats.total_students || totalRecordsCount }}</span> طالب مسجل في الكشف
             </p>
           </div>
         </div>
@@ -317,175 +322,154 @@
       </div>
     </v-card>
 
-    <!-- ── Student Gradebook Table ──────────────────────────────────── -->
-    <v-card class="main-card rounded-2xl overflow-hidden mb-6 elevation-1">
-      <v-table hover density="comfortable" class="gradebook-table">
-        <thead>
-          <tr class="bg-grey-lighten-4">
-            <th class="text-right font-weight-black py-4">رقم الجلوس</th>
-            <th class="text-right font-weight-black py-4">الرقم السري</th>
-            <th class="text-right font-weight-black py-4">اسم الطالب</th>
-            <th class="text-center font-weight-black py-4">النموذج</th>
-            <th class="text-center font-weight-black py-4">الدرجة المحرزة</th>
-            <th class="text-center font-weight-black py-4">النسبة %</th>
-            <th class="text-center font-weight-black py-4">التقدير</th>
-            <th class="text-center font-weight-black py-4">دقة OMR</th>
-            <th class="text-center font-weight-black py-4">حالة التصحيح</th>
-            <th class="text-center font-weight-black py-4">الترحيل للكنترول</th>
-            <th class="text-center font-weight-black py-4">الإجراءات</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Loading state -->
-          <tr v-if="loadingRecords">
-            <td colspan="11" class="text-center py-8">
-              <v-progress-circular indeterminate color="primary" size="36" class="mb-2" />
-              <div class="text-caption text-medium-emphasis">جاري تحميل وتدقيق كشف الدرجات...</div>
-            </td>
-          </tr>
+    <!-- ── Student Gradebook Table (Component with Server-Side Pagination) ── -->
+    <div class="main-card rounded-2xl overflow-hidden mb-6 elevation-1">
+      <custom-data-table
+        :headers="headers"
+        :items="tableItems"
+        :getData="fetchGradebookRoster"
+        :customLoading="loadingRecords"
+        class="bg-transparent"
+        :hasFilter="false"
+        :log="false"
+        :restore="false"
+        :showSelect="false"
+        :actions="false"
+      >
+        <template v-slot:item-slot="{ item, key }">
+          <!-- Seat Number -->
+          <template v-if="key === 'seat_number'">
+            <span class="font-weight-black font-mono text-primary">
+              {{ item.seat_number }}
+            </span>
+          </template>
 
-          <!-- Empty state -->
-          <tr v-else-if="filteredRecords.length === 0">
-            <td colspan="11" class="text-center py-10">
-              <v-icon size="48" color="grey-lighten-1" class="mb-2">mdi-clipboard-text-search-outline</v-icon>
-              <div class="text-subtitle-1 font-weight-bold text-medium-emphasis">لا توجد سجلات مطابقة للبحث أو التصفية</div>
-              <div class="text-caption text-medium-emphasis">تأكد من اختيار الاختبار المناسب ووجود طلاب مسجلين.</div>
-            </td>
-          </tr>
+          <!-- Secret Number -->
+          <template v-else-if="key === 'secret_number'">
+            <span class="font-mono text-medium-emphasis">
+              {{ item.secret_number }}
+            </span>
+          </template>
 
-          <!-- Data rows -->
-          <tr
-            v-else
-            v-for="record in filteredRecords"
-            :key="record.registration_id"
-            :class="{ 'row-dispatched': record.is_dispatched, 'row-absent': !record.is_present }"
-          >
-            <!-- Seat Number -->
-            <td class="font-weight-black font-mono text-primary">
-              {{ record.seat_number }}
-            </td>
+          <!-- Student Name -->
+          <template v-else-if="key === 'student_name'">
+            <div class="py-1">
+              <div class="font-weight-bold text-on-surface">{{ item.student_name }}</div>
+              <div class="text-caption text-medium-emphasis">{{ item.school_name }}</div>
+            </div>
+          </template>
 
-            <!-- Secret Number -->
-            <td class="font-mono text-medium-emphasis">
-              {{ record.secret_number }}
-            </td>
+          <!-- Version Code -->
+          <template v-else-if="key === 'version_code'">
+            <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold">
+              {{ item.version_code || 'A' }}
+            </v-chip>
+          </template>
 
-            <!-- Student Name -->
-            <td>
-              <div class="font-weight-bold text-on-surface">{{ record.student_name }}</div>
-              <div class="text-caption text-medium-emphasis">{{ record.school_name }}</div>
-            </td>
+          <!-- Score -->
+          <template v-else-if="key === 'score'">
+            <span v-if="item.status === 'absent'" class="text-caption text-medium-emphasis font-weight-bold">غائب</span>
+            <span v-else class="text-subtitle-2 font-weight-black">
+              <span :class="item.percentage >= 50 ? 'text-success' : 'text-error'">{{ item.score }}</span>
+              <span class="text-caption text-medium-emphasis"> / {{ item.max_score }}</span>
+            </span>
+          </template>
 
-            <!-- Version Code -->
-            <td class="text-center">
-              <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold">
-                {{ record.version_code || 'A' }}
-              </v-chip>
-            </td>
-
-            <!-- Score -->
-            <td class="text-center">
-              <span v-if="record.status === 'absent'" class="text-caption text-medium-emphasis font-weight-bold">غائب</span>
-              <span v-else class="text-subtitle-2 font-weight-black">
-                <span :class="record.percentage >= 50 ? 'text-success' : 'text-error'">{{ record.score }}</span>
-                <span class="text-caption text-medium-emphasis"> / {{ record.max_score }}</span>
-              </span>
-            </td>
-
-            <!-- Percentage -->
-            <td class="text-center" style="min-width: 110px;">
-              <template v-if="record.status !== 'absent'">
+          <!-- Percentage -->
+          <template v-else-if="key === 'percentage'">
+            <div style="min-width: 100px;">
+              <template v-if="item.status !== 'absent'">
                 <div class="d-flex align-center justify-center gap-1 mb-1">
-                  <span class="text-caption font-weight-bold">{{ record.percentage }}%</span>
+                  <span class="text-caption font-weight-bold">{{ item.percentage }}%</span>
                 </div>
                 <v-progress-linear
-                  :model-value="record.percentage"
-                  :color="record.percentage >= 50 ? 'success' : 'error'"
+                  :model-value="item.percentage"
+                  :color="item.percentage >= 50 ? 'success' : 'error'"
                   height="5"
                   rounded
                 />
               </template>
               <span v-else class="text-caption text-medium-emphasis">—</span>
-            </td>
+            </div>
+          </template>
 
-            <!-- Grade Letter -->
-            <td class="text-center">
-              <v-chip
+          <!-- Grade Letter -->
+          <template v-else-if="key === 'grade_code'">
+            <v-chip
+              size="small"
+              :color="item.grade_color"
+              variant="tonal"
+              class="font-weight-bold"
+            >
+              {{ item.grade_code }} • {{ item.grade_name_ar }}
+            </v-chip>
+          </template>
+
+          <!-- OMR Confidence -->
+          <template v-else-if="key === 'confidence'">
+            <v-chip
+              v-if="item.confidence"
+              size="x-small"
+              :color="item.confidence >= 0.9 ? 'success' : (item.confidence >= 0.75 ? 'warning' : 'error')"
+              variant="tonal"
+              class="font-weight-bold"
+            >
+              {{ Math.round(item.confidence * 100) }}%
+            </v-chip>
+            <span v-else class="text-caption text-medium-emphasis">—</span>
+          </template>
+
+          <!-- Grading Status -->
+          <template v-else-if="key === 'status'">
+            <v-chip
+              size="x-small"
+              :color="getStatusColor(item.status)"
+              variant="flat"
+              class="font-weight-bold text-white"
+            >
+              {{ getStatusDisplay(item.status) }}
+            </v-chip>
+          </template>
+
+          <!-- Dispatched to Control -->
+          <template v-else-if="key === 'is_dispatched'">
+            <v-chip
+              size="small"
+              :color="item.is_dispatched ? 'success' : 'grey-lighten-1'"
+              :variant="item.is_dispatched ? 'flat' : 'outlined'"
+              class="font-weight-bold"
+              :class="{ 'text-white': item.is_dispatched }"
+            >
+              <v-icon start size="14">{{ item.is_dispatched ? 'mdi-lock-check' : 'mdi-clock-outline' }}</v-icon>
+              {{ item.is_dispatched ? 'مرحل ومقفل' : 'غير مرحل' }}
+            </v-chip>
+          </template>
+
+          <!-- Actions -->
+          <template v-else-if="key === 'actions'">
+            <div class="d-flex align-center justify-center gap-1">
+              <v-btn
+                v-if="item.submission_id"
+                icon="mdi-file-eye-outline"
                 size="small"
-                :color="record.grade_color"
-                variant="tonal"
-                class="font-weight-bold"
-              >
-                {{ record.grade_code }} • {{ record.grade_name_ar }}
-              </v-chip>
-            </td>
-
-            <!-- OMR Confidence -->
-            <td class="text-center">
-              <v-chip
-                v-if="record.confidence"
-                size="x-small"
-                :color="record.confidence >= 0.9 ? 'success' : (record.confidence >= 0.75 ? 'warning' : 'error')"
-                variant="tonal"
-                class="font-weight-bold"
-              >
-                {{ Math.round(record.confidence * 100) }}%
-              </v-chip>
-              <span v-else class="text-caption text-medium-emphasis">—</span>
-            </td>
-
-            <!-- Grading Status -->
-            <td class="text-center">
-              <v-chip
-                size="x-small"
-                :color="getStatusColor(record.status)"
-                variant="flat"
-                class="font-weight-bold text-white"
-              >
-                {{ getStatusDisplay(record.status) }}
-              </v-chip>
-            </td>
-
-            <!-- Dispatched to Control -->
-            <td class="text-center">
-              <v-chip
+                variant="text"
+                color="primary"
+                title="معاينة وتدقيق ورقة الإجابة"
+                @click="$router.push(`/omr/submissions/${item.submission_id}`)"
+              />
+              <v-btn
+                v-else
+                icon="mdi-pencil-off-outline"
                 size="small"
-                :color="record.is_dispatched ? 'success' : 'grey-lighten-1'"
-                :variant="record.is_dispatched ? 'flat' : 'outlined'"
-                class="font-weight-bold"
-                :class="{ 'text-white': record.is_dispatched }"
-              >
-                <v-icon start size="14">{{ record.is_dispatched ? 'mdi-lock-check' : 'mdi-clock-outline' }}</v-icon>
-                {{ record.is_dispatched ? 'مرحل ومقفل' : 'غير مرحل' }}
-              </v-chip>
-            </td>
-
-            <!-- Actions -->
-            <td class="text-center">
-              <div class="d-flex align-center justify-center gap-1">
-                <v-btn
-                  v-if="record.submission_id"
-                  icon="mdi-file-eye-outline"
-                  size="small"
-                  variant="text"
-                  color="primary"
-                  title="معاينة وتدقيق ورقة الإجابة"
-                  @click="$router.push(`/omr/submissions/${record.submission_id}`)"
-                />
-                <v-btn
-                  v-else
-                  icon="mdi-pencil-off-outline"
-                  size="small"
-                  variant="text"
-                  color="grey"
-                  disabled
-                />
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </v-table>
-    </v-card>
+                variant="text"
+                color="grey"
+                disabled
+              />
+            </div>
+          </template>
+        </template>
+      </custom-data-table>
+    </div>
 
     <!-- ── Dispatch Confirmation Modal ──────────────────────────────── -->
     <v-dialog v-model="dispatchDialog" max-width="580" persistent>
@@ -624,7 +608,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(rec, idx) in filteredRecords" :key="rec.registration_id">
+          <tr v-for="(rec, idx) in printRecordsList" :key="rec.registration_id">
             <td class="text-center">{{ idx + 1 }}</td>
             <td class="text-center">{{ rec.seat_number }}</td>
             <td class="text-center">{{ rec.secret_number }}</td>
@@ -687,7 +671,27 @@ export default {
       selectedExamId: null,
       selectedExamObj: null,
 
-      allRecords: [],
+      totalRecordsCount: 0,
+      tableItems: {
+        results: [],
+        pagination: { count: 0, num_pages: 1, current_page: 1, page_size: 10, total: 0 }
+      },
+      printRecords: [],
+
+      headers: [
+        { title: "رقم الجلوس", key: "seat_number", sortable: true, align: "center", width: "115px" },
+        { title: "الرقم السري", key: "secret_number", sortable: true, align: "center", width: "105px" },
+        { title: "اسم الطالب", key: "student_name", sortable: true, align: "start" },
+        { title: "النموذج", key: "version_code", sortable: true, align: "center", width: "85px" },
+        { title: "الدرجة المحرزة", key: "score", sortable: true, align: "center", width: "130px" },
+        { title: "النسبة %", key: "percentage", sortable: true, align: "center", width: "120px" },
+        { title: "التقدير", key: "grade_code", sortable: true, align: "center", width: "135px" },
+        { title: "دقة OMR", key: "confidence", sortable: true, align: "center", width: "95px" },
+        { title: "حالة التصحيح", key: "status", sortable: true, align: "center", width: "115px" },
+        { title: "الترحيل للكنترول", key: "is_dispatched", sortable: true, align: "center", width: "135px" },
+        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "90px" },
+      ],
+
       activeExamStats: {
         total_students: 0,
         completed_count: 0,
@@ -726,33 +730,20 @@ export default {
         text: '',
         color: 'success',
       },
+
+      searchDebounceTimer: null,
     }
   },
 
   computed: {
+    printRecordsList() {
+      if (this.printRecords && this.printRecords.length > 0) {
+        return this.printRecords
+      }
+      return this.tableItems.results || []
+    },
     filteredRecords() {
-      let list = this.allRecords || []
-
-      if (this.searchQuery && this.searchQuery.trim()) {
-        const q = this.searchQuery.trim().toLowerCase()
-        list = list.filter(r =>
-          (r.student_name && r.student_name.toLowerCase().includes(q)) ||
-          (String(r.seat_number).toLowerCase().includes(q)) ||
-          (String(r.secret_number).toLowerCase().includes(q))
-        )
-      }
-
-      if (this.filterStatus) {
-        list = list.filter(r => r.status === this.filterStatus)
-      }
-
-      if (this.filterDispatch === 'dispatched') {
-        list = list.filter(r => r.is_dispatched)
-      } else if (this.filterDispatch === 'not_dispatched') {
-        list = list.filter(r => !r.is_dispatched)
-      }
-
-      return list
+      return this.tableItems.results || []
     },
   },
 
@@ -762,7 +753,7 @@ export default {
     // If query param exam is passed
     if (this.$route.query.exam) {
       this.selectedExamId = parseInt(this.$route.query.exam) || this.$route.query.exam
-      this.loadRoster(this.selectedExamId)
+      await this.fetchGradebookRoster({ params: { page: 1, page_size: 10 } })
     }
   },
 
@@ -787,11 +778,10 @@ export default {
         // Auto select first exam if not selected
         if (!this.selectedExamId && this.examsList.length > 0) {
           this.selectedExamId = this.examsList[0].id
-          await this.loadRoster(this.selectedExamId)
+          await this.fetchGradebookRoster({ params: { page: 1, page_size: 10 } })
         }
       } catch (err) {
         console.error('Error fetching exams for gradebook:', err)
-        // Fallback to general exams list if gradebook list has issue
         try {
           const exRes = await examsAPI.list()
           const exData = exRes.data?.results || exRes.data || []
@@ -807,7 +797,7 @@ export default {
           }))
           if (this.examsList.length > 0 && !this.selectedExamId) {
             this.selectedExamId = this.examsList[0].id
-            await this.loadRoster(this.selectedExamId)
+            await this.fetchGradebookRoster({ params: { page: 1, page_size: 10 } })
           }
         } catch (exErr) {
           this.notify('تعذر جلب قائمة الاختبارات', 'error')
@@ -820,11 +810,11 @@ export default {
     async onExamChange(examId) {
       if (!examId) {
         this.selectedExamObj = null
-        this.allRecords = []
+        this.tableItems = { results: [], pagination: { count: 0, num_pages: 1, current_page: 1, page_size: 10, total: 0 } }
         this.resetStats()
         return
       }
-      await this.loadRoster(examId)
+      await this.fetchGradebookRoster({ params: { page: 1, page_size: 10 } })
     },
 
     resetStats() {
@@ -840,42 +830,92 @@ export default {
       }
     },
 
-    async loadRoster(examId) {
-      if (!examId) return
+    onSearchInput() {
+      if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer)
+      this.searchDebounceTimer = setTimeout(() => {
+        this.applyFilters()
+      }, 400)
+    },
+
+    onClearSearch() {
+      this.searchQuery = ''
+      this.applyFilters()
+    },
+
+    applyFilters() {
+      this.fetchGradebookRoster({ params: { page: 1 } })
+    },
+
+    loadRoster(examId) {
+      if (examId) this.selectedExamId = examId
+      return this.fetchGradebookRoster({ params: { page: 1 } })
+    },
+
+    async fetchGradebookRoster(tableParams = null) {
+      if (!this.selectedExamId) {
+        this.tableItems = { results: [], pagination: { count: 0, num_pages: 1, current_page: 1, page_size: 10, total: 0 } }
+        return
+      }
       this.loadingRecords = true
       try {
-        const res = await gradebookAPI.getRoster(examId)
-        const data = res.data
+        let queryParams = {}
+        if (tableParams && tableParams.params) {
+          queryParams = { ...tableParams.params }
+        } else if (tableParams && typeof tableParams === 'object' && ('page' in tableParams || 'page_size' in tableParams || 'perPage' in tableParams)) {
+          queryParams = { ...tableParams }
+        } else {
+          queryParams = { page: 1, page_size: 10 }
+        }
+
+        if (this.searchQuery && this.searchQuery.trim()) {
+          queryParams.search = this.searchQuery.trim()
+        }
+        if (this.filterStatus && this.filterStatus !== 'all') {
+          queryParams.status = this.filterStatus
+        }
+        if (this.filterDispatch && this.filterDispatch !== 'all') {
+          queryParams.dispatch = this.filterDispatch
+        }
+
+        const res = await gradebookAPI.getRoster(this.selectedExamId, queryParams)
+        const data = res.data || {}
         if (data.success) {
-          this.selectedExamObj = data.exam
-          this.allRecords = data.records || []
+          this.selectedExamObj = data.exam || this.selectedExamObj
 
-          // Calculate summary stats
-          const total = this.allRecords.length
-          const completed = this.allRecords.filter(r => r.status === 'completed')
-          const needsReview = this.allRecords.filter(r => r.status === 'needs_review')
-          const absent = this.allRecords.filter(r => r.status === 'absent')
-          const dispatched = this.allRecords.filter(r => r.is_dispatched)
+          const results = data.results || data.records || []
+          const pagination = data.pagination || {
+            count: data.count || results.length,
+            current_page: queryParams.page || 1,
+            num_pages: Math.ceil((data.count || results.length) / (queryParams.page_size || queryParams.perPage || 10)) || 1,
+            page_size: queryParams.page_size || queryParams.perPage || 10,
+            total: data.count || results.length,
+          }
 
-          const sumScore = completed.reduce((acc, r) => acc + (r.score || 0), 0)
-          const maxScore = data.exam?.max_score || 100
-          const avgPercent = completed.length > 0 ? (sumScore / (completed.length * maxScore)) * 100 : 0
-          const passedCount = completed.filter(r => r.percentage >= 50).length
-          const passRate = completed.length > 0 ? (passedCount / completed.length) * 100 : 0
+          this.tableItems = {
+            ...data,
+            results,
+            records: results,
+            pagination,
+          }
+          this.totalRecordsCount = pagination.count || data.count || 0
 
-          this.activeExamStats = {
-            total_students: total,
-            completed_count: completed.length,
-            needs_review_count: needsReview.length,
-            absent_count: absent.length,
-            average_score: Math.round(avgPercent * 10) / 10,
-            pass_rate: Math.round(passRate * 10) / 10,
-            dispatched_count: dispatched.length,
-            is_fully_dispatched: dispatched.length >= completed.length && completed.length > 0,
+          if (data.stats) {
+            this.activeExamStats = data.stats
+          } else if (data.exam) {
+            this.activeExamStats = {
+              total_students: data.exam.total_students || 0,
+              completed_count: data.exam.completed_count || 0,
+              needs_review_count: data.exam.needs_review_count || 0,
+              absent_count: data.exam.absent_count || 0,
+              average_score: data.exam.average_score || 0,
+              pass_rate: data.exam.pass_rate || 0,
+              dispatched_count: data.exam.dispatched_count || 0,
+              is_fully_dispatched: data.exam.is_fully_dispatched || false,
+            }
           }
         }
       } catch (err) {
-        console.error('Error loading gradebook roster:', err)
+        console.error('Error loading gradebook roster from backend:', err)
         this.notify('تعذر تحميل كشف درجات الاختبار', 'error')
       } finally {
         this.loadingRecords = false
@@ -894,7 +934,7 @@ export default {
         if (res.data?.success) {
           this.notify(res.data.message || 'تم ترحيل الدرجات بنجاح لنظام الكنترول', 'success')
           this.dispatchDialog = false
-          await this.loadRoster(this.selectedExamId)
+          await this.fetchGradebookRoster({ params: { page: 1 } })
           await this.fetchExamsList()
         } else {
           this.notify(res.data?.message || 'حدث خطأ أثناء الترحيل', 'error')
@@ -920,7 +960,7 @@ export default {
         if (res.data?.success) {
           this.notify(res.data.message || 'تم إلغاء الترحيل وإعادة السجلات للمراجعة', 'warning')
           this.rollbackDialog = false
-          await this.loadRoster(this.selectedExamId)
+          await this.fetchGradebookRoster({ params: { page: 1 } })
           await this.fetchExamsList()
         }
       } catch (err) {
@@ -931,45 +971,80 @@ export default {
       }
     },
 
-    exportToExcel() {
-      if (!this.filteredRecords.length) {
-        this.notify('لا توجد بيانات لتصديرها', 'warning')
+    async exportToExcel() {
+      if (!this.selectedExamId) {
+        this.notify('يرجى اختيار اختبار أولاً', 'warning')
         return
       }
 
-      const rows = [
-        ['م', 'رقم الجلوس', 'الرقم السري', 'اسم الطالب', 'النموذج', 'الدرجة', 'الدرجة الكلية', 'النسبة %', 'التقدير', 'حالة التصحيح', 'حالة الترحيل للكنترول']
-      ]
+      try {
+        this.notify('جاري إعداد وتصدير كشف الدرجات الكامل...', 'info')
+        const queryParams = { all: 'true' }
+        if (this.searchQuery && this.searchQuery.trim()) queryParams.search = this.searchQuery.trim()
+        if (this.filterStatus && this.filterStatus !== 'all') queryParams.status = this.filterStatus
+        if (this.filterDispatch && this.filterDispatch !== 'all') queryParams.dispatch = this.filterDispatch
 
-      this.filteredRecords.forEach((r, idx) => {
-        rows.push([
-          idx + 1,
-          r.seat_number,
-          r.secret_number || '—',
-          `"${r.student_name || ''}"`,
-          r.version_code || 'A',
-          r.status === 'absent' ? 'غائب' : r.score,
-          r.max_score,
-          r.status === 'absent' ? 0 : r.percentage,
-          `"${r.grade_code} - ${r.grade_name_ar}"`,
-          r.status,
-          r.is_dispatched ? 'مرحل للكنترول' : 'غير مرحل'
-        ])
-      })
+        const res = await gradebookAPI.getRoster(this.selectedExamId, queryParams)
+        const records = res.data?.records || res.data?.results || this.tableItems.results || []
 
-      const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + rows.map(e => e.join(',')).join('\n')
-      const encodedUri = encodeURI(csvContent)
-      const link = document.createElement('a')
-      link.setAttribute('href', encodedUri)
-      link.setAttribute('download', `كشف_درجات_الكنترول_${this.selectedExamObj?.title || 'exam'}.csv`)
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      this.notify('تم تصدير كشف الدرجات بنجاح', 'success')
+        if (!records.length) {
+          this.notify('لا توجد بيانات لتصديرها', 'warning')
+          return
+        }
+
+        const rows = [
+          ['م', 'رقم الجلوس', 'الرقم السري', 'اسم الطالب', 'المدرسة', 'النموذج', 'الدرجة', 'الدرجة الكلية', 'النسبة %', 'التقدير', 'حالة التصحيح', 'حالة الترحيل للكنترول']
+        ]
+
+        records.forEach((r, idx) => {
+          rows.push([
+            idx + 1,
+            r.seat_number,
+            r.secret_number || '—',
+            `"${r.student_name || ''}"`,
+            `"${r.school_name || ''}"`,
+            r.version_code || 'A',
+            r.status === 'absent' ? 'غائب' : r.score,
+            r.max_score,
+            r.status === 'absent' ? 0 : r.percentage,
+            `"${r.grade_code} - ${r.grade_name_ar}"`,
+            r.status,
+            r.is_dispatched ? 'مرحل للكنترول' : 'غير مرحل'
+          ])
+        })
+
+        const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + rows.map(e => e.join(',')).join('\n')
+        const encodedUri = encodeURI(csvContent)
+        const link = document.createElement('a')
+        link.setAttribute('href', encodedUri)
+        link.setAttribute('download', `كشف_درجات_الكنترول_${this.selectedExamObj?.title || 'exam'}.csv`)
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        this.notify('تم تصدير كشف الدرجات بنجاح', 'success')
+      } catch (e) {
+        console.error('Error exporting gradebook:', e)
+        this.notify('حدث خطأ أثناء تصدير الكشف', 'error')
+      }
     },
 
-    printRosterSheet() {
-      window.print()
+    async printRosterSheet() {
+      if (!this.selectedExamId) return
+      try {
+        const queryParams = { all: 'true' }
+        if (this.searchQuery && this.searchQuery.trim()) queryParams.search = this.searchQuery.trim()
+        if (this.filterStatus && this.filterStatus !== 'all') queryParams.status = this.filterStatus
+        if (this.filterDispatch && this.filterDispatch !== 'all') queryParams.dispatch = this.filterDispatch
+
+        const res = await gradebookAPI.getRoster(this.selectedExamId, queryParams)
+        this.printRecords = res.data?.records || res.data?.results || this.tableItems.results || []
+        this.$nextTick(() => {
+          window.print()
+        })
+      } catch (err) {
+        console.error('Error preparing print roster:', err)
+        window.print()
+      }
     },
 
     getStatusColor(st) {

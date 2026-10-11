@@ -133,7 +133,8 @@ class ExamGradebookMVS(ViewSet):
 
     def retrieve(self, request, pk=None):
         """
-        جلب كشف درجات الطلاب التفصيلي لاختبار محدد تمهيداً للرصد والترحيل للكنترول.
+        جلب كشف درجات الطلاب التفصيلي لاختبار محدد تمهيداً للرصد والترحيل للكنترول،
+        مع دعم البجنشن من الباك إند (Server-Side Pagination) والبحث والتصفية.
         """
         try:
             exam = Exam.objects.select_related('subject', 'year', 'governorate', 'directorate').get(pk=pk, is_deleted=False)
@@ -142,35 +143,181 @@ class ExamGradebookMVS(ViewSet):
 
         exam_max_score = float(getattr(exam, 'total_score', 100) or 100)
 
-        # جلب جميع تسجيلات الطلاب
-        registrations = StudentExamRegistration.objects.filter(
-            examVersion__exam=exam, is_deleted=False
-        ).select_related(
-            'student', 'student_profile__organization', 'student_profile__directorate', 'examVersion'
-        ).order_by('seatNumber')
-
-        # جلب أوراق الإجابات والتسليمات المرتبطة
+        # 1. جلب أوراق الإجابات والتسليمات المرتبطة للاختبار لبناء خريطة التسليمات وحساب الإحصائيات العامة
+        submissions_qs = Submission.objects.filter(exam=exam, is_deleted=False)
         submissions_map = {}
-        for sub in Submission.objects.filter(exam=exam, is_deleted=False).select_related('registration'):
-            if sub.registration_id:
-                submissions_map[sub.registration_id] = sub
-            elif sub.layout_result and sub.layout_result.get("seat_number"):
-                submissions_map[str(sub.layout_result.get("seat_number"))] = sub
+        completed_reg_ids = set()
+        completed_seat_numbers = set()
+        needs_review_reg_ids = set()
+        needs_review_seat_numbers = set()
+        all_sub_reg_ids = set()
+        all_sub_seat_numbers = set()
+        dispatched_reg_ids = set()
+        dispatched_seat_numbers = set()
 
+        completed_subs_count = 0
+        sum_completed_score = 0.0
+        pass_subs_count = 0
+        needs_review_count = 0
+        dispatched_count = 0
+
+        for sub in submissions_qs:
+            reg_id = sub.registration_id
+            seat_num = str(sub.layout_result.get("seat_number", "")).strip() if sub.layout_result else ""
+            if reg_id:
+                submissions_map[reg_id] = sub
+                all_sub_reg_ids.add(reg_id)
+            if seat_num:
+                submissions_map[seat_num] = sub
+                all_sub_seat_numbers.add(seat_num)
+
+            lr = sub.layout_result or {}
+            is_disp = lr.get("dispatched_to_control") is True or lr.get("dispatched_to_control") == "true"
+            if is_disp:
+                dispatched_count += 1
+                if reg_id:
+                    dispatched_reg_ids.add(reg_id)
+                if seat_num:
+                    dispatched_seat_numbers.add(seat_num)
+
+            if sub.status == Submission.Status.COMPLETED:
+                completed_subs_count += 1
+                score_val = float(sub.total_score or 0.0)
+                sum_completed_score += score_val
+                if score_val >= (exam_max_score * 0.5):
+                    pass_subs_count += 1
+                if reg_id:
+                    completed_reg_ids.add(reg_id)
+                if seat_num:
+                    completed_seat_numbers.add(seat_num)
+            elif sub.status == Submission.Status.NEEDS_REVIEW:
+                needs_review_count += 1
+                if reg_id:
+                    needs_review_reg_ids.add(reg_id)
+                if seat_num:
+                    needs_review_seat_numbers.add(seat_num)
+
+        # 2. الاستعلام الأساسي لتسجيلات الطلاب
+        base_registrations = StudentExamRegistration.objects.filter(
+            examVersion__exam=exam, is_deleted=False
+        )
+        total_registered_count = base_registrations.count()
+
+        # إحصائيات عامة للاختبار
+        absent_count = max(0, total_registered_count - len(all_sub_reg_ids | all_sub_seat_numbers))
+        avg_score = round(sum_completed_score / max(1, completed_subs_count), 2) if completed_subs_count > 0 else 0.0
+        pass_rate = round((pass_subs_count / max(1, completed_subs_count)) * 100.0, 1) if completed_subs_count > 0 else 0.0
+        is_fully_dispatched = dispatched_count >= completed_subs_count and completed_subs_count > 0
+
+        exam_stats = {
+            "total_students": total_registered_count,
+            "completed_count": completed_subs_count,
+            "needs_review_count": needs_review_count,
+            "absent_count": absent_count,
+            "average_score": avg_score,
+            "pass_rate": pass_rate,
+            "dispatched_count": dispatched_count,
+            "is_fully_dispatched": is_fully_dispatched,
+        }
+
+        # 3. تطبيق الفلاتر على تسجيلات الطلاب
+        registrations = base_registrations.select_related(
+            'student', 'student_profile', 'student_profile__organization', 'student_profile__directorate', 'examVersion'
+        )
+
+        # فلتر النموذج
+        version = request.query_params.get('version') or request.query_params.get('model_code') or request.query_params.get('version_code')
+        if version and version != 'all':
+            registrations = registrations.filter(examVersion__versionCode=version)
+
+        # فلتر البحث السريع
+        search = request.query_params.get('search', '').strip()
+        if search:
+            registrations = registrations.filter(
+                Q(seatNumber__icontains=search) |
+                Q(secretNumber__icontains=search) |
+                Q(student_profile__name_ar__icontains=search) |
+                Q(student_profile__name_en__icontains=search) |
+                Q(student_profile__academic_number__icontains=search) |
+                Q(student_profile__organization__name_ar__icontains=search) |
+                Q(student_profile__directorate__name_ar__icontains=search)
+            )
+
+        # فلتر الحالة (completed, needs_review, absent)
+        filter_status = request.query_params.get('status')
+        if filter_status and filter_status != 'all':
+            if filter_status == 'completed':
+                registrations = registrations.filter(
+                    Q(id__in=completed_reg_ids) | Q(seatNumber__in=completed_seat_numbers)
+                )
+            elif filter_status == 'needs_review':
+                registrations = registrations.filter(
+                    Q(id__in=needs_review_reg_ids) | Q(seatNumber__in=needs_review_seat_numbers)
+                )
+            elif filter_status == 'absent':
+                registrations = registrations.exclude(
+                    id__in=all_sub_reg_ids
+                ).exclude(
+                    seatNumber__in=all_sub_seat_numbers
+                )
+
+        # فلتر حالة الترحيل للكنترول
+        filter_dispatch = request.query_params.get('dispatch') or request.query_params.get('filterDispatch')
+        if filter_dispatch and filter_dispatch != 'all':
+            if filter_dispatch == 'dispatched':
+                registrations = registrations.filter(
+                    Q(id__in=dispatched_reg_ids) | Q(seatNumber__in=dispatched_seat_numbers)
+                )
+            elif filter_dispatch == 'not_dispatched':
+                registrations = registrations.exclude(
+                    id__in=dispatched_reg_ids
+                ).exclude(
+                    seatNumber__in=dispatched_seat_numbers
+                )
+
+        # الترتيب
+        registrations = registrations.order_by('examVersion__versionCode', 'seatNumber')
+        filtered_count = registrations.count()
+
+        # 4. التقسيم (Pagination)
+        is_fetch_all = request.query_params.get('all') == 'true' or request.query_params.get('page_size') == 'all'
+        try:
+            page_num = int(request.query_params.get('page', 1) or 1)
+        except (ValueError, TypeError):
+            page_num = 1
+
+        try:
+            page_size = int(request.query_params.get('page_size', request.query_params.get('perPage', 10)) or 10)
+        except (ValueError, TypeError):
+            page_size = 10
+
+        if is_fetch_all:
+            paged_regs = registrations[:5000]
+            page_size = filtered_count
+            num_pages = 1
+            page_num = 1
+        else:
+            page_size = max(1, min(page_size, 100))
+            page_num = max(1, page_num)
+            start = (page_num - 1) * page_size
+            end = start + page_size
+            paged_regs = registrations[start:end]
+            num_pages = max(1, (filtered_count // page_size) + (1 if filtered_count % page_size else 0))
+
+        # 5. بناء السجلات للصفحة المطلوبة
         students_records = []
-        for reg in registrations:
+        for reg in paged_regs:
             if reg.student_profile and reg.student_profile.name_ar:
                 s_name = reg.student_profile.name_ar
             elif reg.student:
                 s_name = reg.student.get_full_name() or reg.student.username
             else:
                 s_name = f"طالب ({reg.seatNumber})"
+
             inst_name = reg.student_profile.organization.name_ar if (reg.student_profile and reg.student_profile.organization) else ""
             dir_name = reg.student_profile.directorate.name_ar if (reg.student_profile and reg.student_profile.directorate) else ""
 
-            # البحث عن التسليم
             sub = submissions_map.get(reg.id) or submissions_map.get(str(reg.seatNumber))
-            
             score_val = 0.0
             percent_val = 0.0
             grading_status = "absent"
@@ -187,7 +334,7 @@ class ExamGradebookMVS(ViewSet):
                 confidence_val = float(sub.overall_confidence or 0.95)
 
                 lr = sub.layout_result or {}
-                if lr.get("dispatched_to_control"):
+                if lr.get("dispatched_to_control") is True or lr.get("dispatched_to_control") == "true":
                     is_dispatched = True
                     dispatched_at_str = lr.get("dispatched_at", "")
 
@@ -200,7 +347,7 @@ class ExamGradebookMVS(ViewSet):
                 "student_name": s_name,
                 "seat_number": reg.seatNumber,
                 "secret_number": reg.secretNumber or "—",
-                "version_code": reg.examVersion.versionCode,
+                "version_code": reg.examVersion.versionCode if reg.examVersion else "A",
                 "school_name": inst_name or "المدرسة الرئيسية",
                 "directorate_name": dir_name or "المديرية",
                 "governorate_name": exam.governorate.name_ar if exam.governorate else "المحافظة",
@@ -217,9 +364,6 @@ class ExamGradebookMVS(ViewSet):
                 "is_present": sub is not None or reg.isPresent,
             })
 
-        completed_records = [r for r in students_records if r["status"] == Submission.Status.COMPLETED]
-        dispatched_records = [r for r in students_records if r["is_dispatched"]]
-
         return Response({
             "success": True,
             "exam": {
@@ -230,12 +374,23 @@ class ExamGradebookMVS(ViewSet):
                 "subject_name": getattr(exam.subject, 'name_ar', str(exam.subject)) if exam.subject else "",
                 "year_name": exam.year.gregorian_year if (exam.year and hasattr(exam.year, 'gregorian_year')) else (str(exam.year) if exam.year else ""),
                 "max_score": exam_max_score,
-                "total_students": len(students_records),
-                "completed_count": len(completed_records),
-                "dispatched_count": len(dispatched_records),
-                "is_fully_dispatched": len(dispatched_records) >= len(completed_records) and len(completed_records) > 0,
+                "total_students": total_registered_count,
+                "completed_count": completed_subs_count,
+                "dispatched_count": dispatched_count,
+                "is_fully_dispatched": is_fully_dispatched,
             },
-            "records": students_records
+            "stats": exam_stats,
+            "results": students_records,
+            "records": students_records,
+            "count": filtered_count,
+            "pagination": {
+                "count": filtered_count,
+                "num_pages": num_pages,
+                "current_page": page_num,
+                "page_size": page_size,
+                "per_page": page_size,
+                "total": filtered_count,
+            }
         })
 
     @action(detail=True, methods=['post'], url_path='dispatch-to-control')
@@ -252,7 +407,11 @@ class ExamGradebookMVS(ViewSet):
         subs_qs = Submission.objects.filter(exam=exam, status=Submission.Status.COMPLETED, is_deleted=False)
 
         if target_reg_ids and isinstance(target_reg_ids, list):
-            subs_qs = subs_qs.filter(registration_id__in=target_reg_ids)
+            target_seat_numbers = list(StudentExamRegistration.objects.filter(id__in=target_reg_ids).values_list('seatNumber', flat=True))
+            subs_qs = subs_qs.filter(
+                Q(registration_id__in=target_reg_ids) |
+                Q(layout_result__seat_number__in=[str(s) for s in target_seat_numbers])
+            )
 
         if not subs_qs.exists():
             return Response({
@@ -271,7 +430,15 @@ class ExamGradebookMVS(ViewSet):
                 lr["dispatched_at"] = now_str
                 lr["dispatched_by"] = user_name
                 sub.layout_result = lr
-                sub.save(update_fields=['layout_result'])
+
+                if not sub.registration_id and lr.get("seat_number"):
+                    matching_reg = StudentExamRegistration.objects.filter(
+                        examVersion__exam=exam, seatNumber=lr.get("seat_number"), is_deleted=False
+                    ).first()
+                    if matching_reg:
+                        sub.registration = matching_reg
+
+                sub.save(update_fields=['layout_result', 'registration'] if sub.registration_id else ['layout_result'])
 
                 if sub.registration:
                     sub.registration.isPresent = True
