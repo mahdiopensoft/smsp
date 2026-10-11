@@ -82,12 +82,15 @@ EXCLUDE_APPS = {
     'contenttypes',
 }
 
-# النماذج المستثناة (مثل الجلسات والتوكنز المؤقتة)
+# النماذج المستثناة (مثل الجلسات والتوكنز المؤقتة وسجلات الرقابة الضخمة)
 EXCLUDE_MODELS = {
     'sessions.session',
     'contenttypes.contenttype',
     'token_blacklist.outstandingtoken',
     'token_blacklist.blacklistedtoken',
+    'log.securityauditlog',
+    'log.actionlog',
+    'log.operation',
 }
 
 
