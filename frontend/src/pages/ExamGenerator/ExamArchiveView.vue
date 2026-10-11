@@ -246,9 +246,21 @@
             </template>
 
             <template v-else-if="key === 'actions'">
-              <div class="d-flex align-center justify-center">
+              <div class="d-flex align-center justify-center gap-2">
                 <custom-btn label="لوحة التحكم" icon="monitor-dashboard" variant="tonal" color="primary"
                   class="font-weight-bold px-3" :click="() => openDashboard(item)" />
+                <v-btn
+                  size="small"
+                  variant="tonal"
+                  color="purple-darken-1"
+                  rounded="lg"
+                  class="font-weight-bold px-3"
+                  prepend-icon="mdi-scanner"
+                  :to="`/omr-exams?open_exam_id=${item.id}`"
+                  title="الانتقال المباشر لشاشة ربط الاختبار والتصحيح الضوئي"
+                >
+                  التصحيح (OMR)
+                </v-btn>
               </div>
             </template>
 
@@ -279,6 +291,16 @@
               class="font-weight-bold" :click="() => goToExamPrint(selectedExam, 'key')" />
             <custom-btn type="add" label="أوراق التظليل" icon="mdi-printer" color="emerald"
               class="font-weight-bold text-white" :click="() => goToExamPrint(selectedExam, 'sheets')" />
+            <v-btn
+              variant="flat"
+              color="purple-darken-1"
+              rounded="lg"
+              class="font-weight-bold text-white shadow-sm"
+              prepend-icon="mdi-scanner"
+              :to="`/omr-exams?open_exam_id=${selectedExam.id}`"
+            >
+              الانتقال للتصحيح الآلي (OMR)
+            </v-btn>
           </div>
         </div>
       </div>

@@ -1985,9 +1985,13 @@ const goToPrintRegistry = (exam) => {
 }
 
 onMounted(async () => {
+  if (route.query.search) {
+    searchQuery.value = String(route.query.search)
+  }
   await fetchExams()
-  if (route.query.open_exam_id) {
-    const targetExam = exams.value.find(e => String(e.id) === String(route.query.open_exam_id))
+  const targetId = route.query.open_exam_id || route.query.exam_id || route.query.examId
+  if (targetId) {
+    const targetExam = exams.value.find(e => String(e.id) === String(targetId))
     if (targetExam) {
       openExamHub(targetExam)
     }
