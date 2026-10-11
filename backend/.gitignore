@@ -1,0 +1,48 @@
+# python bytecode
+*.pyc
+*.pyo
+*.pyd
+*.pyd
+*/*.pyc
+**/*.pyc
+*.rar
+*.sql
+
+
+# *.py[cod]
+
+
+
+# Cache directories
+__pycache__/
+**/__pycache__/
+
+# vertual enviroments
+venv/
+.venv/
+env/
+ENV/
+
+#enviroment variables
+.env
+.env.*
+
+# static & media
+media/
+statics/
+staticfiles/
+
+# DB
+db.sqlite3
+db.sqlite3-journal
+
+# Logs
+logs/
+
+
+# IDEs
+.vscode/
+.idea/
+
+
+allow_folders.txt
