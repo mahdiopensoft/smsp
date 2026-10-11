@@ -200,7 +200,7 @@ class ExamArchiveMVS(AllMVS):
             'student_profile__directorate',
             'student_profile__class_track',
             'examVersion'
-        )
+        ).defer('is_printed', 'printed_at', 'print_batch')
 
         # 1. Filter by Version
         version = request.query_params.get('version') or request.query_params.get('versionCode')
