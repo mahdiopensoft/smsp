@@ -195,10 +195,12 @@ class ExamLinkingMVS(ViewSet):
                 "created_at": s.created_at.strftime("%Y-%m-%d %H:%M") if s.created_at else "",
             })
 
-        # Registered Students for this exam
+        # Registered Students for this exam (returns sample for preview, full roster via paginated /students/)
         from exams.models.StudentExamRegistration import StudentExamRegistration
+        st_qs = StudentExamRegistration.objects.filter(examVersion__exam=exam, is_deleted=False).select_related('student_profile__organization', 'student_profile__directorate', 'student', 'examVersion').order_by('seatNumber')
+        total_st_count = st_qs.count()
         students_list = []
-        for reg in StudentExamRegistration.objects.filter(examVersion__exam=exam, is_deleted=False).select_related('student_profile__organization', 'student_profile__directorate', 'student', 'examVersion').order_by('seatNumber'):
+        for reg in st_qs[:10]:
             if reg.student_profile and reg.student_profile.name_ar:
                 s_name = reg.student_profile.name_ar
             elif reg.student:
@@ -241,8 +243,146 @@ class ExamLinkingMVS(ViewSet):
                 "created_at": exam.created_at.strftime("%Y-%m-%d %H:%M") if exam.created_at else "",
             },
             "versions": versions_details,
+            "registered_students_count": total_st_count,
             "registered_students": students_list,
             "recent_submissions": recent_subs,
+        })
+
+    @action(detail=True, methods=['get'], url_path='students')
+    def get_students(self, request, pk=None):
+        return self._fetch_paginated_students(request, pk)
+
+    @action(detail=True, methods=['get'], url_path='registered-students')
+    def get_registered_students(self, request, pk=None):
+        return self._fetch_paginated_students(request, pk)
+
+    def _fetch_paginated_students(self, request, pk=None):
+        """
+        Returns registered students for a specific exam with full backend pagination,
+        search, version filtering, and school filtering.
+        """
+        try:
+            exam = Exam.objects.get(pk=pk, is_deleted=False)
+        except Exam.DoesNotExist:
+            return Response({"success": False, "message": "الاختبار غير موجود"}, status=status.HTTP_404_NOT_FOUND)
+
+        registrations = StudentExamRegistration.objects.filter(
+            examVersion__exam=exam,
+            is_deleted=False
+        ).select_related(
+            'student_profile',
+            'student_profile__organization',
+            'student_profile__directorate',
+            'student',
+            'examVersion'
+        ).defer('is_printed', 'printed_at', 'print_batch')
+
+        # 1. Filter by Model Code / Version
+        version = request.query_params.get('version') or request.query_params.get('model_code') or request.query_params.get('versionCode')
+        if version and version != 'all':
+            registrations = registrations.filter(examVersion__versionCode=version)
+
+        # 2. Filter by School / Organization
+        school = request.query_params.get('school') or request.query_params.get('school_name')
+        if school and school != 'all':
+            registrations = registrations.filter(
+                Q(student_profile__organization__name_ar=school) |
+                Q(student_profile__organization__name_en=school)
+            )
+
+        # 3. Search query
+        search = request.query_params.get('search')
+        if search and search.strip():
+            s = search.strip()
+            registrations = registrations.filter(
+                Q(seatNumber__icontains=s) |
+                Q(secretNumber__icontains=s) |
+                Q(student_profile__name_ar__icontains=s) |
+                Q(student_profile__name_en__icontains=s) |
+                Q(student_profile__academic_number__icontains=s) |
+                Q(student_profile__organization__name_ar__icontains=s) |
+                Q(student_profile__directorate__name_ar__icontains=s)
+            )
+
+        # 4. Ordering
+        registrations = registrations.order_by('examVersion__versionCode', 'seatNumber')
+
+        total_students_count = registrations.count()
+
+        # Extract available schools for dropdown filter
+        schools_list = list(
+            StudentExamRegistration.objects.filter(examVersion__exam=exam, is_deleted=False)
+            .values_list('student_profile__organization__name_ar', flat=True)
+            .exclude(student_profile__organization__name_ar__isnull=True)
+            .exclude(student_profile__organization__name_ar__exact='')
+            .distinct()
+        )
+
+        # 5. Pagination Parameters
+        try:
+            page_num = int(request.query_params.get('page', 1) or 1)
+        except (ValueError, TypeError):
+            page_num = 1
+        try:
+            page_size = int(request.query_params.get('page_size', request.query_params.get('perPage', 10)) or 10)
+        except (ValueError, TypeError):
+            page_size = 10
+
+        page_size = max(1, min(page_size, 100))
+        page_num = max(1, page_num)
+
+        start = (page_num - 1) * page_size
+        end = start + page_size
+        paged_regs = registrations[start:end]
+
+        students_data = []
+        gov_name = exam.governorate.name_ar if exam.governorate else ""
+        for reg in paged_regs:
+            profile = reg.student_profile
+            if profile and profile.name_ar:
+                s_name = profile.name_ar
+            elif reg.student:
+                s_name = reg.student.get_full_name() or reg.student.username
+            else:
+                s_name = f"طالب ({reg.seatNumber})"
+
+            inst_name = profile.organization.name_ar if (profile and profile.organization) else ""
+            dir_name = profile.directorate.name_ar if (profile and profile.directorate) else (exam.directorate.name_ar if exam.directorate else "")
+            v_code = reg.examVersion.versionCode if reg.examVersion else "-"
+
+            students_data.append({
+                "id": reg.id,
+                "student_name": s_name,
+                "seat_number": reg.seatNumber,
+                "secret_number": reg.secretNumber or "",
+                "model_code": v_code,
+                "school_name": inst_name,
+                "governorate": gov_name,
+                "directorate": dir_name,
+                "is_present": reg.isPresent,
+                "is_printed": reg.is_printed,
+                "printed_at": reg.printed_at.strftime("%Y-%m-%d %H:%M:%S") if reg.printed_at else None,
+                "print_batch": reg.print_batch,
+                "barcode_value": f"EXAM_{exam.id}_VER_{v_code}_SEAT_{reg.seatNumber}",
+                "qr_value": f"{exam.uniqueCode}|{v_code}|{reg.seatNumber}|{reg.secretNumber or ''}",
+            })
+
+        num_pages = max(1, (total_students_count // page_size) + (1 if total_students_count % page_size else 0))
+
+        return Response({
+            "success": True,
+            "results": students_data,
+            "students": students_data,
+            "count": total_students_count,
+            "schools": schools_list,
+            "pagination": {
+                "count": total_students_count,
+                "num_pages": num_pages,
+                "current_page": page_num,
+                "page_size": page_size,
+                "per_page": page_size,
+                "total": total_students_count,
+            }
         })
 
     @action(detail=True, methods=['get'], url_path='answer-keys')

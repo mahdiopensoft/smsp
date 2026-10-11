@@ -391,13 +391,13 @@
                 <v-icon start size="18">mdi-account-school-outline</v-icon>
                 <span>كشف الطلاب والبيانات الامتحانية</span>
                 <v-chip
-                  v-if="examDetails?.registered_students?.length"
+                  v-if="totalStudentsCount || examDetails?.registered_students_count || examDetails?.registered_students?.length"
                   size="x-small"
                   color="primary"
                   variant="flat"
                   class="ms-2 font-weight-black"
                 >
-                  {{ examDetails.registered_students.length }}
+                  {{ totalStudentsCount || examDetails?.registered_students_count || examDetails?.registered_students?.length }}
                 </v-chip>
               </v-tab>
 
@@ -462,7 +462,7 @@
                     color="primary"
                     variant="tonal"
                     class="font-weight-bold"
-                    :disabled="!filteredStudents.length"
+                    :disabled="!totalStudentsCount"
                     :click="batchPrintAllStudents"
                   />
                   <custom-btn
@@ -472,11 +472,11 @@
                     color="secondary"
                     variant="tonal"
                     class="font-weight-bold"
-                    :disabled="!filteredStudents.length"
+                    :disabled="!totalStudentsCount"
                     :click="printRosterList"
                   />
                   <custom-btn
-                    v-if="!examDetails.registered_students?.length"
+                    v-if="!totalStudentsCount"
                     type="create"
                     icon="account-multiple-plus"
                     label="تسجيل الطلاب المقيدين في الاختبار"
@@ -489,7 +489,7 @@
                 </div>
               </div>
 
-              <!-- Unified Filter Fields for Students -->
+              <!-- Unified Filter Fields for Students (Backend Filtering) -->
               <filter-fields label="خيارات تصفية كشف الطلاب والبيانات الامتحانية" class="main-card border-0 pa-5 rounded-2xl mb-4">
                 <v-row dense class="align-center">
                   <!-- Search Query -->
@@ -504,6 +504,8 @@
                       variant="outlined"
                       class="mb-6"
                       hide-details
+                      @update:model-value="onStudentSearchInput"
+                      @keydown.enter="applyStudentFilters"
                     />
                   </v-col>
 
@@ -520,6 +522,7 @@
                       variant="outlined"
                       class="mb-6"
                       hide-details
+                      @update:model-value="applyStudentFilters"
                     />
                   </v-col>
 
@@ -536,6 +539,7 @@
                       variant="outlined"
                       class="mb-6"
                       hide-details
+                      @update:model-value="applyStudentFilters"
                     />
                   </v-col>
 
@@ -553,16 +557,21 @@
                 </v-row>
               </filter-fields>
 
-              <!-- Students Unified Custom Data Table -->
+              <!-- Students Unified Custom Data Table (Server-side Paginated) -->
               <div class="main-card rounded-2xl overflow-hidden mb-4">
                 <custom-data-table
                   v-bind="{
                     items: studentTableItems,
                     headers: studentHeaders,
+                    loading: loadingStudents,
                   }"
+                  :getData="fetchExamStudents"
+                  :customLoading="loadingStudents"
                   :hasFilter="false"
                   :log="false"
                   :restore="false"
+                  :showSelect="false"
+                  :actions="false"
                 >
                   <template v-slot:item-slot="{ item, key }">
                     <!-- Seat Number -->
@@ -1312,7 +1321,14 @@ const openQuestionPaperModal = () => {
   showQuestionPaperDialog.value = true
 }
 
-// Roster Filters
+// Roster Filters & Server-Side Pagination
+const loadingStudents = ref(false)
+const totalStudentsCount = ref(0)
+const availableSchools = ref([])
+const studentTableData = ref({
+  results: [],
+  pagination: { count: 0, num_pages: 1, current_page: 1, page_size: 10, total: 0 }
+})
 const studentSearchQuery = ref('')
 const filterModelCode = ref('all')
 const filterSchoolName = ref('all')
@@ -1412,7 +1428,15 @@ const institutionLabel = computed(() => {
 
 const schoolFilterOptions = computed(() => {
   const opts = [{ title: `جميع المؤسسات (${institutionLabel.value})`, value: 'all' }]
-  if (examDetails.value?.registered_students) {
+  if (availableSchools.value && availableSchools.value.length) {
+    availableSchools.value.forEach(sch => {
+      if (sch) opts.push({ title: sch, value: sch })
+    })
+  } else if (examDetails.value?.schools && examDetails.value.schools.length) {
+    examDetails.value.schools.forEach(sch => {
+      if (sch) opts.push({ title: sch, value: sch })
+    })
+  } else if (examDetails.value?.registered_students) {
     const set = new Set()
     examDetails.value.registered_students.forEach(s => {
       if (s.school_name) set.add(s.school_name)
@@ -1420,27 +1444,6 @@ const schoolFilterOptions = computed(() => {
     set.forEach(sch => opts.push({ title: sch, value: sch }))
   }
   return opts
-})
-
-const filteredStudents = computed(() => {
-  if (!examDetails.value?.registered_students) return []
-  let list = examDetails.value.registered_students
-  if (filterModelCode.value && filterModelCode.value !== 'all') {
-    list = list.filter(s => s.model_code === filterModelCode.value)
-  }
-  if (filterSchoolName.value && filterSchoolName.value !== 'all') {
-    list = list.filter(s => s.school_name === filterSchoolName.value)
-  }
-  if (studentSearchQuery.value && studentSearchQuery.value.trim()) {
-    const q = studentSearchQuery.value.trim().toLowerCase()
-    list = list.filter(s =>
-      (s.student_name && s.student_name.toLowerCase().includes(q)) ||
-      (s.seat_number && String(s.seat_number).includes(q)) ||
-      (s.secret_number && String(s.secret_number).includes(q)) ||
-      (s.school_name && s.school_name.toLowerCase().includes(q))
-    )
-  }
-  return list
 })
 
 const studentHeaders = computed(() => [
@@ -1453,19 +1456,77 @@ const studentHeaders = computed(() => [
   { title: "الحضور", key: "is_present", sortable: true, align: "center", width: "90px" },
 ])
 
-const studentTableItems = computed(() => ({
-  results: filteredStudents.value,
-  count: filteredStudents.value.length,
-  pagination: {
-    count: filteredStudents.value.length,
-    total: filteredStudents.value.length,
-  }
-}))
+const studentTableItems = computed(() => studentTableData.value)
+const filteredStudents = computed(() => studentTableData.value.results || [])
+
+let searchDebounceTimer = null
+const onStudentSearchInput = () => {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+  searchDebounceTimer = setTimeout(() => {
+    applyStudentFilters()
+  }, 400)
+}
+
+const applyStudentFilters = () => {
+  fetchExamStudents({ params: { page: 1 } })
+}
 
 const resetStudentFilters = () => {
   studentSearchQuery.value = ''
   filterModelCode.value = 'all'
   filterSchoolName.value = 'all'
+  fetchExamStudents({ params: { page: 1 } })
+}
+
+const fetchExamStudents = async (tableParams = null) => {
+  if (!activeExam.value?.id) return
+  loadingStudents.value = true
+  try {
+    let queryParams = {}
+    if (tableParams && tableParams.params) {
+      queryParams = { ...tableParams.params }
+    } else if (tableParams && typeof tableParams === 'object' && ('page' in tableParams || 'page_size' in tableParams || 'perPage' in tableParams)) {
+      queryParams = { ...tableParams }
+    } else {
+      queryParams = { page: 1, page_size: 10 }
+    }
+
+    if (studentSearchQuery.value && studentSearchQuery.value.trim()) {
+      queryParams.search = studentSearchQuery.value.trim()
+    }
+    if (filterModelCode.value && filterModelCode.value !== 'all') {
+      queryParams.version = filterModelCode.value
+    }
+    if (filterSchoolName.value && filterSchoolName.value !== 'all') {
+      queryParams.school = filterSchoolName.value
+    }
+
+    const resp = await api.get(`/api/omr/exam-linking/${activeExam.value.id}/students/`, { params: queryParams })
+    const data = resp.data || {}
+    const results = data.results || data.students || []
+    const pagination = data.pagination || {
+      count: data.count || results.length,
+      current_page: queryParams.page || 1,
+      num_pages: Math.ceil((data.count || results.length) / (queryParams.page_size || queryParams.perPage || 10)) || 1,
+      page_size: queryParams.page_size || queryParams.perPage || 10,
+      total: data.count || results.length,
+    }
+
+    studentTableData.value = {
+      ...data,
+      results,
+      pagination,
+    }
+    totalStudentsCount.value = pagination.count || data.count || 0
+
+    if (data.schools && Array.isArray(data.schools) && data.schools.length) {
+      availableSchools.value = data.schools
+    }
+  } catch (err) {
+    console.error('Failed to load exam students from backend:', err)
+  } finally {
+    loadingStudents.value = false
+  }
 }
 
 const submissionsHeaders = computed(() => [
@@ -1695,12 +1756,16 @@ const openExamHub = async (exam, tab = 'template') => {
   try {
     const resp = await api.get(`/api/omr/exam-linking/${exam.id}/`)
     examDetails.value = resp.data
+    totalStudentsCount.value = resp.data.registered_students_count || (resp.data.registered_students?.length || 0)
     if (resp.data.registered_students && resp.data.registered_students.length > 0) {
       selectedStudentId.value = resp.data.registered_students[0].id
       sheetGenerationMode.value = 'student'
     } else {
       sheetGenerationMode.value = 'blank'
     }
+
+    // Load server-side paginated students from backend
+    await fetchExamStudents({ params: { page: 1, page_size: 10 } })
   } catch (err) {
     console.error('Failed to load exam details:', err)
   } finally {
