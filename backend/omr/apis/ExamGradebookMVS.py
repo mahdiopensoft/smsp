@@ -263,33 +263,65 @@ class ExamGradebookMVS(ViewSet):
             'examVersion'
         )
 
-        # 3.1 فلتر المحافظة
+        # 3.1 فلتر المحافظة (يدعم المعرف الرقمي واسم المحافظة بالعربية والإنجليزية)
         governorate = request.query_params.get('governorate') or request.query_params.get('governorate_name')
-        if governorate and governorate != 'all':
-            registrations = registrations.filter(
-                Q(student_profile__directorate__fk_governorate__name_ar=governorate) |
-                Q(student_profile__directorate__fk_governorate__name_en=governorate) |
-                Q(examVersion__exam__governorate__name_ar=governorate) |
-                Q(examVersion__exam__governorate__name_en=governorate)
+        if governorate and governorate != 'all' and str(governorate).strip() != '':
+            gov_str = str(governorate).strip()
+            gov_q = (
+                Q(student_profile__directorate__fk_governorate__name_ar=gov_str) |
+                Q(student_profile__directorate__fk_governorate__name_en=gov_str) |
+                Q(student__student_profile__directorate__fk_governorate__name_ar=gov_str) |
+                Q(student__student_profile__directorate__fk_governorate__name_en=gov_str) |
+                Q(examVersion__exam__governorate__name_ar=gov_str) |
+                Q(examVersion__exam__governorate__name_en=gov_str)
             )
+            if gov_str.isdigit():
+                gov_id = int(gov_str)
+                gov_q |= (
+                    Q(student_profile__directorate__fk_governorate_id=gov_id) |
+                    Q(student__student_profile__directorate__fk_governorate_id=gov_id) |
+                    Q(examVersion__exam__governorate_id=gov_id)
+                )
+            registrations = registrations.filter(gov_q)
 
-        # 3.2 فلتر المديرية
+        # 3.2 فلتر المديرية (يدعم المعرف الرقمي واسم المديرية بالعربية والإنجليزية)
         directorate = request.query_params.get('directorate') or request.query_params.get('directorate_name')
-        if directorate and directorate != 'all':
-            registrations = registrations.filter(
-                Q(student_profile__directorate__name_ar=directorate) |
-                Q(student_profile__directorate__name_en=directorate) |
-                Q(examVersion__exam__directorate__name_ar=directorate) |
-                Q(examVersion__exam__directorate__name_en=directorate)
+        if directorate and directorate != 'all' and str(directorate).strip() != '':
+            dir_str = str(directorate).strip()
+            dir_q = (
+                Q(student_profile__directorate__name_ar=dir_str) |
+                Q(student_profile__directorate__name_en=dir_str) |
+                Q(student__student_profile__directorate__name_ar=dir_str) |
+                Q(student__student_profile__directorate__name_en=dir_str) |
+                Q(examVersion__exam__directorate__name_ar=dir_str) |
+                Q(examVersion__exam__directorate__name_en=dir_str)
             )
+            if dir_str.isdigit():
+                dir_id = int(dir_str)
+                dir_q |= (
+                    Q(student_profile__directorate_id=dir_id) |
+                    Q(student__student_profile__directorate_id=dir_id) |
+                    Q(examVersion__exam__directorate_id=dir_id)
+                )
+            registrations = registrations.filter(dir_q)
 
-        # 3.3 فلتر المدرسة / المؤسسة
+        # 3.3 فلتر المدرسة / المؤسسة (يدعم المعرف الرقمي والاسم)
         school = request.query_params.get('school') or request.query_params.get('school_name') or request.query_params.get('organization')
-        if school and school != 'all':
-            registrations = registrations.filter(
-                Q(student_profile__organization__name_ar=school) |
-                Q(student_profile__organization__name_en=school)
+        if school and school != 'all' and str(school).strip() != '':
+            sch_str = str(school).strip()
+            sch_q = (
+                Q(student_profile__organization__name_ar=sch_str) |
+                Q(student_profile__organization__name_en=sch_str) |
+                Q(student__student_profile__organization__name_ar=sch_str) |
+                Q(student__student_profile__organization__name_en=sch_str)
             )
+            if sch_str.isdigit():
+                sch_id = int(sch_str)
+                sch_q |= (
+                    Q(student_profile__organization_id=sch_id) |
+                    Q(student__student_profile__organization_id=sch_id)
+                )
+            registrations = registrations.filter(sch_q)
 
         # 3.4 فلتر النموذج
         version = request.query_params.get('version') or request.query_params.get('model_code') or request.query_params.get('version_code')
@@ -445,6 +477,7 @@ class ExamGradebookMVS(ViewSet):
             grade_info = _calculate_grade_letter(percent_val) if sub else {"code": "—", "name_ar": "غائب", "color": "grey"}
 
             students_records.append({
+                "id": reg.id,
                 "registration_id": reg.id,
                 "submission_id": sub_id,
                 "student_id": reg.student_id,
@@ -532,10 +565,10 @@ class ExamGradebookMVS(ViewSet):
         except Exam.DoesNotExist:
             return Response({"success": False, "message": "الاختبار غير موجود"}, status=status.HTTP_404_NOT_FOUND)
 
-        target_reg_ids = request.data.get('registration_ids')
+        target_reg_ids = request.data.get('registration_ids') or request.data.get('selected_ids') or request.data.get('ids')
         subs_qs = Submission.objects.filter(exam=exam, status=Submission.Status.COMPLETED, is_deleted=False)
 
-        if target_reg_ids and isinstance(target_reg_ids, list):
+        if target_reg_ids and isinstance(target_reg_ids, list) and len(target_reg_ids) > 0:
             target_seat_numbers = list(StudentExamRegistration.objects.filter(id__in=target_reg_ids).values_list('seatNumber', flat=True))
             subs_qs = subs_qs.filter(
                 Q(registration_id__in=target_reg_ids) |
