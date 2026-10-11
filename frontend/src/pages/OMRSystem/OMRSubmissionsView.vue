@@ -1,42 +1,45 @@
 <template>
   <div class="qb-submissions-view-v4">
     <!-- Header Controls & Actions -->
-    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-6">
+    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-4">
       <div>
         <h2 class="text-h5 font-weight-black mb-1">أوراق الطلاب المصححة (OMR Submissions)</h2>
         <span class="text-caption text-medium-emphasis">
-          إدارة ومتابعة نتائج الأوراق المعالجة ضوئياً ومراجعة درجات الطلاب
+          سجل وإدارة نتائج الأوراق المعالجة ضوئياً ومراجعة درجات الطلاب وتفاصيل الإجابات
         </span>
       </div>
 
-      <div class="d-flex align-center gap-3">
+      <div class="d-flex align-center gap-3 flex-wrap">
         <custom-btn
-          label="شاشة المسح الضوئي (Lab)"
+          label="معمل المسح الضوئي"
           icon="mdi-scanner"
           color="indigo"
           variant="tonal"
-          class="font-weight-bold px-5"
-          :click="() => $router.push('/omr-scanner')"
+          class="font-weight-bold px-4"
+          :click="() => $router.push('/omr/scanner-lab')"
         />
         <custom-btn
           type="add"
           icon="mdi-cloud-upload-outline"
           label="استخراج وتصحيح مباشر"
           color="primary"
-          class="font-weight-bold px-5"
-          :click="() => $router.push('/omr-extraction')"
+          class="font-weight-bold px-4"
+          :click="() => $router.push('/omr/full-extraction')"
         />
         <custom-btn
           type="show"
           icon="mdi-clipboard-check-outline"
-          label="سجل الدرجات والكنترول"
+          label="كشف الدرجات والكنترول"
           color="success"
-          variant="tonal"
-          class="font-weight-bold px-5"
-          :click="() => $router.push('/omr/gradebook')"
+          variant="flat"
+          class="font-weight-bold px-4 shadow-emerald"
+          :click="() => $router.push(`/omr/gradebook${filterExam ? '?exam=' + filterExam : ''}`)"
         />
       </div>
     </div>
+
+    <!-- ── OMR Workflow Stepper (المرحلة 4: سجل الأوراق المصححة) ── -->
+    <omr-workflow-bar :active-step="4" :exam-id="filterExam" />
 
     <!-- Stats Bar Dashboard (Calculated directly on Backend) -->
     <v-row class="mb-6">
@@ -439,9 +442,14 @@
 
 <script>
 import { submissionsAPI } from '@/services/omr/endpoints'
+import OMRWorkflowBar from '@/components/OMRWorkflowBar.vue'
 
 export default {
   name: 'OMRSubmissionsView',
+
+  components: {
+    OMRWorkflowBar,
+  },
 
   data() {
     return {
@@ -703,16 +711,13 @@ export default {
         console.error('Error deleting submission:', err)
       }
     },
-
-    resetFilters() {
-      this.filterSubject = null
-      this.filterStatus = null
-      this.searchQuery = ''
-      this.loadData()
-    },
   },
 
   mounted() {
+    const examQuery = this.$route.query.exam || this.$route.query.exam_id
+    if (examQuery) {
+      this.filterExam = Number(examQuery) || examQuery
+    }
     this.loadData()
   },
 }
