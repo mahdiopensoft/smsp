@@ -273,12 +273,12 @@
             </div>
           </div>
           <div class="d-flex align-center gap-2 flex-wrap">
-            <custom-btn type="add" label="طباعة الأسئلة" icon="mdi-file-pdf-box" variant="tonal" color="primary"
-              class="font-weight-bold" :click="() => goToExamPrint(selectedExam, 'questions')" />
+            <custom-btn type="add" label="طباعة الأسئلة" icon="mdi-file-document-outline" variant="tonal" color="primary"
+              class="font-weight-bold" :click="() => openPrintDialog('questions')" />
             <custom-btn type="add" label="مفتاح الإجابة" icon="mdi-key-variant" variant="tonal" color="success"
-              class="font-weight-bold" :click="() => goToExamPrint(selectedExam, 'key')" />
+              class="font-weight-bold" :click="() => openPrintDialog('key')" />
             <custom-btn type="add" label="أوراق التظليل" icon="mdi-printer" color="emerald"
-              class="font-weight-bold text-white" :click="() => goToExamPrint(selectedExam, 'sheets')" />
+              class="font-weight-bold text-white" :click="() => openPrintDialog('sheets')" />
           </div>
         </div>
       </div>
@@ -405,8 +405,8 @@
                     <div class="d-flex align-center justify-space-between mb-4 flex-wrap gap-2">
                       <h4 class="text-subtitle-1 font-weight-black mb-0">ورقة الأسئلة - نموذج {{ activeVersion &&
                         activeVersion.versionCode }}</h4>
-                      <custom-btn type="add" label="تصدير PDF" icon="mdi-file-pdf-box" variant="tonal" color="primary"
-                        :click="() => goToExamPrint(selectedExam, 'questions')" />
+                      <custom-btn type="add" label="معاينة وطباعة" icon="mdi-printer" variant="tonal" color="primary"
+                        :click="() => openPrintDialog('questions')" />
                     </div>
                     <div v-for="(q, idx) in activeVersionQuestions" :key="q.id"
                       class="question-preview-box mb-4 pa-4 rounded-xl">
@@ -445,8 +445,8 @@
                     <div class="d-flex align-center justify-space-between mb-4 flex-wrap gap-2">
                       <h4 class="text-subtitle-1 font-weight-black mb-0">مفتاح الإجابة - نموذج {{ activeVersion &&
                         activeVersion.versionCode }}</h4>
-                      <custom-btn type="add" label="تصدير PDF" icon="mdi-file-pdf-box" variant="tonal" color="primary"
-                        :click="() => goToExamPrint(selectedExam, 'key')" />
+                      <custom-btn type="add" label="معاينة وطباعة" icon="mdi-printer" variant="tonal" color="secondary"
+                        :click="() => openPrintDialog('key')" />
                     </div>
                     <v-table density="compact" class="bg-transparent">
                       <thead>
@@ -640,6 +640,308 @@
       </div>
     </div>
 
+    <!-- WIDE PRINT & PREVIEW DIALOG -->
+    <v-dialog v-model="printPreviewDialog" max-width="1150" width="1150" scrollable>
+      <v-card class="d-flex flex-column rounded-2xl overflow-hidden" style="max-height: 90vh;">
+        <!-- Sticky Dialog Header -->
+        <div class="pa-4 border-b d-flex align-center justify-space-between flex-wrap gap-3 bg-surface d-print-none">
+          <div class="d-flex align-center gap-3">
+            <v-avatar size="40" :color="printModalType === 'questions' ? 'primary' : printModalType === 'key' ? 'success' : 'teal'" variant="tonal" class="rounded-xl">
+              <v-icon size="22">
+                {{ printModalType === 'questions' ? 'mdi-file-document-outline' : printModalType === 'key' ? 'mdi-key-variant' : 'mdi-checkbox-marked-circle-outline' }}
+              </v-icon>
+            </v-avatar>
+            <div>
+              <div class="text-subtitle-1 font-weight-black">
+                {{ printModalType === 'questions' ? 'معاينة وطباعة ورقة الأسئلة' : printModalType === 'key' ? 'معاينة وطباعة مفتاح الإجابة الرسمي' : 'معاينة وطباعة أوراق التظليل الآلية' }}
+              </div>
+              <div class="text-caption text-medium-emphasis">
+                {{ selectedExam?.title }} • كود الاختبار: {{ selectedExam?.uniqueCode }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Controls: Mode Switcher + Version Selector + Print Button + Close -->
+          <div class="d-flex align-center gap-2 flex-wrap">
+            <!-- Mode Switcher -->
+            <v-btn-toggle v-model="printModalType" mandatory density="compact" rounded="lg" color="primary" variant="outlined">
+              <v-btn value="questions" class="font-weight-bold" size="small">
+                <v-icon start size="16">mdi-file-document-outline</v-icon>
+                الأسئلة
+              </v-btn>
+              <v-btn value="key" class="font-weight-bold" size="small">
+                <v-icon start size="16">mdi-key-variant</v-icon>
+                مفتاح الحل
+              </v-btn>
+              <v-btn value="sheets" class="font-weight-bold" size="small">
+                <v-icon start size="16">mdi-checkbox-marked-circle-outline</v-icon>
+                أوراق التظليل
+              </v-btn>
+            </v-btn-toggle>
+
+            <!-- Version Selector (if exam has versions) -->
+            <v-select
+              v-if="examDetails?.versions?.length > 1"
+              v-model="printVersionIndex"
+              :items="examDetails.versions.map((v, i) => ({ title: `نموذج ${v.versionCode}`, value: i }))"
+              item-title="title"
+              item-value="value"
+              density="compact"
+              variant="outlined"
+              hide-details
+              style="min-width: 120px;"
+            />
+
+            <!-- Toggle Blank vs Key (Only for Sheets) -->
+            <div v-if="printModalType === 'sheets'" class="d-flex align-center border rounded-lg pa-1 bg-slate-50 gap-1">
+              <v-btn
+                size="small"
+                :variant="printSheetMode === 'blank' ? 'flat' : 'text'"
+                :color="printSheetMode === 'blank' ? 'primary' : undefined"
+                class="font-weight-bold text-caption"
+                @click="printSheetMode = 'blank'"
+              >
+                ورقة الطالب
+              </v-btn>
+              <v-btn
+                size="small"
+                :variant="printSheetMode === 'key' ? 'flat' : 'text'"
+                :color="printSheetMode === 'key' ? 'secondary' : undefined"
+                class="font-weight-bold text-caption"
+                @click="printSheetMode = 'key'"
+              >
+                المفتاح المظلل
+              </v-btn>
+            </div>
+
+            <!-- Print Action Button -->
+            <custom-btn
+              label="طباعة الآن"
+              icon="mdi-printer"
+              color="primary"
+              class="font-weight-bold px-4"
+              :click="triggerPrint"
+            />
+
+            <!-- Close Dialog -->
+            <v-btn icon="mdi-close" variant="text" size="small" @click="printPreviewDialog = false" />
+          </div>
+        </div>
+
+        <!-- Scrollable Paper Body -->
+        <v-card-text class="pa-4 pa-md-8 print-modal-body overflow-y-auto" style="background-color: #f1f5f9;">
+          <div class="printable-exam-sheet pa-8 pa-md-10 rounded-2xl mx-auto" v-if="selectedExam">
+            <!-- Exam Paper Header -->
+            <div class="exam-paper-header mb-6 pb-4 border-b text-center">
+              <div class="text-caption text-medium-emphasis mb-1 font-weight-bold">{{ ministryHeading }}</div>
+              <h2 class="text-h4 font-weight-black mb-2">{{ selectedExam?.title }}</h2>
+              <div class="text-subtitle-1 font-weight-bold text-primary mb-3" v-if="printModalType === 'key'">
+                نموذج مفتاح الإجابة الرسمي المعتمد
+              </div>
+              <div class="text-subtitle-1 font-weight-bold text-teal mb-3" v-else-if="printModalType === 'sheets'">
+                {{ printSheetMode === 'key' ? 'مفتاح الإجابة المظلل الآلي (Bubble Sheet Key)' : 'ورقة إجابة الطالب الآلية (Bubble Sheet Answer Sheet)' }}
+              </div>
+
+              <div class="d-flex justify-center flex-wrap gap-3 text-body-2 font-weight-bold mb-3">
+                <span class="paper-badge"><strong>المادة:</strong> {{ selectedExam?.subjectName || '-' }}</span>
+                <span class="paper-badge" v-if="selectedExam?.yearName && selectedExam.yearName !== '-'"><strong>العام الدراسي:</strong> {{ selectedExam.yearName }}</span>
+                <span class="paper-badge"><strong>النموذج:</strong> {{ printVersion?.versionCode || 'A' }}</span>
+                <span class="paper-badge" v-if="printModalType !== 'sheets'"><strong>الدرجة الكلية:</strong> {{ printTotalScore }}</span>
+                <span class="paper-badge" v-if="printModalType === 'questions'"><strong>الزمن:</strong> ساعتان</span>
+              </div>
+
+              <!-- Student Header Box for Questions -->
+              <div v-if="printModalType === 'questions'" class="student-info-box pa-3 rounded-xl border d-flex justify-space-between align-center flex-wrap gap-4 text-body-2 mt-4">
+                <div class="flex-grow-1 text-start">
+                  اسم الطالب: <span class="dotted-underline flex-grow-1 d-inline-block" style="min-width: 250px;"></span>
+                </div>
+                <div>
+                  رقم الجلوس: <span class="dotted-underline d-inline-block" style="min-width: 120px;"></span>
+                </div>
+                <div>
+                  المدرسة: <span class="dotted-underline d-inline-block" style="min-width: 150px;"></span>
+                </div>
+              </div>
+
+              <!-- Bubble Sheet Header Box -->
+              <div v-else-if="printModalType === 'sheets'" class="mt-4 pt-2 border-t text-start">
+                <v-row align="center">
+                  <v-col cols="8">
+                    <div class="d-flex align-center mb-2">
+                      <span class="font-weight-bold me-2">اسم الطالب:</span>
+                      <div class="dotted-underline flex-grow-1"></div>
+                    </div>
+                    <div class="d-flex align-center">
+                      <span class="font-weight-bold me-2">المدرسة / المركز:</span>
+                      <div class="dotted-underline flex-grow-1 me-4"></div>
+                      <span class="font-weight-bold me-2">رقم الجلوس:</span>
+                      <div class="dotted-underline flex-grow-1"></div>
+                    </div>
+                  </v-col>
+                  <v-col cols="4" class="text-left">
+                    <div class="box-border pa-2 text-center rounded-lg border">
+                      <span class="text-caption font-weight-bold d-block mb-1">الرقم الأكاديمي / السري</span>
+                      <div class="id-grid justify-center d-flex gap-1">
+                        <div v-for="n in 6" :key="n" class="id-box"></div>
+                      </div>
+                    </div>
+                  </v-col>
+                </v-row>
+              </div>
+            </div>
+
+            <!-- Content Type 1: Questions Paper -->
+            <div v-if="printModalType === 'questions'" class="questions-list d-flex flex-column gap-6">
+              <div
+                v-for="(q, index) in printQuestions"
+                :key="q.id || index"
+                class="print-q-card pa-4 rounded-xl border mb-4"
+              >
+                <div class="d-flex align-start gap-3">
+                  <div class="q-number-badge font-weight-black flex-shrink-0">
+                    {{ index + 1 }}
+                  </div>
+                  <div class="flex-grow-1">
+                    <div class="d-flex justify-space-between align-center mb-2">
+                      <div class="text-body-1 font-weight-bold" v-html="q.content"></div>
+                      <span class="paper-badge ms-2 text-caption">{{ q.assignedMark }} درجة</span>
+                    </div>
+                    <div v-if="q.options && q.options.length" class="mt-3">
+                      <v-row dense>
+                        <v-col
+                          v-for="(opt, optIdx) in q.options"
+                          :key="opt.id || optIdx"
+                          cols="12"
+                          sm="6"
+                        >
+                          <div class="option-pill pa-2 rounded-lg d-flex align-center gap-2 mb-1">
+                            <span class="option-circle">{{ ['أ', 'ب', 'ج', 'د'][optIdx] || (optIdx + 1) }}</span>
+                            <span class="text-body-2">{{ opt.text }}</span>
+                          </div>
+                        </v-col>
+                      </v-row>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div v-if="printQuestions.length === 0" class="text-center text-medium-emphasis pa-8">
+                لا توجد أسئلة مسجلة في هذا النموذج.
+              </div>
+            </div>
+
+            <!-- Content Type 2: Answer Key -->
+            <div v-else-if="printModalType === 'key'" class="answer-key-content">
+              <v-table density="comfortable" class="answer-key-table mb-8 border rounded-xl overflow-hidden">
+                <thead>
+                  <tr class="bg-slate-100">
+                    <th class="text-center font-weight-black" style="width: 80px;">#</th>
+                    <th class="text-center font-weight-black" style="width: 140px;">الخيار الصحيح</th>
+                    <th class="font-weight-black">نص الإجابة الصحيحة</th>
+                    <th class="text-center font-weight-black" style="width: 100px;">الدرجة</th>
+                    <th class="text-center font-weight-black" style="width: 140px;">المستوى المعرفي</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(q, index) in printQuestions" :key="q.id || index">
+                    <td class="text-center font-weight-black">{{ index + 1 }}</td>
+                    <td class="text-center">
+                      <v-chip size="small" color="success" variant="tonal" class="font-weight-black">
+                        {{ getCorrectOptionLabel(q) }}
+                      </v-chip>
+                    </td>
+                    <td class="font-weight-medium">{{ getCorrectOptionText(q) }}</td>
+                    <td class="text-center font-weight-bold">{{ q.assignedMark }}</td>
+                    <td class="text-center text-caption text-medium-emphasis">{{ q.bloomLevel || '-' }}</td>
+                  </tr>
+                </tbody>
+                <tfoot v-if="printQuestions.length">
+                  <tr class="bg-slate-50 font-weight-black">
+                    <td colspan="3" class="text-end">إجمالي درجات النموذج</td>
+                    <td class="text-center text-primary">{{ printTotalScore }}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </v-table>
+
+              <!-- Signatures -->
+              <div class="mt-12 pt-6 border-t border-slate-300">
+                <v-row>
+                  <v-col cols="4" class="text-center">
+                    <p class="font-weight-bold mb-3">توقيع واضع الاختبار</p>
+                    <div class="signature-line mx-auto" style="width: 180px; border-bottom: 1px dashed #64748b; height: 30px;"></div>
+                  </v-col>
+                  <v-col cols="4" class="text-center">
+                    <p class="font-weight-bold mb-3">توقيع المراجع والمدقق</p>
+                    <div class="signature-line mx-auto" style="width: 180px; border-bottom: 1px dashed #64748b; height: 30px;"></div>
+                  </v-col>
+                  <v-col cols="4" class="text-center">
+                    <p class="font-weight-bold mb-3">اعتماد مدير الاختبارات</p>
+                    <div class="signature-line mx-auto" style="width: 180px; border-bottom: 1px dashed #64748b; height: 30px;"></div>
+                  </v-col>
+                </v-row>
+              </div>
+            </div>
+
+            <!-- Content Type 3: Bubble Sheets (OMR) -->
+            <div v-else-if="printModalType === 'sheets'" class="bubble-sheets-content">
+              <!-- Instruction Banner -->
+              <div class="d-flex align-center justify-space-between mb-4 pa-3 rounded-xl border bg-slate-50 flex-wrap gap-2">
+                <div class="d-flex align-center gap-2 text-caption font-weight-bold">
+                  <v-icon size="18" color="primary">mdi-information-outline</v-icon>
+                  <span>طريقة التظليل الصحيحة: ظلل الدائرة بالكامل بلون داكن. لا تثني الورقة ولا تضع أي علامات عشوائية.</span>
+                </div>
+                <div class="d-flex align-center gap-3 text-caption font-weight-bold">
+                  <span class="d-flex align-center gap-1">صحيح: <span class="bubble-circle bubble-filled d-inline-flex" style="width: 18px; height: 18px; font-size: 10px;">●</span></span>
+                  <span class="d-flex align-center gap-1 text-medium-emphasis">خاطئ: <span class="bubble-circle d-inline-flex" style="width: 18px; height: 18px; font-size: 10px;">✕</span></span>
+                </div>
+              </div>
+
+              <!-- Bubble Grid Columns -->
+              <div class="bubble-grid-container py-4">
+                <div
+                  v-for="(colQuestions, colIndex) in printBubbleColumns"
+                  :key="colIndex"
+                  class="bubble-column pa-3 rounded-xl border mb-3"
+                >
+                  <div
+                    v-for="q in colQuestions"
+                    :key="q.num"
+                    class="bubble-row d-flex align-center justify-space-between mb-2 gap-3"
+                  >
+                    <span class="q-num font-weight-black text-caption">{{ q.num }}</span>
+                    <div class="bubbles d-flex gap-2">
+                      <div
+                        v-for="(opt, optIdx) in (q.questionType === 'صح وخطأ' ? ['أ', 'ب'] : ['أ', 'ب', 'ج', 'د'])"
+                        :key="opt"
+                        class="bubble-item text-center"
+                      >
+                        <div
+                          class="bubble-circle font-weight-bold"
+                          :class="{ 'bubble-filled': printSheetMode === 'key' && q.correctIndex === optIdx }"
+                        >
+                          {{ opt }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="printQuestions.length === 0" class="text-center text-medium-emphasis pa-8">
+                لا توجد أسئلة مسجلة لتوليد ورقة التظليل.
+              </div>
+
+              <!-- Footer -->
+              <div class="mt-8 pt-4 border-t border-slate-300 d-flex justify-space-between text-caption text-medium-emphasis">
+                <span>نظام بنك الأسئلة والتصحيح الآلي المعتمد (OMR)</span>
+                <span>كود التحقق: {{ selectedExam?.uniqueCode }} • نموذج {{ printVersion?.versionCode || 'A' }}</span>
+              </div>
+            </div>
+
+          </div>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -714,6 +1016,57 @@ export default {
       return options
     },
 
+    printVersion() {
+      if (!this.examDetails || !this.examDetails.versions || !this.examDetails.versions.length) return null
+      return this.examDetails.versions[this.printVersionIndex] || this.examDetails.versions[0]
+    },
+
+    printQuestions() {
+      if (!this.printVersion) return []
+      return this.printVersion.questions || []
+    },
+
+    printTotalScore() {
+      return this.printQuestions.reduce((sum, q) => sum + (Number(q.assignedMark) || 0), 0)
+    },
+
+    printBubbleColumns() {
+      const qs = this.printQuestions || []
+      if (qs.length === 0) return []
+
+      const items = qs.map((q, idx) => {
+        let correctIndex = -1
+        if (q.options && q.options.length) {
+          correctIndex = q.options.findIndex(o => o.isTrue)
+        } else if (q.questionType === 'صح وخطأ') {
+          correctIndex = q.isTrue ? 0 : 1
+        }
+        return {
+          num: idx + 1,
+          correctIndex,
+          assignedMark: q.assignedMark || 1,
+          questionType: q.questionType
+        }
+      })
+
+      const perCol = 20
+      const cols = []
+      for (let i = 0; i < items.length; i += perCol) {
+        cols.push(items.slice(i, i + perCol))
+      }
+      return cols
+    },
+
+    ministryHeading() {
+      if (this.selectedExam?.institution_type === 'institute') {
+        return 'الجمهورية اليمنية - وزارة التعليم الفني والتدريب المهني'
+      }
+      if (this.selectedExam?.institution_type === 'university') {
+        return 'الجمهورية اليمنية - وزارة التعليم العالي والبحث العلمي'
+      }
+      return 'الجمهورية اليمنية - وزارة التربية والتعليم والبحث العلمي'
+    },
+
     registeredStudents() {
       return this.studentsTableItems?.results || []
     },
@@ -778,6 +1131,11 @@ export default {
         { title: 'المدرسة', key: 'schoolName', sortable: true },
         { title: 'المديرية', key: 'directorateName', sortable: true },
       ],
+      // Print Dialog
+      printPreviewDialog: false,
+      printModalType: 'questions', // 'questions' | 'key' | 'sheets'
+      printVersionIndex: 0,
+      printSheetMode: 'blank', // 'blank' | 'key'
     }
   },
 
@@ -966,16 +1324,27 @@ export default {
       this.totalStudentsCount = 0
       this.backendUniqueSchoolsCount = 0
       this.studentsTableItems = { results: [], pagination: { count: 0, num_pages: 1, current_page: 1, page_size: 10 } }
+      this.printPreviewDialog = false
+    },
+
+    openPrintDialog(type = 'questions') {
+      this.printModalType = type
+      this.printVersionIndex = this.activeVersionIndex || 0
+      this.printSheetMode = type === 'key' ? 'key' : 'blank'
+      this.printPreviewDialog = true
+      if (!this.examDetails && this.selectedExam?.id) {
+        examsService.getExamModelsDetails(this.selectedExam.id).then(details => {
+          this.examDetails = details
+        }).catch(err => console.error("Error loading exam details:", err))
+      }
+    },
+
+    triggerPrint() {
+      window.print()
     },
 
     goToExamPrint(exam, type) {
-      const routeNames = {
-        questions: 'exams-print-questions',
-        key: 'exams-print-key',
-        sheets: 'exams-print-sheets',
-      }
-      const routeData = this.$router.resolve({ name: routeNames[type], query: { examId: exam.id } })
-      window.open(routeData.href, '_blank')
+      this.openPrintDialog(type)
     },
 
     getCorrectOptionLabel(question) {
@@ -1057,5 +1426,148 @@ export default {
 
 .gap-4 {
   gap: 16px;
+}
+
+/* Printable Sheet & Preview Dialog Styles */
+.print-modal-body {
+  background-color: #f1f5f9;
+}
+
+.printable-exam-sheet {
+  background: #ffffff;
+  color: #0f172a;
+  max-width: 900px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.paper-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  font-size: 0.85rem;
+  color: #334155;
+}
+
+.student-info-box {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.q-number-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #0284c7;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+.option-pill {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.option-circle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid #0284c7;
+  color: #0284c7;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.dotted-underline {
+  border-bottom: 1.5px dotted #94a3b8;
+  height: 16px;
+}
+
+/* Bubble Sheets */
+.bubble-grid-container {
+  display: flex;
+  gap: 16px;
+  justify-content: space-around;
+  flex-wrap: wrap;
+}
+
+.bubble-column {
+  min-width: 180px;
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.bubble-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid #64748b;
+  background: #ffffff;
+  color: #1e293b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.bubble-filled {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+}
+
+.id-box {
+  width: 22px;
+  height: 26px;
+  border: 1.5px solid #64748b;
+  border-radius: 4px;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .printable-exam-sheet, .printable-exam-sheet * {
+    visibility: visible;
+  }
+  .printable-exam-sheet {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 15mm !important;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .d-print-none {
+    display: none !important;
+  }
+  .q-number-badge {
+    background: #000 !important;
+    color: #fff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .bubble-filled {
+    background-color: #000 !important;
+    color: #fff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
 </style>
