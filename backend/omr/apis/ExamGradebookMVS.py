@@ -203,6 +203,39 @@ class ExamGradebookMVS(ViewSet):
         )
         total_registered_count = base_registrations.count()
 
+        # استخراج خيارات التصفية المتاحة لهذا الاختبار
+        schools_list = list(
+            base_registrations
+            .values_list('student_profile__organization__name_ar', flat=True)
+            .exclude(student_profile__organization__name_ar__isnull=True)
+            .exclude(student_profile__organization__name_ar__exact='')
+            .distinct()
+        )
+
+        directorates_list = list(
+            base_registrations
+            .values_list('student_profile__directorate__name_ar', flat=True)
+            .exclude(student_profile__directorate__name_ar__isnull=True)
+            .exclude(student_profile__directorate__name_ar__exact='')
+            .distinct()
+        )
+        if exam.directorate and exam.directorate.name_ar and exam.directorate.name_ar not in directorates_list:
+            directorates_list.append(exam.directorate.name_ar)
+
+        governorates_list = list(
+            base_registrations
+            .values_list('student_profile__directorate__fk_governorate__name_ar', flat=True)
+            .exclude(student_profile__directorate__fk_governorate__name_ar__isnull=True)
+            .exclude(student_profile__directorate__fk_governorate__name_ar__exact='')
+            .distinct()
+        )
+        if exam.governorate and exam.governorate.name_ar and exam.governorate.name_ar not in governorates_list:
+            governorates_list.append(exam.governorate.name_ar)
+
+        versions_list = list(
+            exam.versions.filter(is_deleted=False).values_list('versionCode', flat=True).distinct()
+        )
+
         # إحصائيات عامة للاختبار
         absent_count = max(0, total_registered_count - len(all_sub_reg_ids | all_sub_seat_numbers))
         avg_score = round(sum_completed_score / max(1, completed_subs_count), 2) if completed_subs_count > 0 else 0.0
@@ -222,15 +255,82 @@ class ExamGradebookMVS(ViewSet):
 
         # 3. تطبيق الفلاتر على تسجيلات الطلاب
         registrations = base_registrations.select_related(
-            'student', 'student_profile', 'student_profile__organization', 'student_profile__directorate', 'examVersion'
+            'student',
+            'student_profile',
+            'student_profile__organization',
+            'student_profile__directorate',
+            'student_profile__directorate__fk_governorate',
+            'examVersion'
         )
 
-        # فلتر النموذج
+        # 3.1 فلتر المحافظة
+        governorate = request.query_params.get('governorate') or request.query_params.get('governorate_name')
+        if governorate and governorate != 'all':
+            registrations = registrations.filter(
+                Q(student_profile__directorate__fk_governorate__name_ar=governorate) |
+                Q(student_profile__directorate__fk_governorate__name_en=governorate) |
+                Q(examVersion__exam__governorate__name_ar=governorate) |
+                Q(examVersion__exam__governorate__name_en=governorate)
+            )
+
+        # 3.2 فلتر المديرية
+        directorate = request.query_params.get('directorate') or request.query_params.get('directorate_name')
+        if directorate and directorate != 'all':
+            registrations = registrations.filter(
+                Q(student_profile__directorate__name_ar=directorate) |
+                Q(student_profile__directorate__name_en=directorate) |
+                Q(examVersion__exam__directorate__name_ar=directorate) |
+                Q(examVersion__exam__directorate__name_en=directorate)
+            )
+
+        # 3.3 فلتر المدرسة / المؤسسة
+        school = request.query_params.get('school') or request.query_params.get('school_name') or request.query_params.get('organization')
+        if school and school != 'all':
+            registrations = registrations.filter(
+                Q(student_profile__organization__name_ar=school) |
+                Q(student_profile__organization__name_en=school)
+            )
+
+        # 3.4 فلتر النموذج
         version = request.query_params.get('version') or request.query_params.get('model_code') or request.query_params.get('version_code')
         if version and version != 'all':
             registrations = registrations.filter(examVersion__versionCode=version)
 
-        # فلتر البحث السريع
+        # 3.5 فلتر التقدير الأكاديمي (A+, A, B+, B, C+, C, D+, D, F)
+        filter_grade = request.query_params.get('grade') or request.query_params.get('grade_code')
+        if filter_grade and filter_grade != 'all':
+            grade_reg_ids = set()
+            grade_seat_numbers = set()
+            for sub in submissions_qs:
+                if sub.status == Submission.Status.COMPLETED:
+                    pct = round((float(sub.total_score or 0) / max(1.0, exam_max_score)) * 100.0, 1)
+                    if _calculate_grade_letter(pct)["code"] == filter_grade:
+                        if sub.registration_id: grade_reg_ids.add(sub.registration_id)
+                        s_num = str(sub.layout_result.get("seat_number", "")).strip() if sub.layout_result else ""
+                        if s_num: grade_seat_numbers.add(s_num)
+            registrations = registrations.filter(
+                Q(id__in=grade_reg_ids) | Q(seatNumber__in=grade_seat_numbers)
+            )
+
+        # 3.6 فلتر حالة النتيجة (ناجح / راسب)
+        result_status = request.query_params.get('result_status')
+        if result_status and result_status != 'all':
+            res_reg_ids = set()
+            res_seat_numbers = set()
+            pass_threshold = exam_max_score * 0.5
+            for sub in submissions_qs:
+                if sub.status == Submission.Status.COMPLETED:
+                    sc = float(sub.total_score or 0.0)
+                    is_pass = (sc >= pass_threshold)
+                    if (result_status == 'passed' and is_pass) or (result_status == 'failed' and not is_pass):
+                        if sub.registration_id: res_reg_ids.add(sub.registration_id)
+                        s_num = str(sub.layout_result.get("seat_number", "")).strip() if sub.layout_result else ""
+                        if s_num: res_seat_numbers.add(s_num)
+            registrations = registrations.filter(
+                Q(id__in=res_reg_ids) | Q(seatNumber__in=res_seat_numbers)
+            )
+
+        # 3.7 فلتر البحث السريع
         search = request.query_params.get('search', '').strip()
         if search:
             registrations = registrations.filter(
@@ -240,10 +340,11 @@ class ExamGradebookMVS(ViewSet):
                 Q(student_profile__name_en__icontains=search) |
                 Q(student_profile__academic_number__icontains=search) |
                 Q(student_profile__organization__name_ar__icontains=search) |
-                Q(student_profile__directorate__name_ar__icontains=search)
+                Q(student_profile__directorate__name_ar__icontains=search) |
+                Q(student_profile__directorate__fk_governorate__name_ar__icontains=search)
             )
 
-        # فلتر الحالة (completed, needs_review, absent)
+        # 3.8 فلتر الحالة (completed, needs_review, absent)
         filter_status = request.query_params.get('status')
         if filter_status and filter_status != 'all':
             if filter_status == 'completed':
@@ -261,7 +362,7 @@ class ExamGradebookMVS(ViewSet):
                     seatNumber__in=all_sub_seat_numbers
                 )
 
-        # فلتر حالة الترحيل للكنترول
+        # 3.9 فلتر حالة الترحيل للكنترول
         filter_dispatch = request.query_params.get('dispatch') or request.query_params.get('filterDispatch')
         if filter_dispatch and filter_dispatch != 'all':
             if filter_dispatch == 'dispatched':
@@ -306,16 +407,19 @@ class ExamGradebookMVS(ViewSet):
 
         # 5. بناء السجلات للصفحة المطلوبة
         students_records = []
+        exam_gov_name = exam.governorate.name_ar if exam.governorate else ""
         for reg in paged_regs:
-            if reg.student_profile and reg.student_profile.name_ar:
-                s_name = reg.student_profile.name_ar
+            profile = reg.student_profile
+            if profile and profile.name_ar:
+                s_name = profile.name_ar
             elif reg.student:
                 s_name = reg.student.get_full_name() or reg.student.username
             else:
                 s_name = f"طالب ({reg.seatNumber})"
 
-            inst_name = reg.student_profile.organization.name_ar if (reg.student_profile and reg.student_profile.organization) else ""
-            dir_name = reg.student_profile.directorate.name_ar if (reg.student_profile and reg.student_profile.directorate) else ""
+            inst_name = profile.organization.name_ar if (profile and profile.organization) else ""
+            dir_name = profile.directorate.name_ar if (profile and profile.directorate) else (exam.directorate.name_ar if exam.directorate else "")
+            gov_name = (profile.directorate.fk_governorate.name_ar if (profile and profile.directorate and profile.directorate.fk_governorate) else exam_gov_name) or "المحافظة"
 
             sub = submissions_map.get(reg.id) or submissions_map.get(str(reg.seatNumber))
             score_val = 0.0
@@ -350,7 +454,7 @@ class ExamGradebookMVS(ViewSet):
                 "version_code": reg.examVersion.versionCode if reg.examVersion else "A",
                 "school_name": inst_name or "المدرسة الرئيسية",
                 "directorate_name": dir_name or "المديرية",
-                "governorate_name": exam.governorate.name_ar if exam.governorate else "المحافظة",
+                "governorate_name": gov_name,
                 "score": score_val,
                 "max_score": exam_max_score,
                 "percentage": percent_val,
@@ -383,6 +487,31 @@ class ExamGradebookMVS(ViewSet):
             "results": students_records,
             "records": students_records,
             "count": filtered_count,
+            "schools": schools_list,
+            "directorates": directorates_list,
+            "governorates": governorates_list,
+            "versions": versions_list,
+            "filter_options": {
+                "schools": schools_list,
+                "directorates": directorates_list,
+                "governorates": governorates_list,
+                "versions": versions_list,
+                "grades": [
+                    {"value": "A+", "title": "ممتاز مرتفع (A+)"},
+                    {"value": "A", "title": "ممتاز (A)"},
+                    {"value": "B+", "title": "جيد جداً مرتفع (B+)"},
+                    {"value": "B", "title": "جيد جداً (B)"},
+                    {"value": "C+", "title": "جيد مرتفع (C+)"},
+                    {"value": "C", "title": "جيد (C)"},
+                    {"value": "D+", "title": "مقبول مرتفع (D+)"},
+                    {"value": "D", "title": "مقبول (D)"},
+                    {"value": "F", "title": "راسب (F)"},
+                ],
+                "result_statuses": [
+                    {"value": "passed", "title": "ناجح (50% فأكثر)"},
+                    {"value": "failed", "title": "راسب (أقل من 50%)"},
+                ],
+            },
             "pagination": {
                 "count": filtered_count,
                 "num_pages": num_pages,

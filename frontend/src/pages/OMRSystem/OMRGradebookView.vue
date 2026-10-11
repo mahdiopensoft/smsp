@@ -136,6 +136,7 @@
 
     <!-- ── Filter & Exam Selector Card ──────────────────────────────── -->
     <filter-fields label="اختيار الاختبار وتصفية كشوفات الرصد والكنترول" class="main-card border-0 pa-5 rounded-2xl mb-6">
+      <!-- الصف الأول: اختيار الاختبار والبحث والمدرسة -->
       <v-row dense class="align-center">
         <!-- Exam Autocomplete -->
         <v-col cols="12" md="5">
@@ -150,7 +151,7 @@
             clearable
             density="compact"
             variant="outlined"
-            class="mb-6"
+            class="mb-3"
             hide-details
             :loading="loadingExams"
             @update:model-value="onExamChange"
@@ -177,7 +178,7 @@
         </v-col>
 
         <!-- Search Student -->
-        <v-col cols="12" sm="6" md="3">
+        <v-col cols="12" sm="6" md="4">
           <v-text-field
             v-model="searchQuery"
             label="بحث سريع في كشف الرصد"
@@ -186,11 +187,104 @@
             clearable
             density="compact"
             variant="outlined"
-            class="mb-6"
+            class="mb-3"
             hide-details
             @update:model-value="onSearchInput"
             @keydown.enter="applyFilters"
             @click:clear="onClearSearch"
+          />
+        </v-col>
+
+        <!-- Filter by School / Organization -->
+        <v-col cols="12" sm="6" md="3">
+          <v-select
+            v-model="filterSchool"
+            :items="schoolFilterOptions"
+            item-title="text"
+            item-value="value"
+            label="المدرسة / المؤسسة"
+            prepend-inner-icon="mdi-school-outline"
+            clearable
+            density="compact"
+            variant="outlined"
+            class="mb-3"
+            hide-details
+            @update:model-value="applyFilters"
+          />
+        </v-col>
+      </v-row>
+
+      <!-- الصف الثاني: فلترة المحافظة، المديرية، النموذج، التقدير، حالة الورقة، حالة الترحيل -->
+      <v-row dense class="align-center mt-1">
+        <!-- Filter by Governorate -->
+        <v-col cols="12" sm="6" md="2">
+          <v-select
+            v-model="filterGovernorate"
+            :items="governorateFilterOptions"
+            item-title="text"
+            item-value="value"
+            label="المحافظة"
+            prepend-inner-icon="mdi-map-marker-outline"
+            clearable
+            density="compact"
+            variant="outlined"
+            class="mb-3"
+            hide-details
+            @update:model-value="applyFilters"
+          />
+        </v-col>
+
+        <!-- Filter by Directorate -->
+        <v-col cols="12" sm="6" md="2">
+          <v-select
+            v-model="filterDirectorate"
+            :items="directorateFilterOptions"
+            item-title="text"
+            item-value="value"
+            label="المديرية"
+            prepend-inner-icon="mdi-city-variant-outline"
+            clearable
+            density="compact"
+            variant="outlined"
+            class="mb-3"
+            hide-details
+            @update:model-value="applyFilters"
+          />
+        </v-col>
+
+        <!-- Filter by Version -->
+        <v-col cols="12" sm="6" md="2">
+          <v-select
+            v-model="filterVersion"
+            :items="versionFilterOptions"
+            item-title="text"
+            item-value="value"
+            label="النموذج"
+            prepend-inner-icon="mdi-file-document-multiple-outline"
+            clearable
+            density="compact"
+            variant="outlined"
+            class="mb-3"
+            hide-details
+            @update:model-value="applyFilters"
+          />
+        </v-col>
+
+        <!-- Filter by Grade -->
+        <v-col cols="12" sm="6" md="2">
+          <v-select
+            v-model="filterGrade"
+            :items="gradeFilterOptions"
+            item-title="text"
+            item-value="value"
+            label="التقدير الأكاديمي"
+            prepend-inner-icon="mdi-medal-outline"
+            clearable
+            density="compact"
+            variant="outlined"
+            class="mb-3"
+            hide-details
+            @update:model-value="applyFilters"
           />
         </v-col>
 
@@ -202,11 +296,11 @@
             item-title="text"
             item-value="value"
             label="حالة الورقة"
-            prepend-inner-icon="mdi-filter-outline"
+            prepend-inner-icon="mdi-clipboard-check-outline"
             clearable
             density="compact"
             variant="outlined"
-            class="mb-6"
+            class="mb-3"
             hide-details
             @update:model-value="applyFilters"
           />
@@ -214,20 +308,32 @@
 
         <!-- Filter by Dispatch -->
         <v-col cols="12" sm="6" md="2">
-          <v-select
-            v-model="filterDispatch"
-            :items="dispatchFilterOptions"
-            item-title="text"
-            item-value="value"
-            label="حالة الترحيل"
-            prepend-inner-icon="mdi-bank-check"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-            @update:model-value="applyFilters"
-          />
+          <div class="d-flex align-center gap-2">
+            <v-select
+              v-model="filterDispatch"
+              :items="dispatchFilterOptions"
+              item-title="text"
+              item-value="value"
+              label="حالة الترحيل"
+              prepend-inner-icon="mdi-bank-check"
+              clearable
+              density="compact"
+              variant="outlined"
+              class="mb-3 flex-grow-1"
+              hide-details
+              @update:model-value="applyFilters"
+            />
+            <v-btn
+              v-if="hasActiveFilters"
+              icon="mdi-filter-off-outline"
+              size="small"
+              color="error"
+              variant="tonal"
+              class="mb-3"
+              title="إعادة ضبط الفلاتر"
+              @click="resetFilters"
+            />
+          </div>
         </v-col>
       </v-row>
     </filter-fields>
@@ -705,18 +811,29 @@ export default {
 
       // Filters
       searchQuery: '',
+      filterGovernorate: 'all',
+      filterDirectorate: 'all',
+      filterSchool: 'all',
+      filterVersion: 'all',
+      filterGrade: 'all',
       filterStatus: null,
       filterDispatch: null,
 
+      // Filter options populated from backend
+      availableSchools: [],
+      availableDirectorates: [],
+      availableGovernorates: [],
+      availableVersions: [],
+
       statusFilterOptions: [
-        { text: 'الكل', value: null },
+        { text: 'جميع الحالات', value: null },
         { text: 'مصححة ومكتملة', value: 'completed' },
         { text: 'تحت التدقيق', value: 'needs_review' },
         { text: 'غائب', value: 'absent' },
       ],
 
       dispatchFilterOptions: [
-        { text: 'الكل', value: null },
+        { text: 'جميع حالات الترحيل', value: null },
         { text: 'مرحل للكنترول', value: 'dispatched' },
         { text: 'غير مرحل', value: 'not_dispatched' },
       ],
@@ -744,6 +861,74 @@ export default {
     },
     filteredRecords() {
       return this.tableItems.results || []
+    },
+
+    governorateFilterOptions() {
+      const opts = [{ text: 'جميع المحافظات', value: 'all' }]
+      if (this.availableGovernorates && this.availableGovernorates.length) {
+        this.availableGovernorates.forEach(g => {
+          if (g) opts.push({ text: g, value: g })
+        })
+      }
+      return opts
+    },
+
+    directorateFilterOptions() {
+      const opts = [{ text: 'جميع المديريات', value: 'all' }]
+      if (this.availableDirectorates && this.availableDirectorates.length) {
+        this.availableDirectorates.forEach(d => {
+          if (d) opts.push({ text: d, value: d })
+        })
+      }
+      return opts
+    },
+
+    schoolFilterOptions() {
+      const opts = [{ text: 'جميع المدارس / المؤسسات', value: 'all' }]
+      if (this.availableSchools && this.availableSchools.length) {
+        this.availableSchools.forEach(s => {
+          if (s) opts.push({ text: s, value: s })
+        })
+      }
+      return opts
+    },
+
+    versionFilterOptions() {
+      const opts = [{ text: 'جميع النماذج', value: 'all' }]
+      if (this.availableVersions && this.availableVersions.length) {
+        this.availableVersions.forEach(v => {
+          if (v) opts.push({ text: `النموذج ${v}`, value: v })
+        })
+      }
+      return opts
+    },
+
+    gradeFilterOptions() {
+      return [
+        { text: 'جميع التقديرات', value: 'all' },
+        { text: 'ممتاز مرتفع (A+)', value: 'A+' },
+        { text: 'ممتاز (A)', value: 'A' },
+        { text: 'جيد جداً مرتفع (B+)', value: 'B+' },
+        { text: 'جيد جداً (B)', value: 'B' },
+        { text: 'جيد مرتفع (C+)', value: 'C+' },
+        { text: 'جيد (C)', value: 'C' },
+        { text: 'مقبول مرتفع (D+)', value: 'D+' },
+        { text: 'مقبول (D)', value: 'D' },
+        { text: 'راسب (F)', value: 'F' },
+      ]
+    },
+
+    hasActiveFilters() {
+      return !!(
+        (this.searchQuery && this.searchQuery.trim()) ||
+        (this.filterGovernorate && this.filterGovernorate !== 'all') ||
+        (this.filterDirectorate && this.filterDirectorate !== 'all') ||
+        (this.filterSchool && this.filterSchool !== 'all') ||
+        (this.filterVersion && this.filterVersion !== 'all') ||
+        (this.filterGrade && this.filterGrade !== 'all') ||
+        this.filterStatus ||
+        this.filterDispatch
+      )
     },
   },
 
@@ -814,7 +999,24 @@ export default {
         this.resetStats()
         return
       }
+      this.resetFilterSelections()
       await this.fetchGradebookRoster({ params: { page: 1, page_size: 10 } })
+    },
+
+    resetFilterSelections() {
+      this.searchQuery = ''
+      this.filterGovernorate = 'all'
+      this.filterDirectorate = 'all'
+      this.filterSchool = 'all'
+      this.filterVersion = 'all'
+      this.filterGrade = 'all'
+      this.filterStatus = null
+      this.filterDispatch = null
+    },
+
+    resetFilters() {
+      this.resetFilterSelections()
+      this.applyFilters()
     },
 
     resetStats() {
@@ -851,6 +1053,35 @@ export default {
       return this.fetchGradebookRoster({ params: { page: 1 } })
     },
 
+    buildFilterParams(extra = {}) {
+      const queryParams = { ...extra }
+      if (this.searchQuery && this.searchQuery.trim()) {
+        queryParams.search = this.searchQuery.trim()
+      }
+      if (this.filterGovernorate && this.filterGovernorate !== 'all') {
+        queryParams.governorate = this.filterGovernorate
+      }
+      if (this.filterDirectorate && this.filterDirectorate !== 'all') {
+        queryParams.directorate = this.filterDirectorate
+      }
+      if (this.filterSchool && this.filterSchool !== 'all') {
+        queryParams.school = this.filterSchool
+      }
+      if (this.filterVersion && this.filterVersion !== 'all') {
+        queryParams.version = this.filterVersion
+      }
+      if (this.filterGrade && this.filterGrade !== 'all') {
+        queryParams.grade = this.filterGrade
+      }
+      if (this.filterStatus && this.filterStatus !== 'all') {
+        queryParams.status = this.filterStatus
+      }
+      if (this.filterDispatch && this.filterDispatch !== 'all') {
+        queryParams.dispatch = this.filterDispatch
+      }
+      return queryParams
+    },
+
     async fetchGradebookRoster(tableParams = null) {
       if (!this.selectedExamId) {
         this.tableItems = { results: [], pagination: { count: 0, num_pages: 1, current_page: 1, page_size: 10, total: 0 } }
@@ -858,24 +1089,16 @@ export default {
       }
       this.loadingRecords = true
       try {
-        let queryParams = {}
+        let baseParams = {}
         if (tableParams && tableParams.params) {
-          queryParams = { ...tableParams.params }
+          baseParams = { ...tableParams.params }
         } else if (tableParams && typeof tableParams === 'object' && ('page' in tableParams || 'page_size' in tableParams || 'perPage' in tableParams)) {
-          queryParams = { ...tableParams }
+          baseParams = { ...tableParams }
         } else {
-          queryParams = { page: 1, page_size: 10 }
+          baseParams = { page: 1, page_size: 10 }
         }
 
-        if (this.searchQuery && this.searchQuery.trim()) {
-          queryParams.search = this.searchQuery.trim()
-        }
-        if (this.filterStatus && this.filterStatus !== 'all') {
-          queryParams.status = this.filterStatus
-        }
-        if (this.filterDispatch && this.filterDispatch !== 'all') {
-          queryParams.dispatch = this.filterDispatch
-        }
+        const queryParams = this.buildFilterParams(baseParams)
 
         const res = await gradebookAPI.getRoster(this.selectedExamId, queryParams)
         const data = res.data || {}
@@ -898,6 +1121,20 @@ export default {
             pagination,
           }
           this.totalRecordsCount = pagination.count || data.count || 0
+
+          // Update available dropdown filter options
+          if (data.schools && Array.isArray(data.schools)) {
+            this.availableSchools = data.schools
+          }
+          if (data.directorates && Array.isArray(data.directorates)) {
+            this.availableDirectorates = data.directorates
+          }
+          if (data.governorates && Array.isArray(data.governorates)) {
+            this.availableGovernorates = data.governorates
+          }
+          if (data.versions && Array.isArray(data.versions)) {
+            this.availableVersions = data.versions
+          }
 
           if (data.stats) {
             this.activeExamStats = data.stats
@@ -979,10 +1216,7 @@ export default {
 
       try {
         this.notify('جاري إعداد وتصدير كشف الدرجات الكامل...', 'info')
-        const queryParams = { all: 'true' }
-        if (this.searchQuery && this.searchQuery.trim()) queryParams.search = this.searchQuery.trim()
-        if (this.filterStatus && this.filterStatus !== 'all') queryParams.status = this.filterStatus
-        if (this.filterDispatch && this.filterDispatch !== 'all') queryParams.dispatch = this.filterDispatch
+        const queryParams = this.buildFilterParams({ all: 'true' })
 
         const res = await gradebookAPI.getRoster(this.selectedExamId, queryParams)
         const records = res.data?.records || res.data?.results || this.tableItems.results || []
@@ -993,7 +1227,7 @@ export default {
         }
 
         const rows = [
-          ['م', 'رقم الجلوس', 'الرقم السري', 'اسم الطالب', 'المدرسة', 'النموذج', 'الدرجة', 'الدرجة الكلية', 'النسبة %', 'التقدير', 'حالة التصحيح', 'حالة الترحيل للكنترول']
+          ['م', 'رقم الجلوس', 'الرقم السري', 'اسم الطالب', 'المدرسة', 'المديرية', 'المحافظة', 'النموذج', 'الدرجة', 'الدرجة الكلية', 'النسبة %', 'التقدير', 'حالة التصحيح', 'حالة الترحيل للكنترول']
         ]
 
         records.forEach((r, idx) => {
@@ -1003,6 +1237,8 @@ export default {
             r.secret_number || '—',
             `"${r.student_name || ''}"`,
             `"${r.school_name || ''}"`,
+            `"${r.directorate_name || ''}"`,
+            `"${r.governorate_name || ''}"`,
             r.version_code || 'A',
             r.status === 'absent' ? 'غائب' : r.score,
             r.max_score,
@@ -1031,11 +1267,7 @@ export default {
     async printRosterSheet() {
       if (!this.selectedExamId) return
       try {
-        const queryParams = { all: 'true' }
-        if (this.searchQuery && this.searchQuery.trim()) queryParams.search = this.searchQuery.trim()
-        if (this.filterStatus && this.filterStatus !== 'all') queryParams.status = this.filterStatus
-        if (this.filterDispatch && this.filterDispatch !== 'all') queryParams.dispatch = this.filterDispatch
-
+        const queryParams = this.buildFilterParams({ all: 'true' })
         const res = await gradebookAPI.getRoster(this.selectedExamId, queryParams)
         this.printRecords = res.data?.records || res.data?.results || this.tableItems.results || []
         this.$nextTick(() => {
