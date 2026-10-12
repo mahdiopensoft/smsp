@@ -50,6 +50,9 @@
       </div>
     </div>
 
+    <!-- ── OMR Workflow Stepper (المرحلة 3: معمل وسحب المسح الضوئي والتصحيح) ── -->
+    <omr-workflow-bar :active-step="3" :exam-id="selectedExamId" />
+
     <!-- ── Step Tabs Navigation Bar ───────────────────────────────── -->
     <v-card class="main-card pa-2 rounded-xl mb-6 elevation-1">
       <v-tabs v-model="currentStep" grow color="primary" slider-color="primary">

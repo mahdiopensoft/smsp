@@ -50,6 +50,9 @@
       </div>
     </div>
 
+    <!-- ── OMR Workflow Stepper (المرحلة 1: استلام وتجهيز الاختبار) ── -->
+    <omr-workflow-bar :active-step="1" :exam-id="selectedExam?.id" />
+
     <!-- ── KPI Summary Cards ─────────────────────────────────────────── -->
     <v-row class="mb-6" dense>
       <v-col cols="12" sm="6" md="3">
@@ -279,47 +282,56 @@
           <!-- Actions -->
           <template v-else-if="key === 'actions'">
             <div class="d-flex align-center justify-center gap-2 flex-wrap">
-              <!-- 0. استعراض الكشوفات والأسئلة ومفاتيح الحل (النافذة الشاملة) -->
-              <v-btn
-                color="info"
-                variant="tonal"
-                rounded="lg"
-                size="small"
-                class="font-weight-bold px-3"
-                prepend-icon="mdi-card-search-outline"
-                @click.stop.prevent="openExamHub(item)"
-                title="عرض كشوفات الطلاب، نماذج الأسئلة ومفاتيح الحل، وتوليد أوراق التظليل"
-              >
-                الكشوفات والحلول
-              </v-btn>
-
-              <!-- 1. توجيه لمصمم القوالب (الخطوة الأولى) -->
+              <!-- 1. طباعة وتوليد أوراق التظليل للطلاب مباشرة -->
               <v-btn
                 color="primary"
                 variant="flat"
                 rounded="lg"
                 size="small"
                 class="font-weight-bold px-3"
-                prepend-icon="mdi-draw-pen"
-                @click.stop.prevent="openInTemplateDesigner(item)"
-                title="فتح مواصفات الاختبار وأقسام الأسئلة في مصمم قوالب التظليل OMR"
+                prepend-icon="mdi-printer"
+                @click.stop.prevent="openExamHub(item, 'template')"
+                title="توليد ومعاينة وطباعة أوراق التظليل (البابل شيت) لجميع طلاب الاختبار"
               >
-                تصميم الأوراق
+                طباعة أوراق التظليل
               </v-btn>
 
-              <!-- 2. تحويل وتجهيز الطباعة (الخطوة الثانية) -->
+              <!-- 2. كشف الطلاب ونماذج الأسئلة ومفاتيح الحل -->
+              <v-btn
+                color="info"
+                variant="tonal"
+                rounded="lg"
+                size="small"
+                class="font-weight-bold px-3"
+                prepend-icon="mdi-account-school-outline"
+                @click.stop.prevent="openExamHub(item, 'roster')"
+                title="استعراض كشف الطلاب ونماذج الأسئلة ومفاتيح الحل"
+              >
+                كشف الطلاب والحلول
+              </v-btn>
+
+              <!-- 3. تصميم مواصفات الورقة (أداة مساعدة) -->
               <v-btn
                 color="secondary"
                 variant="tonal"
                 rounded="lg"
                 size="small"
-                class="font-weight-bold px-3"
-                prepend-icon="mdi-printer-check"
+                class="font-weight-bold px-2"
+                icon="mdi-draw-pen"
+                @click.stop.prevent="openInTemplateDesigner(item)"
+                title="فتح مواصفات الاختبار في مصمم قوالب التظليل OMR"
+              />
+
+              <!-- 4. سجل الطباعة للدفعات -->
+              <v-btn
+                color="medium-emphasis"
+                variant="text"
+                rounded="lg"
+                size="small"
+                icon="mdi-history"
                 @click.stop.prevent="goToPrintRegistry(item)"
-                title="تجهيز دفعة الطباعة وسجل أوراق الإجابة"
-              >
-                توجيه للطباعة
-              </v-btn>
+                title="سجل دفعات الطباعة السابقة لهذا الاختبار"
+              />
             </div>
           </template>
         </template>
@@ -382,6 +394,20 @@
               density="comfortable"
               class="hub-navigation-tabs"
             >
+              <v-tab value="questions" class="font-weight-black py-3 text-body-2">
+                <v-icon start size="18">mdi-file-document-outline</v-icon>
+                <span>ورقة الأسئلة الرسمية (كراسة الأسئلة المعتمدة)</span>
+                <v-chip
+                  v-if="examDetails?.versions?.length"
+                  size="x-small"
+                  color="secondary"
+                  variant="flat"
+                  class="ms-2 font-weight-black"
+                >
+                  {{ examDetails.versions.length }} نماذج
+                </v-chip>
+              </v-tab>
+
               <v-tab value="template" class="font-weight-black py-3 text-body-2">
                 <v-icon start size="18">mdi-card-text-outline</v-icon>
                 <span>توليد ومعاينة ورقة التظليل والطباعة</span>
@@ -440,9 +466,99 @@
 
           <div v-else-if="examDetails">
             <!-- ══════════════════════════════════════════════════════════ -->
+            <!-- TAB 0: ورقة الأسئلة الرسمية (كراسة الأسئلة المعتمدة)         -->
+            <!-- ══════════════════════════════════════════════════════════ -->
+            <div v-if="hubActiveTab === 'questions'">
+              <div class="main-card rounded-2xl pa-4 mb-4 border d-flex align-center justify-space-between flex-wrap gap-3 bg-white">
+                <div class="d-flex align-center gap-3 flex-wrap">
+                  <div class="text-caption font-weight-black text-primary d-flex align-center gap-1">
+                    <v-icon size="18">mdi-format-list-bulleted-type</v-icon>
+                    اختيار النموذج:
+                  </div>
+                  <v-btn-toggle
+                    v-model="activeVersionTab"
+                    mandatory
+                    density="compact"
+                    color="primary"
+                    variant="outlined"
+                    rounded="lg"
+                  >
+                    <v-btn
+                      v-for="(v, idx) in (examDetails.versions || [])"
+                      :key="`tab-qp-${v.id || idx}`"
+                      :value="idx"
+                      class="font-weight-bold px-3"
+                    >
+                      النموذج {{ v.versionCode }} ({{ v.questions?.length || v.questionsCount || 0 }} سؤال)
+                    </v-btn>
+                  </v-btn-toggle>
+
+                  <v-btn-toggle
+                    v-model="selectedQuestionPaperLayout"
+                    mandatory
+                    density="compact"
+                    color="secondary"
+                    variant="outlined"
+                    rounded="lg"
+                  >
+                    <v-btn value="a4" class="font-weight-bold px-3" prepend-icon="mdi-file-outline">
+                      مقاس A4 (النمط الوزاري المعتمد)
+                    </v-btn>
+                    <v-btn value="a3" class="font-weight-bold px-3" prepend-icon="mdi-file-document-outline">
+                      مقاس كبير A3 (ورقة واحدة عمودين)
+                    </v-btn>
+                  </v-btn-toggle>
+                </div>
+
+                <div class="d-flex align-center gap-2">
+                  <v-btn
+                    color="primary"
+                    variant="flat"
+                    rounded="lg"
+                    class="font-weight-black px-5"
+                    prepend-icon="mdi-printer"
+                    @click="() => printQuestionsAndSheets('questions_only')"
+                  >
+                    طباعة ورقة الأسئلة الرسمية
+                  </v-btn>
+                  <v-btn
+                    color="secondary"
+                    variant="tonal"
+                    rounded="lg"
+                    class="font-weight-bold px-4"
+                    prepend-icon="mdi-package-variant-closed"
+                    @click="() => printQuestionsAndSheets('package')"
+                  >
+                    طباعة الحزمة المتكاملة (أسئلة + تظليل)
+                  </v-btn>
+                </div>
+              </div>
+
+              <!-- Official Question Paper Component Frame -->
+              <div class="overflow-auto bg-grey-lighten-4 pa-4 rounded-2xl border d-flex justify-center mb-6">
+                <YemeniOfficialQuestionPaper
+                  :exam-title="customStageTitle || activeExam?.title || 'اختبار الشهادة الثانوية العامة'"
+                  :exam-subject="activeExam?.subject_name || 'الرياضيات'"
+                  :stage-title="customStageTitle || (activeExam?.stage_name ? `اختبار ${activeExam.stage_name}` : 'اختبار الشهادة الثانوية العامة (المراكز الفرعية - علمي)')"
+                  :exam-year="(customExamYear || activeExam?.year_name || '1445هـ - 2024-2023م')"
+                  :governorate="customGovernorate || activeExam?.governorate || 'أمانة العاصمة'"
+                  :directorate="customDirectorate || activeExam?.directorate || 'الثورة / الأمانة'"
+                  :center-name="customCenterName || activeSheetStudent?.school_name || activeExam?.directorate || 'المركز الاختباري الرئيسي'"
+                  :center-code="activeSheetStudent?.school_id || activeExam?.id || '3026'"
+                  :student-name="sheetGenerationMode === 'student' ? activeSheetStudent?.student_name : ''"
+                  :seat-number="sheetGenerationMode === 'student' ? activeSheetStudent?.seat_number : ''"
+                  :secret-number="sheetGenerationMode === 'student' ? activeSheetStudent?.secret_number : '60'"
+                  :model-code="currentVersionObj?.versionCode || 'A'"
+                  :questions="currentVersionObj?.questions || []"
+                  :default-layout="selectedQuestionPaperLayout"
+                />
+              </div>
+            </div>
+
+            <!-- ══════════════════════════════════════════════════════════ -->
             <!-- TAB 1: كشف الطلاب والبيانات الامتحانية (Roster)            -->
             <!-- ══════════════════════════════════════════════════════════ -->
-            <div v-if="hubActiveTab === 'roster'">
+            <div v-else-if="hubActiveTab === 'roster'">
               <!-- Quick Actions & Info Bar -->
               <div class="d-flex align-center justify-space-between flex-wrap gap-3 mb-4">
                 <div class="d-flex align-center gap-2">
@@ -457,13 +573,14 @@
 
                 <div class="d-flex align-center gap-2 flex-wrap">
                   <custom-btn
-                    type="print"
-                    label="طباعة أوراق التظليل للجميع"
+                    type="show"
+                    icon="file-document-multiple-outline"
+                    label="معاينة وتوليد أوراق التظليل للجميع"
                     color="primary"
                     variant="tonal"
                     class="font-weight-bold"
                     :disabled="!totalStudentsCount"
-                    :click="batchPrintAllStudents"
+                    :click="() => { hubActiveTab = 'template'; sheetGenerationMode = 'all_students'; }"
                   />
                   <custom-btn
                     type="show"
@@ -659,6 +776,18 @@
             <!-- TAB 2: توليد ومعاينة ورقة التظليل (OMR Sheet Generator)   -->
             <!-- ══════════════════════════════════════════════════════════ -->
             <div v-if="hubActiveTab === 'template'">
+              <!-- Alert Banner for Batch Printing Status -->
+              <v-alert
+                v-if="batchPrintNotification.show"
+                :type="batchPrintNotification.color"
+                variant="tonal"
+                closable
+                class="mb-3 rounded-xl font-weight-bold"
+                @click:close="batchPrintNotification.show = false"
+              >
+                {{ batchPrintNotification.message }}
+              </v-alert>
+
               <!-- Sheet Controls Bar -->
               <div class="main-card rounded-2xl pa-4 mb-4">
                 <!-- Row 1: Setup Configuration -->
@@ -673,6 +802,9 @@
                       variant="outlined"
                       rounded="lg"
                     >
+                      <v-btn value="all_students" class="font-weight-bold px-3" prepend-icon="mdi-account-group">
+                        أوراق كافة الطلاب (الدفعة كاملة)
+                      </v-btn>
                       <v-btn value="student" class="font-weight-bold px-3" prepend-icon="mdi-account">
                         ورقة مخصصة لطالب
                       </v-btn>
@@ -681,10 +813,31 @@
                       </v-btn>
                     </v-btn-toggle>
 
+                    <!-- Model Filter when all_students is active -->
+                    <v-btn-toggle
+                      v-if="sheetGenerationMode === 'all_students'"
+                      v-model="filterStreamModelCode"
+                      density="compact"
+                      color="primary"
+                      variant="outlined"
+                      rounded="lg"
+                    >
+                      <v-btn value="all" class="font-weight-bold px-3">
+                        كل النماذج ({{ examDetails.registered_students?.length || 0 }})
+                      </v-btn>
+                      <v-btn
+                        v-for="v in (examDetails.versions || [])"
+                        :key="`stream-filter-v-${v.versionCode}`"
+                        :value="v.versionCode"
+                        class="font-weight-bold px-3"
+                      >
+                        النموذج {{ v.versionCode }}
+                      </v-btn>
+                    </v-btn-toggle>
+
                     <!-- Student or Version Picker -->
-                    <div style="min-width: 260px; max-width: 380px;" class="flex-grow-1">
+                    <div v-if="sheetGenerationMode === 'student'" style="min-width: 260px; max-width: 380px;" class="flex-grow-1">
                       <v-autocomplete
-                        v-if="sheetGenerationMode === 'student'"
                         v-model="selectedStudentId"
                         :items="examDetails.registered_students || []"
                         item-title="student_name"
@@ -700,9 +853,10 @@
                           <v-list-item v-bind="iProps" :subtitle="`رقم الجلوس: ${item.raw.seat_number} | النموذج: ${item.raw.model_code}`" />
                         </template>
                       </v-autocomplete>
+                    </div>
 
+                    <div v-else-if="sheetGenerationMode === 'blank'" style="min-width: 200px; max-width: 280px;" class="flex-grow-1">
                       <v-select
-                        v-else
                         v-model="selectedBlankVersionCode"
                         :items="versionCodeOptions"
                         label="اختيار النموذج لورقة التظليل"
@@ -730,15 +884,111 @@
                         الورقة الشاملة A4
                       </v-btn>
                     </v-btn-toggle>
+
+                    <!-- Live Adjustments Button (Like Designer) -->
+                    <v-btn
+                      variant="tonal"
+                      :color="showAdjustmentsPanel ? 'primary' : 'secondary'"
+                      size="small"
+                      rounded="lg"
+                      prepend-icon="mdi-pencil-ruler"
+                      class="font-weight-bold"
+                      @click="showAdjustmentsPanel = !showAdjustmentsPanel"
+                    >
+                      {{ showAdjustmentsPanel ? 'إخفاء التعديلات الحية' : 'تعديلات الترويسة والبيانات' }}
+                    </v-btn>
                   </div>
                 </div>
+
+                <!-- Collapsible Live Adjustments Panel (مثل مصمم الفواتير) -->
+                <v-expand-transition>
+                  <div v-if="showAdjustmentsPanel" class="pa-4 mt-3 bg-grey-lighten-4 rounded-xl border">
+                    <div class="text-caption font-weight-black text-primary mb-3 d-flex align-center gap-1">
+                      <v-icon size="16">mdi-auto-fix</v-icon>
+                      تعديل بيانات الترويسة فورياً (تنعكس التعديلات لحظياً على كافة أوراق الطلاب قبل نقلها للطباعة)
+                    </div>
+                    <v-row dense>
+                      <v-col cols="12" sm="4">
+                        <v-text-field
+                          v-model="customCenterName"
+                          label="اسم المركز الامتحاني / المدرسة"
+                          density="compact"
+                          variant="outlined"
+                          rounded="lg"
+                          hide-details
+                          :placeholder="activeExam?.directorate || 'المركز الامتحاني الرئيسي'"
+                        />
+                      </v-col>
+                      <v-col cols="12" sm="4">
+                        <v-text-field
+                          v-model="customDirectorate"
+                          label="المديرية"
+                          density="compact"
+                          variant="outlined"
+                          rounded="lg"
+                          hide-details
+                          :placeholder="activeExam?.directorate || 'السبعين'"
+                        />
+                      </v-col>
+                      <v-col cols="12" sm="4">
+                        <v-text-field
+                          v-model="customGovernorate"
+                          label="المحافظة"
+                          density="compact"
+                          variant="outlined"
+                          rounded="lg"
+                          hide-details
+                          :placeholder="activeExam?.governorate || 'أمانة العاصمة'"
+                        />
+                      </v-col>
+                      <v-col cols="12" sm="6">
+                        <v-text-field
+                          v-model="customStageTitle"
+                          label="عنوان الاختبار والمرحلة"
+                          density="compact"
+                          variant="outlined"
+                          rounded="lg"
+                          hide-details
+                          :placeholder="activeExam?.title || 'اختبار الشهادة العامة'"
+                        />
+                      </v-col>
+                      <v-col cols="12" sm="3">
+                        <v-text-field
+                          v-model="customExamYear"
+                          label="العام الدراسي"
+                          density="compact"
+                          variant="outlined"
+                          rounded="lg"
+                          hide-details
+                          :placeholder="activeExam?.year_name || '2026'"
+                        />
+                      </v-col>
+                      <v-col cols="12" sm="3" class="d-flex align-center">
+                        <v-btn
+                          size="small"
+                          variant="text"
+                          color="error"
+                          class="font-weight-bold"
+                          prepend-icon="mdi-restore"
+                          @click="resetHeaderOverrides"
+                        >
+                          استعادة البيانات الأصلية
+                        </v-btn>
+                      </v-col>
+                    </v-row>
+                  </div>
+                </v-expand-transition>
 
                 <!-- Row 2: Status, Zoom & Print Actions -->
                 <div class="d-flex align-center justify-space-between flex-wrap gap-2 pt-3">
                   <!-- Status Chip & Zoom Controls -->
                   <div class="d-flex align-center gap-2 flex-wrap">
                     <!-- Target summary badge -->
-                    <v-chip v-if="activeSheetStudent && sheetGenerationMode === 'student'" size="small" color="primary" variant="tonal" class="font-weight-bold">
+                    <v-chip v-if="sheetGenerationMode === 'all_students'" size="small" color="success" variant="tonal" class="font-weight-bold">
+                      <v-icon start size="16">mdi-file-multiple</v-icon>
+                      جاهز للمعاينة والطباعة: {{ filteredStreamStudents.length }} ورقة (من إجمالي {{ examDetails.registered_students?.length || 0 }} طالب)
+                    </v-chip>
+                    <v-chip v-else-if="activeSheetStudent && sheetGenerationMode === 'student'" size="small" color="primary" variant="tonal" class="font-weight-bold">
                       <v-icon start size="16">mdi-account-check</v-icon>
                       {{ activeSheetStudent.student_name }} (جلوس: {{ activeSheetStudent.seat_number }} | نموذج: {{ activeSheetStudent.model_code }})
                     </v-chip>
@@ -766,25 +1016,40 @@
 
                   <!-- Actions Bar -->
                   <div class="d-flex align-center gap-2 flex-wrap">
+                    <!-- الزر الرئيسي المباشر: نقل للطباعة -->
+                    <v-btn
+                      color="success"
+                      variant="flat"
+                      rounded="lg"
+                      size="default"
+                      class="font-weight-black shadow-sm px-4"
+                      prepend-icon="mdi-printer-check"
+                      :loading="printingBatch"
+                      :disabled="!filteredStreamStudents?.length && sheetGenerationMode === 'all_students'"
+                      @click="batchPrintAllStudents"
+                    >
+                      نقل للطباعة ({{ filteredStreamStudents.length || 1 }} ورقة)
+                    </v-btn>
+
                     <custom-btn
                       type="print"
-                      label="طباعة الورقة الحالية"
+                      label="طباعة الورقة الفردية"
                       color="primary"
+                      variant="tonal"
                       class="font-weight-bold"
                       :click="printSingleSheet"
                     />
                     <custom-btn
-                      icon="printer-check"
-                      label="طباعة أوراق جميع الطلاب"
+                      icon="clipboard-list-outline"
+                      label="طباعة كشف المناداة"
                       color="secondary"
                       variant="tonal"
                       class="font-weight-bold"
-                      :disabled="!examDetails.registered_students?.length"
-                      :click="batchPrintAllStudents"
+                      :click="printRosterList"
                     />
                     <custom-btn
                       icon="book-open-page-variant-outline"
-                      label="طباعة حزمة الاختبار"
+                      label="حزمة الاختبار"
                       color="secondary"
                       variant="tonal"
                       class="font-weight-bold"
@@ -797,20 +1062,94 @@
                       label="تعديل القالب في المصمم"
                       :click="() => openInTemplateDesigner(activeExam)"
                     />
-                    <custom-btn
-                      is-icon
-                      icon="scanner"
-                      color="success"
-                      label="تصحيح هذا النموذج"
-                      :click="() => startGradingExam(activeExam, activeSheetModelCode)"
-                    />
                   </div>
                 </div>
               </div>
 
               <!-- Live OMR Sheet Artboard Canvas -->
-              <div class="omr-preview-viewport pa-6 rounded-2xl border text-center overflow-auto bg-grey-lighten-4">
+              <div class="omr-preview-viewport pa-4 pa-md-6 rounded-2xl border text-center overflow-auto bg-grey-lighten-4">
+                
+                <!-- ALL STUDENTS BATCH STREAM (عرض كافة الأوراق بالكامل مثل الفواتير في المصمم) -->
                 <div
+                  v-if="sheetGenerationMode === 'all_students'"
+                  ref="batchStreamRef"
+                  class="all-sheets-stream d-flex flex-column align-center gap-6"
+                >
+                  <div v-if="!examDetails.registered_students?.length" class="text-center py-12">
+                    <v-avatar size="56" color="grey-lighten-2" class="mb-3">
+                      <v-icon size="32" color="medium-emphasis">mdi-account-off-outline</v-icon>
+                    </v-avatar>
+                    <div class="text-subtitle-1 font-weight-bold mb-1">لا يوجد طلاب مسجلون في هذا الاختبار حتى الآن</div>
+                    <div class="text-caption text-medium-emphasis mb-4">يمكنك توليد وتعبئة طلاب تجريبيين للاختبار لمعاينة وطباعة أوراقهم</div>
+                    <v-btn color="primary" rounded="lg" prepend-icon="mdi-account-plus" @click="seedSampleStudents">
+                      توليد كشف طلاب تجريبي للاختبار
+                    </v-btn>
+                  </div>
+
+                  <template v-else>
+                    <div
+                      v-for="(st, sIndex) in filteredStreamStudents"
+                      :key="`stream-sheet-${st.id}-${selectedSheetLayout}`"
+                      class="sheet-page-card elevation-4 bg-white rounded-lg position-relative d-inline-block text-start mb-6"
+                      :style="sheetArtboardStyle"
+                    >
+                      <!-- Page Indicator Banner (Hidden on Print) -->
+                      <div class="d-print-none sheet-page-header px-4 py-2 bg-grey-lighten-4 border-b d-flex align-center justify-space-between text-caption font-weight-bold">
+                        <span class="text-primary font-mono font-weight-black">
+                          ورقة رقم {{ sIndex + 1 }} من {{ filteredStreamStudents.length }}
+                        </span>
+                        <span class="text-medium-emphasis font-weight-bold">
+                          الطالب: <strong>{{ st.student_name }}</strong> | رقم الجلوس: <strong>{{ st.seat_number }}</strong> | النموذج: <strong>{{ st.model_code || 'A' }}</strong>
+                        </span>
+                      </div>
+
+                      <!-- Sheet Content -->
+                      <YemeniAuditReportSheet
+                        v-if="selectedSheetLayout === 'full_a4'"
+                        :student-name="st.student_name"
+                        :seat-number="st.seat_number"
+                        :serial-number="st.secret_number || st.model_code"
+                        :model-code="st.model_code || 'A'"
+                        :form-number="st.model_code || 'A'"
+                        :exam-subject="activeExam?.subject_name || 'الرياضيات'"
+                        :exam-stage-title="customStageTitle || (activeExam?.stage_name ? `اختبار ${activeExam.stage_name}` : (activeExam?.title || 'اختبار الشهادة الثانوية العامة (القسم العلمي)'))"
+                        :exam-year="customExamYear || activeExam?.year_name || '2026'"
+                        :center-name="customCenterName || st.school_name || activeExam?.directorate || 'المركز الاختباري الرئيسي'"
+                        :center-code="st.school_id || activeExam?.id || '101'"
+                        :governorate="customGovernorate || st.governorate || activeExam?.governorate || 'أمانة العاصمة'"
+                        :directorate="customDirectorate || st.directorate || activeExam?.directorate || 'السبعين'"
+                        :barcode-value="st.barcode_value || `EXAM_${activeExam?.id}_VER_${st.model_code || 'A'}_SEAT_${st.seat_number}`"
+                        :qr-value="st.qr_value || `${activeExam?.uniqueCode}|${st.model_code || 'A'}|${st.seat_number}`"
+                        :total-questions="getQuestionsCountForVersion(st.model_code)"
+                        :sections="getSectionsForVersion(st.model_code)"
+                      />
+
+                      <YemeniMinistrySheet
+                        v-else
+                        layout-mode="compact_a5"
+                        :student-name="st.student_name"
+                        :seat-number="st.seat_number"
+                        :serial-number="st.secret_number || st.model_code"
+                        :model-code="st.model_code || 'A'"
+                        :exam-subject="activeExam?.subject_name || 'الرياضيات'"
+                        :exam-stage-title="customStageTitle || (activeExam?.stage_name ? `اختبار ${activeExam.stage_name}` : (activeExam?.title || 'اختبار الشهادة الثانوية العامة (القسم العلمي)'))"
+                        :exam-year="customExamYear || activeExam?.year_name || '2026'"
+                        :center-name="customCenterName || st.school_name || activeExam?.directorate || 'المركز الامتحاني الرئيسي'"
+                        :governorate="customGovernorate || activeExam?.governorate || 'أمانة العاصمة'"
+                        :directorate="customDirectorate || st.directorate || activeExam?.directorate || 'السبعين'"
+                        :barcode-value="st.barcode_value || `EXAM_${activeExam?.id}_VER_${st.model_code || 'A'}_SEAT_${st.seat_number}`"
+                        :qr-value="st.qr_value || `${activeExam?.uniqueCode}|${st.model_code || 'A'}|${st.seat_number}`"
+                        :total-questions="getQuestionsCountForVersion(st.model_code)"
+                        :sections="getSectionsForVersion(st.model_code)"
+                        :interactive="false"
+                      />
+                    </div>
+                  </template>
+                </div>
+
+                <!-- SINGLE SHEET CANVAS (عند اختيار ورقة فردية أو فارغة) -->
+                <div
+                  v-else
                   ref="sheetArtboardRef"
                   class="sheet-artboard-container d-inline-block rounded-lg elevation-4 bg-white position-relative"
                   :style="sheetArtboardStyle"
@@ -1226,7 +1565,7 @@
     <!-- Hidden Container for Batch Printing All Students' Sheets -->
     <div id="omr-batch-print-staging" class="d-none">
       <div
-        v-for="st in examDetails?.registered_students || []"
+        v-for="st in (filteredStreamStudents.length ? filteredStreamStudents : (examDetails?.registered_students || []))"
         :key="`batch-${st.id}-${selectedSheetLayout}`"
         class="batch-sheet-slot"
       >
@@ -1236,19 +1575,19 @@
           :student-name="st.student_name"
           :seat-number="st.seat_number"
           :serial-number="st.secret_number || st.model_code"
-          :model-code="st.model_code"
-          :form-number="st.model_code"
+          :model-code="st.model_code || 'A'"
+          :form-number="st.model_code || 'A'"
           :exam-subject="activeExam?.subject_name || 'الرياضيات'"
-          :exam-stage-title="activeExam?.stage_name ? `اختبار ${activeExam.stage_name}` : (activeExam?.title || 'اختبار الشهادة الثانوية العامة (القسم العلمي)')"
-          :exam-year="activeExam?.year_name || '2026'"
-          :center-name="st.school_name || activeExam?.directorate || 'المركز الاختباري الرئيسي'"
+          :exam-stage-title="customStageTitle || (activeExam?.stage_name ? `اختبار ${activeExam.stage_name}` : (activeExam?.title || 'اختبار الشهادة الثانوية العامة (القسم العلمي)'))"
+          :exam-year="customExamYear || activeExam?.year_name || '2026'"
+          :center-name="customCenterName || st.school_name || activeExam?.directorate || 'المركز الاختباري الرئيسي'"
           :center-code="st.school_id || activeExam?.id || '101'"
-          :governorate="st.governorate || activeExam?.governorate || 'أمانة العاصمة'"
-          :directorate="st.directorate || activeExam?.directorate || 'السبعين'"
-          :barcode-value="st.barcode_value || `EXAM_${activeExam?.id}_VER_${st.model_code}_SEAT_${st.seat_number}`"
-          :qr-value="st.qr_value || `${activeExam?.uniqueCode}|${st.model_code}|${st.seat_number}`"
-          :total-questions="activeModelQuestionsCount"
-          :sections="activeExamSections"
+          :governorate="customGovernorate || st.governorate || activeExam?.governorate || 'أمانة العاصمة'"
+          :directorate="customDirectorate || st.directorate || activeExam?.directorate || 'السبعين'"
+          :barcode-value="st.barcode_value || `EXAM_${activeExam?.id}_VER_${st.model_code || 'A'}_SEAT_${st.seat_number}`"
+          :qr-value="st.qr_value || `${activeExam?.uniqueCode}|${st.model_code || 'A'}|${st.seat_number}`"
+          :total-questions="getQuestionsCountForVersion(st.model_code)"
+          :sections="getSectionsForVersion(st.model_code)"
         />
 
         <!-- A5 Compact Sheet -->
@@ -1258,16 +1597,17 @@
           :student-name="st.student_name"
           :seat-number="st.seat_number"
           :serial-number="st.secret_number || st.model_code"
-          :model-code="st.model_code"
+          :model-code="st.model_code || 'A'"
           :exam-subject="activeExam?.subject_name || 'الرياضيات'"
-          :exam-year="activeExam?.year_name || '2026'"
-          :center-name="st.school_name || activeExam?.directorate || 'المركز الاختباري الرئيسي'"
-          :governorate="st.governorate || activeExam?.governorate || 'أمانة العاصمة'"
-          :directorate="st.directorate || activeExam?.directorate || 'السبعين'"
-          :barcode-value="st.barcode_value || `EXAM_${activeExam?.id}_VER_${st.model_code}_SEAT_${st.seat_number}`"
-          :qr-value="st.qr_value || `${activeExam?.uniqueCode}|${st.model_code}|${st.seat_number}`"
-          :total-questions="activeModelQuestionsCount"
-          :sections="activeExamSections"
+          :exam-stage-title="customStageTitle || (activeExam?.stage_name ? `اختبار ${activeExam.stage_name}` : (activeExam?.title || 'اختبار الشهادة الثانوية العامة (القسم العلمي)'))"
+          :exam-year="customExamYear || activeExam?.year_name || '2026'"
+          :center-name="customCenterName || st.school_name || activeExam?.directorate || 'المركز الامتحاني الرئيسي'"
+          :governorate="customGovernorate || activeExam?.governorate || 'أمانة العاصمة'"
+          :directorate="customDirectorate || st.directorate || activeExam?.directorate || 'السبعين'"
+          :barcode-value="st.barcode_value || `EXAM_${activeExam?.id}_VER_${st.model_code || 'A'}_SEAT_${st.seat_number}`"
+          :qr-value="st.qr_value || `${activeExam?.uniqueCode}|${st.model_code || 'A'}|${st.seat_number}`"
+          :total-questions="getQuestionsCountForVersion(st.model_code)"
+          :sections="getSectionsForVersion(st.model_code)"
           :interactive="false"
         />
       </div>
@@ -1316,6 +1656,7 @@ const hubActiveTab = ref('roster') // 'roster', 'template', 'keys', 'submissions
 const activeVersionTab = ref(0)
 const seedingStudents = ref(false)
 const showQuestionPaperDialog = ref(false)
+const selectedQuestionPaperLayout = ref('a4')
 
 const openQuestionPaperModal = () => {
   showQuestionPaperDialog.value = true
@@ -1338,23 +1679,47 @@ const sheetGenerationMode = ref('student') // 'student' | 'blank'
 const selectedStudentId = ref(null)
 const selectedBlankVersionCode = ref('A')
 const selectedSheetLayout = ref('compact_a5') // 'compact_a5' | 'full_a4'
-const sheetZoomLevel = ref(1.0)
 const sheetArtboardRef = ref(null)
+const batchStreamRef = ref(null)
+const printingBatch = ref(false)
+
+// Designer Stream & Batch Adjustments
+const filterStreamModelCode = ref('all')
+const customCenterName = ref('')
+const customDirectorate = ref('')
+const customGovernorate = ref('')
+const customExamYear = ref('')
+const customStageTitle = ref('')
+const showAdjustmentsPanel = ref(false)
+const batchPrintNotification = ref({ show: false, message: '', color: 'success' })
+
+const filteredStreamStudents = computed(() => {
+  if (!examDetails.value?.registered_students) return []
+  let list = examDetails.value.registered_students
+  if (filterStreamModelCode.value && filterStreamModelCode.value !== 'all') {
+    list = list.filter(s => s.model_code === filterStreamModelCode.value)
+  }
+  return list
+})
+
+const resetHeaderOverrides = () => {
+  customCenterName.value = ''
+  customDirectorate.value = ''
+  customGovernorate.value = ''
+  customExamYear.value = ''
+  customStageTitle.value = ''
+}
+
+const sheetZoomLevel = ref(1.0)
 
 const sheetArtboardStyle = computed(() => {
-  if (selectedSheetLayout.value === 'full_a4') {
-    return {
-      width: '210mm',
-      minWidth: '210mm',
-      transform: `scale(${sheetZoomLevel.value})`,
-      transformOrigin: 'top center',
-      transition: 'transform 0.15s ease'
-    }
-  }
+  const isA4 = selectedSheetLayout.value === 'full_a4'
   return {
-    transform: `scale(${sheetZoomLevel.value})`,
-    transformOrigin: 'top center',
-    transition: 'transform 0.15s ease'
+    width: '210mm',
+    minWidth: '210mm',
+    minHeight: isA4 ? '297mm' : '148.5mm',
+    zoom: sheetZoomLevel.value,
+    transition: 'zoom 0.15s ease'
   }
 })
 
@@ -1363,22 +1728,22 @@ const currentVersionObj = computed(() => {
   return examDetails.value.versions[activeVersionTab.value] || examDetails.value.versions[0]
 })
 
-const activeModelQuestionsCount = computed(() => {
-  if (currentVersionObj.value?.questionsCount) return currentVersionObj.value.questionsCount
-  if (examDetails.value?.versions?.[0]?.questionsCount) return examDetails.value.versions[0].questionsCount
-  return activeExam.value?.total_questions || 10
-})
+const getQuestionsCountForVersion = (versionCode) => {
+  const v = examDetails.value?.versions?.find(ver => ver.versionCode === versionCode) ||
+            examDetails.value?.versions?.[0]
+  if (v?.questions?.length) return v.questions.length
+  if (v?.questionsCount) return v.questionsCount
+  return activeExam.value?.total_questions || 20
+}
 
-const activeExamSections = computed(() => {
-  const v = currentVersionObj.value || examDetails.value?.versions?.[0]
-  if (!v?.questions || !v.questions.length) {
-    return []
-  }
-  const qList = v.questions
-  const total = qList.length
-
+const getSectionsForVersion = (versionCode) => {
+  const v = examDetails.value?.versions?.find(ver => ver.versionCode === versionCode) ||
+            examDetails.value?.versions?.[0]
+  const qList = v?.questions || []
+  const total = qList.length || v?.questionsCount || activeExam.value?.total_questions || 20
   let tfCount = 0
   let mcqCount = 0
+
   qList.forEach(q => {
     const typeStr = String(q.questionType || '').toLowerCase()
     if (typeStr.includes('true') || typeStr.includes('false') || typeStr.includes('صح') || typeStr.includes('خطأ')) {
@@ -1388,20 +1753,39 @@ const activeExamSections = computed(() => {
     }
   })
 
+  // If no detailed question records found, use standard ministerial distribution
+  if (tfCount === 0 && mcqCount === 0) {
+    if (total <= 20) {
+      tfCount = Math.min(10, Math.floor(total / 2))
+      mcqCount = total - tfCount
+    } else {
+      tfCount = 20
+      mcqCount = total - 20
+    }
+  }
+
   if (tfCount > 0 && mcqCount > 0) {
     return [
-      { id: 'sec1', title: 'القسم الأول: صح وخطأ', type: 'true_false', from_q: 1, to_q: tfCount, choices: ['صح', 'خطأ'], mark: 1 },
-      { id: 'sec2', title: 'القسم الثاني: اختيار من متعدد', type: 'mcq', from_q: tfCount + 1, to_q: total, choices: ['1', '2', '3', '4'], mark: 2 }
+      { id: 'sec1', title: 'القسم الأول: أسئلة الصواب والخطأ', type: 'true_false', from_q: 1, to_q: tfCount, choices: ['صح', 'خطأ'], mark: 1 },
+      { id: 'sec2', title: 'القسم الثاني: أسئلة الاختيار من متعدد', type: 'mcq', from_q: tfCount + 1, to_q: total, choices: ['1', '2', '3', '4'], mark: 2 }
     ]
-  } else if (tfCount > 0 && mcqCount === 0) {
+  } else if (tfCount > 0) {
     return [
-      { id: 'sec1', title: 'أسئلة الصح والخطأ', type: 'true_false', from_q: 1, to_q: total, choices: ['صح', 'خطأ'], mark: 1 }
+      { id: 'sec1', title: 'أسئلة الصواب والخطأ', type: 'true_false', from_q: 1, to_q: total, choices: ['صح', 'خطأ'], mark: 1 }
     ]
   } else {
     return [
       { id: 'sec1', title: 'أسئلة الاختيار من متعدد', type: 'mcq', from_q: 1, to_q: total, choices: ['1', '2', '3', '4'], mark: 2 }
     ]
   }
+}
+
+const activeModelQuestionsCount = computed(() => {
+  return getQuestionsCountForVersion(activeSheetModelCode.value)
+})
+
+const activeExamSections = computed(() => {
+  return getSectionsForVersion(activeSheetModelCode.value)
 })
 
 const versionCodeOptions = computed(() => {
@@ -1759,7 +2143,7 @@ const openExamHub = async (exam, tab = 'template') => {
     totalStudentsCount.value = resp.data.registered_students_count || (resp.data.registered_students?.length || 0)
     if (resp.data.registered_students && resp.data.registered_students.length > 0) {
       selectedStudentId.value = resp.data.registered_students[0].id
-      sheetGenerationMode.value = 'student'
+      sheetGenerationMode.value = 'all_students'
     } else {
       sheetGenerationMode.value = 'blank'
     }
@@ -1837,50 +2221,78 @@ const printSingleSheet = async () => {
 }
 
 const batchPrintAllStudents = async () => {
-  const stagingEl = document.getElementById('omr-batch-print-staging')
-  if (!stagingEl) return
+  printingBatch.value = true
+  try {
+    const isAudit = selectedSheetLayout.value === 'full_a4'
+    let elements = []
 
-  stagingEl.classList.remove('d-none')
-  await nextTick()
-
-  const isAudit = selectedSheetLayout.value === 'full_a4'
-  let elements = []
-  if (isAudit) {
-    elements = Array.from(stagingEl.querySelectorAll('.yemeni-audit-report-sheet'))
-  } else {
-    elements = Array.from(stagingEl.querySelectorAll('svg.yemeni-ministry-sheet-svg'))
-    if (!elements.length) {
-      elements = Array.from(stagingEl.querySelectorAll('svg'))
-    }
-  }
-
-  if (elements.length > 0) {
-    const batchId = `BATCH_${Date.now()}`
-    await printOmrBatch(elements, {
-      title: `كشف_أوراق_تظليل_${activeExam.value?.uniqueCode || 'الاختبار'}`,
-      isA5: selectedSheetLayout.value === 'compact_a5'
-    })
-    
-    // تسجيل الطباعة في قاعدة البيانات (Print Registry)
-    if (activeExam.value && examDetails.value?.registered_students?.length > 0) {
-      try {
-        const studentIds = examDetails.value.registered_students.map(s => s.id)
-        await api.post(`/api/omr/exam-linking/${activeExam.value.id}/mark-printed/`, {
-          student_ids: studentIds,
-          batch_id: batchId
-        })
-        console.log("✅ تم تسجيل الطباعة بنجاح في قاعدة البيانات")
-        // تحديث كشف الطلاب ليعكس الحالة
-        await fetchExamHubDetails(activeExam.value) 
-      } catch (e) {
-        console.error("❌ فشل في توثيق حالة الطباعة", e)
+    // 1. First, pick elements directly from visible stream if mounted
+    if (batchStreamRef.value) {
+      if (isAudit) {
+        elements = Array.from(batchStreamRef.value.querySelectorAll('.yemeni-audit-report-sheet'))
+      } else {
+        elements = Array.from(batchStreamRef.value.querySelectorAll('svg.yemeni-ministry-sheet-svg'))
+        if (!elements.length) {
+          elements = Array.from(batchStreamRef.value.querySelectorAll('svg'))
+        }
       }
     }
-  } else {
-    printSingleSheet()
-  }
 
-  stagingEl.classList.add('d-none')
+    // 2. Fallback to hidden staging container if stream not available
+    if (!elements.length) {
+      const stagingEl = document.getElementById('omr-batch-print-staging')
+      if (stagingEl) {
+        stagingEl.classList.remove('d-none')
+        await nextTick()
+        if (isAudit) {
+          elements = Array.from(stagingEl.querySelectorAll('.yemeni-audit-report-sheet'))
+        } else {
+          elements = Array.from(stagingEl.querySelectorAll('svg.yemeni-ministry-sheet-svg'))
+          if (!elements.length) {
+            elements = Array.from(stagingEl.querySelectorAll('svg'))
+          }
+        }
+        stagingEl.classList.add('d-none')
+      }
+    }
+
+    if (elements.length > 0) {
+      const batchId = `BATCH_${Date.now()}`
+      await printOmrBatch(elements, {
+        title: `كشف_أوراق_تظليل_${activeExam.value?.uniqueCode || 'الاختبار'}_${selectedSheetLayout.value}`,
+        isA5: selectedSheetLayout.value === 'compact_a5'
+      })
+      
+      // تسجيل الطباعة في قاعدة البيانات (Print Registry)
+      const targetStudentIds = (filteredStreamStudents.value && filteredStreamStudents.value.length > 0)
+        ? filteredStreamStudents.value.map(s => s.id)
+        : (examDetails.value?.registered_students?.map(s => s.id) || [])
+
+      if (activeExam.value && targetStudentIds.length > 0) {
+        try {
+          await api.post(`/api/omr/exam-linking/${activeExam.value.id}/mark-printed/`, {
+            student_ids: targetStudentIds,
+            batch_id: batchId
+          })
+          console.log("✅ تم توثيق الطباعة بنجاح في قاعدة البيانات")
+          batchPrintNotification.value = {
+            show: true,
+            message: `تم نقل ${elements.length} ورقة بنجاح إلى أمر الطباعة وتوثيق الدفعة (${batchId}) في سجل الطباعة!`,
+            color: 'success'
+          }
+          await fetchExamHubDetails(activeExam.value) 
+        } catch (e) {
+          console.error("❌ فشل في توثيق حالة الطباعة", e)
+        }
+      }
+    } else {
+      await printSingleSheet()
+    }
+  } catch (err) {
+    console.error('Error during batch printing:', err)
+  } finally {
+    printingBatch.value = false
+  }
 }
 
 const printQuestionsAndSheets = async (mode = 'package') => {
@@ -1889,17 +2301,21 @@ const printQuestionsAndSheets = async (mode = 'package') => {
                       sheetArtboardRef.value?.querySelector('svg.yemeni-ministry-sheet-svg') ||
                       sheetArtboardRef.value?.querySelector('svg')
 
-  const targetVersion = examDetails.value?.versions?.find(v => v.versionCode === activeSheetModelCode.value) ||
-                        currentVersionObj.value ||
-                        examDetails.value?.versions?.[0]
+  const targetVersion = (hubActiveTab.value === 'questions' && examDetails.value?.versions?.[activeVersionTab.value])
+    ? examDetails.value.versions[activeVersionTab.value]
+    : (examDetails.value?.versions?.find(v => v.versionCode === activeSheetModelCode.value) ||
+       currentVersionObj.value ||
+       examDetails.value?.versions?.[0])
 
   if (!targetVersion || !targetVersion.questions || !targetVersion.questions.length) {
     console.warn('No questions found to print.')
     return
   }
 
+  const activeVCode = targetVersion.versionCode || activeSheetModelCode.value || 'A'
+
   await printExamPackage({
-    title: mode === 'package' ? `حزمة_اختبار_${activeExam.value?.subject_name || 'الاختبار'}_النموذج_${activeSheetModelCode.value}` : `كراسة_أسئلة_${activeExam.value?.subject_name || 'الاختبار'}_النموذج_${activeSheetModelCode.value}`,
+    title: mode === 'package' ? `حزمة_اختبار_${activeExam.value?.subject_name || 'الاختبار'}_النموذج_${activeVCode}` : `كراسة_أسئلة_${activeExam.value?.subject_name || 'الاختبار'}_النموذج_${activeVCode}`,
     examTitle: activeExam.value?.title || '',
     subjectName: activeExam.value?.subject_name || '',
     stageName: activeExam.value?.stage_name ? `اختبار ${activeExam.value.stage_name}` : '',
@@ -1912,7 +2328,7 @@ const printQuestionsAndSheets = async (mode = 'package') => {
     examDate: activeExam.value?.exam_date || '',
     envelopeNo: activeExam.value?.envelope_no || '1',
     timeAllowed: activeExam.value?.time_allowed || '',
-    versionCode: activeSheetModelCode.value,
+    versionCode: activeVCode,
     studentName: sheetGenerationMode.value === 'student' ? activeSheetStudent.value?.student_name : '',
     seatNumber: sheetGenerationMode.value === 'student' ? activeSheetStudent.value?.seat_number : '',
     secretNumber: sheetGenerationMode.value === 'student' ? (activeSheetStudent.value?.secret_number || '') : '',
@@ -1922,7 +2338,7 @@ const printQuestionsAndSheets = async (mode = 'package') => {
     questions: targetVersion.questions,
     omrElement: printableEl,
     mode: mode,
-    isA3: false,
+    isA3: selectedQuestionPaperLayout.value === 'a3',
     isA5: selectedSheetLayout.value === 'compact_a5'
   })
 }

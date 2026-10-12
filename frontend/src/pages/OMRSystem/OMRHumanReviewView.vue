@@ -25,6 +25,9 @@
       </div>
     </div>
 
+    <!-- ── OMR Workflow Stepper (المرحلة 5: المراجعة والتدقيق البشري) ── -->
+    <omr-workflow-bar :active-step="5" :exam-id="selectedExam" />
+
     <!-- Stats Cards (Disciplined, Calm Colors) -->
     <v-row class="mb-6">
       <v-col cols="12" sm="6" md="3">

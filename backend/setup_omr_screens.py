@@ -33,8 +33,9 @@ def setup_omr_screens():
     omr_system.is_deleted = False
     omr_system.save()
 
-    # قائمة الشاشات العشر الكاملة لنظام التصحيح
+    # قائمة الشاشات الكاملة لنظام التصحيح مرتبة وفق المراحل التنفيذية المتسلسلة
     screens_config = [
+        # لوحة القيادة المركزية
         {
             "route": "omr-dashboard",
             "name_ar": "لوحة تحكم التصحيح الضوئي",
@@ -43,20 +44,67 @@ def setup_omr_screens():
             "order": 1,
             "component": "OMRDashboardView"
         },
+        # المرحلة 1: استلام وتجهيز الاختبارات
         {
             "route": "omr-exams",
-            "name_ar": "استلام الاختبارات والكشوفات",
-            "name_en": "OMR Exams & Roster",
-            "icon": "link-box-variant-outline",
+            "name_ar": "1. استلام وتجهيز الاختبارات",
+            "name_en": "1. OMR Exams & Rosters",
+            "icon": "file-document-edit-outline",
             "order": 2,
             "component": "OMRExamsView"
         },
+        # المرحلة 2: طباعة وتصدير أوراق الإجابة
+        {
+            "route": "omr-print-registry",
+            "name_ar": "2. طباعة أوراق الإجابة",
+            "name_en": "2. Print & Sheet Generation",
+            "icon": "printer-check",
+            "order": 3,
+            "component": "OMRPrintRegistryView"
+        },
+        # المرحلة 3: محطة المسح والتصحيح الآلي
+        {
+            "route": "omr-scanner",
+            "name_ar": "3. المسح والتصحيح الآلي",
+            "name_en": "3. OMR Scanning & Grading",
+            "icon": "scanner",
+            "order": 4,
+            "component": "OMRScanningView"
+        },
+        # المرحلة 4: سجل أوراق الإجابة المصححة
+        {
+            "route": "omr-submissions",
+            "name_ar": "4. سجل أوراق الإجابة",
+            "name_en": "4. Answer Sheets Registry",
+            "icon": "file-document-check-outline",
+            "order": 5,
+            "component": "OMRSubmissionsView"
+        },
+        # المرحلة 5: المراجعة البشرية والتدقيق
+        {
+            "route": "omr-human-review",
+            "name_ar": "5. المراجعة والتدقيق",
+            "name_en": "5. Human Review & Exceptions",
+            "icon": "account-search-outline",
+            "order": 6,
+            "component": "OMRHumanReviewView"
+        },
+        # المرحلة 6: كشف الدرجات ورصد النتائج
+        {
+            "route": "omr-gradebook",
+            "name_ar": "6. كشف الدرجات والرصد",
+            "name_en": "6. Gradebook & Control Export",
+            "icon": "book-education-outline",
+            "order": 7,
+            "component": "OMRGradebookView"
+        },
+        # أدوات القوالب والهندسة
         {
             "route": "omr-template-builder",
             "name_ar": "مصمم قوالب التصحيح",
-            "name_en": "OMR Template Builder",
+            "name_en": "OMR Template Designer",
             "icon": "draw-pen",
-            "order": 3,
+            "order": 8,
             "component": "OMRTemplateBuilderView"
         },
         {
@@ -64,56 +112,24 @@ def setup_omr_screens():
             "name_ar": "مكتبة القوالب المعيارية",
             "name_en": "OMR Templates Library",
             "icon": "card-text-outline",
-            "order": 4,
+            "order": 9,
             "component": "OMRTemplatesView"
         },
         {
-            "route": "omr-print-registry",
-            "name_ar": "سجل الطباعة وتصدير الأوراق",
-            "name_en": "OMR Print Registry",
-            "icon": "printer-check",
-            "order": 5,
-            "component": "OMRPrintRegistryView"
-        },
-        {
-            "route": "omr-scanner-lab",
-            "name_ar": "مختبر المسح والتصحيح الضوئي",
-            "name_en": "OMR Scanner Lab",
-            "icon": "scanner",
-            "order": 6,
-            "component": "OMRScannerLabView"
-        },
-        {
             "route": "omr-verification",
-            "name_ar": "المطابقة والتحقق الهندسي",
+            "name_ar": "التحقق الهندسي والجودة",
             "name_en": "OMR Quality Verification",
             "icon": "shield-check-outline",
-            "order": 7,
+            "order": 10,
             "component": "OMRVerificationView"
         },
         {
-            "route": "omr-submissions",
-            "name_ar": "سجل أوراق الإجابة المصححة",
-            "name_en": "OMR Submissions",
-            "icon": "file-document-check-outline",
-            "order": 8,
-            "component": "OMRSubmissionsView"
-        },
-        {
-            "route": "omr-human-review",
-            "name_ar": "المراجعة البشرية والتدقيق",
-            "name_en": "OMR Human Review",
-            "icon": "account-search-outline",
-            "order": 9,
-            "component": "OMRHumanReviewView"
-        },
-        {
-            "route": "omr-gradebook",
-            "name_ar": "كشف الدرجات ورصد النتائج",
-            "name_en": "OMR Gradebook",
-            "icon": "book-education-outline",
-            "order": 10,
-            "component": "OMRGradebookView"
+            "route": "omr-scanner-lab",
+            "name_ar": "مختبر المسح التجريبي",
+            "name_en": "OMR Scanner Lab Sandbox",
+            "icon": "flask-outline",
+            "order": 11,
+            "component": "OMRScannerLabView"
         }
     ]
 

@@ -401,15 +401,22 @@ const columnsConfig = computed<ColumnDef[]>(() => {
       }
     }
 
-    // Position columns from right to left (col 1 is on right at 102, col N is on left at 12)
+    // Position columns from right to left across the questions area (x=102 to x=12)
     const nCols = cols.length
     if (nCols === 1) {
+      cols[0].x = 57
+    } else if (nCols === 2) {
+      cols[0].x = 82
+      cols[1].x = 32
+    } else if (nCols === 3) {
       cols[0].x = 102
-    } else if (nCols <= 4) {
-      const standardXs = [102, 72, 42, 12]
-      for (let i = 0; i < nCols; i++) {
-        cols[i].x = standardXs[i]
-      }
+      cols[1].x = 57
+      cols[2].x = 12
+    } else if (nCols === 4) {
+      cols[0].x = 102
+      cols[1].x = 72
+      cols[2].x = 42
+      cols[3].x = 12
     } else {
       const step = (102 - 12) / (nCols - 1)
       for (let i = 0; i < nCols; i++) {
@@ -424,29 +431,29 @@ const columnsConfig = computed<ColumnDef[]>(() => {
   const total = props.totalQuestions || 50
 
   if (total <= 10) {
-    // 10 questions: 1 column only (Q1 to Q10)
+    // 10 questions: 1 column only (Q1 to Q10) - centered
     return [
-      createMcqColumn('col-1', `س1 إلى س${total}`, 1, total, 102),
+      createMcqColumn('col-1', `س1 إلى س${total}`, 1, total, 57),
     ]
   }
 
   if (total <= 20) {
-    // Up to 20 questions: 2 columns
+    // Up to 20 questions: 2 columns - balanced across page
     const half = Math.ceil(total / 2)
     return [
-      createMcqColumn('col-2', `س${half + 1} إلى س${total}`, half + 1, total, 72),
-      createMcqColumn('col-1', `س1 إلى س${half}`, 1, half, 102),
+      createMcqColumn('col-2', `س${half + 1} إلى س${total}`, half + 1, total, 32),
+      createMcqColumn('col-1', `س1 إلى س${half}`, 1, half, 82),
     ]
   }
 
   if (total <= 30) {
-    // Up to 30 questions: 3 columns
+    // Up to 30 questions: 3 columns - balanced across page
     const perCol = Math.ceil(total / 3)
     const q1_end = perCol
     const q2_end = Math.min(total, perCol * 2)
     return [
-      createMcqColumn('col-3', `س${q2_end + 1} إلى س${total}`, q2_end + 1, total, 42),
-      createMcqColumn('col-2', `س${q1_end + 1} إلى س${q2_end}`, q1_end + 1, q2_end, 72),
+      createMcqColumn('col-3', `س${q2_end + 1} إلى س${total}`, q2_end + 1, total, 12),
+      createMcqColumn('col-2', `س${q1_end + 1} إلى س${q2_end}`, q1_end + 1, q2_end, 57),
       createMcqColumn('col-1', `س1 إلى س${q1_end}`, 1, q1_end, 102),
     ]
   }
@@ -588,12 +595,19 @@ const columnsConfigA4 = computed<ColumnDef[]>(() => {
 
     const nCols = cols.length
     if (nCols === 1) {
+      cols[0].x = 40.5
+    } else if (nCols === 2) {
+      cols[0].x = 65
+      cols[1].x = 15
+    } else if (nCols === 3) {
       cols[0].x = 81
-    } else if (nCols <= 4) {
-      const standardXs = [81, 54, 27, 0]
-      for (let i = 0; i < nCols; i++) {
-        cols[i].x = standardXs[i]
-      }
+      cols[1].x = 40.5
+      cols[2].x = 0
+    } else if (nCols === 4) {
+      cols[0].x = 81
+      cols[1].x = 54
+      cols[2].x = 27
+      cols[3].x = 0
     } else {
       const step = 81 / (nCols - 1)
       for (let i = 0; i < nCols; i++) {
@@ -602,6 +616,46 @@ const columnsConfigA4 = computed<ColumnDef[]>(() => {
     }
 
     return cols
+  }
+
+  const total = props.totalQuestions || 50
+
+  if (total <= 10) {
+    return [
+      createMcqColumn('col-1-a4', `س1 إلى س${total}`, 1, total, 40.5),
+    ]
+  }
+
+  if (total <= 20) {
+    const half = Math.ceil(total / 2)
+    return [
+      createMcqColumn('col-2-a4', `س${half + 1} إلى س${total}`, half + 1, total, 15),
+      createMcqColumn('col-1-a4', `س1 إلى س${half}`, 1, half, 65),
+    ]
+  }
+
+  if (total <= 30) {
+    const perCol = Math.ceil(total / 3)
+    const q1_end = perCol
+    const q2_end = Math.min(total, perCol * 2)
+    return [
+      createMcqColumn('col-3-a4', `س${q2_end + 1} إلى س${total}`, q2_end + 1, total, 0),
+      createMcqColumn('col-2-a4', `س${q1_end + 1} إلى س${q2_end}`, q1_end + 1, q2_end, 40.5),
+      createMcqColumn('col-1-a4', `س1 إلى س${q1_end}`, 1, q1_end, 81),
+    ]
+  }
+
+  if (total <= 40) {
+    const perCol = Math.ceil(total / 4)
+    const c1 = perCol
+    const c2 = Math.min(total, perCol * 2)
+    const c3 = Math.min(total, perCol * 3)
+    return [
+      createMcqColumn('col-4-a4', `س${c3 + 1} إلى س${total}`, c3 + 1, total, 0),
+      createMcqColumn('col-3-a4', `س${c2 + 1} إلى س${c3}`, c2 + 1, c3, 27),
+      createTfColumn('col-2-a4', `س${c1 + 1} إلى س${c2}`, c1 + 1, c2, 54),
+      createTfColumn('col-1-a4', `س1 إلى س${c1}`, 1, c1, 81),
+    ]
   }
 
   return [

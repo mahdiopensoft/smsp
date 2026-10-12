@@ -1,88 +1,95 @@
 <template>
-  <div class="omr-workflow-bar-wrapper mb-6">
-    <v-card elevation="0" class="omr-workflow-card border rounded-2xl overflow-hidden">
-      <!-- Ribbon Header -->
-      <div class="d-flex align-center justify-space-between px-4 py-2 bg-workflow-header border-b">
-        <div class="d-flex align-center gap-2">
-          <v-avatar size="28" color="primary" variant="tonal" class="rounded-lg">
-            <v-icon size="16">mdi-sitemap-outline</v-icon>
-          </v-avatar>
-          <span class="text-subtitle-2 font-weight-black text-on-surface">
-            مسار مراحل دورة التصحيح الآلي والكنترول (OMR Pipeline)
-          </span>
-          <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold ms-2">
-            {{ activeStepTitle }}
-          </v-chip>
+  <div class="omr-pipeline-wrapper mb-5">
+    <div class="omr-pipeline-card">
+      <!-- Top Slim Progress Bar -->
+      <div class="pipeline-progress-track">
+        <div
+          class="pipeline-progress-fill"
+          :style="{ width: `${progressPercentage}%` }"
+        ></div>
+      </div>
+
+      <!-- Header Ribbon -->
+      <div class="pipeline-header px-4 py-2 d-flex align-center justify-space-between">
+        <div class="d-flex align-center gap-3">
+          <div class="pipeline-icon-box">
+            <v-icon size="17" color="primary">mdi-sitemap-outline</v-icon>
+          </div>
+          <div class="d-flex align-center gap-2">
+            <span class="pipeline-title font-weight-black">مسار دورة التصحيح الآلي</span>
+            <span class="pipeline-divider">/</span>
+            <span class="pipeline-active-label font-weight-bold">
+              المرحلة {{ currentActiveStep }} من {{ steps.length }}: {{ currentStepObj?.title }}
+            </span>
+          </div>
         </div>
 
         <div class="d-flex align-center gap-2">
-          <span class="text-caption text-medium-emphasis d-none d-md-inline">
-            انقر على أي مرحلة للانتقال المباشر إليها
-          </span>
+          <v-chip
+            size="x-small"
+            variant="tonal"
+            :color="currentActiveStep === 6 ? 'success' : 'primary'"
+            class="font-weight-black px-2"
+          >
+            {{ progressPercentage }}% منجز
+          </v-chip>
+
           <v-btn
             size="x-small"
             variant="text"
             icon
+            density="comfortable"
             color="medium-emphasis"
             @click="isCollapsed = !isCollapsed"
-            :title="isCollapsed ? 'توسيع شريط المراحل' : 'طي شريط المراحل'"
+            :title="isCollapsed ? 'إظهار مسار المراحل' : 'طي مسار المراحل'"
           >
-            <v-icon size="18">{{ isCollapsed ? 'mdi-chevron-down' : 'mdi-chevron-up' }}</v-icon>
+            <v-icon size="16">{{ isCollapsed ? 'mdi-chevron-down' : 'mdi-chevron-up' }}</v-icon>
           </v-btn>
         </div>
       </div>
 
-      <!-- Collapsible Stepper Content -->
+      <!-- Pipeline Steps (Collapsible) -->
       <v-expand-transition>
-        <div v-show="!isCollapsed" class="pa-3 pa-md-4 bg-workflow-body">
-          <div class="omr-stepper-container">
-            <template v-for="(step, index) in steps" :key="step.id">
-              <!-- Step Card Item -->
-              <div
-                class="omr-step-item"
-                :class="{
-                  'active-step': currentActiveStep === step.id,
-                  'completed-step': currentActiveStep > step.id,
-                  'future-step': currentActiveStep < step.id,
-                }"
-                @click="navigateToStep(step)"
-                role="button"
-                :title="step.description"
-              >
-                <!-- Step Circle / Icon -->
-                <div class="step-badge-wrapper">
-                  <div class="step-badge">
-                    <v-icon v-if="currentActiveStep > step.id" size="16" color="white">mdi-check</v-icon>
-                    <span v-else class="step-number">{{ step.id }}</span>
-                  </div>
-                  <v-icon :size="18" class="step-icon">{{ step.icon }}</v-icon>
-                </div>
-
-                <!-- Step Texts -->
-                <div class="step-text-container">
-                  <div class="step-title font-weight-black">
-                    {{ step.title }}
-                  </div>
-                  <div class="step-subtitle text-caption text-truncate">
-                    {{ step.subtitle }}
-                  </div>
-                </div>
-
-                <!-- Active Indicator Pin -->
-                <div v-if="currentActiveStep === step.id" class="step-active-tag">
-                  أنت هنا
-                </div>
+        <div v-show="!isCollapsed" class="pipeline-steps-wrapper pa-2 pa-md-3">
+          <div class="pipeline-grid">
+            <div
+              v-for="(step, index) in steps"
+              :key="step.id"
+              class="pipeline-step-item"
+              :class="{
+                'is-active': currentActiveStep === step.id,
+                'is-completed': currentActiveStep > step.id,
+                'is-upcoming': currentActiveStep < step.id,
+              }"
+              @click="navigateToStep(step)"
+              role="button"
+              :tabindex="0"
+              @keydown.enter="navigateToStep(step)"
+            >
+              <!-- Number & Status Indicator -->
+              <div class="step-num-badge">
+                <v-icon v-if="currentActiveStep > step.id" size="14" color="white">mdi-check</v-icon>
+                <span v-else class="num-text">0{{ step.id }}</span>
               </div>
 
-              <!-- Connecting Arrow (between items) -->
-              <div v-if="index < steps.length - 1" class="step-connector">
-                <v-icon size="18" color="medium-emphasis">mdi-chevron-left</v-icon>
+              <!-- Icon & Titles -->
+              <div class="step-content">
+                <div class="d-flex align-center gap-1">
+                  <v-icon size="16" class="step-icon">{{ step.icon }}</v-icon>
+                  <span class="step-main-title">{{ step.title }}</span>
+                </div>
+                <span class="step-sub-title text-truncate">{{ step.subtitle }}</span>
               </div>
-            </template>
+
+              <!-- Current Step Inline Chip -->
+              <div v-if="currentActiveStep === step.id" class="step-current-pill">
+                الحالية
+              </div>
+            </div>
           </div>
         </div>
       </v-expand-transition>
-    </v-card>
+    </div>
   </div>
 </template>
 
@@ -108,50 +115,44 @@ export default {
         {
           id: 1,
           title: 'استلام الاختبار',
-          subtitle: 'تجهيز الاختبار والنماذج',
+          subtitle: 'نماذج ومفاتيح الإجابة',
           route: '/omr-exams',
           icon: 'mdi-file-document-edit-outline',
-          description: 'المرحلة 1: استلام وتجهيز بيانات ونماذج الاختبار من بنك الأسئلة',
         },
         {
           id: 2,
-          title: 'سجل الطباعة',
-          subtitle: 'تصدير أوراق الإجابة',
+          title: 'طباعة النماذج',
+          subtitle: 'توليد أوراق البابل شيت',
           route: '/omr-print-registry',
           icon: 'mdi-printer-outline',
-          description: 'المرحلة 2: توليد وتصدير أوراق البابل شيت المشفرة وتوزيعها للطلاب',
         },
         {
           id: 3,
-          title: 'معمل المسح الآلي',
-          subtitle: 'سحب الأوراق والتصحيح',
-          route: '/omr-scanner-lab',
+          title: 'المسح والتصحيح',
+          subtitle: 'سحب الأوراق والمعالجة',
+          route: '/omr-scanner',
           icon: 'mdi-scanner',
-          description: 'المرحلة 3: سحب ومسح الأوراق الضوئية ومعالجتها آلياً بمحرك OMR',
         },
         {
           id: 4,
-          title: 'سجل الأوراق المصححة',
-          subtitle: 'أوراق الطلاب والنتائج',
+          title: 'سجل الأوراق',
+          subtitle: 'نتائج التصحيح والتدقيق',
           route: '/omr-submissions',
-          icon: 'mdi-file-check-outline',
-          description: 'المرحلة 4: استعراض كافة أوراق الطلاب المصححة وتفاصيل الإجابات والدرجات',
+          icon: 'mdi-file-document-check-outline',
         },
         {
           id: 5,
-          title: 'التدقيق البشري',
-          subtitle: 'معالجة الحالات المعلقة',
+          title: 'المراجعة البشرية',
+          subtitle: 'معالجة الاستثناءات والشك',
           route: '/omr-human-review',
           icon: 'mdi-account-check-outline',
-          description: 'المرحلة 5: مراجعة وتدقيق أوراق الاستثناءات والتظليل المزدوج والالتباس',
         },
         {
           id: 6,
-          title: 'كشف الدرجات والكنترول',
-          subtitle: 'اعتماد وترحيل الدرجات',
+          title: 'كشف الدرجات',
+          subtitle: 'الرصد وترحيل الكنترول',
           route: '/omr-gradebook',
           icon: 'mdi-clipboard-check-multiple-outline',
-          description: 'المرحلة 6: مراجعة كشوف الرصد النهائية وترحيل الدرجات لنظام الكنترول',
         },
       ],
     }
@@ -160,7 +161,6 @@ export default {
   computed: {
     currentActiveStep() {
       if (this.activeStep) return this.activeStep
-      // Auto-detect based on current route
       const path = this.$route.path
       if (path.includes('exams')) return 1
       if (path.includes('print')) return 2
@@ -171,9 +171,12 @@ export default {
       return 6
     },
 
-    activeStepTitle() {
-      const step = this.steps.find((s) => s.id === this.currentActiveStep)
-      return step ? `المرحلة ${step.id}: ${step.title}` : 'مسار التصحيح'
+    currentStepObj() {
+      return this.steps.find((s) => s.id === this.currentActiveStep) || this.steps[0]
+    },
+
+    progressPercentage() {
+      return Math.round((this.currentActiveStep / this.steps.length) * 100)
     },
   },
 
@@ -181,8 +184,9 @@ export default {
     navigateToStep(step) {
       if (this.currentActiveStep === step.id) return
       const query = {}
-      if (this.examId) {
-        query.exam = this.examId
+      const targetExam = this.examId || this.$route.query.exam
+      if (targetExam) {
+        query.exam = targetExam
       }
       this.$router.push({ path: step.route, query })
     },
@@ -191,182 +195,246 @@ export default {
 </script>
 
 <style scoped>
-.omr-workflow-bar-wrapper {
+.omr-pipeline-wrapper {
   direction: rtl;
 }
 
-.omr-workflow-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  border-color: rgba(226, 232, 240, 0.9) !important;
-  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05) !important;
-}
-
-.bg-workflow-header {
-  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
-}
-
-.bg-workflow-body {
+.omr-pipeline-card {
   background: #ffffff;
-}
-
-.omr-stepper-container {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 4px 2px;
-}
-
-/* Step Item */
-.omr-step-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
-  border-radius: 14px;
   border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  cursor: pointer;
-  transition: all 0.22s ease-in-out;
-  flex: 1 1 0;
-  min-width: 155px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
   position: relative;
-  user-select: none;
 }
 
-.omr-step-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
-  border-color: #cbd5e1;
+/* Progress Bar Track */
+.pipeline-progress-track {
+  width: 100%;
+  height: 3px;
+  background: #f1f5f9;
+  position: relative;
+  overflow: hidden;
 }
 
-/* Badge & Icon */
-.step-badge-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.pipeline-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #3b82f6 50%, #4f46e5 100%);
+  transition: width 0.4s ease-in-out;
 }
 
-.step-badge {
+/* Header */
+.pipeline-header {
+  background: #f8fafc;
+  border-bottom: 1px solid #eef2f6;
+}
+
+.pipeline-icon-box {
   width: 26px;
   height: 26px;
-  border-radius: 50%;
-  background: #94a3b8;
-  color: #ffffff;
+  border-radius: 6px;
+  background: rgba(79, 70, 229, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 800;
-  font-size: 0.78rem;
-  transition: all 0.2s ease;
 }
 
-.step-icon {
-  color: #64748b;
-  transition: color 0.2s ease;
-}
-
-.step-text-container {
-  min-width: 0;
-}
-
-.step-title {
+.pipeline-title {
   font-size: 0.82rem;
-  color: #1e293b;
-  line-height: 1.25;
-  white-space: nowrap;
+  color: #334155;
 }
 
-.step-subtitle {
-  font-size: 0.69rem;
-  color: #64748b;
-  line-height: 1.2;
+.pipeline-divider {
+  color: #cbd5e1;
+  font-size: 0.8rem;
 }
 
-/* Connector */
-.step-connector {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.55;
-  flex-shrink: 0;
-}
-
-/* State: Completed Step */
-.completed-step {
-  background: #f0fdf4;
-  border-color: #bbf7d0;
-}
-
-.completed-step .step-badge {
-  background: #10b981;
-}
-
-.completed-step .step-icon {
-  color: #059669;
-}
-
-.completed-step .step-title {
-  color: #065f46;
-}
-
-/* State: Active Step */
-.active-step {
-  background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
-  border-color: #6366f1 !important;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.2) !important;
-  transform: scale(1.02);
-}
-
-.active-step .step-badge {
-  background: #4f46e5;
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
-}
-
-.active-step .step-icon {
+.pipeline-active-label {
+  font-size: 0.82rem;
   color: #4f46e5;
 }
 
-.active-step .step-title {
-  color: #312e81;
+/* Grid Layout for Steps */
+.pipeline-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
 }
 
-.active-step .step-subtitle {
-  color: #4338ca;
-  font-weight: 600;
+/* Step Item */
+.pipeline-step-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  user-select: none;
+  min-width: 0;
 }
 
-.step-active-tag {
-  position: absolute;
-  top: -9px;
-  left: 10px;
-  background: #4f46e5;
+.pipeline-step-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+/* Step Number */
+.step-num-badge {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  transition: all 0.2s ease;
+}
+
+.num-text {
+  letter-spacing: -0.5px;
+}
+
+/* Content */
+.step-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.step-main-title {
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.step-sub-title {
+  font-size: 0.67rem;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+.step-icon {
+  flex-shrink: 0;
+}
+
+/* State: Completed */
+.is-completed {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.is-completed .step-num-badge {
+  background: #10b981;
   color: #ffffff;
-  font-size: 0.62rem;
-  font-weight: 900;
-  padding: 1px 8px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.35);
-  letter-spacing: 0.2px;
 }
 
-/* State: Future Step */
-.future-step {
-  opacity: 0.85;
+.is-completed .step-icon {
+  color: #10b981;
 }
 
-.future-step:hover {
+.is-completed .step-main-title {
+  color: #334155;
+}
+
+.is-completed .step-sub-title {
+  color: #64748b;
+}
+
+.is-completed:hover {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+/* State: Active */
+.is-active {
+  background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+  border-color: transparent !important;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.28) !important;
+}
+
+.is-active .step-num-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  backdrop-filter: blur(4px);
+}
+
+.is-active .step-icon {
+  color: #ffffff;
+}
+
+.is-active .step-main-title {
+  color: #ffffff;
+}
+
+.is-active .step-sub-title {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.step-current-pill {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  font-size: 0.58rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 4px;
+  line-height: 1.2;
+}
+
+/* State: Upcoming */
+.is-upcoming {
+  background: #fafbfc;
+  border-color: #edf2f7;
+  opacity: 0.82;
+}
+
+.is-upcoming .step-num-badge {
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.is-upcoming .step-icon {
+  color: #94a3b8;
+}
+
+.is-upcoming .step-main-title {
+  color: #475569;
+}
+
+.is-upcoming .step-sub-title {
+  color: #94a3b8;
+}
+
+.is-upcoming:hover {
   opacity: 1;
+  border-color: #cbd5e1;
+  background: #ffffff;
 }
 
-@media (max-width: 960px) {
-  .omr-step-item {
-    min-width: 140px;
-    padding: 6px 10px;
+/* Responsive */
+@media (max-width: 1200px) {
+  .pipeline-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
-  .step-subtitle {
+}
+
+@media (max-width: 768px) {
+  .pipeline-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .step-sub-title {
     display: none;
   }
 }

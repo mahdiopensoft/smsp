@@ -161,12 +161,24 @@ var routes_paths = {
       redirect: (to) => ({ path: "/omr-print-registry", query: to.query }),
     },
 
-    // 4. معمل المسح الضوئي
+    // 4. محطة المسح والتصحيح الآلي
+    {
+      path: "omr-scanner",
+      name: "omr-scanner",
+      component: () => import("../pages/OMRSystem/OMRScanningView.vue"),
+      meta: { requiresAuth: true, title: "المسح والتصحيح الآلي (OMR)" },
+    },
+    {
+      path: "omr/scanner",
+      redirect: (to) => ({ path: "/omr-scanner", query: to.query }),
+    },
+
+    // 4.1. مختبر المسح الضوئي التجريبي (Sandbox)
     {
       path: "omr-scanner-lab",
       name: "omr-scanner-lab",
       component: () => import("../pages/OMRSystem/OMRScannerLabView.vue"),
-      meta: { requiresAuth: true, title: "مختبر المسح الضوئي (OMR)" },
+      meta: { requiresAuth: true, title: "مختبر المسح الضوئي التجريبي (OMR)" },
     },
     {
       path: "omr/scanner-lab",

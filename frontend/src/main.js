@@ -8,6 +8,7 @@ import App from "./App.vue";
 
 
 import FilterFields from "./components/FilterFields.vue";
+import OMRWorkflowBar from "./components/OMRWorkflowBar.vue";
 
 //utils
 import shared from "external-components";
@@ -69,6 +70,7 @@ async function bootstarApp() {
 
     //================component
     app.component("filter-fields", FilterFields);
+    app.component("omr-workflow-bar", OMRWorkflowBar);
 
      // =========================
     // Global directives

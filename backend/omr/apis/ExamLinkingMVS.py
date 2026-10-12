@@ -200,7 +200,7 @@ class ExamLinkingMVS(ViewSet):
         st_qs = StudentExamRegistration.objects.filter(examVersion__exam=exam, is_deleted=False).select_related('student_profile__organization', 'student_profile__directorate', 'student', 'examVersion').order_by('seatNumber')
         total_st_count = st_qs.count()
         students_list = []
-        for reg in st_qs[:10]:
+        for reg in st_qs:
             if reg.student_profile and reg.student_profile.name_ar:
                 s_name = reg.student_profile.name_ar
             elif reg.student:

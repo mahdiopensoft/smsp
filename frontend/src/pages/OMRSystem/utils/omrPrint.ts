@@ -61,15 +61,17 @@ export async function printOmrElement(
   }
   const pageSize = isA5 ? 'A5 landscape' : 'A4 portrait'
 
-  // 4. Create isolated iframe
+  // 4. Create isolated print iframe with valid dimensions to prevent Chromium from blocking print
   const iframe = document.createElement('iframe')
   iframe.style.position = 'fixed'
-  iframe.style.right = '0'
-  iframe.style.bottom = '0'
-  iframe.style.width = '0'
-  iframe.style.height = '0'
+  iframe.style.left = '-10000px'
+  iframe.style.top = '-10000px'
+  iframe.style.width = '1024px'
+  iframe.style.height = '768px'
   iframe.style.border = '0'
-  iframe.style.visibility = 'hidden'
+  iframe.style.opacity = '0.01'
+  iframe.style.pointerEvents = 'none'
+  iframe.style.zIndex = '-9999'
   document.body.appendChild(iframe)
 
   const doc = iframe.contentWindow?.document
@@ -314,15 +316,37 @@ export async function printOmrElement(
   `)
   doc.close()
 
-  setTimeout(() => {
-    iframe.contentWindow?.focus()
-    iframe.contentWindow?.print()
-    setTimeout(() => {
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe)
+  return new Promise<void>((resolve) => {
+    let triggered = false
+    const cleanup = () => {
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe)
+        }
+      }, 1000)
+      resolve()
+    }
+
+    const triggerPrint = () => {
+      if (triggered) return
+      triggered = true
+      try {
+        iframe.contentWindow?.addEventListener('afterprint', cleanup)
+        iframe.contentWindow?.focus()
+        iframe.contentWindow?.print()
+      } catch (e) {
+        console.warn('iframe.print failed, attempting window.print fallback', e)
+        window.print()
+        cleanup()
       }
-    }, 3000)
-  }, 400)
+      setTimeout(cleanup, 60000)
+    }
+
+    iframe.onload = () => {
+      setTimeout(triggerPrint, 250)
+    }
+    setTimeout(triggerPrint, 600)
+  })
 }
 
 /**
@@ -336,16 +360,16 @@ export async function printOmrBatch(
   if (!elements || elements.length === 0) return
 
   const isA5 = options.isA5 !== undefined ? options.isA5 : true
-  const pageSize = isA5 ? 'A5 landscape' : 'A4 portrait'
-
   const iframe = document.createElement('iframe')
   iframe.style.position = 'fixed'
-  iframe.style.right = '0'
-  iframe.style.bottom = '0'
-  iframe.style.width = '0'
-  iframe.style.height = '0'
+  iframe.style.left = '-10000px'
+  iframe.style.top = '-10000px'
+  iframe.style.width = '1024px'
+  iframe.style.height = '768px'
   iframe.style.border = '0'
-  iframe.style.visibility = 'hidden'
+  iframe.style.opacity = '0.01'
+  iframe.style.pointerEvents = 'none'
+  iframe.style.zIndex = '-9999'
   document.body.appendChild(iframe)
 
   const doc = iframe.contentWindow?.document
@@ -369,8 +393,10 @@ export async function printOmrBatch(
         font-family: 'Cairo', Arial, Tahoma, sans-serif;
       }
       .sheet-print-page {
-        width: 100vw;
-        height: 100vh;
+        width: 210mm;
+        height: 148.5mm;
+        max-width: 210mm;
+        max-height: 148.5mm;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -384,10 +410,10 @@ export async function printOmrBatch(
         break-after: auto;
       }
       .sheet-print-page svg {
-        width: 100%;
-        height: 100%;
-        max-width: 100vw;
-        max-height: 100vh;
+        width: 210mm;
+        height: 148.5mm;
+        max-width: 210mm;
+        max-height: 148.5mm;
         display: block;
         margin: auto;
       }
@@ -559,15 +585,37 @@ export async function printOmrBatch(
   `)
   doc.close()
 
-  setTimeout(() => {
-    iframe.contentWindow?.focus()
-    iframe.contentWindow?.print()
-    setTimeout(() => {
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe)
+  return new Promise<void>((resolve) => {
+    let triggered = false
+    const cleanup = () => {
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe)
+        }
+      }, 1000)
+      resolve()
+    }
+
+    const triggerPrint = () => {
+      if (triggered) return
+      triggered = true
+      try {
+        iframe.contentWindow?.addEventListener('afterprint', cleanup)
+        iframe.contentWindow?.focus()
+        iframe.contentWindow?.print()
+      } catch (e) {
+        console.warn('iframe.print failed, attempting window.print fallback', e)
+        window.print()
+        cleanup()
       }
-    }, 4000)
-  }, 500)
+      setTimeout(cleanup, 60000)
+    }
+
+    iframe.onload = () => {
+      setTimeout(triggerPrint, 250)
+    }
+    setTimeout(triggerPrint, 600)
+  })
 }
 
 /**
@@ -614,12 +662,14 @@ export async function printOfficialQuestionPaper(
 
   const iframe = document.createElement('iframe')
   iframe.style.position = 'fixed'
-  iframe.style.right = '0'
-  iframe.style.bottom = '0'
-  iframe.style.width = '0'
-  iframe.style.height = '0'
+  iframe.style.left = '-10000px'
+  iframe.style.top = '-10000px'
+  iframe.style.width = '1024px'
+  iframe.style.height = '768px'
   iframe.style.border = '0'
-  iframe.style.visibility = 'hidden'
+  iframe.style.opacity = '0.01'
+  iframe.style.pointerEvents = 'none'
+  iframe.style.zIndex = '-9999'
   document.body.appendChild(iframe)
 
   const doc = iframe.contentWindow?.document
@@ -971,15 +1021,37 @@ export async function printOfficialQuestionPaper(
   `)
   doc.close()
 
-  setTimeout(() => {
-    iframe.contentWindow?.focus()
-    iframe.contentWindow?.print()
-    setTimeout(() => {
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe)
+  return new Promise<void>((resolve) => {
+    let triggered = false
+    const cleanup = () => {
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe)
+        }
+      }, 1000)
+      resolve()
+    }
+
+    const triggerPrint = () => {
+      if (triggered) return
+      triggered = true
+      try {
+        iframe.contentWindow?.addEventListener('afterprint', cleanup)
+        iframe.contentWindow?.focus()
+        iframe.contentWindow?.print()
+      } catch (e) {
+        console.warn('printOfficialQuestionPaper iframe.print failed, attempting window.print fallback', e)
+        window.print()
+        cleanup()
       }
-    }, 4000)
-  }, 500)
+      setTimeout(cleanup, 60000)
+    }
+
+    iframe.onload = () => {
+      setTimeout(triggerPrint, 250)
+    }
+    setTimeout(triggerPrint, 600)
+  })
 }
 
 export interface ExamPackageOptions {
@@ -1041,12 +1113,14 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
   const isA3 = options.isA3 === true && totalQuestions > 18
   const iframe = document.createElement('iframe')
   iframe.style.position = 'fixed'
-  iframe.style.right = '0'
-  iframe.style.bottom = '0'
-  iframe.style.width = '0'
-  iframe.style.height = '0'
+  iframe.style.left = '-10000px'
+  iframe.style.top = '-10000px'
+  iframe.style.width = '1024px'
+  iframe.style.height = '768px'
   iframe.style.border = '0'
-  iframe.style.visibility = 'hidden'
+  iframe.style.opacity = '0.01'
+  iframe.style.pointerEvents = 'none'
+  iframe.style.zIndex = '-9999'
   document.body.appendChild(iframe)
 
   const doc = iframe.contentWindow?.document
@@ -2005,13 +2079,35 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
   `)
   doc.close()
 
-  setTimeout(() => {
-    iframe.contentWindow?.focus()
-    iframe.contentWindow?.print()
-    setTimeout(() => {
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe)
+  return new Promise<void>((resolve) => {
+    let triggered = false
+    const cleanup = () => {
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe)
+        }
+      }, 1000)
+      resolve()
+    }
+
+    const triggerPrint = () => {
+      if (triggered) return
+      triggered = true
+      try {
+        iframe.contentWindow?.addEventListener('afterprint', cleanup)
+        iframe.contentWindow?.focus()
+        iframe.contentWindow?.print()
+      } catch (e) {
+        console.warn('printExamPackage iframe.print failed, attempting window.print fallback', e)
+        window.print()
+        cleanup()
       }
-    }, 4000)
-  }, 500)
+      setTimeout(cleanup, 60000)
+    }
+
+    iframe.onload = () => {
+      setTimeout(triggerPrint, 250)
+    }
+    setTimeout(triggerPrint, 600)
+  })
 }
