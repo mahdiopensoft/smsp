@@ -81,7 +81,6 @@ class QuestionSerializer(serializers.ModelSerializer):
     lesson_name = serializers.SerializerMethodField(read_only=True)
     author_name = serializers.SerializerMethodField(read_only=True)
     reviewer_name = serializers.SerializerMethodField(read_only=True)
-    learning_outcome_name = serializers.SerializerMethodField(read_only=True)
 
     # School Hierarchy
     stage_name = serializers.SerializerMethodField(read_only=True)
@@ -220,12 +219,6 @@ class QuestionSerializer(serializers.ModelSerializer):
             name = f"{obj.reviewer.first_name or ''} {obj.reviewer.last_name or ''}".strip()
             return name or obj.reviewer.username
         return None
-
-    def get_learning_outcome_name(self, obj):
-        try:
-            return obj.learningOutcome.name_ar
-        except Exception:
-            return None
 
     def get_stage_name(self, obj):
         try:

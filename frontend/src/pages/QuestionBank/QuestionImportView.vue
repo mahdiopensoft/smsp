@@ -76,7 +76,7 @@
                 <auto-list
                   v-model="form.stageId"
                   name="Stage"
-                  placeholder="المرحلة الدراسية"
+                  label="المرحلة الدراسية"
                   cols="12"
                   :add="false"
                   @update:model-value="onStageChange"
@@ -87,7 +87,7 @@
                   v-model="form.classTrackId"
                   name="ClassTrackByStage"
                   :param="form.stageId"
-                  placeholder="الصف والمسار"
+                  label="الصف والمسار"
                   cols="12"
                   :add="false"
                   :disabled="!form.stageId"
@@ -97,7 +97,7 @@
                 <auto-list
                   v-model="form.subjectId"
                   name="Subject"
-                  placeholder="اختر المادة الدراسية"
+                  label="اختر المادة الدراسية"
                   cols="12"
                   :add="false"
                   @update:model-value="onSubjectChange"
@@ -107,7 +107,7 @@
                 <auto-list
                   v-model="form.semesterId"
                   name="Semester"
-                  placeholder="الفصل الدراسي"
+                  label="الفصل الدراسي"
                   cols="12"
                   :add="false"
                 />
@@ -119,7 +119,7 @@
                 <auto-list
                   v-model="form.collegeId"
                   name="College"
-                  placeholder="الكلية الجامعية"
+                  label="الكلية الجامعية"
                   cols="12"
                   :add="false"
                   @update:model-value="onCollegeChange"
@@ -130,7 +130,7 @@
                   v-model="form.departmentId"
                   name="DepartmentByCollege"
                   :param="form.collegeId"
-                  placeholder="القسم الأكاديمي"
+                  label="القسم الأكاديمي"
                   cols="12"
                   :add="false"
                   :disabled="!form.collegeId"
@@ -142,7 +142,7 @@
                   v-model="form.specializationId"
                   name="Specialization"
                   :param="form.departmentId"
-                  placeholder="التخصص والبرنامج"
+                  label="التخصص والبرنامج"
                   cols="12"
                   :add="false"
                   :disabled="!form.departmentId"
@@ -154,7 +154,7 @@
                   v-model="form.semesterSubjectId"
                   name="SemesterSubject"
                   :param="form.specializationId"
-                  placeholder="مقرر الفصل الجامعي"
+                  label="مقرر الفصل الجامعي"
                   cols="12"
                   :add="false"
                   @update:model-value="onSemesterSubjectChange"
@@ -167,7 +167,7 @@
                 <auto-list
                   v-model="form.instituteFieldId"
                   name="InstituteField"
-                  placeholder="المجال المهني"
+                  label="المجال المهني"
                   cols="12"
                   :add="false"
                   @update:model-value="onInstituteFieldChange"
@@ -177,7 +177,7 @@
                 <auto-list
                   v-model="form.instituteEducationSystemId"
                   name="InstituteEducationSystem"
-                  placeholder="نظام التعليم"
+                  label="نظام التعليم"
                   cols="12"
                   :add="false"
                   @update:model-value="onInstituteEducationSystemChange"
@@ -188,7 +188,7 @@
                   v-model="form.instituteSpecializationId"
                   name="InstituteSpecialization"
                   :param="instituteSpecParam"
-                  placeholder="التخصص المهني"
+                  label="التخصص المهني"
                   cols="12"
                   :add="false"
                   :disabled="!form.instituteFieldId && !form.instituteEducationSystemId"
@@ -200,7 +200,7 @@
                   v-model="form.instituteCurriculumId"
                   name="InstituteCurriculum"
                   :param="form.instituteSpecializationId"
-                  placeholder="الخطة الدراسية"
+                  label="الخطة الدراسية"
                   cols="12"
                   :add="false"
                   :disabled="!form.instituteSpecializationId"
@@ -212,7 +212,7 @@
                   v-model="form.instituteSubjectId"
                   name="InstituteSubject"
                   :param="form.instituteCurriculumId"
-                  placeholder="المادة التدريبية"
+                  label="المادة التدريبية"
                   cols="12"
                   :add="false"
                   :disabled="!form.instituteCurriculumId"
@@ -220,13 +220,13 @@
                 />
               </template>
 
-              <!-- Common: Unit, Lesson, Learning Outcome -->
+              <!-- Common: Unit, Lesson -->
               <!-- Unit -->
               <auto-list
                 v-model="form.unitId"
                 name="UnitBySubject"
-                :param="form.institution_type === 'university' ? { semester_subject: form.semesterSubjectId } : (form.institution_type === 'institute' ? { institute_subject: form.instituteSubjectId } : { subject: form.subjectId })"
-                :placeholder="form.institution_type === 'university' ? 'مفردة / موضوع المقرر' : (form.institution_type === 'institute' ? 'الوحدة التدريبية' : 'الوحدة الدراسية')"
+                :param="formUnitParam"
+                :label="form.institution_type === 'university' ? 'مفردة / موضوع المقرر' : (form.institution_type === 'institute' ? 'الوحدة التدريبية' : 'الوحدة الدراسية')"
                 cols="12"
                 :add="false"
                 :disabled="form.institution_type === 'university' ? !form.semesterSubjectId : (form.institution_type === 'institute' ? !form.instituteSubjectId : !form.subjectId)"
@@ -238,22 +238,12 @@
                 v-model="form.lessonId"
                 name="LessonByUnit"
                 :param="form.unitId"
-                :placeholder="form.institution_type === 'university' ? 'المحاضرة / الدرس الأكاديمي' : (form.institution_type === 'institute' ? 'الدرس / التمرين العملي' : 'الدرس المدرسي')"
+                :label="form.institution_type === 'university' ? 'المحاضرة / الدرس الأكاديمي' : (form.institution_type === 'institute' ? 'الدرس / التمرين العملي' : 'الدرس المدرسي')"
                 cols="12"
                 :add="false"
                 :disabled="!form.unitId"
               />
 
-              <!-- Learning Outcome -->
-              <auto-list
-                v-model="form.learningOutcomeId"
-                name="LearningOutcome"
-                :param="form.unitId"
-                :placeholder="form.institution_type === 'university' ? 'مخرج تعلم المقرر (CLO)' : (form.institution_type === 'institute' ? 'مخرج التدريب المستهدف (اختياري)' : 'مخرج التعلم المستهدف (اختياري)')"
-                cols="12"
-                :add="false"
-                :disabled="!form.unitId"
-              />
             </v-form>
           </div>
 
@@ -411,6 +401,16 @@ export default {
       if (this.form.instituteFieldId) p.field = this.form.instituteFieldId;
       if (this.form.instituteEducationSystemId) p.education_system = this.form.instituteEducationSystemId;
       return Object.keys(p).length ? p : null;
+    },
+
+    formUnitParam() {
+      if (this.form.institution_type === "university") {
+        return this.form.semesterSubjectId ? { semester_subject: this.form.semesterSubjectId } : null;
+      }
+      if (this.form.institution_type === "institute") {
+        return this.form.instituteSubjectId ? { institute_subject: this.form.instituteSubjectId } : null;
+      }
+      return this.form.subjectId ? { subject: this.form.subjectId } : null;
     },
 
     isValidToSubmit() {
@@ -584,9 +584,6 @@ export default {
       formData.append("file", this.selectedFile);
       formData.append("institution_type", this.form.institution_type || "school");
       formData.append("fk_lesson", this.form.lessonId);
-      if (this.form.learningOutcomeId) {
-        formData.append("fk_learning_outcome", this.form.learningOutcomeId);
-      }
 
       this.isSubmitting = true;
       try {

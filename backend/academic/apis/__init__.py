@@ -148,10 +148,7 @@ __all__ = [
     'InstituteLevelMVS',
     'InstituteSemesterMVS',
     'InstituteCurriculumMVS',
-    'InstituteBatchMVS',
     'InstituteSubjectMVS',
     'InstituteCurriculumSubjectMVS',
-    'InstituteShortCourseMVS',
-    'InstituteAdmissionRequirementMVS',
-    'InstituteSpecialTrackMVS',
 ]
+

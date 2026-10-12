@@ -273,6 +273,9 @@ var routes_paths = {
     { path: "omr-scanner", redirect: (to) => ({ path: "/omr-scanner-lab", query: to.query }) },
     { path: "omr-extraction", redirect: (to) => ({ path: "/omr-full-extraction", query: to.query }) },
     { path: "omr-bubble-sheets", redirect: (to) => ({ path: "/omr-templates", query: to.query }) },
+    // ── Decommissioned Screens (مخرجات التعلم المحذوفة) ───────────
+    { path: "learning-outcomes", redirect: "/" },
+    { path: "reports-alignment-matrix", redirect: "/" },
     {
       path: "instructions",
       name: "instructions",

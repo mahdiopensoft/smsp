@@ -48,12 +48,6 @@ class QuestionFastEntryMVS(AllMVS):
             with transaction.atomic():
                 for q_data in questions_data:
                     # Create question
-                    learning_outcome_id = (
-                        q_data.get('learningOutcome') or 
-                        q_data.get('learning_outcome_id') or 
-                        request.data.get('learningOutcome') or 
-                        request.data.get('learning_outcome_id')
-                    )
                     institution_type = q_data.get('institution_type') or request.data.get('institution_type', 'school')
 
                     # Process helper image if present
@@ -84,7 +78,6 @@ class QuestionFastEntryMVS(AllMVS):
                         status=q_data.get('status', 'قيد المراجعة'),
                         institution_type=institution_type,
                         lesson_id=lesson_id,
-                        learningOutcome_id=learning_outcome_id,
                         createdBy=created_by
                     )
                     

@@ -26,11 +26,6 @@ class QuestionImportMVS(AllMVS):
 
     def _process_excel_import(self, request):
         lesson_id = request.data.get('fk_lesson') or request.data.get('lesson')
-        learning_outcome_id = (
-            request.data.get('fk_learning_outcome') or 
-            request.data.get('learning_outcome') or 
-            request.data.get('learningOutcome')
-        )
         file = request.FILES.get('file')
         
         if not file or not lesson_id:
@@ -64,7 +59,6 @@ class QuestionImportMVS(AllMVS):
                         status='قيد المراجعة',
                         institution_type=institution_type,
                         lesson_id=lesson_id,
-                        learningOutcome_id=learning_outcome_id,
                         createdBy=created_by
                     )
                     

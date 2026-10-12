@@ -30,6 +30,10 @@ const messages = {
 const i18n = createI18n({
   locale: 'ar', // Default locale
   fallbackLocale: 'en', // Fallback locale
+  missingWarn: false,
+  fallbackWarn: false,
+  silentTranslationWarn: true,
+  silentFallbackWarn: true,
   messages
 });
 

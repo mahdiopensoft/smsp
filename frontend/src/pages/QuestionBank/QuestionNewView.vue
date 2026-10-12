@@ -308,7 +308,7 @@
                 <auto-list
                   v-model="form.stageId"
                   name="Stage"
-                  placeholder="المرحلة الدراسية"
+                  label="المرحلة الدراسية"
                   cols="12"
                   :add="false"
                   @update:model-value="onStageChange"
@@ -319,7 +319,7 @@
                   v-model="form.classTrackId"
                   name="ClassTrackByStage"
                   :param="form.stageId"
-                  placeholder="الصف والمسار"
+                  label="الصف والمسار"
                   cols="12"
                   :add="false"
                   :disabled="!form.stageId"
@@ -331,7 +331,7 @@
                   v-model="form.subjectId"
                   name="Subject"
                   :param="form.classTrackId || form.stageId"
-                  placeholder="المادة الدراسية"
+                  label="المادة الدراسية"
                   cols="12"
                   :add="false"
                   :disabled="!form.classTrackId && !form.stageId"
@@ -342,7 +342,7 @@
                 <auto-list
                   v-model="form.semesterId"
                   name="Semester"
-                  placeholder="الفصل الدراسي"
+                  label="الفصل الدراسي"
                   cols="12"
                   :add="false"
                 />
@@ -354,7 +354,7 @@
                 <auto-list
                   v-model="form.collegeId"
                   name="College"
-                  placeholder="الكلية الجامعية"
+                  label="الكلية الجامعية"
                   cols="12"
                   :add="false"
                   @update:model-value="onCollegeChange"
@@ -365,7 +365,7 @@
                   v-model="form.departmentId"
                   name="DepartmentByCollege"
                   :param="form.collegeId"
-                  placeholder="القسم الأكاديمي"
+                  label="القسم الأكاديمي"
                   cols="12"
                   :add="false"
                   :disabled="!form.collegeId"
@@ -377,7 +377,7 @@
                   v-model="form.specializationId"
                   name="Specialization"
                   :param="form.departmentId"
-                  placeholder="التخصص والبرنامج"
+                  label="التخصص والبرنامج"
                   cols="12"
                   :add="false"
                   :disabled="!form.departmentId"
@@ -389,7 +389,7 @@
                   v-model="form.semesterSubjectId"
                   name="SemesterSubject"
                   :param="form.specializationId"
-                  placeholder="مقرر الفصل الجامعي"
+                  label="مقرر الفصل الجامعي"
                   cols="12"
                   :add="false"
                   @update:model-value="onSemesterSubjectChange"
@@ -402,7 +402,7 @@
                 <auto-list
                   v-model="form.instituteFieldId"
                   name="InstituteField"
-                  placeholder="المجال المهني / التقني"
+                  label="المجال المهني / التقني"
                   cols="12"
                   :add="false"
                   @update:model-value="onInstituteFieldChange"
@@ -413,7 +413,7 @@
                   v-model="form.instituteEducationSystemId"
                   name="InstituteEducationSystem"
                   :param="form.instituteFieldId"
-                  placeholder="نظام التعليم والتدريب"
+                  label="نظام التعليم والتدريب"
                   cols="12"
                   :add="false"
                   :disabled="!form.instituteFieldId"
@@ -424,8 +424,8 @@
                 <auto-list
                   v-model="form.instituteSpecializationId"
                   name="InstituteSpecialization"
-                  :param="{ field: form.instituteFieldId, education_system: form.instituteEducationSystemId }"
-                  placeholder="التخصص المهني"
+                  :param="formInstituteSpecParam"
+                  label="التخصص المهني"
                   cols="12"
                   :add="false"
                   :disabled="!form.instituteEducationSystemId"
@@ -437,7 +437,7 @@
                   v-model="form.instituteCurriculumId"
                   name="InstituteCurriculum"
                   :param="form.instituteSpecializationId"
-                  placeholder="الخطة الدراسية للمعهد"
+                  label="الخطة الدراسية للمعهد"
                   cols="12"
                   :add="false"
                   :disabled="!form.instituteSpecializationId"
@@ -447,21 +447,21 @@
                 <auto-list
                   v-model="form.instituteSubjectId"
                   name="InstituteSubject"
-                  :param="{ field: form.instituteFieldId }"
-                  placeholder="المادة الدراسية للمعهد"
+                  :param="formInstituteSubjectParam"
+                  label="المادة الدراسية للمعهد"
                   cols="12"
                   :add="false"
                   @update:model-value="onInstituteSubjectChange"
                 />
               </template>
 
-              <!-- 🎯 Common: Unit, Lesson, Learning Outcome -->
+              <!-- 🎯 Common: Unit, Lesson -->
               <!-- Unit -->
               <auto-list
                 v-model="form.unitId"
                 name="UnitBySubject"
-                :param="form.institution_type === 'university' ? { semester_subject: form.semesterSubjectId } : (form.institution_type === 'institute' ? { subject: form.instituteSubjectId } : { subject: form.subjectId })"
-                :placeholder="form.institution_type === 'university' ? 'مفردة / موضوع المقرر' : (form.institution_type === 'institute' ? 'الوحدة / التدريب العملي' : 'الوحدة الدراسية')"
+                :param="formUnitParam"
+                :label="form.institution_type === 'university' ? 'مفردة / موضوع المقرر' : (form.institution_type === 'institute' ? 'الوحدة / التدريب العملي' : 'الوحدة الدراسية')"
                 cols="12"
                 :add="false"
                 :disabled="form.institution_type === 'university' ? !form.semesterSubjectId : (form.institution_type === 'institute' ? !form.instituteSubjectId : !form.subjectId)"
@@ -473,18 +473,7 @@
                 v-model="form.lessonId"
                 name="LessonByUnit"
                 :param="form.unitId"
-                :placeholder="form.institution_type === 'university' ? 'المحاضرة / الدرس الأكاديمي' : (form.institution_type === 'institute' ? 'التدريب / الدرس المهني' : 'الدرس المدرسي')"
-                cols="12"
-                :add="false"
-                :disabled="!form.unitId"
-              />
-
-              <!-- Learning Outcome -->
-              <auto-list
-                v-model="form.learningOutcomeId"
-                name="LearningOutcome"
-                :param="form.unitId"
-                :placeholder="form.institution_type === 'university' ? 'مخرج تعلم المقرر (CLO)' : 'مخرج التعلم المستهدف (اختياري)'"
+                :label="form.institution_type === 'university' ? 'المحاضرة / الدرس الأكاديمي' : (form.institution_type === 'institute' ? 'التدريب / الدرس المهني' : 'الدرس المدرسي')"
                 cols="12"
                 :add="false"
                 :disabled="!form.unitId"
@@ -700,6 +689,30 @@ export default {
         positive: (v) => (v && v > 0) || "يجب أن تكون القيمة أكبر من صفر",
       },
     };
+  },
+
+  computed: {
+    formInstituteSpecParam() {
+      const p = {};
+      if (this.form.instituteFieldId) p.field = this.form.instituteFieldId;
+      if (this.form.instituteEducationSystemId) p.education_system = this.form.instituteEducationSystemId;
+      return Object.keys(p).length ? p : null;
+    },
+
+    formInstituteSubjectParam() {
+      if (this.form.instituteFieldId) return { field: this.form.instituteFieldId };
+      return null;
+    },
+
+    formUnitParam() {
+      if (this.form.institution_type === 'university') {
+        return this.form.semesterSubjectId ? { semester_subject: this.form.semesterSubjectId } : null;
+      }
+      if (this.form.institution_type === 'institute') {
+        return this.form.instituteSubjectId ? { subject: this.form.instituteSubjectId } : null;
+      }
+      return this.form.subjectId ? { subject: this.form.subjectId } : null;
+    },
   },
 
   async created() {
@@ -1196,7 +1209,6 @@ export default {
           status: status,
           institution_type: this.form.institution_type || 'school',
           lesson: this.form.lessonId,
-          learningOutcome: this.form.learningOutcomeId || null,
           difficulty: this.form.difficulty,
           bloomLevel: this.form.bloomLevel,
           defaultMark: this.form.defaultScore,

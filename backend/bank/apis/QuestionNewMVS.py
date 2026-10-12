@@ -25,7 +25,6 @@ class QuestionNewMVS(AllMVS):
         'lesson__unit__semester_subject__fk_specialization__fk_college',
         'lesson__unit__semester_subject__fk_specialization__fk_section',
         'lesson__unit__semester_subject__semester',
-        'learningOutcome',
         'createdBy',
         'reviewer'
     ).prefetch_related('options', 'matching_pairs', 'ordering_items', 'blank_answers', 'case_study_sub_questions')
@@ -105,7 +104,6 @@ class QuestionNewMVS(AllMVS):
             'questionType': question.questionType,
             'status': question.status,
             'institution_type': question.institution_type or 'school',
-            'learningOutcome': question.learningOutcome_id,
             'answers': answers,
             'matching_pairs': [
                 {'id': mp.id, 'left_text': mp.left_text, 'right_text': mp.right_text, 'order': mp.order}

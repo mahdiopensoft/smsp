@@ -40,6 +40,5 @@ class ReviewChecklist(SoftDeleteModel):
             self.image_check,
             self.answer_check,
             self.curriculum_check,
-            self.learning_outcome_check,
             self.bloom_check
         ])

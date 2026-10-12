@@ -54,8 +54,8 @@ class QuestionDiffMVS(ViewSet):
             return Response({"error": "يرجى تحديد معرف السؤالين للمقارنة (v1, v2)"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            q1 = Question.objects.select_related('lesson', 'learningOutcome').prefetch_related('options').get(id=v1_id)
-            q2 = Question.objects.select_related('lesson', 'learningOutcome').prefetch_related('options').get(id=v2_id)
+            q1 = Question.objects.select_related('lesson').prefetch_related('options').get(id=v1_id)
+            q2 = Question.objects.select_related('lesson').prefetch_related('options').get(id=v2_id)
         except Question.DoesNotExist:
             return Response({"error": "أحد السؤالين غير موجود"}, status=status.HTTP_404_NOT_FOUND)
 
