@@ -1159,8 +1159,9 @@ def update_academic_screens():
     sc39 = Screen.objects.filter(id=39).first()
     if sc39:
         sc39.delete()
-        deleted_count += 1
     if deleted_count > 0:
+        print(f"  🗑️ تم حذف {deleted_count} شاشة لمخرجات التعلم بنجاح.")
+
     # 7. التأكد من وجود أعمدة الجامعات والمعاهد في جدول الطلاب academic_student
     try:
         from django.db import connection
