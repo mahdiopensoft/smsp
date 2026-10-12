@@ -3,5 +3,14 @@
     "confirm_update_subject_state":"Are you sure you want to change the subject state to ",
     "active":"Active",
     "inactive":"Inactive",
-    "approv_all":"Approv All"
+    "select_all":"Select All",
+    "approv_all":"Approv All",
+    "المادة الدراسية للمعهد": "Institute Subject",
+    "المجال المهني / التقني": "Vocational / Technical Field",
+    "التخصص المهني": "Vocational Specialization",
+    "نظام التعليم والتدريب": "Education & Training System",
+    "الخطة الدراسية للمعهد": "Institute Curriculum",
+    "المستوى الدراسي للمعهد": "Institute Level",
+    "الفصل / الفترة الدراسية للمعهد": "Institute Semester / Period",
+    "مقرر الخطة والفصل الدراسي": "Curriculum Course"
 }

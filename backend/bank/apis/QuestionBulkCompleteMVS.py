@@ -186,8 +186,6 @@ class QuestionBulkCompleteMVS(AllMVS):
             updates['bloomLevel'] = request.data['bloom_level']
         if 'difficulty' in request.data and request.data['difficulty']:
             updates['difficulty'] = request.data['difficulty']
-        if 'learning_outcome_id' in request.data and request.data['learning_outcome_id']:
-            updates['learningOutcome_id'] = request.data['learning_outcome_id']
 
         if not updates:
             return Response({"error": "لم يتم تحديد أي خاصية لتطبيقها على الأسئلة"}, status=status.HTTP_400_BAD_REQUEST)

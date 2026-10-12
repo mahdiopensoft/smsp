@@ -117,17 +117,6 @@
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 
-        <!-- Enable Learning Outcomes -->
-        <template v-else-if="key === 'enable_learning_outcomes'">
-          <v-chip
-            size="small"
-            :color="item.enable_learning_outcomes ? 'teal' : 'grey'"
-            variant="tonal"
-            class="font-weight-bold"
-          >
-            {{ item.enable_learning_outcomes ? 'مفعلة' : 'معطلة' }}
-          </v-chip>
-        </template>
 
         <!-- Is Active Status -->
         <template v-else-if="key === 'is_active'">
@@ -227,7 +216,6 @@ export default {
         { title: "المادة الدراسية", key: "subject_name" },
         { title: "الفصل الدراسي", key: "semester_name" },
         { title: "الترتيب", key: "order" },
-        { title: "تفعيل مخرجات التعلم", key: "enable_learning_outcomes" },
         { title: "الحالة", key: "is_active" },
       ];
     },

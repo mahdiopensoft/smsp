@@ -960,27 +960,6 @@ export default function DataAutoListAcademic(param) {
       value: "id",
     },
 
-    InstituteBatch: {
-      label: "الدفعة / الفوج",
-      icon: "account-group-outline",
-      method: (p) => {
-        const raw = (p !== undefined && p !== null) ? p : param;
-        const queryParams = {};
-        if (raw && typeof raw === "object") {
-          if (raw.specialization || raw.specializationId) {
-            queryParams.specialization = raw.specialization || raw.specializationId;
-          }
-        } else if (raw) {
-          queryParams.specialization = raw;
-        }
-        return shared.getData({
-          path: "api/academic/institutes/batches/all/",
-          params: Object.keys(queryParams).length ? queryParams : undefined,
-        });
-      },
-      title: "name_ar",
-      value: "id",
-    },
 
     InstituteSubject: {
       label: "المادة الدراسية للمعهد",
@@ -1021,57 +1000,6 @@ export default function DataAutoListAcademic(param) {
           path: "api/academic/institutes/semesters/all/",
         }),
       title: "name_ar",
-      value: "id",
-    },
-
-    InstituteShortCourse: {
-      label: "الدورة التدريبية القصيرة",
-      icon: "certificate-outline",
-      method: (p) => {
-        const raw = (p !== undefined && p !== null) ? p : param;
-        const queryParams = {};
-        if (raw && typeof raw === "object") {
-          if (raw.field || raw.fieldId) queryParams.field = raw.field || raw.fieldId;
-        } else if (raw) {
-          queryParams.field = raw;
-        }
-        return shared.getData({
-          path: "api/academic/institutes/short-courses/all/",
-          params: Object.keys(queryParams).length ? queryParams : undefined,
-        });
-      },
-      title: "name_ar",
-      value: "id",
-    },
-
-    InstituteSpecialTrack: {
-      label: "مسار تحقيق المهنة / المسار الخاص",
-      icon: "shield-check-outline",
-      method: (p) => {
-        const raw = (p !== undefined && p !== null) ? p : param;
-        const queryParams = {};
-        if (raw && typeof raw === "object") {
-          if (raw.field || raw.fieldId) queryParams.field = raw.field || raw.fieldId;
-        } else if (raw) {
-          queryParams.field = raw;
-        }
-        return shared.getData({
-          path: "api/academic/institutes/special-tracks/all/",
-          params: Object.keys(queryParams).length ? queryParams : undefined,
-        });
-      },
-      title: "name_ar",
-      value: "id",
-    },
-
-    InstituteAdmissionRequirement: {
-      label: "شروط وضوابط القبول",
-      icon: "clipboard-check-outline",
-      method: () =>
-        shared.getData({
-          path: "api/academic/institutes/admission-requirements/all/",
-        }),
-      title: "title",
       value: "id",
     },
 

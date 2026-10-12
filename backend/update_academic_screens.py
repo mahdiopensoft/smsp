@@ -23,6 +23,115 @@ def update_academic_screens():
     # 1. المجلدات الرئيسية (Folders - screen_type = 3)
     # ═══════════════════════════════════════════════════════════════════════════
 
+    # المجلد الرئيسي: التهيئة العامة المشتركة
+    common_folder = Screen.objects.filter(screen_type=3, name_ar="التهيئة العامة المشتركة").exclude(id=85).first()
+    if not common_folder:
+        try:
+            common_folder = Screen(
+                name_ar="التهيئة العامة المشتركة",
+                name_en="Common Academic Setup",
+                icon="tune-vertical",
+                screen_type=3,
+                is_active=True,
+                is_report=False,
+                type_of_main_system="access-login-role-unified-educational-platform",
+                company_level=20,
+                for_admin=True,
+                for_ministry=True,
+                for_college=True,
+                for_company=True,
+                for_governorate=True,
+                for_directorate=True,
+                for_region=True,
+                fk_default_system_id=8,
+                order_in_default_system=1
+            )
+            common_folder.save()
+        except Exception:
+            from django.db import router, connections
+            db_alias = router.db_for_write(Screen) or 'default'
+            screen_conn = connections[db_alias]
+            actual_table = Screen._meta.db_table
+            with screen_conn.cursor() as cursor:
+                cursor.execute(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{actual_table}'")
+                cols = [r[0] for r in cursor.fetchall()]
+                max_id = Screen.objects.all().order_by('-id').values_list('id', flat=True).first() or 100
+                safe_id = max(max_id + 1, 100)
+                data = {
+                    'id': safe_id,
+                    'name_ar': "التهيئة العامة المشتركة",
+                    'name_en': "Common Academic Setup",
+                    'icon': "tune-vertical",
+                    'screen_type': 3,
+                    'is_active': True,
+                    'is_report': False,
+                    'type_of_main_system': "access-login-role-unified-educational-platform",
+                    'company_level': 20,
+                    'for_admin': True,
+                    'for_ministry': True,
+                    'for_college': True,
+                    'for_company': True,
+                    'for_governorate': True,
+                    'for_directorate': True,
+                    'for_region': True,
+                    'fk_default_system_id': 8,
+                    'order_in_default_system': 1,
+                    'is_deleted': False
+                }
+                filtered_data = {k: v for k, v in data.items() if k in cols}
+                cols_str = ', '.join([f'"{k}"' for k in filtered_data.keys()])
+                placeholders = ', '.join(['%s'] * len(filtered_data))
+                sql = f'INSERT INTO "{actual_table}" ({cols_str}) VALUES ({placeholders})'
+                cursor.execute(sql, list(filtered_data.values()))
+            common_folder = Screen.objects.get(id=safe_id)
+    
+    common_folder.name_ar = "التهيئة العامة المشتركة"
+    common_folder.name_en = "Common Academic Setup"
+    common_folder.icon = "tune-vertical"
+    common_folder.route = None
+    common_folder.component = None
+    common_folder.path = None
+    common_folder.fk_parent_screen = None
+    common_folder.screen_type = 3
+    common_folder.is_active = True
+    common_folder.is_report = False
+    common_folder.type_of_screen = None
+    common_folder.type_of_main_system = "access-login-role-unified-educational-platform"
+    common_folder.company_level = 20
+    common_folder.for_admin = True
+    common_folder.for_ministry = True
+    common_folder.for_college = True
+    common_folder.for_company = True
+    common_folder.for_governorate = True
+    common_folder.for_directorate = True
+    common_folder.for_region = True
+    common_folder.fk_default_system_id = 8
+    common_folder.order_in_default_system = 1
+    common_folder.save()
+    print(f" ✅ تم ضبط المجلد الرئيسي (ID={common_folder.id}): ⚙️ التهيئة العامة المشتركة")
+
+    # نسخ صلاحيات العرض من مجلد المدارس 71 إلى المجلد المشترك لضمان ظهوره للجميع
+    try:
+        from django.apps import apps
+        ScreenPermission = apps.get_model('screens', 'ScreenPermission')
+        GroupScreenPermission = apps.get_model('screens', 'GroupScreenPermission')
+
+        perm_common, _ = ScreenPermission.objects.get_or_create(
+            fk_screen=common_folder,
+            operation_type=1
+        )
+        p71 = ScreenPermission.objects.filter(fk_screen_id=71, operation_type=1).first()
+        if p71:
+            for gp in GroupScreenPermission.objects.filter(fk_screen_permission=p71):
+                GroupScreenPermission.objects.get_or_create(
+                    group_id=gp.group_id,
+                    fk_screen_permission=perm_common,
+                    defaults={'is_related': gp.is_related}
+                )
+            print(" 🔑 تم نسخ وتأكيد صلاحيات العرض لمجلد التهيئة العامة المشتركة بنجاح")
+    except Exception as e:
+        print(f" ⚠️ ملاحظة حول صلاحيات المجلد: {e}")
+
     # المجلد 71: تهيئة المدارس
     school_folder, _ = Screen.objects.get_or_create(id=71)
     school_folder.name_ar = "تهيئة المدارس"
@@ -42,7 +151,7 @@ def update_academic_screens():
     school_folder.for_ministry = True
     school_folder.for_college = False
     school_folder.fk_default_system_id = 8
-    school_folder.order_in_default_system = 1
+    school_folder.order_in_default_system = 2
     school_folder.save()
     print(" ✅ تم ضبط المجلد الرئيسي (ID=71): 🏫 تهيئة المدارس")
 
@@ -65,7 +174,7 @@ def update_academic_screens():
     univ_folder.for_ministry = True
     univ_folder.for_college = True
     univ_folder.fk_default_system_id = 8
-    univ_folder.order_in_default_system = 2
+    univ_folder.order_in_default_system = 3
     univ_folder.save()
     print(" ✅ تم ضبط المجلد الرئيسي (ID=72): 🏛️ تهيئة الجامعات")
 
@@ -88,7 +197,7 @@ def update_academic_screens():
     inst_folder.for_ministry = True
     inst_folder.for_college = True
     inst_folder.fk_default_system_id = 8
-    inst_folder.order_in_default_system = 3
+    inst_folder.order_in_default_system = 4
     inst_folder.save()
     print(" ✅ تم ضبط المجلد الرئيسي (ID=73): 🏢 تهيئة المعاهد")
 
@@ -100,23 +209,23 @@ def update_academic_screens():
     geo_folder.screen_type = 3
     geo_folder.is_active = True
     geo_folder.fk_default_system_id = 8
-    geo_folder.order_in_default_system = 4
+    geo_folder.order_in_default_system = 5
     geo_folder.save()
     print(" ✅ تم ضبط المجلد الرئيسي (ID=70): 🌍 الهيكل الجغرافي والإقليمي")
 
     # ═══════════════════════════════════════════════════════════════════════════
-    # 2. إعداد شاشات المدارس (fk_parent_screen_id = 71)
+    # 2. إعداد الشاشات المشتركة لجميع المؤسسات التعليمية (fk_parent_screen = common_folder)
     # ═══════════════════════════════════════════════════════════════════════════
-    print("\n🏫 جاري تحديث شاشات تهيئة المدارس (Schools Setup)...")
+    print("\n⚙️ جاري تحديث الشاشات المشتركة لجميع المؤسسات (المدارس، الجامعات، المعاهد)...")
 
-    schools_screens = [
+    common_screens = [
         {
             "id": 69,
             "route": "organizations",
             "component": "OrganizationTree",
             "path": "organizations",
-            "name_ar": "هيكلية المدارس",
-            "name_en": "School Structure",
+            "name_ar": "هيكلية المؤسسات التعليمية",
+            "name_en": "Educational Institutions Structure",
             "icon": "sitemap",
             "view": "OrganizationMVS",
             "main_model": "Organization",
@@ -153,6 +262,97 @@ def update_academic_screens():
             ]
         },
         {
+            "id": 68,
+            "route": "students-master",
+            "component": "StudentsView",
+            "path": "students-master",
+            "name_ar": "الطلاب",
+            "name_en": "Students",
+            "icon": "account-school",
+            "view": "StudentMVS",
+            "main_model": "Student",
+            "order": 3,
+            "fields": [
+                {"icon": "domain", "name": "organization", "index": 1, "label": "المدرسة / الكلية / المؤسسة", "name_list": "Organization"},
+                {"icon": "identifier", "name": "academic_number", "index": 2, "label": "الرقم الأكاديمي / رقم القيد", "required": True},
+                {"icon": "account", "name": "name_ar", "index": 3, "label": "اسم الطالب (عربي)", "required": True},
+                {"icon": "account", "name": "name_en", "index": 4, "label": "اسم الطالب (إنجليزي)"},
+                {"icon": "gender-male-female", "name": "gender", "index": 5, "label": "الجنس", "required": True},
+                {"icon": "calendar", "name": "birthdate", "index": 6, "label": "تاريخ الميلاد"},
+                {"icon": "map-marker", "name": "birth_place", "index": 7, "label": "مكان الميلاد"},
+                {"icon": "flag", "name": "country", "index": 8, "label": "الدولة / الجنسية", "name_list": "Country"},
+                {"icon": "city", "name": "directorate", "index": 9, "label": "المديرية", "name_list": "Directorate"},
+                {"icon": "phone", "name": "phone_number", "index": 10, "label": "رقم الهاتف"},
+                {"icon": "home", "name": "address", "index": 11, "label": "العنوان ومحل الإقامة"},
+                {"icon": "check-circle-outline", "name": "is_active", "index": 12, "label": "نشط"}
+            ]
+        },
+    ]
+
+    for cfg in common_screens:
+        screen = None
+        if cfg["id"]:
+            screen = Screen.objects.filter(id=cfg["id"]).first()
+        if not screen:
+            screen = Screen.objects.filter(route=cfg["route"]).first()
+        if not screen:
+            screen = Screen.objects.filter(component=cfg["component"]).first()
+
+        if screen:
+            screen.fk_parent_screen = common_folder
+            screen.order_in_default_system = cfg["order"]
+            screen.name_ar = cfg["name_ar"]
+            screen.name_en = cfg["name_en"]
+            if hasattr(screen, 'name'):
+                screen.name = cfg["name_ar"]
+            screen.view = cfg["view"]
+            screen.icon = cfg["icon"]
+            screen.is_active = True
+            screen.screen_type = 1
+            screen.route = cfg["route"]
+            screen.component = cfg["component"]
+            screen.path = cfg["path"]
+            screen.for_college = True
+            screen.for_admin = True
+            screen.for_ministry = True
+            screen.for_company = True
+            screen.for_governorate = True
+            screen.for_directorate = True
+            screen.for_region = True
+            screen.fk_default_system_id = 8
+            screen.json_fields = {
+                "fields": cfg["fields"],
+                "main_model": cfg["main_model"]
+            }
+            if hasattr(screen, 'main_model'):
+                screen.main_model = cfg["main_model"]
+            screen.save()
+
+            # التأكد من صلاحيات العرض للشاشات المشتركة
+            try:
+                s_perm, _ = ScreenPermission.objects.get_or_create(
+                    fk_screen=screen,
+                    operation_type=1
+                )
+                if p71:
+                    for gp in GroupScreenPermission.objects.filter(fk_screen_permission=p71):
+                        GroupScreenPermission.objects.get_or_create(
+                            group_id=gp.group_id,
+                            fk_screen_permission=s_perm,
+                            defaults={'is_related': gp.is_related}
+                        )
+            except Exception:
+                pass
+
+            print(f"  ✓ [{cfg['order']}] تم تحديث شاشة مشتركة: {screen.name_ar} (ID={screen.id}) تحت مجلد: {common_folder.name_ar}")
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # 3. إعداد شاشات المدارس (fk_parent_screen_id = 71)
+    # ═══════════════════════════════════════════════════════════════════════════
+    print("\n🏫 جاري تحديث شاشات تهيئة المدارس (Schools Setup)...")
+
+    schools_screens = [
+        {
             "id": 42,
             "route": "educational-stages",
             "component": "EducationalStagesView",
@@ -162,7 +362,7 @@ def update_academic_screens():
             "icon": "stairs",
             "view": "SchoolStageMVS",
             "main_model": "SchoolStage",
-            "order": 3,
+            "order": 1,
             "fields": [
                 {"icon": "abjad-arabic", "name": "name_ar", "index": 1, "label": "اسم المرحلة (عربي)", "required": True},
                 {"icon": "alpha-e", "name": "name_en", "index": 2, "label": "اسم المرحلة (إنجليزي)"},
@@ -180,7 +380,7 @@ def update_academic_screens():
             "icon": "bookshelf",
             "view": "SchoolLevelMVS",
             "main_model": "SchoolLevel",
-            "order": 4,
+            "order": 2,
             "fields": [
                 {"icon": "school", "name": "stage", "index": 1, "label": "المرحلة الدراسية", "name_list": "SchoolStage", "required": True},
                 {"icon": "abjad-arabic", "name": "name_ar", "index": 2, "label": "اسم الصف (عربي)", "required": True},
@@ -199,7 +399,7 @@ def update_academic_screens():
             "icon": "source-branch",
             "view": "SchoolTrackMVS",
             "main_model": "SchoolTrack",
-            "order": 5,
+            "order": 3,
             "fields": [
                 {"icon": "abjad-arabic", "name": "name_ar", "index": 1, "label": "اسم المسار (عربي)", "required": True},
                 {"icon": "alpha-e", "name": "name_en", "index": 2, "label": "اسم المسار (إنجليزي)"},
@@ -218,7 +418,7 @@ def update_academic_screens():
             "icon": "routes",
             "view": "SchoolClassTrackMVS",
             "main_model": "SchoolClassTrack",
-            "order": 6,
+            "order": 4,
             "fields": [
                 {"icon": "bookshelf", "name": "level", "index": 1, "label": "الصف الدراسي", "name_list": "SchoolLevel", "required": True},
                 {"icon": "source-branch", "name": "track", "index": 2, "label": "المسار التعليمي", "name_list": "SchoolTrack", "required": True},
@@ -237,7 +437,7 @@ def update_academic_screens():
             "icon": "book-open-page-variant",
             "view": "SchoolSubjectMVS",
             "main_model": "SchoolSubject",
-            "order": 7,
+            "order": 5,
             "fields": [
                 {"icon": "abjad-arabic", "name": "name_ar", "index": 1, "label": "اسم المادة (عربي)", "required": True},
                 {"icon": "alpha-e", "name": "name_en", "index": 2, "label": "اسم المادة (إنجليزي)"},
@@ -259,7 +459,7 @@ def update_academic_screens():
             "icon": "link-variant",
             "view": "SchoolClassSubjectMVS",
             "main_model": "SchoolClassSubject",
-            "order": 8,
+            "order": 6,
             "fields": [
                 {"icon": "routes", "name": "class_track", "index": 1, "label": "مسار الصف", "name_list": "SchoolClassTrack", "required": True},
                 {"icon": "book-open-page-variant", "name": "school_subject", "index": 2, "label": "المادة الدراسية المدرسية", "name_list": "SchoolSubject"},
@@ -282,7 +482,7 @@ def update_academic_screens():
             "icon": "google-classroom",
             "view": "SchoolSectionMVS",
             "main_model": "SchoolSection",
-            "order": 9,
+            "order": 7,
             "fields": [
                 {"icon": "domain", "name": "organization", "index": 1, "label": "المدرسة / المؤسسة", "name_list": "Organization", "required": True},
                 {"icon": "routes", "name": "class_track", "index": 2, "label": "مسار الصف", "name_list": "SchoolClassTrack"},
@@ -305,15 +505,14 @@ def update_academic_screens():
             "icon": "book-multiple",
             "view": "SchoolUnitMVS",
             "main_model": "SchoolUnit",
-            "order": 10,
+            "order": 8,
             "fields": [
                 {"icon": "link-variant", "name": "class_subject", "index": 1, "label": "مادة مسار الصف", "name_list": "SchoolClassSubject"},
                 {"icon": "book-open-page-variant", "name": "school_subject", "index": 2, "label": "المادة الدراسية المدرسية", "name_list": "SchoolSubject"},
                 {"icon": "abjad-arabic", "name": "name_ar", "index": 3, "label": "اسم الوحدة (عربي)", "required": True},
                 {"icon": "alpha-e", "name": "name_en", "index": 4, "label": "اسم الوحدة (إنجليزي)"},
                 {"icon": "sort-numeric-ascending", "name": "order", "index": 5, "label": "الترتيب"},
-                {"icon": "target-variant", "name": "enable_learning_outcomes", "index": 6, "label": "تفعيل مخرجات التعلم"},
-                {"icon": "check-circle-outline", "name": "is_active", "index": 7, "label": "مفعل"}
+                {"icon": "check-circle-outline", "name": "is_active", "index": 6, "label": "مفعل"}
             ]
         },
         {
@@ -326,7 +525,7 @@ def update_academic_screens():
             "icon": "bookmark-multiple",
             "view": "SchoolLessonMVS",
             "main_model": "SchoolLesson",
-            "order": 11,
+            "order": 9,
             "fields": [
                 {"icon": "book-open-page-variant", "name": "subject", "index": 1, "label": "المادة الدراسية المدرسية", "name_list": "SchoolSubject", "required": True},
                 {"icon": "folder-outline", "name": "unit", "index": 2, "label": "الوحدة الدراسية", "name_list": "SchoolUnit"},
@@ -334,53 +533,6 @@ def update_academic_screens():
                 {"icon": "alpha-e", "name": "name_en", "index": 4, "label": "اسم الدرس (إنجليزي)"},
                 {"icon": "sort-numeric-ascending", "name": "order", "index": 5, "label": "الترتيب"},
                 {"icon": "check-circle-outline", "name": "is_active", "index": 6, "label": "مفعل"}
-            ]
-        },
-        {
-            "id": 39,
-            "route": "learning-outcomes",
-            "component": "LearningOutcomesView",
-            "path": "learning-outcomes",
-            "name_ar": "مخرجات التعلم",
-            "name_en": "School Learning Outcomes",
-            "icon": "bullseye-arrow",
-            "view": "SchoolLearningOutcomeMVS",
-            "main_model": "SchoolLearningOutcome",
-            "order": 12,
-            "fields": [
-                {"icon": "book-open-page-variant", "name": "subject", "index": 1, "label": "المادة الدراسية المدرسية", "name_list": "SchoolSubject", "required": True},
-                {"icon": "folder-outline", "name": "unit", "index": 2, "label": "الوحدة الدراسية", "name_list": "SchoolUnit"},
-                {"icon": "barcode", "name": "code", "index": 3, "label": "كود المخرج"},
-                {"icon": "text", "name": "description", "index": 4, "label": "الوصف ومخرجات التعلم", "required": True},
-                {"icon": "sort-numeric-ascending", "name": "order", "index": 5, "label": "الترتيب"},
-                {"icon": "check-circle-outline", "name": "is_active", "index": 6, "label": "مفعل"}
-            ]
-        },
-        {
-            "id": 68,
-            "route": "students-master",
-            "component": "StudentsView",
-            "path": "students-master",
-            "name_ar": "الطلاب والشعب",
-            "name_en": "Students",
-            "icon": "account-school",
-            "view": "StudentMVS",
-            "main_model": "Student",
-            "order": 13,
-            "fields": [
-                {"icon": "domain", "name": "organization", "index": 1, "label": "المدرسة / المؤسسة", "name_list": "Organization"},
-                {"icon": "identifier", "name": "student_number", "index": 2, "label": "رقم الطالب"},
-                {"icon": "account", "name": "first_name_ar", "index": 3, "label": "الاسم الأول"},
-                {"icon": "account", "name": "second_name_ar", "index": 4, "label": "اسم الأب"},
-                {"icon": "account", "name": "third_name_ar", "index": 5, "label": "اسم الجد"},
-                {"icon": "account", "name": "last_name_ar", "index": 6, "label": "اللقب"},
-                {"icon": "gender-male-female", "name": "gender", "index": 7, "label": "الجنس"},
-                {"icon": "calendar", "name": "birth_date", "index": 8, "label": "تاريخ الميلاد"},
-                {"icon": "card-account-details", "name": "national_number", "index": 9, "label": "الرقم الوطني"},
-                {"icon": "bookshelf", "name": "current_level", "index": 10, "label": "الصف الحالي", "name_list": "SchoolLevel"},
-                {"icon": "source-branch", "name": "current_track", "index": 11, "label": "المسار الحالي", "name_list": "SchoolTrack"},
-                {"icon": "domain", "name": "current_section", "index": 12, "label": "الشعبة الحالية", "name_list": "SchoolSection"},
-                {"icon": "check-circle-outline", "name": "is_active", "index": 13, "label": "نشط"}
             ]
         },
     ]
@@ -425,6 +577,9 @@ def update_academic_screens():
             screen.order_in_default_system = cfg["order"]
             screen.name_ar = cfg["name_ar"]
             screen.name_en = cfg["name_en"]
+            screen.route = cfg["route"]
+            screen.component = cfg["component"]
+            screen.path = cfg["path"]
             if hasattr(screen, 'name'):
                 screen.name = cfg["name_ar"]
             screen.view = cfg["view"]
@@ -697,6 +852,9 @@ def update_academic_screens():
             screen.order_in_default_system = cfg["order"]
             screen.name_ar = cfg["name_ar"]
             screen.name_en = cfg["name_en"]
+            screen.route = cfg["route"]
+            screen.component = cfg["component"]
+            screen.path = cfg["path"]
             if hasattr(screen, 'name'):
                 screen.name = cfg["name_ar"]
             screen.view = cfg["view"]
@@ -791,30 +949,6 @@ def update_academic_screens():
         },
         {
             "id": None,
-            "route": "institutes-admission-requirements",
-            "component": "InstituteAdmissionRequirementsView",
-            "path": "institutes-admission-requirements",
-            "name_ar": "شروط وضوابط القبول والتسجيل",
-            "name_en": "Admission Requirements",
-            "icon": "clipboard-check-outline",
-            "view": "InstituteAdmissionRequirementMVS",
-            "main_model": "InstituteAdmissionRequirement",
-            "order": 4,
-            "fields": [
-                {"icon": "format-title", "name": "title", "index": 1, "label": "عنوان الضابط / الشرط", "required": True},
-                {"icon": "cogs", "name": "education_system", "index": 2, "label": "نظام التعليم", "name_list": "InstituteEducationSystem", "required": True},
-                {"icon": "school-outline", "name": "specialization", "index": 3, "label": "التخصص الأكاديمي (اختياري)", "name_list": "InstituteSpecialization"},
-                {"icon": "certificate-outline", "name": "required_qualification", "index": 4, "label": "مؤهل القبول المطلوب", "required": True},
-                {"icon": "routes", "name": "accepted_tracks", "index": 5, "label": "المسارات الدراسية المقبولة"},
-                {"icon": "percent", "name": "minimum_percentage", "index": 6, "label": "الحد الأدنى للنسبة المئوية / المعدل"},
-                {"icon": "file-multiple-outline", "name": "required_documents", "index": 7, "label": "الوثائق والمستندات المطلوبة"},
-                {"icon": "text", "name": "admission_conditions", "index": 8, "label": "شروط وضوابط القبول"},
-                {"icon": "swap-horizontal-bold", "name": "transfer_requirements", "index": 9, "label": "متطلبات وشروط التحويل والانتقال"},
-                {"icon": "check-circle-outline", "name": "is_active", "index": 10, "label": "نشط"}
-            ]
-        },
-        {
-            "id": None,
             "route": "institutes-curricula",
             "component": "InstituteCurriculaView",
             "path": "institutes-curricula",
@@ -823,7 +957,7 @@ def update_academic_screens():
             "icon": "notebook-outline",
             "view": "InstituteCurriculumMVS",
             "main_model": "InstituteCurriculum",
-            "order": 5,
+            "order": 4,
             "fields": [
                 {"icon": "abjad-arabic", "name": "name_ar", "index": 1, "label": "اسم الخطة الدراسية (عربي)", "required": True},
                 {"icon": "alpha-e", "name": "name_en", "index": 2, "label": "اسم الخطة الدراسية (إنجليزي)"},
@@ -839,31 +973,6 @@ def update_academic_screens():
         },
         {
             "id": None,
-            "route": "institutes-batches",
-            "component": "InstituteBatchesView",
-            "path": "institutes-batches",
-            "name_ar": "الدفعات والأفواج",
-            "name_en": "Institute Batches",
-            "icon": "account-group-outline",
-            "view": "InstituteBatchMVS",
-            "main_model": "InstituteBatch",
-            "order": 6,
-            "fields": [
-                {"icon": "abjad-arabic", "name": "name_ar", "index": 1, "label": "اسم الدفعة / الفوج (عربي)", "required": True},
-                {"icon": "alpha-e", "name": "name_en", "index": 2, "label": "اسم الدفعة / الفوج (إنجليزي)"},
-                {"icon": "sort-numeric-ascending", "name": "batch_number", "index": 3, "label": "رقم الدفعة"},
-                {"icon": "school-outline", "name": "specialization", "index": 4, "label": "التخصص", "name_list": "InstituteSpecialization", "required": True},
-                {"icon": "notebook-outline", "name": "curriculum", "index": 5, "label": "الخطة الدراسية المعتمدة للدفعة", "name_list": "InstituteCurriculum"},
-                {"icon": "calendar-clock", "name": "academic_year", "index": 6, "label": "عام الالتحاق / البدء", "name_list": "AcademicYear", "required": True},
-                {"icon": "calendar-start", "name": "start_date", "index": 7, "label": "تاريخ البدء"},
-                {"icon": "calendar-end", "name": "end_date", "index": 8, "label": "تاريخ التخرج المتوقع / الفعلي"},
-                {"icon": "school", "name": "is_graduated", "index": 9, "label": "دفعة متخرجة"},
-                {"icon": "note-text", "name": "note", "index": 10, "label": "ملاحظات"},
-                {"icon": "check-circle-outline", "name": "is_active", "index": 11, "label": "نشط"}
-            ]
-        },
-        {
-            "id": None,
             "route": "institutes-levels",
             "component": "InstituteLevelsView",
             "path": "institutes-levels",
@@ -872,7 +981,7 @@ def update_academic_screens():
             "icon": "stairs",
             "view": "InstituteLevelMVS",
             "main_model": "InstituteLevel",
-            "order": 7,
+            "order": 5,
             "fields": [
                 {"icon": "abjad-arabic", "name": "name_ar", "index": 1, "label": "اسم المستوى (عربي)", "required": True},
                 {"icon": "alpha-e", "name": "name_en", "index": 2, "label": "اسم المستوى (إنجليزي)"},
@@ -891,7 +1000,7 @@ def update_academic_screens():
             "icon": "calendar-range",
             "view": "InstituteSemesterMVS",
             "main_model": "InstituteSemester",
-            "order": 8,
+            "order": 6,
             "fields": [
                 {"icon": "abjad-arabic", "name": "name_ar", "index": 1, "label": "اسم الفصل / الفترة (عربي)", "required": True},
                 {"icon": "alpha-e", "name": "name_en", "index": 2, "label": "اسم الفصل / الفترة (إنجليزي)"},
@@ -912,7 +1021,7 @@ def update_academic_screens():
             "icon": "book-open-page-variant",
             "view": "InstituteSubjectMVS",
             "main_model": "InstituteSubject",
-            "order": 9,
+            "order": 7,
             "fields": [
                 {"icon": "abjad-arabic", "name": "name_ar", "index": 1, "label": "اسم المادة الدراسية (عربي)", "required": True},
                 {"icon": "alpha-e", "name": "name_en", "index": 2, "label": "اسم المادة الدراسية (إنجليزي)"},
@@ -938,7 +1047,7 @@ def update_academic_screens():
             "icon": "book-cog",
             "view": "InstituteCurriculumSubjectMVS",
             "main_model": "InstituteCurriculumSubject",
-            "order": 10,
+            "order": 8,
             "fields": [
                 {"icon": "notebook-outline", "name": "curriculum", "index": 1, "label": "الخطة الدراسية", "name_list": "InstituteCurriculum", "required": True},
                 {"icon": "book-open-page-variant", "name": "subject", "index": 2, "label": "المادة الدراسية", "name_list": "InstituteSubject", "required": True},
@@ -954,62 +1063,18 @@ def update_academic_screens():
                 {"icon": "check-circle-outline", "name": "is_active", "index": 12, "label": "نشط"}
             ]
         },
-        {
-            "id": None,
-            "route": "institutes-short-courses",
-            "component": "InstituteShortCoursesView",
-            "path": "institutes-short-courses",
-            "name_ar": "الدورات التدريبية القصيرة",
-            "name_en": "Institute Short Courses",
-            "icon": "certificate-outline",
-            "view": "InstituteShortCourseMVS",
-            "main_model": "InstituteShortCourse",
-            "order": 11,
-            "fields": [
-                {"icon": "abjad-arabic", "name": "name_ar", "index": 1, "label": "اسم الدورة التدريبية (عربي)", "required": True},
-                {"icon": "alpha-e", "name": "name_en", "index": 2, "label": "اسم الدورة التدريبية (إنجليزي)"},
-                {"icon": "barcode", "name": "course_code", "index": 3, "label": "رمز / كود الدورة", "required": True},
-                {"icon": "shape-outline", "name": "field", "index": 4, "label": "المجال المهني / التقني", "name_list": "InstituteField"},
-                {"icon": "domain", "name": "organization", "index": 5, "label": "المعهد / المركز المنظم", "name_list": "Organization"},
-                {"icon": "calendar-range", "name": "duration_weeks", "index": 6, "label": "مدة الدورة (بالأسابيع)"},
-                {"icon": "clock-outline", "name": "total_hours", "index": 7, "label": "إجمالي الساعات التدريبية"},
-                {"icon": "cash", "name": "fee", "index": 8, "label": "رسوم الدورة"},
-                {"icon": "account-group", "name": "target_audience", "index": 9, "label": "الفئة المستهدفة"},
-                {"icon": "clipboard-check-outline", "name": "assessment_method", "index": 10, "label": "آلية التقييم والاجتياز"},
-                {"icon": "certificate", "name": "certificate_type", "index": 11, "label": "نوع الشهادة الممنوحة"},
-                {"icon": "text", "name": "training_content", "index": 12, "label": "المحتوى والمنهج التدريبي"},
-                {"icon": "check-circle-outline", "name": "is_active", "index": 13, "label": "نشط"}
-            ]
-        },
-        {
-            "id": None,
-            "route": "institutes-special-tracks",
-            "component": "InstituteSpecialTracksView",
-            "path": "institutes-special-tracks",
-            "name_ar": "تحقيق المهنة والمسارات الخاصة",
-            "name_en": "Special Tracks & Accreditation",
-            "icon": "shield-check-outline",
-            "view": "InstituteSpecialTrackMVS",
-            "main_model": "InstituteSpecialTrack",
-            "order": 12,
-            "fields": [
-                {"icon": "abjad-arabic", "name": "name_ar", "index": 1, "label": "اسم البرنامج / المسار الخاص (عربي)", "required": True},
-                {"icon": "alpha-e", "name": "name_en", "index": 2, "label": "اسم البرنامج / المسار الخاص (إنجليزي)"},
-                {"icon": "barcode", "name": "track_code", "index": 3, "label": "رمز المسار", "required": True},
-                {"icon": "shape-outline", "name": "field", "index": 4, "label": "المجال المهني / التقني", "name_list": "InstituteField", "required": True},
-                {"icon": "cogs", "name": "education_system", "index": 5, "label": "نظام التعليم (تحقيق مهنة / كفاءة)", "name_list": "InstituteEducationSystem", "required": True},
-                {"icon": "briefcase-outline", "name": "target_profession", "index": 6, "label": "المهنة / التخصص المستهدف", "required": True},
-                {"icon": "certificate-outline", "name": "certificate_name", "index": 7, "label": "مسمى الشهادة الممنوحة"},
-                {"icon": "book-open-outline", "name": "has_theoretical_exam", "index": 8, "label": "يتضمن اختباراً نظرياً"},
-                {"icon": "flask-outline", "name": "has_practical_exam", "index": 9, "label": "يتضمن اختباراً عملياً"},
-                {"icon": "numeric-1-box-outline", "name": "passing_score", "index": 10, "label": "درجة الاجتياز"},
-                {"icon": "text", "name": "admission_prerequisites", "index": 11, "label": "شروط المتقدمين والخبرات السابقة"},
-                {"icon": "clipboard-text-outline", "name": "evaluation_mechanism", "index": 12, "label": "آلية ومعايير الاختبار التقييمي"},
-                {"icon": "note-text", "name": "note", "index": 13, "label": "ملاحظات إضافية"},
-                {"icon": "check-circle-outline", "name": "is_active", "index": 14, "label": "نشط"}
-            ]
-        },
     ]
+
+    # حذف أي شاشات ملغاة من قاعدة البيانات
+    deleted_routes = [
+        'institutes-admission-requirements',
+        'institutes-batches',
+        'institutes-short-courses',
+        'institutes-special-tracks',
+        'learning-outcomes',
+    ]
+    Screen.objects.filter(route__in=deleted_routes).delete()
+
 
     for cfg in inst_screens:
         screen = None
@@ -1087,7 +1152,38 @@ def update_academic_screens():
     if cleaned > 0:
         print(f"\n✨ تم تنظيف البادئات من {cleaned} شاشة.")
 
+    # ═══════════════════════════════════════════════════════════════════════════
+    # 6. حذف شاشات مخرجات التعلم المحذوفة
+    # ═══════════════════════════════════════════════════════════════════════════
+    deleted_count, _ = Screen.objects.filter(route__in=['learning-outcomes', 'reports-alignment-matrix']).delete()
+    sc39 = Screen.objects.filter(id=39).first()
+    if sc39:
+        sc39.delete()
+        deleted_count += 1
+    if deleted_count > 0:
+    # 7. التأكد من وجود أعمدة الجامعات والمعاهد في جدول الطلاب academic_student
+    try:
+        from django.db import connection
+        from academic.models.common.Student import Student
+        student_table = Student._meta.db_table
+        with connection.cursor() as cursor:
+            cursor.execute(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{student_table}'")
+            existing_cols = [r[0] for r in cursor.fetchall()]
+            for field in Student._meta.local_fields:
+                col_name = field.column
+                if col_name not in existing_cols:
+                    db_type = field.db_type(connection)
+                    if db_type:
+                        try:
+                            cursor.execute(f'ALTER TABLE "{student_table}" ADD COLUMN "{col_name}" {db_type} NULL;')
+                            print(f"  ✅ تم إضافة العمود {col_name} إلى جدول {student_table}")
+                        except Exception as e:
+                            print(f"  ⚠️ تنبيه حول العمود {col_name}: {e}")
+    except Exception as e:
+        print(f"  ⚠️ تنبيه حول فحص هيكلية جدول الطلاب: {e}")
+
     print("\n🎉 اكتمل تحديث وضبط شاشات تهيئة المدارس والجامعات بنجاح تام!")
 
 if __name__ == '__main__':
     update_academic_screens()
+

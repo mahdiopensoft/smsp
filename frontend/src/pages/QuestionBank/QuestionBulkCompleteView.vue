@@ -5,57 +5,70 @@
     <!-- Filters Control Bar (Theme Compatible) -->
     <filter-fields label="خيارات التصفية والبحث المتقدم" class="main-card border-0 pa-5 rounded-2xl mb-6">
       <v-row dense class="align-center">
-        <!-- Institution Type Selector (مدارس / جامعات / الكل) -->
-        <v-col cols="12" sm="6" md="3">
+        <!-- Institution Type Selector (مدارس / جامعات / معاهد) -->
+        <v-col cols="12" sm="6" :md="filterInstitutionType ? 3 : 4">
           <v-select
             v-model="filterInstitutionType"
             :items="institutionTypeOptions"
             item-title="text"
             item-value="value"
             class="mb-6"
-            placeholder="نوع المؤسسة التعليمية"
+            label="نوع المؤسسة التعليمية"
+            placeholder="اختر نوع المؤسسة"
             prepend-inner-icon="mdi-domain"
             hide-details
+            clearable
             density="compact"
             variant="outlined"
             @update:model-value="onInstitutionTypeChange"
-          />
+          >
+            <template v-slot:item="{ props, item }">
+              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
+            </template>
+          </v-select>
         </v-col>
 
-        <!-- 🏫 School Filters (المرحلة والصف والمسار) -->
-        <template v-if="filterInstitutionType === 'school' || filterInstitutionType === 'all'">
-          <auto-list v-if="filterInstitutionType === 'school'" v-model="filterStage" name="Stage" placeholder="المرحلة الدراسية" cols="3" :add="false" />
-          <auto-list v-if="filterInstitutionType === 'school'" v-model="filterLevel" name="Level" placeholder="الصف الدراسي" cols="3" :add="false" />
-          <auto-list v-if="filterInstitutionType === 'school'" v-model="filterTrack" name="Track" placeholder="المسار التعليمي" cols="3" :add="false" />
-        </template>
+        <!-- الظهور مشروط باختيار نوع المؤسسة: مدارس أو جامعات أو معاهد -->
+        <template v-if="filterInstitutionType">
+          <!-- 🏫 School Filters (المرحلة والصف والمسار والمادة) -->
+          <template v-if="filterInstitutionType === 'school'">
+            <auto-list v-model="filterStage" name="Stage" label="المرحلة الدراسية" cols="3" :add="false" />
+            <auto-list v-model="filterLevel" name="Level" label="الصف الدراسي" cols="3" :add="false" />
+            <auto-list v-model="filterTrack" name="Track" label="المسار التعليمي" cols="3" :add="false" />
+            <auto-list v-model="filterSubject" name="Subject" label="المادة الدراسية" cols="3" :add="false" />
+          </template>
 
-        <!-- 🎓 University Filters (الكلية، القسم، التخصص، المقرر) -->
-        <template v-if="filterInstitutionType === 'university'">
-          <auto-list v-model="filterCollege" name="College" placeholder="الكلية الجامعية" cols="3" :add="false" @update:model-value="filterDepartment = null" />
-          <auto-list v-model="filterDepartment" name="DepartmentByCollege" :param="filterCollege" placeholder="القسم الأكاديمي" cols="3" :add="false" :disabled="!filterCollege" @update:model-value="filterSpecialization = null" />
-          <auto-list v-model="filterSpecialization" name="Specialization" :param="filterDepartment" placeholder="التخصص والبرنامج" cols="3" :add="false" :disabled="!filterDepartment" />
-          <auto-list v-model="filterSemesterSubject" name="SemesterSubject" :param="filterSpecialization" placeholder="مقرر الفصل الجامعي" cols="3" :add="false" />
-        </template>
+          <!-- 🎓 University Filters (الكلية، القسم، التخصص، المقرر) -->
+          <template v-if="filterInstitutionType === 'university'">
+            <auto-list v-model="filterCollege" name="College" label="الكلية الجامعية" cols="3" :add="false" @update:model-value="filterDepartment = null" />
+            <auto-list v-model="filterDepartment" name="DepartmentByCollege" :param="filterCollege" label="القسم الأكاديمي" cols="3" :add="false" :disabled="!filterCollege" @update:model-value="filterSpecialization = null" />
+            <auto-list v-model="filterSpecialization" name="Specialization" :param="filterDepartment" label="التخصص والبرنامج" cols="3" :add="false" :disabled="!filterDepartment" />
+            <auto-list v-model="filterSemesterSubject" name="SemesterSubject" :param="filterSpecialization" label="مقرر الفصل الجامعي" cols="3" :add="false" />
+          </template>
 
-        <!-- 🏢 Institute Filters (المجال، نظام التعليم، التخصص، الخطة، المادة) -->
-        <template v-if="filterInstitutionType === 'institute'">
-          <auto-list v-model="filterInstituteField" name="InstituteField" placeholder="المجال المهني" cols="3" :add="false" @update:model-value="filterInstituteSpecialization = null" />
-          <auto-list v-model="filterInstituteEducationSystem" name="InstituteEducationSystem" placeholder="نظام التعليم" cols="3" :add="false" @update:model-value="filterInstituteSpecialization = null" />
-          <auto-list v-model="filterInstituteSpecialization" name="InstituteSpecialization" :param="filterInstituteSpecParam" placeholder="التخصص المهني" cols="3" :add="false" :disabled="!filterInstituteField && !filterInstituteEducationSystem" @update:model-value="filterInstituteCurriculum = null" />
-          <auto-list v-model="filterInstituteCurriculum" name="InstituteCurriculum" :param="filterInstituteSpecialization" placeholder="الخطة الدراسية" cols="3" :add="false" :disabled="!filterInstituteSpecialization" @update:model-value="filterInstituteSubject = null" />
-          <auto-list v-model="filterInstituteSubject" name="InstituteSubject" :param="filterInstituteCurriculum" placeholder="المادة التدريبية" cols="3" :add="false" :disabled="!filterInstituteCurriculum" />
-        </template>
+          <!-- 🏢 Institute Filters (المجال، نظام التعليم، التخصص، الخطة، المادة) -->
+          <template v-if="filterInstitutionType === 'institute'">
+            <auto-list v-model="filterInstituteField" name="InstituteField" label="المجال المهني" cols="3" :add="false" @update:model-value="filterInstituteSpecialization = null" />
+            <auto-list v-model="filterInstituteEducationSystem" name="InstituteEducationSystem" label="نظام التعليم" cols="3" :add="false" @update:model-value="filterInstituteSpecialization = null" />
+            <auto-list v-model="filterInstituteSpecialization" name="InstituteSpecialization" :param="filterInstituteSpecParam" label="التخصص المهني" cols="3" :add="false" :disabled="!filterInstituteField && !filterInstituteEducationSystem" @update:model-value="filterInstituteCurriculum = null" />
+            <auto-list v-model="filterInstituteCurriculum" name="InstituteCurriculum" :param="filterInstituteSpecialization" label="الخطة الدراسية" cols="3" :add="false" :disabled="!filterInstituteSpecialization" @update:model-value="filterInstituteSubject = null" />
+            <auto-list v-model="filterInstituteSubject" name="InstituteSubject" :param="filterInstituteCurriculum" label="المادة التدريبية" cols="3" :add="false" :disabled="!filterInstituteCurriculum" />
+          </template>
 
-        <!-- General Subject & Unit -->
-        <auto-list v-if="filterInstitutionType !== 'university' && filterInstitutionType !== 'institute'" v-model="filterSubject" name="Subject" placeholder="المادة الدراسية" cols="3" :add="false" />
-        <auto-list v-model="filterUnit" name="UnitBySubject"
-          :param="filterInstitutionType === 'university' ? { semester_subject: filterSemesterSubject } : (filterInstitutionType === 'institute' ? { institute_subject: filterInstituteSubject } : filterSubject)"
-          :placeholder="filterInstitutionType === 'university' ? 'مفردة / موضوع المقرر' : (filterInstitutionType === 'institute' ? 'الوحدة التدريبية' : 'الوحدة الدراسية')"
-          cols="3" :add="false"
-          :disabled="filterInstitutionType === 'university' ? !filterSemesterSubject : (filterInstitutionType === 'institute' ? !filterInstituteSubject : !filterSubject)" />
+          <!-- Unit Filter -->
+          <auto-list
+            v-model="filterUnit"
+            name="UnitBySubject"
+            :param="filterUnitParam"
+            :label="filterInstitutionType === 'university' ? 'مفردة / موضوع المقرر' : (filterInstitutionType === 'institute' ? 'الوحدة التدريبية' : 'الوحدة الدراسية')"
+            cols="3"
+            :add="false"
+            :disabled="filterInstitutionType === 'university' ? !filterSemesterSubject : (filterInstitutionType === 'institute' ? !filterInstituteSubject : !filterSubject)"
+          />
+        </template>
 
         <!-- Difficulty & Bloom & Readiness -->
-        <auto-list v-model="filterDifficulty" name="Difficulty" placeholder="مستوى الصعوبة" cols="3" :add="false" />
+        <auto-list v-model="filterDifficulty" name="Difficulty" label="مستوى الصعوبة" cols="3" :add="false" />
 
         <!-- Bloom Level -->
         <v-col cols="12" sm="6" md="3">
@@ -276,12 +289,6 @@
             </v-chip>
           </template>
 
-          <!-- Learning Outcome -->
-          <template v-else-if="key === 'learningOutcome'">
-            <span class="text-caption text-medium-emphasis">
-              {{ item.learningOutcome ? `مخرج #${item.learningOutcome}` : 'غير مرتبط' }}
-            </span>
-          </template>
 
           <!-- Readiness Status -->
           <template v-else-if="key === 'readiness'">
@@ -359,7 +366,7 @@
           <auto-list
             v-model="batchForm.stageId"
             name="Stage"
-            placeholder="اختر المرحلة الدراسية"
+            label="اختر المرحلة الدراسية"
             cols="12"
             :add="false"
             @update:model-value="() => { batchForm.classTrackId = null; batchForm.subjectId = null; }"
@@ -368,7 +375,7 @@
             v-model="batchForm.classTrackId"
             name="ClassTrackByStage"
             :param="batchForm.stageId"
-            placeholder="اختر الصف والمسار"
+            label="اختر الصف والمسار"
             cols="12"
             :add="false"
             :disabled="!batchForm.stageId"
@@ -378,7 +385,7 @@
             v-model="batchForm.subjectId"
             name="Subject"
             :param="batchForm.classTrackId || batchForm.stageId"
-            placeholder="اختر المادة الدراسية"
+            label="اختر المادة الدراسية"
             cols="12"
             :add="false"
             :disabled="!batchForm.classTrackId && !batchForm.stageId"
@@ -391,7 +398,7 @@
           <auto-list
             v-model="batchForm.collegeId"
             name="College"
-            placeholder="الكلية الجامعية"
+            label="الكلية الجامعية"
             cols="12"
             :add="false"
             @update:model-value="batchForm.departmentId = null"
@@ -400,7 +407,7 @@
             v-model="batchForm.departmentId"
             name="DepartmentByCollege"
             :param="batchForm.collegeId"
-            placeholder="القسم الأكاديمي"
+            label="القسم الأكاديمي"
             cols="12"
             :add="false"
             :disabled="!batchForm.collegeId"
@@ -410,7 +417,7 @@
             v-model="batchForm.specializationId"
             name="Specialization"
             :param="batchForm.departmentId"
-            placeholder="التخصص والبرنامج"
+            label="التخصص والبرنامج"
             cols="12"
             :add="false"
             :disabled="!batchForm.departmentId"
@@ -420,7 +427,7 @@
             v-model="batchForm.semesterSubjectId"
             name="SemesterSubject"
             :param="batchForm.specializationId"
-            placeholder="مقرر الفصل الجامعي"
+            label="مقرر الفصل الجامعي"
             cols="12"
             :add="false"
             @update:model-value="onSemesterSubjectChange"
@@ -432,7 +439,7 @@
           <auto-list
             v-model="batchForm.instituteFieldId"
             name="InstituteField"
-            placeholder="اختر المجال المهني"
+            label="اختر المجال المهني"
             cols="12"
             :add="false"
             @update:model-value="batchForm.instituteSpecializationId = null"
@@ -440,7 +447,7 @@
           <auto-list
             v-model="batchForm.instituteEducationSystemId"
             name="InstituteEducationSystem"
-            placeholder="اختر نظام التعليم"
+            label="اختر نظام التعليم"
             cols="12"
             :add="false"
             @update:model-value="batchForm.instituteSpecializationId = null"
@@ -449,7 +456,7 @@
             v-model="batchForm.instituteSpecializationId"
             name="InstituteSpecialization"
             :param="batchInstituteSpecParam"
-            placeholder="اختر التخصص المهني"
+            label="اختر التخصص المهني"
             cols="12"
             :add="false"
             :disabled="!batchForm.instituteFieldId && !batchForm.instituteEducationSystemId"
@@ -459,7 +466,7 @@
             v-model="batchForm.instituteCurriculumId"
             name="InstituteCurriculum"
             :param="batchForm.instituteSpecializationId"
-            placeholder="اختر الخطة الدراسية"
+            label="اختر الخطة الدراسية"
             cols="12"
             :add="false"
             :disabled="!batchForm.instituteSpecializationId"
@@ -469,7 +476,7 @@
             v-model="batchForm.instituteSubjectId"
             name="InstituteSubject"
             :param="batchForm.instituteCurriculumId"
-            placeholder="اختر المادة التدريبية"
+            label="اختر المادة التدريبية"
             cols="12"
             :add="false"
             :disabled="!batchForm.instituteCurriculumId"
@@ -477,12 +484,12 @@
           />
         </template>
 
-        <!-- Common: Unit, Lesson, Learning Outcome -->
+        <!-- Common: Unit, Lesson -->
         <auto-list
           v-model="batchForm.unitId"
           name="UnitBySubject"
-          :param="batchForm.institution_type === 'university' ? { semester_subject: batchForm.semesterSubjectId } : (batchForm.institution_type === 'institute' ? { institute_subject: batchForm.instituteSubjectId } : { subject: batchForm.subjectId })"
-          :placeholder="batchForm.institution_type === 'university' ? 'مفردة / موضوع المقرر' : (batchForm.institution_type === 'institute' ? 'الوحدة التدريبية' : 'الوحدة الدراسية')"
+          :param="batchUnitParam"
+          :label="batchForm.institution_type === 'university' ? 'مفردة / موضوع المقرر' : (batchForm.institution_type === 'institute' ? 'الوحدة التدريبية' : 'الوحدة الدراسية')"
           cols="12"
           :add="false"
           :disabled="batchForm.institution_type === 'university' ? !batchForm.semesterSubjectId : (batchForm.institution_type === 'institute' ? !batchForm.instituteSubjectId : !batchForm.subjectId)"
@@ -492,16 +499,7 @@
           v-model="batchForm.lessonId"
           name="LessonByUnit"
           :param="batchForm.unitId"
-          :placeholder="batchForm.institution_type === 'university' ? 'المحاضرة / الدرس الأكاديمي *' : (batchForm.institution_type === 'institute' ? 'الدرس / التمرين العملي *' : 'الدرس المدرسي *')"
-          cols="12"
-          :add="false"
-          :disabled="!batchForm.unitId"
-        />
-        <auto-list
-          v-model="batchForm.learningOutcomeId"
-          name="LearningOutcome"
-          :param="batchForm.unitId"
-          :placeholder="batchForm.institution_type === 'university' ? 'مخرج تعلم المقرر (CLO)' : (batchForm.institution_type === 'institute' ? 'مخرج التدريب المستهدف (اختياري)' : 'مخرج التعلم المستهدف (اختياري)')"
+          :label="batchForm.institution_type === 'university' ? 'المحاضرة / الدرس الأكاديمي *' : (batchForm.institution_type === 'institute' ? 'الدرس / التمرين العملي *' : 'الدرس المدرسي *')"
           cols="12"
           :add="false"
           :disabled="!batchForm.unitId"
@@ -637,12 +635,11 @@ export default {
       selectedQuestions: [],
 
       // Filters
-      filterInstitutionType: 'all',
+      filterInstitutionType: null,
       institutionTypeOptions: [
-        { text: "الكل (مدارس، جامعات، معاهد)", value: "all" },
-        { text: "🏫 مدارس فقط", value: "school" },
-        { text: "🎓 جامعات فقط", value: "university" },
-        { text: "🏢 معاهد وتدريب مهني فقط", value: "institute" },
+        { text: "تعليم مدرسي", value: "school", icon: "mdi-school" },
+        { text: "تعليم جامعي", value: "university", icon: "mdi-domain" },
+        { text: "معاهد وتدريب مهني", value: "institute", icon: "mdi-tools" },
       ],
       // Institute Filters
       filterInstituteField: null,
@@ -709,7 +706,6 @@ export default {
         { title: "المادة والدرس", key: "curriculum", sortable: true },
         { title: "مستوى بلوم", key: "bloomLevel", sortable: true, align: "center" },
         { title: "الصعوبة", key: "difficulty", sortable: true, align: "center" },
-        { title: "مخرج التعلم", key: "learningOutcome", sortable: false, align: "center" },
         { title: "حالة الاكتمال", key: "readiness", sortable: true, align: "center" },
         { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "100px" },
       ],
@@ -735,8 +731,28 @@ export default {
       return Object.keys(p).length ? p : null
     },
 
+    filterUnitParam() {
+      if (this.filterInstitutionType === 'university') {
+        return this.filterSemesterSubject ? { semester_subject: this.filterSemesterSubject } : null
+      }
+      if (this.filterInstitutionType === 'institute') {
+        return this.filterInstituteSubject ? { institute_subject: this.filterInstituteSubject } : null
+      }
+      return this.filterSubject || null
+    },
+
+    batchUnitParam() {
+      if (this.batchForm.institution_type === 'university') {
+        return this.batchForm.semesterSubjectId ? { semester_subject: this.batchForm.semesterSubjectId } : null
+      }
+      if (this.batchForm.institution_type === 'institute') {
+        return this.batchForm.instituteSubjectId ? { institute_subject: this.batchForm.instituteSubjectId } : null
+      }
+      return this.batchForm.subjectId ? { subject: this.batchForm.subjectId } : null
+    },
+
     getAssignDialogTitle() {
-      if (this.assignType === 'curriculum') return 'تعيين المادة والوحدة والدرس ومخرج التعلم'
+      if (this.assignType === 'curriculum') return 'تعيين المادة والوحدة والدرس'
       if (this.assignType === 'bloom') return 'تعيين مستوى بلوم المعرفي'
       if (this.assignType === 'difficulty') return 'تعيين مستوى الصعوبة التقديرية'
       return 'تعيين جماعي'
@@ -749,7 +765,7 @@ export default {
       try {
         const queryParams = {
           ...params,
-          institution_type: (this.filterInstitutionType && this.filterInstitutionType !== 'all') ? this.filterInstitutionType : undefined,
+          institution_type: this.filterInstitutionType || undefined,
           college: this.filterCollege || undefined,
           department: this.filterDepartment || undefined,
           specialization: (this.filterInstitutionType === 'institute' ? this.filterInstituteSpecialization : this.filterSpecialization) || undefined,
@@ -926,7 +942,6 @@ export default {
         if (this.assignType === 'curriculum') {
           payload.institution_type = this.batchForm.institution_type
           if (this.batchForm.lessonId) payload.lesson_id = this.batchForm.lessonId
-          if (this.batchForm.learningOutcomeId) payload.learning_outcome_id = this.batchForm.learningOutcomeId
         }
         if (this.assignType === 'bloom') {
           payload.bloom_level = this.batchForm.bloomLevel
@@ -961,7 +976,7 @@ export default {
     },
 
     resetFilters() {
-      this.filterInstitutionType = 'all'
+      this.filterInstitutionType = null
       this.filterCollege = null
       this.filterDepartment = null
       this.filterSpecialization = null

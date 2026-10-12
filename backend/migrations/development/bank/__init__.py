@@ -1,1 +1,1 @@
-# OpenSoftCore migrations package for development
+# migrations init

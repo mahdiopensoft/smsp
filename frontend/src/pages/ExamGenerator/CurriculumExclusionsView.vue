@@ -178,7 +178,7 @@
             <auto-list
               v-model="selectedInstituteSpecializationId"
               name="InstituteSpecialization"
-              :param="{ field: selectedInstituteFieldId, education_system: selectedInstituteEducationSystemId }"
+              :param="selectedInstituteSpecParam"
               placeholder="التخصص المهني"
               cols="3"
               :add="false"
@@ -553,6 +553,13 @@ const loadingList = ref(false)
 const exclusionsList = ref([])
 const searchExclusionsQuery = ref('')
 const filterListInstType = ref('all')
+
+const selectedInstituteSpecParam = computed(() => {
+  const p = {}
+  if (selectedInstituteFieldId.value) p.field = selectedInstituteFieldId.value
+  if (selectedInstituteEducationSystemId.value) p.education_system = selectedInstituteEducationSystemId.value
+  return Object.keys(p).length ? p : null
+})
 
 const isSubjectSelected = computed(() => {
   if (institutionType.value === 'school') return Boolean(selectedSubjectId.value)

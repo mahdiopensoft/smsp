@@ -7,91 +7,113 @@
     <!-- Filters Control Bar (Theme Compatible) -->
     <filter-fields label="خيارات التصفية المتقدمة" class="main-card border-0 pa-5 rounded-2xl mb-8">
       <v-row dense class="align-center">
-        <!-- Institution Type Selector (مدارس / جامعات / الكل) -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select v-model="filterInstitutionType" :items="institutionTypeOptions" item-title="text" item-value="value"
-            class="mb-6" placeholder="نوع المؤسسة التعليمية" prepend-inner-icon="mdi-domain" hide-details
-            density="compact" variant="outlined" @update:model-value="onInstitutionTypeChange" />
+        <!-- Institution Type Selector (مدارس / جامعات / معاهد) -->
+        <v-col cols="12" sm="6" :md="filterInstitutionType ? 3 : 4">
+          <v-select
+            v-model="filterInstitutionType"
+            :items="institutionTypeOptions"
+            item-title="text"
+            item-value="value"
+            class="mb-6"
+            label="نوع المؤسسة التعليمية"
+            placeholder="اختر نوع المؤسسة"
+            prepend-inner-icon="mdi-domain"
+            hide-details
+            clearable
+            density="compact"
+            variant="outlined"
+            @update:model-value="onInstitutionTypeChange"
+          >
+            <template v-slot:item="{ props, item }">
+              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
+            </template>
+          </v-select>
         </v-col>
 
-        <!-- 🏫 School Filters (المرحلة والصف والمسار) -->
-        <template v-if="filterInstitutionType === 'school' || filterInstitutionType === 'all'">
-          <auto-list v-if="filterInstitutionType === 'school'" v-model="filterStage" name="Stage"
-            placeholder="المرحلة الدراسية" cols="3" sm="6" md="3" :add="false" @update:model-value="onStageChange" />
-          <auto-list v-if="filterInstitutionType === 'school'" v-model="filterClassTrack" name="ClassTrackByStage"
-            :param="filterStage" placeholder="الصف والمسار المدرسي" cols="3" sm="6" md="3" :add="false"
-            :disabled="!filterStage" @update:model-value="onClassTrackChange" />
+        <!-- الظهور مشروط باختيار نوع المؤسسة: مدارس أو جامعات أو معاهد -->
+        <template v-if="filterInstitutionType">
+          <!-- 🏫 School Filters (المرحلة، الصف والمسار، المادة، الوحدة) -->
+          <template v-if="filterInstitutionType === 'school'">
+            <auto-list v-model="filterStage" name="Stage"
+              label="المرحلة الدراسية" cols="3" sm="6" md="3" :add="false" @update:model-value="onStageChange" />
+            <auto-list v-model="filterClassTrack" name="ClassTrackByStage"
+              :param="filterStage" label="الصف والمسار المدرسي" cols="3" sm="6" md="3" :add="false"
+              :disabled="!filterStage" @update:model-value="onClassTrackChange" />
+            <auto-list v-model="filterSubject" name="Subject" :param="subjectFilterParam" label="المادة الدراسية"
+              cols="3" sm="6" md="3" :add="false" @update:model-value="onSubjectChange" />
+            <auto-list v-model="filterUnit" name="UnitBySubject"
+              :param="unitFilterParam" label="الوحدة الدراسية"
+              cols="3" sm="6" md="3" :add="false"
+              :disabled="!filterSubject" />
+          </template>
+
+          <!-- 🎓 University Filters (الكلية، القسم، التخصص، المقرر، مفردة المقرر) -->
+          <template v-if="filterInstitutionType === 'university'">
+            <auto-list v-model="filterCollege" name="College" label="الكلية الجامعية" cols="3" sm="6" md="3"
+              :add="false" @update:model-value="onCollegeChange" />
+            <auto-list v-model="filterDepartment" name="DepartmentByCollege" :param="filterCollege"
+              label="القسم الأكاديمي" cols="3" sm="6" md="3" :add="false" :disabled="!filterCollege"
+              @update:model-value="onDepartmentChange" />
+            <auto-list v-model="filterSpecialization" name="Specialization" :param="filterDepartment"
+              label="التخصص والبرنامج" cols="3" sm="6" md="3" :add="false" :disabled="!filterDepartment"
+              @update:model-value="onSpecializationChange" />
+            <auto-list v-model="filterSemesterSubject" name="SemesterSubject" :param="filterSpecialization"
+              label="مقرر الفصل الجامعي" cols="3" sm="6" md="3" :add="false"
+              @update:model-value="onSemesterSubjectChange" />
+            <auto-list v-model="filterUnit" name="UnitBySubject"
+              :param="unitFilterParam" label="مفردة / موضوع المقرر"
+              cols="3" sm="6" md="3" :add="false"
+              :disabled="!filterSemesterSubject" />
+          </template>
+
+          <!-- 🏢 Institute Filters (المجال المهني، نظام التعليم، التخصص، المادة، الوحدة) -->
+          <template v-if="filterInstitutionType === 'institute'">
+            <auto-list v-model="filterInstituteField" name="InstituteField" label="المجال المهني / التقني"
+              cols="3" sm="6" md="3" :add="false" @update:model-value="onInstituteFieldChange" />
+            <auto-list v-model="filterInstituteEducationSystem" name="InstituteEducationSystem"
+              :param="filterInstituteField" label="نظام التعليم والتدريب" cols="3" sm="6" md="3" :add="false"
+              :disabled="!filterInstituteField" @update:model-value="onInstituteEducationSystemChange" />
+            <auto-list v-model="filterInstituteSpecialization" name="InstituteSpecialization"
+              :param="instituteSpecParam"
+              label="التخصص المهني" cols="3" sm="6" md="3" :add="false"
+              :disabled="!filterInstituteEducationSystem" @update:model-value="onInstituteSpecializationChange" />
+            <auto-list v-model="filterInstituteSubject" name="InstituteSubject"
+              :param="instituteSubjectParam" label="المادة الدراسية للمعهد" cols="3" sm="6" md="3"
+              :add="false" @update:model-value="onInstituteSubjectChange" />
+            <auto-list v-model="filterUnit" name="UnitBySubject"
+              :param="unitFilterParam" label="الوحدة / التدريب العملي"
+              cols="3" sm="6" md="3" :add="false"
+              :disabled="!filterInstituteSubject" />
+          </template>
+
+          <!-- Status -->
+          <v-col cols="3" sm="6" md="3">
+            <v-select v-model="filterStatus" :items="statusOptions" item-title="text" item-value="value" class="mb-6"
+              placeholder="حالة السؤال" prepend-inner-icon="mdi-flag-outline" hide-details clearable density="compact"
+              variant="outlined" />
+          </v-col>
+
+          <!-- Difficulty & Question Type -->
+          <auto-list v-model="filterDifficulty" name="Difficulty" label="مستوى الصعوبة" cols="3" sm="6" md="3"
+            :add="false" />
+          <auto-list v-model="filterType" name="QuestionType" label="نوع السؤال" cols="3" sm="6" md="3"
+            :add="false" />
+
+          <!-- Bloom Level -->
+          <v-col cols="3" sm="6" md="3">
+            <v-select v-model="filterBloom" :items="bloomOptions" item-title="title" item-value="value" class="mb-6"
+              placeholder="مستوى بلوم المعرفي" prepend-inner-icon="mdi-brain" hide-details clearable density="compact"
+              variant="outlined" />
+          </v-col>
+
+          <!-- Filter Actions -->
+          <v-col cols="3" sm="12" md="3" class="d-flex align-center gap-2">
+            <custom-btn type="show" label="تصفية" color="primary" class="font-weight-bold flex-grow-1 mb-6"
+              :click="applyFilters" />
+            <custom-btn type="cancel_filter" :click="resetFilters" variant="tonal" color="error" label="تفريغ"
+              class="font-weight-bold mb-6" />
+          </v-col>
         </template>
-
-        <!-- 🎓 University Filters (الكلية، القسم، التخصص، المقرر) -->
-        <template v-if="filterInstitutionType === 'university'">
-          <auto-list v-model="filterCollege" name="College" placeholder="الكلية الجامعية" cols="3" sm="6" md="3"
-            :add="false" @update:model-value="onCollegeChange" />
-          <auto-list v-model="filterDepartment" name="DepartmentByCollege" :param="filterCollege"
-            placeholder="القسم الأكاديمي" cols="3" sm="6" md="3" :add="false" :disabled="!filterCollege"
-            @update:model-value="onDepartmentChange" />
-          <auto-list v-model="filterSpecialization" name="Specialization" :param="filterDepartment"
-            placeholder="التخصص والبرنامج" cols="3" sm="6" md="3" :add="false" :disabled="!filterDepartment"
-            @update:model-value="onSpecializationChange" />
-          <auto-list v-model="filterSemesterSubject" name="SemesterSubject" :param="filterSpecialization"
-            placeholder="مقرر الفصل الجامعي" cols="3" sm="6" md="3" :add="false"
-            @update:model-value="onSemesterSubjectChange" />
-        </template>
-
-        <!-- 🏢 Institute Filters (المجال المهني، نظام التعليم، التخصص، المادة) -->
-        <template v-if="filterInstitutionType === 'institute'">
-          <auto-list v-model="filterInstituteField" name="InstituteField" placeholder="المجال المهني / التقني"
-            cols="3" sm="6" md="3" :add="false" @update:model-value="onInstituteFieldChange" />
-          <auto-list v-model="filterInstituteEducationSystem" name="InstituteEducationSystem"
-            :param="filterInstituteField" placeholder="نظام التعليم والتدريب" cols="3" sm="6" md="3" :add="false"
-            :disabled="!filterInstituteField" @update:model-value="onInstituteEducationSystemChange" />
-          <auto-list v-model="filterInstituteSpecialization" name="InstituteSpecialization"
-            :param="{ field: filterInstituteField, education_system: filterInstituteEducationSystem }"
-            placeholder="التخصص المهني" cols="3" sm="6" md="3" :add="false"
-            :disabled="!filterInstituteEducationSystem" @update:model-value="onInstituteSpecializationChange" />
-          <auto-list v-model="filterInstituteSubject" name="InstituteSubject"
-            :param="{ field: filterInstituteField }" placeholder="المادة الدراسية للمعهد" cols="3" sm="6" md="3"
-            :add="false" @update:model-value="onInstituteSubjectChange" />
-        </template>
-
-        <!-- General Subject (المادة للمدارس أو النمط العام) -->
-        <auto-list v-if="filterInstitutionType !== 'university' && filterInstitutionType !== 'institute'" v-model="filterSubject" name="Subject" :param="subjectFilterParam" placeholder="المادة الدراسية"
-          cols="3" sm="6" md="3" :add="false" @update:model-value="onSubjectChange" />
-
-        <!-- Unit / Topic (الوحدة الدراسية للمدارس / مفردة المقرر للجامعات / الوحدة للمعاهد) -->
-        <auto-list v-model="filterUnit" name="UnitBySubject"
-          :param="filterInstitutionType === 'university' ? { semester_subject: filterSemesterSubject } : (filterInstitutionType === 'institute' ? { subject: filterInstituteSubject } : filterSubject)"
-          :placeholder="filterInstitutionType === 'university' ? 'مفردة / موضوع المقرر' : (filterInstitutionType === 'institute' ? 'الوحدة / التدريب العملي' : 'الوحدة الدراسية')"
-          cols="3" sm="6" md="3" :add="false"
-          :disabled="filterInstitutionType === 'university' ? !filterSemesterSubject : (filterInstitutionType === 'institute' ? !filterInstituteSubject : !filterSubject)" />
-
-        <!-- Status -->
-        <v-col cols="3" sm="6" md="3">
-          <v-select v-model="filterStatus" :items="statusOptions" item-title="text" item-value="value" class="mb-6"
-            placeholder="حالة السؤال" prepend-inner-icon="mdi-flag-outline" hide-details clearable density="compact"
-            variant="outlined" />
-        </v-col>
-
-        <!-- Difficulty & Question Type -->
-        <auto-list v-model="filterDifficulty" name="Difficulty" placeholder="مستوى الصعوبة" cols="3" sm="6" md="3"
-          :add="false" />
-        <auto-list v-model="filterType" name="QuestionType" placeholder="نوع السؤال" cols="3" sm="6" md="3"
-          :add="false" />
-
-        <!-- Bloom Level -->
-        <v-col cols="3" sm="6" md="3">
-          <v-select v-model="filterBloom" :items="bloomOptions" item-title="title" item-value="value" class="mb-6"
-            placeholder="مستوى بلوم المعرفي" prepend-inner-icon="mdi-brain" hide-details clearable density="compact"
-            variant="outlined" />
-        </v-col>
-
-        <!-- Filter Actions -->
-        <v-col cols="3" sm="12" md="3" class="d-flex align-center gap-2">
-          <custom-btn type="show" label="تصفية" color="primary" class="font-weight-bold flex-grow-1 mb-6"
-            :click="applyFilters" />
-          <custom-btn type="cancel_filter" :click="resetFilters" variant="tonal" color="error" label="تفريغ"
-            class="font-weight-bold mb-6" />
-        </v-col>
       </v-row>
     </filter-fields>
 
@@ -416,12 +438,11 @@ export default {
 
       // Filters
       search: "",
-      filterInstitutionType: "all",
+      filterInstitutionType: null,
       institutionTypeOptions: [
-        { text: "الكل (مدارس، جامعات، معاهد)", value: "all" },
-        { text: "🏫 مدارس فقط", value: "school" },
-        { text: "🎓 جامعات فقط", value: "university" },
-        { text: "🏢 معاهد وتدريب مهني فقط", value: "institute" },
+        { text: "تعليم مدرسي", value: "school", icon: "mdi-school" },
+        { text: "تعليم جامعي", value: "university", icon: "mdi-domain" },
+        { text: "معاهد وتدريب مهني", value: "institute", icon: "mdi-tools" },
       ],
       // Institute Filters
       filterInstituteField: null,
@@ -498,7 +519,7 @@ export default {
   computed: {
     subjectFilterParam() {
       const p = {};
-      if (this.filterInstitutionType && this.filterInstitutionType !== "all") {
+      if (this.filterInstitutionType) {
         p.institution_type = this.filterInstitutionType;
       }
       if (this.filterClassTrack) {
@@ -516,6 +537,28 @@ export default {
         p.college = this.filterCollege;
       }
       return Object.keys(p).length > 0 ? p : null;
+    },
+
+    instituteSpecParam() {
+      const p = {};
+      if (this.filterInstituteField) p.field = this.filterInstituteField;
+      if (this.filterInstituteEducationSystem) p.education_system = this.filterInstituteEducationSystem;
+      return Object.keys(p).length ? p : null;
+    },
+
+    instituteSubjectParam() {
+      if (this.filterInstituteField) return { field: this.filterInstituteField };
+      return null;
+    },
+
+    unitFilterParam() {
+      if (this.filterInstitutionType === 'university') {
+        return this.filterSemesterSubject ? { semester_subject: this.filterSemesterSubject } : null;
+      }
+      if (this.filterInstitutionType === 'institute') {
+        return this.filterInstituteSubject ? { subject: this.filterInstituteSubject } : null;
+      }
+      return this.filterSubject || null;
     },
   },
 
@@ -558,7 +601,7 @@ export default {
 
         // Map local filters to backend API fields
         let filters = [];
-        if (this.filterInstitutionType && this.filterInstitutionType !== "all") {
+        if (this.filterInstitutionType) {
           filters.push({ field: "institution_type", value: this.filterInstitutionType });
         }
         if (this.filterStatus) filters.push({ field: "status", value: this.filterStatus });
@@ -701,7 +744,7 @@ export default {
 
     resetFilters() {
       this.search = "";
-      this.filterInstitutionType = "all";
+      this.filterInstitutionType = null;
       this.filterSubject = null;
       this.filterUnit = null;
       this.filterStage = null;
@@ -714,7 +757,6 @@ export default {
       this.filterInstituteEducationSystem = null;
       this.filterInstituteSpecialization = null;
       this.filterInstituteSubject = null;
-      this.filterSemesterSubject = null;
       this.filterDifficulty = null;
       this.filterStatus = null;
       this.filterType = null;
@@ -831,15 +873,7 @@ export default {
     },
 
 
-    // === FILTERS ===
-    resetFilters() {
-      this.search = "";
-      this.filterSubject = null;
-      this.filterDifficulty = null;
-      this.filterStatus = null;
-      this.filterType = null;
-      this.currentPage = 1;
-    },
+
 
     // === HELPERS ===
     stripHtml(html) {

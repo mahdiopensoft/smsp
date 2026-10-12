@@ -145,10 +145,7 @@ __all__ = [
     'InstituteLevelSerializer',
     'InstituteSemesterSerializer',
     'InstituteCurriculumSerializer',
-    'InstituteBatchSerializer',
     'InstituteSubjectSerializer',
     'InstituteCurriculumSubjectSerializer',
-    'InstituteShortCourseSerializer',
-    'InstituteAdmissionRequirementSerializer',
-    'InstituteSpecialTrackSerializer',
 ]
+

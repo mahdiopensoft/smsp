@@ -55,15 +55,16 @@
 
       <!-- Classification Dropdowns Row -->
       <v-row dense class="align-center">
-        <!-- Institution Type Select (مدرسي / جامعي) -->
+        <!-- Institution Type Select (قائمة منسدلة موحدة: مدرسي / جامعي / معاهد) -->
         <v-col cols="12" md="3" lg="3" class="mb-5">
           <v-select
             v-model="context.institution_type"
             :items="institutionTypes"
             item-title="text"
             item-value="value"
-            label="نوع النظام التعليمي"
-            prepend-inner-icon="mdi-school-outline"
+            label="نوع المؤسسة التعليمية"
+            placeholder="اختر نوع المؤسسة"
+            prepend-inner-icon="mdi-domain"
             variant="outlined"
             density="compact"
             color="primary"
@@ -81,7 +82,7 @@
           <auto-list
             v-model="context.stageId"
             name="Stage"
-            placeholder="المرحلة الدراسية"
+            label="المرحلة الدراسية"
             cols="3"
             :add="false"
             @update:model-value="onStageChange"
@@ -90,7 +91,7 @@
             v-model="context.classTrackId"
             name="ClassTrackByStage"
             :param="context.stageId"
-            placeholder="الصف والمسار"
+            label="الصف والمسار"
             cols="3"
             :add="false"
             :disabled="!context.stageId"
@@ -100,7 +101,7 @@
             v-model="context.subjectId"
             name="Subject"
             :param="context.classTrackId || context.stageId"
-            placeholder="اختر المادة"
+            label="اختر المادة"
             cols="3"
             :add="false"
             :disabled="!context.classTrackId && !context.stageId"
@@ -109,7 +110,7 @@
           <auto-list
             v-model="context.semesterId"
             name="Semester"
-            placeholder="الفصل الدراسي"
+            label="الفصل الدراسي"
             cols="3"
             :add="false"
           />
@@ -120,7 +121,7 @@
           <auto-list
             v-model="context.collegeId"
             name="College"
-            placeholder="الكلية الجامعية"
+            label="الكلية الجامعية"
             cols="3"
             :add="false"
             @update:model-value="onCollegeChange"
@@ -129,7 +130,7 @@
             v-model="context.departmentId"
             name="DepartmentByCollege"
             :param="context.collegeId"
-            placeholder="القسم الأكاديمي"
+            label="القسم الأكاديمي"
             cols="3"
             :add="false"
             :disabled="!context.collegeId"
@@ -139,7 +140,7 @@
             v-model="context.specializationId"
             name="Specialization"
             :param="context.departmentId"
-            placeholder="التخصص والبرنامج"
+            label="التخصص والبرنامج"
             cols="3"
             :add="false"
             :disabled="!context.departmentId"
@@ -149,7 +150,7 @@
             v-model="context.semesterSubjectId"
             name="SemesterSubject"
             :param="context.specializationId"
-            placeholder="مقرر الفصل الجامعي"
+            label="مقرر الفصل الجامعي"
             cols="3"
             :add="false"
             @update:model-value="onSemesterSubjectChange"
@@ -161,7 +162,7 @@
           <auto-list
             v-model="context.instituteFieldId"
             name="InstituteField"
-            placeholder="المجال المهني / التقني"
+            label="المجال المهني / التقني"
             cols="3"
             :add="false"
             @update:model-value="onInstituteFieldChange"
@@ -170,7 +171,7 @@
             v-model="context.instituteEducationSystemId"
             name="InstituteEducationSystem"
             :param="context.instituteFieldId"
-            placeholder="نظام التعليم والتدريب"
+            label="نظام التعليم والتدريب"
             cols="3"
             :add="false"
             :disabled="!context.instituteFieldId"
@@ -179,8 +180,8 @@
           <auto-list
             v-model="context.instituteSpecializationId"
             name="InstituteSpecialization"
-            :param="{ field: context.instituteFieldId, education_system: context.instituteEducationSystemId }"
-            placeholder="التخصص المهني"
+            :param="contextInstituteSpecParam"
+            label="التخصص المهني"
             cols="3"
             :add="false"
             :disabled="!context.instituteEducationSystemId"
@@ -190,7 +191,7 @@
             v-model="context.instituteCurriculumId"
             name="InstituteCurriculum"
             :param="context.instituteSpecializationId"
-            placeholder="الخطة الدراسية"
+            label="الخطة الدراسية"
             cols="3"
             :add="false"
             :disabled="!context.instituteSpecializationId"
@@ -198,20 +199,20 @@
           <auto-list
             v-model="context.instituteSubjectId"
             name="InstituteSubject"
-            :param="{ field: context.instituteFieldId }"
-            placeholder="المادة الدراسية للمعهد"
+            :param="contextInstituteSubjectParam"
+            label="المادة الدراسية للمعهد"
             cols="3"
             :add="false"
             @update:model-value="onInstituteSubjectChange"
           />
         </template>
 
-        <!-- Common: Unit, Lesson, Learning Outcome -->
+        <!-- Common: Unit, Lesson -->
         <auto-list
           v-model="context.unitId"
           name="UnitBySubject"
-          :param="context.institution_type === 'university' ? { semester_subject: context.semesterSubjectId } : (context.institution_type === 'institute' ? { subject: context.instituteSubjectId } : { subject: context.subjectId })"
-          :placeholder="context.institution_type === 'university' ? 'مفردة / موضوع المقرر' : (context.institution_type === 'institute' ? 'الوحدة / التدريب العملي' : 'الوحدة الدراسية')"
+          :param="contextUnitParam"
+          :label="context.institution_type === 'university' ? 'مفردة / موضوع المقرر' : (context.institution_type === 'institute' ? 'الوحدة / التدريب العملي' : 'الوحدة الدراسية')"
           cols="3"
           :add="false"
           :disabled="context.institution_type === 'university' ? !context.semesterSubjectId : (context.institution_type === 'institute' ? !context.instituteSubjectId : !context.subjectId)"
@@ -221,16 +222,7 @@
           v-model="context.lessonId"
           name="LessonByUnit"
           :param="context.unitId"
-          :placeholder="context.institution_type === 'university' ? 'المحاضرة / الدرس الأكاديمي' : (context.institution_type === 'institute' ? 'التدريب / الدرس المهني' : 'الدرس المدرسي')"
-          cols="3"
-          :add="false"
-          :disabled="!context.unitId"
-        />
-        <auto-list
-          v-model="context.learningOutcomeId"
-          name="LearningOutcome"
-          :param="context.unitId"
-          :placeholder="context.institution_type === 'university' ? 'مخرج تعلم المقرر (CLO)' : 'مخرج التعلم (اختياري)'"
+          :label="context.institution_type === 'university' ? 'المحاضرة / الدرس الأكاديمي' : (context.institution_type === 'institute' ? 'التدريب / الدرس المهني' : 'الدرس المدرسي')"
           cols="3"
           :add="false"
           :disabled="!context.unitId"
@@ -953,9 +945,9 @@ export default {
 
       // Options
       institutionTypes: [
-        { text: "تعليم مدرسي (م)", value: "school", icon: "mdi-school" },
-        { text: "تعليم جامعي (ج)", value: "university", icon: "mdi-domain" },
-        { text: "معاهد وتدريب مهني (ع)", value: "institute", icon: "mdi-tools" },
+        { text: "تعليم مدرسي", value: "school", icon: "mdi-school" },
+        { text: "تعليم جامعي", value: "university", icon: "mdi-domain" },
+        { text: "معاهد وتدريب مهني", value: "institute", icon: "mdi-tools" },
       ],
       difficultiesOptions: [
         { text: "سهل", value: 1 },
@@ -988,6 +980,28 @@ export default {
     canAddNewQuestion() {
       if (this.questions.length === 0) return true;
       return this.questions.every((q) => this.isQuestionComplete(q));
+    },
+
+    contextInstituteSpecParam() {
+      const p = {};
+      if (this.context.instituteFieldId) p.field = this.context.instituteFieldId;
+      if (this.context.instituteEducationSystemId) p.education_system = this.context.instituteEducationSystemId;
+      return Object.keys(p).length ? p : null;
+    },
+
+    contextInstituteSubjectParam() {
+      if (this.context.instituteFieldId) return { field: this.context.instituteFieldId };
+      return null;
+    },
+
+    contextUnitParam() {
+      if (this.context.institution_type === 'university') {
+        return this.context.semesterSubjectId ? { semester_subject: this.context.semesterSubjectId } : null;
+      }
+      if (this.context.institution_type === 'institute') {
+        return this.context.instituteSubjectId ? { subject: this.context.instituteSubjectId } : null;
+      }
+      return this.context.subjectId ? { subject: this.context.subjectId } : null;
     },
   },
 
@@ -1473,7 +1487,6 @@ export default {
               institution_type: this.context.institution_type || "school",
               difficulty: q.difficulty,
               bloomLevel: q.bloomLevel,
-              learningOutcome: q.learningOutcomeId || this.context.learningOutcomeId || null,
               defaultMark: q.defaultScore,
               expected_time_minutes: q.expectedTimeMinutes,
               status: "قيد المراجعة",

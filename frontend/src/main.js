@@ -41,9 +41,11 @@ async function bootstarApp() {
   try {
     app = createApp(App);
 
-    if (import.meta.env?.PROD) {
-      app.config.warnHandler = () => false;
-    }
+    app.config.warnHandler = (msg, instance, trace) => {
+      if (import.meta.env?.PROD) return;
+      if (typeof msg === "string" && msg.includes("Extraneous non-props attributes")) return;
+      console.warn(`[Vue warn]: ${msg}`, trace);
+    };
      // =========================
     // Pinia
     // =========================

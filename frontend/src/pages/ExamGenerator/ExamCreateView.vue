@@ -385,7 +385,7 @@
                           <auto-list
                             v-model="exam.instituteSpecializationId"
                             name="InstituteSpecialization"
-                            :param="{ field: exam.instituteFieldId, education_system: exam.instituteEducationSystemId }"
+                            :param="instituteSpecParam"
                             placeholder="التخصص المهني"
                             cols="3"
                             :add="false"
@@ -1737,6 +1737,13 @@ const exam = ref({
 
 // Matrix Inner Tabs Items
 const activeTab = ref(0)
+const instituteSpecParam = computed(() => {
+  const p = {}
+  if (exam.value.instituteFieldId) p.field = exam.value.instituteFieldId
+  if (exam.value.instituteEducationSystemId) p.education_system = exam.value.instituteEducationSystemId
+  return Object.keys(p).length ? p : null
+})
+
 const matrixTabItems = computed(() => [
   { label: 'توزيع الوحدات', icon: 'mdi-book-open-page-variant' },
   { label: modelsMode.value === 'advanced' ? 'مستويات الصعوبة (متقدم)' : 'مستويات الصعوبة', icon: 'mdi-speedometer' },
