@@ -37,6 +37,10 @@ class CurriculumExclusionMVS(AllMVS):
     ).filter(is_deleted=False).order_by('-created_at')
 
     serializer_class = CurriculumExclusionSerializer
+    enable_actions = [
+        'all', 'select', 'list', 'second_list', 'filter', 'filter_paginate',
+        'create', 'update', 'destroy', 'retrieve', 'partial_update'
+    ]
 
     filterset_fields = {
         'academic_year': ['exact'],
@@ -91,6 +95,29 @@ class CurriculumExclusionMVS(AllMVS):
             )
         except Exception:
             pass
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            instance.is_deleted = True
+            instance.save()
+            try:
+                user = request.user if request.user.is_authenticated else None
+                AuditLog.objects.create(
+                    action='DELETE_EXCLUSION',
+                    user=user,
+                    notes=f"إلغاء حذف واستعادة موضوع: {instance}"
+                )
+            except Exception:
+                pass
+            return Response({"success": True, "message": "تم إلغاء الاستبعاد وإعادة تضمين المحتوى بنجاح"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            try:
+                instance = self.get_object()
+                instance.delete()
+                return Response({"success": True, "message": "تم حذف الاستبعاد بنجاح"}, status=status.HTTP_200_OK)
+            except Exception as e2:
+                return Response({"success": False, "message": str(e2)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['get'], url_path='tree-for-subject')
     def tree_for_subject(self, request):

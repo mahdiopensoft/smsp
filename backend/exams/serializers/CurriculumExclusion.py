@@ -28,45 +28,53 @@ class CurriculumExclusionSerializer(serializers.ModelSerializer):
 
     def get_academic_year_name(self, obj):
         if obj.academic_year:
-            return obj.academic_year.name_ar or obj.academic_year.name_en or str(obj.academic_year.year)
+            return str(obj.academic_year)
         return ""
 
     def get_stage_name(self, obj):
-        return obj.stage.name_ar if obj.stage else ""
+        return getattr(obj.stage, 'name_ar', '') if obj.stage else ""
 
     def get_class_track_name(self, obj):
-        return obj.class_track.name_ar if obj.class_track else ""
+        if obj.class_track:
+            return getattr(obj.class_track, 'full_name', '') or getattr(obj.class_track, 'name_ar', '') or str(obj.class_track)
+        return ""
 
     def get_subject_name(self, obj):
-        return obj.subject.name_ar if obj.subject else ""
+        return getattr(obj.subject, 'name_ar', '') if obj.subject else ""
 
     def get_college_name(self, obj):
-        return obj.college.name_ar if obj.college else ""
+        return getattr(obj.college, 'name_ar', '') if obj.college else ""
 
     def get_department_name(self, obj):
-        return obj.department.name_ar if obj.department else ""
+        return getattr(obj.department, 'name_ar', '') if obj.department else ""
 
     def get_specialization_name(self, obj):
-        return obj.specialization.name_ar if obj.specialization else ""
+        return getattr(obj.specialization, 'name_ar', '') if obj.specialization else ""
 
     def get_semester_subject_name(self, obj):
-        return obj.semester_subject.name_ar if obj.semester_subject else ""
+        if obj.semester_subject:
+            return getattr(obj.semester_subject, 'name_ar', '') or str(obj.semester_subject)
+        return ""
 
     def get_institute_field_name(self, obj):
-        return obj.institute_field.name_ar if obj.institute_field else ""
+        return getattr(obj.institute_field, 'name_ar', '') if obj.institute_field else ""
 
     def get_institute_specialization_name(self, obj):
-        return obj.institute_specialization.name_ar if obj.institute_specialization else ""
+        return getattr(obj.institute_specialization, 'name_ar', '') if obj.institute_specialization else ""
 
     def get_institute_subject_name(self, obj):
-        return obj.institute_subject.name_ar if obj.institute_subject else ""
+        if hasattr(obj, 'institute_subject') and obj.institute_subject:
+            return getattr(obj.institute_subject, 'name_ar', '') or str(obj.institute_subject)
+        if hasattr(obj, 'institute_curriculum') and obj.institute_curriculum:
+            return getattr(obj.institute_curriculum, 'name_ar', '') or str(obj.institute_curriculum)
+        return ""
 
     def get_unit_name(self, obj):
         if obj.unit:
-            return obj.unit.name_ar or obj.unit.name_en or f"الوحدة #{obj.unit_id}"
+            return getattr(obj.unit, 'name_ar', '') or getattr(obj.unit, 'name_en', '') or f"الوحدة #{obj.unit_id}"
         return ""
 
     def get_lesson_name(self, obj):
         if obj.lesson:
-            return obj.lesson.name_ar or obj.lesson.name_en or f"الدرس #{obj.lesson_id}"
+            return getattr(obj.lesson, 'name_ar', '') or getattr(obj.lesson, 'name_en', '') or f"الدرس #{obj.lesson_id}"
         return ""
