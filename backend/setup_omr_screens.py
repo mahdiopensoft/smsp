@@ -47,8 +47,8 @@ def setup_omr_screens():
         # المرحلة 1: استلام وتجهيز الاختبارات
         {
             "route": "omr-exams",
-            "name_ar": "1. استلام وتجهيز الاختبارات",
-            "name_en": "1. OMR Exams & Rosters",
+            "name_ar": "استلام وتجهيز الاختبارات",
+            "name_en": "OMR Exams & Rosters",
             "icon": "file-document-edit-outline",
             "order": 2,
             "component": "OMRExamsView"
@@ -56,8 +56,8 @@ def setup_omr_screens():
         # المرحلة 2: طباعة وتصدير أوراق الإجابة
         {
             "route": "omr-print-registry",
-            "name_ar": "2. طباعة أوراق الإجابة",
-            "name_en": "2. Print & Sheet Generation",
+            "name_ar": "طباعة أوراق الإجابة",
+            "name_en": "Print & Sheet Generation",
             "icon": "printer-check",
             "order": 3,
             "component": "OMRPrintRegistryView"
@@ -65,8 +65,8 @@ def setup_omr_screens():
         # المرحلة 3: محطة المسح والتصحيح الآلي
         {
             "route": "omr-scanner",
-            "name_ar": "3. المسح والتصحيح الآلي",
-            "name_en": "3. OMR Scanning & Grading",
+            "name_ar": "المسح والتصحيح الآلي",
+            "name_en": "OMR Scanning & Grading",
             "icon": "scanner",
             "order": 4,
             "component": "OMRScanningView"
@@ -74,8 +74,8 @@ def setup_omr_screens():
         # المرحلة 4: سجل أوراق الإجابة المصححة
         {
             "route": "omr-submissions",
-            "name_ar": "4. سجل أوراق الإجابة",
-            "name_en": "4. Answer Sheets Registry",
+            "name_ar": "سجل أوراق الإجابة",
+            "name_en": "Answer Sheets Registry",
             "icon": "file-document-check-outline",
             "order": 5,
             "component": "OMRSubmissionsView"
@@ -83,8 +83,8 @@ def setup_omr_screens():
         # المرحلة 5: المراجعة البشرية والتدقيق
         {
             "route": "omr-human-review",
-            "name_ar": "5. المراجعة والتدقيق",
-            "name_en": "5. Human Review & Exceptions",
+            "name_ar": "المراجعة والتدقيق",
+            "name_en": "Human Review & Exceptions",
             "icon": "account-search-outline",
             "order": 6,
             "component": "OMRHumanReviewView"
@@ -92,13 +92,13 @@ def setup_omr_screens():
         # المرحلة 6: كشف الدرجات ورصد النتائج
         {
             "route": "omr-gradebook",
-            "name_ar": "6. كشف الدرجات والرصد",
-            "name_en": "6. Gradebook & Control Export",
+            "name_ar": "كشف الدرجات والرصد",
+            "name_en": "Gradebook & Control Export",
             "icon": "book-education-outline",
             "order": 7,
             "component": "OMRGradebookView"
         },
-        # أدوات القوالب والهندسة
+        # أدوات القوالب والهندسة المعيارية
         {
             "route": "omr-template-builder",
             "name_ar": "مصمم قوالب التصحيح",
@@ -162,7 +162,7 @@ def setup_omr_screens():
 
         print(f"  ✓ [{cfg['order']:02d}] تم تثبيت شاشة التصحيح: {screen.name_ar} (Route: {cfg['route']}) تحت النظام 4")
 
-    print("\n🎉 تم تحديث كافة شاشات التصحيح الضوئي (10 شاشات) بنجاح تحت نظام «التصحيح الالي»!")
+    print("\n🎉 تم تحديث كافة شاشات التصحيح الضوئي (11 شاشة) بنجاح وفق تسلسل المراحل وبدون ترقيم تحت نظام «التصحيح الالي»!")
 
 if __name__ == "__main__":
     setup_omr_screens()
