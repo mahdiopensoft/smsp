@@ -270,7 +270,6 @@ var routes_paths = {
     { path: "submissions/:id", redirect: (to) => ({ path: `/omr-submissions/${to.params.id}`, query: to.query }) },
     { path: "gradebook", redirect: (to) => ({ path: "/omr-gradebook", query: to.query }) },
     { path: "human-review", redirect: (to) => ({ path: "/omr-human-review", query: to.query }) },
-    { path: "omr-scanner", redirect: (to) => ({ path: "/omr-scanner-lab", query: to.query }) },
     { path: "omr-extraction", redirect: (to) => ({ path: "/omr-full-extraction", query: to.query }) },
     { path: "omr-bubble-sheets", redirect: (to) => ({ path: "/omr-templates", query: to.query }) },
     // ── Decommissioned Screens (مخرجات التعلم المحذوفة) ───────────

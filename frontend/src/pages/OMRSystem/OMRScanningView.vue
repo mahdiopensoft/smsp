@@ -96,10 +96,9 @@
             size="small"
             class="font-weight-bold"
             prepend-icon="mdi-scanner"
-            @click="triggerScannerDevice"
-            :loading="isScanningDevice"
+            @click="$refs.fileInput.click()"
           >
-            سحب مباشر من الماسح الضوئي
+            تغذية أوراق الماسح الضوئي (PDF / صور)
           </v-btn>
         </div>
       </div>
@@ -130,7 +129,7 @@
             اسحب وأفلت حزمة أوراق الطلاب هنا أو انقر لاختيارها
           </div>
           <div class="text-caption text-medium-emphasis">
-            يدعم صور الأوراق الممسوحة بدقة عادية أو عالية (JPG, PNG) أو ملفات الحزم (PDF)
+            يدعم ملفات السحب الآلي للماسح الضوئي (Multipage PDF) وحزم الصور (ZIP) أو الصور المفردة بدقة 300 DPI
           </div>
         </div>
 
@@ -181,7 +180,7 @@
           :disabled="!selectedExamId || isGrading"
           @click="startGrading"
         >
-          بدء التصحيح الضوئي لـ {{ batchFiles.length }} ورقة الآن
+          بدء التصحيح الضوئي الفعلي لـ {{ batchFiles.length }} ورقة الآن
         </v-btn>
       </div>
 
@@ -193,6 +192,21 @@
         </div>
         <v-progress-linear :model-value="gradingProgress" height="8" rounded color="primary" striped />
       </div>
+
+      <!-- Error Alert -->
+      <v-alert
+        v-if="gradingError"
+        type="error"
+        variant="tonal"
+        class="mt-4 rounded-xl font-weight-bold"
+        closable
+        @click:close="gradingError = null"
+      >
+        <div class="d-flex align-center gap-2">
+          <v-icon>mdi-alert-circle</v-icon>
+          <span>{{ gradingError }}</span>
+        </div>
+      </v-alert>
     </v-card>
 
     <!-- ── 3. نتائج التصحيح اللحظية (Live Triage & Stats) ─────────────── -->
@@ -202,9 +216,9 @@
           <v-card class="pa-4 rounded-xl border text-center bg-green-lighten-5">
             <div class="text-caption font-weight-bold text-green-darken-3 mb-1">أوراق سليمة ومعتمدة</div>
             <div class="text-h4 font-weight-black text-green-darken-3">
-              {{ batchResult.batch?.successful_papers || successfulSheets.length }}
+              {{ batchResult.completed_count ?? successfulSheets.length }}
             </div>
-            <div class="text-caption text-green-darken-2 mt-1">تم احتساب الدرجة وتثبيتها</div>
+            <div class="text-caption text-green-darken-2 mt-1">تم احتساب الدرجة وتثبيتها في الكنترول</div>
           </v-card>
         </v-col>
 
@@ -212,9 +226,9 @@
           <v-card class="pa-4 rounded-xl border text-center bg-amber-lighten-5">
             <div class="text-caption font-weight-bold text-amber-darken-4 mb-1">أوراق تحتاج تدقيق بشري</div>
             <div class="text-h4 font-weight-black text-amber-darken-4">
-              {{ batchResult.batch?.needs_review_papers || needsReviewSheets.length }}
+              {{ batchResult.needs_review_count ?? needsReviewSheets.length }}
             </div>
-            <div class="text-caption text-amber-darken-3 mt-1">تظليل مزدوج أو التباس</div>
+            <div class="text-caption text-amber-darken-3 mt-1">تظليل مزدوج أو التباس يتطلب التحقق</div>
           </v-card>
         </v-col>
 
@@ -222,9 +236,9 @@
           <v-card class="pa-4 rounded-xl border text-center bg-grey-lighten-4">
             <div class="text-caption font-weight-bold text-medium-emphasis mb-1">متوسط درجات الدفعة</div>
             <div class="text-h4 font-weight-black text-primary">
-              {{ batchResult.batch?.average_score || calculateAvgScore() }}%
+              {{ batchResult.average_score ?? calculateAvgScore() }}%
             </div>
-            <div class="text-caption text-medium-emphasis mt-1">معدل الدفعة العام</div>
+            <div class="text-caption text-medium-emphasis mt-1">معدل الدفعة الفعلي</div>
           </v-card>
         </v-col>
       </v-row>
@@ -276,7 +290,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(sheet, idx) in (batchResult.sheets || mockSheets)" :key="idx">
+            <tr v-for="(sheet, idx) in (batchResult.sheets || [])" :key="idx">
               <td class="font-mono font-weight-bold text-primary">{{ sheet.seat_number || '---' }}</td>
               <td class="font-weight-bold">{{ sheet.student_name || 'طالب ممسوح' }}</td>
               <td class="text-center">
@@ -285,7 +299,7 @@
                 </v-chip>
               </td>
               <td class="text-center font-weight-black font-mono">
-                {{ sheet.score || 0 }} / {{ sheet.total_questions || 50 }}
+                {{ sheet.score ?? 0 }} / {{ sheet.max_score ?? sheet.total_questions ?? 40 }}
               </td>
               <td class="text-center font-weight-bold text-success">
                 {{ sheet.percentage || 0 }}%
@@ -343,6 +357,7 @@ export default {
     const gradingProgress = ref(0)
     const gradingStatus = ref('')
     const batchResult = ref(null)
+    const gradingError = ref(null)
 
     // Load Exams
     const fetchExams = async () => {
@@ -373,6 +388,7 @@ export default {
     const onExamChange = () => {
       batchResult.value = null
       batchFiles.value = []
+      gradingError.value = null
     }
 
     // File Handling
@@ -380,6 +396,7 @@ export default {
       if (e.target.files) {
         const files = Array.from(e.target.files)
         batchFiles.value = [...batchFiles.value, ...files]
+        gradingError.value = null
       }
     }
 
@@ -388,12 +405,14 @@ export default {
       if (e.dataTransfer?.files) {
         const files = Array.from(e.dataTransfer.files)
         batchFiles.value = [...batchFiles.value, ...files]
+        gradingError.value = null
       }
     }
 
     const clearFiles = () => {
       batchFiles.value = []
       batchResult.value = null
+      gradingError.value = null
     }
 
     const formatTotalSize = () => {
@@ -402,27 +421,17 @@ export default {
       return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
     }
 
-    // Hardware Scanner Simulation / TWAIN Bridge
-    const triggerScannerDevice = () => {
-      isScanningDevice.value = true
-      setTimeout(() => {
-        isScanningDevice.value = false
-        // Simulate pulling sheets from scanner feed
-        const dummyFile = new File(['omr_scan'], `scanner_sheet_${Date.now()}.jpg`, { type: 'image/jpeg' })
-        batchFiles.value.push(dummyFile)
-      }, 1200)
-    }
-
-    // Batch Grading Process
+    // Batch Grading Process (Real Backend Processing)
     const startGrading = async () => {
       if (batchFiles.value.length === 0 || !selectedExamId.value) return
       isGrading.value = true
+      gradingError.value = null
       gradingProgress.value = 20
-      gradingStatus.value = 'جاري تغذية الأوراق وفحص الباركود ونماذج الإجابة...'
+      gradingStatus.value = 'جاري تفكيك المستندات وفحص الباركود ونماذج الإجابة...'
 
       const timer = setInterval(() => {
         if (gradingProgress.value < 85) {
-          gradingProgress.value += 15
+          gradingProgress.value += 10
         }
       }, 350)
 
@@ -432,6 +441,7 @@ export default {
           formData.append('files', f)
         })
         formData.append('exam_id', String(selectedExamId.value))
+        formData.append('template_id', 'AUTO')
 
         const resp = await submissionsAPI.bulkUpload(formData)
         clearInterval(timer)
@@ -441,25 +451,8 @@ export default {
       } catch (err) {
         clearInterval(timer)
         console.error('Failed to grade batch:', err)
-        // Fallback demo result so operator can proceed without blocking
-        batchResult.value = {
-          batch: {
-            total_papers: batchFiles.value.length,
-            successful_papers: Math.max(1, batchFiles.value.length - 2),
-            needs_review_papers: Math.min(2, batchFiles.value.length),
-            average_score: 84,
-          },
-          sheets: batchFiles.value.map((f, i) => ({
-            seat_number: 1000 + i + 1,
-            student_name: `طالب امتحاني (${i + 1})`,
-            model_code: ['A', 'B', 'C'][i % 3],
-            score: Math.min(50, 38 + (i % 12)),
-            total_questions: 50,
-            percentage: Math.min(100, Math.round(((38 + (i % 12)) / 50) * 100)),
-            status: i === 1 ? 'NEEDS_REVIEW' : 'GRADED',
-            needs_review: i === 1,
-          })),
-        }
+        gradingError.value = err.response?.data?.message || err.message || 'تعذر استكمال المعالجة، يرجى التأكد من وضوح صور الأوراق أو ملف الـ PDF'
+        batchResult.value = null
       } finally {
         isGrading.value = false
       }
@@ -467,7 +460,7 @@ export default {
 
     const successfulSheets = computed(() => {
       if (!batchResult.value?.sheets) return []
-      return batchResult.value.sheets.filter((s) => s.status === 'GRADED' && !s.needs_review)
+      return batchResult.value.sheets.filter((s) => s.status === 'COMPLETED' || (s.status === 'GRADED' && !s.needs_review))
     })
 
     const needsReviewSheets = computed(() => {
@@ -497,17 +490,16 @@ export default {
       isGrading,
       gradingProgress,
       gradingStatus,
+      gradingError,
       batchResult,
       handleFileSelect,
       handleDrop,
       clearFiles,
       formatTotalSize,
-      triggerScannerDevice,
       startGrading,
       successfulSheets,
       needsReviewSheets,
       calculateAvgScore,
-      mockSheets: [],
     }
   },
 }
