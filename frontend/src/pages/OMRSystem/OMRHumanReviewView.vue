@@ -27,46 +27,6 @@
     <!-- ── OMR Workflow Stepper (المرحلة 5: المراجعة والتدقيق البشري) ── -->
     <omr-workflow-bar :active-step="5" :exam-id="selectedExam" />
 
-    <!-- Stats Cards (Disciplined, Calm Colors) -->
-    <v-row class="mb-6">
-      <v-col cols="12" sm="6" md="3">
-        <div class="stat-card pa-4 rounded-xl border d-flex align-center justify-space-between">
-          <div>
-            <div class="text-caption text-medium-emphasis font-weight-bold">تتطلب تدقيق يدوي</div>
-            <div class="text-h5 font-weight-black text-warning">{{ stats.pendingReview || 0 }}</div>
-          </div>
-          <v-avatar color="warning" variant="tonal" rounded="lg"><v-icon size="22">mdi-alert-circle-outline</v-icon></v-avatar>
-        </div>
-      </v-col>
-      <v-col cols="12" sm="6" md="3">
-        <div class="stat-card pa-4 rounded-xl border d-flex align-center justify-space-between">
-          <div>
-            <div class="text-caption text-medium-emphasis font-weight-bold">أوراق بتظليل ملتبس</div>
-            <div class="text-h5 font-weight-black text-error">{{ stats.ambiguousSheets || 0 }}</div>
-          </div>
-          <v-avatar color="error" variant="tonal" rounded="lg"><v-icon size="22">mdi-help-circle-outline</v-icon></v-avatar>
-        </div>
-      </v-col>
-      <v-col cols="12" sm="6" md="3">
-        <div class="stat-card pa-4 rounded-xl border d-flex align-center justify-space-between">
-          <div>
-            <div class="text-caption text-medium-emphasis font-weight-bold">أوراق تم التحقق منها</div>
-            <div class="text-h5 font-weight-black text-success">{{ stats.verifiedSheets || 0 }}</div>
-          </div>
-          <v-avatar color="success" variant="tonal" rounded="lg"><v-icon size="22">mdi-check-decagram</v-icon></v-avatar>
-        </div>
-      </v-col>
-      <v-col cols="12" sm="6" md="3">
-        <div class="stat-card pa-4 rounded-xl border d-flex align-center justify-space-between">
-          <div>
-            <div class="text-caption text-medium-emphasis font-weight-bold">إجمالي الأوراق</div>
-            <div class="text-h5 font-weight-black text-primary">{{ stats.totalSheets || 0 }}</div>
-          </div>
-          <v-avatar color="primary" variant="tonal" rounded="lg"><v-icon size="22">mdi-file-document-multiple-outline</v-icon></v-avatar>
-        </div>
-      </v-col>
-    </v-row>
-
     <!-- Filters Control Bar (Standard filter-fields) -->
     <filter-fields label="خيارات تصفية أوراق المراجعة والتدقيق" class="main-card border-0 pa-5 rounded-2xl mb-6">
       <v-row dense class="align-center">

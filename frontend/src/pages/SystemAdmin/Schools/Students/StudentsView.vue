@@ -42,61 +42,6 @@
       </div>
     </div>
 
-    <!-- ── KPI Summary Cards ─────────────────────────────────────────── -->
-    <v-row class="mb-6" dense>
-      <v-col cols="12" sm="6" md="3">
-        <v-card class="stat-card pa-4 rounded-2xl" elevation="0">
-          <div class="d-flex align-center justify-space-between mb-2">
-            <span class="text-caption font-weight-bold text-medium-emphasis">إجمالي الطلاب</span>
-            <v-avatar color="primary" variant="tonal" size="36" rounded="lg">
-              <v-icon size="20">mdi-account-group-outline</v-icon>
-            </v-avatar>
-          </div>
-          <div class="text-h4 font-weight-black text-primary">{{ items.count || (items.results ? items.results.length : 0) }}</div>
-          <div class="text-caption text-medium-emphasis mt-1">طالب مسجل في النظام الأكاديمي</div>
-        </v-card>
-      </v-col>
-
-      <v-col cols="12" sm="6" md="3">
-        <v-card class="stat-card pa-4 rounded-2xl" elevation="0">
-          <div class="d-flex align-center justify-space-between mb-2">
-            <span class="text-caption font-weight-bold text-medium-emphasis">التعليم الجامعي</span>
-            <v-avatar color="indigo" variant="tonal" size="36" rounded="lg">
-              <v-icon size="20">mdi-domain</v-icon>
-            </v-avatar>
-          </div>
-          <div class="text-h4 font-weight-black text-indigo">{{ statsCounts.university }}</div>
-          <div class="text-caption text-medium-emphasis mt-1">كليات وأقسام وتخصصات أكاديمية</div>
-        </v-card>
-      </v-col>
-
-      <v-col cols="12" sm="6" md="3">
-        <v-card class="stat-card pa-4 rounded-2xl" elevation="0">
-          <div class="d-flex align-center justify-space-between mb-2">
-            <span class="text-caption font-weight-bold text-medium-emphasis">التعليم المدرسي</span>
-            <v-avatar color="teal" variant="tonal" size="36" rounded="lg">
-              <v-icon size="20">mdi-school</v-icon>
-            </v-avatar>
-          </div>
-          <div class="text-h4 font-weight-black text-teal">{{ statsCounts.school }}</div>
-          <div class="text-caption text-medium-emphasis mt-1">مراحل ومسارات تعليم عام</div>
-        </v-card>
-      </v-col>
-
-      <v-col cols="12" sm="6" md="3">
-        <v-card class="stat-card pa-4 rounded-2xl" elevation="0">
-          <div class="d-flex align-center justify-space-between mb-2">
-            <span class="text-caption font-weight-bold text-medium-emphasis">المعاهد والتدريب</span>
-            <v-avatar color="amber-darken-3" variant="tonal" size="36" rounded="lg">
-              <v-icon size="20">mdi-tools</v-icon>
-            </v-avatar>
-          </div>
-          <div class="text-h4 font-weight-black text-amber-darken-3">{{ statsCounts.institute }}</div>
-          <div class="text-caption text-medium-emphasis mt-1">تخصصات ودبلومات مهنية</div>
-        </v-card>
-      </v-col>
-    </v-row>
-
     <!-- ── Comprehensive Filters Bar ── -->
     <filter-fields label="خيارات التصفية الأكاديمية والهرمية لسجلات الطلاب" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
       <v-row dense class="align-center">

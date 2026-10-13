@@ -52,61 +52,6 @@
     <!-- ── OMR Workflow Stepper (المرحلة 1: استلام وتجهيز الاختبار) ── -->
     <omr-workflow-bar :active-step="1" :exam-id="selectedExam?.id" />
 
-    <!-- ── KPI Summary Cards ─────────────────────────────────────────── -->
-    <v-row class="mb-6" dense>
-      <v-col cols="12" sm="6" md="3">
-        <v-card class="stat-card pa-4 rounded-2xl" elevation="0">
-          <div class="d-flex align-center justify-space-between mb-2">
-            <span class="text-caption font-weight-bold text-medium-emphasis">الاختبارات المولدة</span>
-            <v-avatar color="primary" variant="tonal" size="36" rounded="lg">
-              <v-icon size="20">mdi-file-document-multiple-outline</v-icon>
-            </v-avatar>
-          </div>
-          <div class="text-h4 font-weight-black text-primary">{{ stats.totalExams }}</div>
-          <div class="text-caption text-medium-emphasis mt-1">اختبارات معتمدة ومربوطة</div>
-        </v-card>
-      </v-col>
-
-      <v-col cols="12" sm="6" md="3">
-        <v-card class="stat-card pa-4 rounded-2xl" elevation="0">
-          <div class="d-flex align-center justify-space-between mb-2">
-            <span class="text-caption font-weight-bold text-medium-emphasis">النماذج المتولدة</span>
-            <v-avatar color="info" variant="tonal" size="36" rounded="lg">
-              <v-icon size="20">mdi-format-list-bulleted-type</v-icon>
-            </v-avatar>
-          </div>
-          <div class="text-h4 font-weight-black text-info">{{ stats.totalVersions }}</div>
-          <div class="text-caption text-medium-emphasis mt-1">نماذج أسئلة (A, B, C...)</div>
-        </v-card>
-      </v-col>
-
-      <v-col cols="12" sm="6" md="3">
-        <v-card class="stat-card pa-4 rounded-2xl" elevation="0">
-          <div class="d-flex align-center justify-space-between mb-2">
-            <span class="text-caption font-weight-bold text-medium-emphasis">الطلاب المقيدون</span>
-            <v-avatar color="purple" variant="tonal" size="36" rounded="lg">
-              <v-icon size="20">mdi-account-school-outline</v-icon>
-            </v-avatar>
-          </div>
-          <div class="text-h4 font-weight-black text-purple">{{ stats.totalStudents }}</div>
-          <div class="text-caption text-medium-emphasis mt-1">طالب مسجل بأرقام جلوس</div>
-        </v-card>
-      </v-col>
-
-      <v-col cols="12" sm="6" md="3">
-        <v-card class="stat-card pa-4 rounded-2xl" elevation="0">
-          <div class="d-flex align-center justify-space-between mb-2">
-            <span class="text-caption font-weight-bold text-medium-emphasis">أوراق الطلاب المصححة</span>
-            <v-avatar color="success" variant="tonal" size="36" rounded="lg">
-              <v-icon size="20">mdi-check-decagram-outline</v-icon>
-            </v-avatar>
-          </div>
-          <div class="text-h4 font-weight-black text-success">{{ stats.totalSubmissions }}</div>
-          <div class="text-caption text-medium-emphasis mt-1">ورقة تظليل تم معالجتها</div>
-        </v-card>
-      </v-col>
-    </v-row>
-
     <!-- Unified Filter Fields -->
     <filter-fields label="خيارات التصفية والبحث المتقدم في الاختبارات" class="main-card border-0 pa-5 rounded-2xl mb-6">
       <v-row dense class="align-center">
