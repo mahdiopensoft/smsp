@@ -3,29 +3,125 @@
     <!-- Add / Edit Student Drawer -->
     <add-students v-model="drawer" :data="data" :getData="getData" />
 
+    <!-- ── Page Header (Institutional OpenSoftCore Style) ─────────────── -->
+    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-6">
+      <div class="d-flex align-center">
+        <v-avatar size="46" color="primary" variant="tonal" class="me-3 rounded-xl elevation-1">
+          <v-icon size="26">mdi-account-school-outline</v-icon>
+        </v-avatar>
+        <div>
+          <h1 class="text-h5 font-weight-black text-on-surface mb-0">سجل الطلاب المركزي</h1>
+          <p class="text-caption text-medium-emphasis mb-0">
+            إدارة وتتبع بيانات الطلاب والقيود الأكاديمية عبر كافة المؤسسات التعليمية (مدارس، جامعات، ومعاهد)
+          </p>
+        </div>
+      </div>
+
+      <div class="d-flex align-center gap-2 flex-wrap">
+        <v-btn
+          color="primary"
+          variant="flat"
+          rounded="lg"
+          class="font-weight-bold shadow-sm"
+          prepend-icon="mdi-account-plus-outline"
+          @click="() => { data = {}; drawer = true; }"
+        >
+          إضافة طالب جديد
+        </v-btn>
+        <v-btn
+          color="secondary"
+          variant="tonal"
+          rounded="lg"
+          class="font-weight-bold"
+          prepend-icon="mdi-refresh"
+          :loading="loading"
+          @click="getData"
+        >
+          تحديث السجلات
+        </v-btn>
+      </div>
+    </div>
+
+    <!-- ── KPI Summary Cards ─────────────────────────────────────────── -->
+    <v-row class="mb-6" dense>
+      <v-col cols="12" sm="6" md="3">
+        <v-card class="stat-card pa-4 rounded-2xl" elevation="0">
+          <div class="d-flex align-center justify-space-between mb-2">
+            <span class="text-caption font-weight-bold text-medium-emphasis">إجمالي الطلاب</span>
+            <v-avatar color="primary" variant="tonal" size="36" rounded="lg">
+              <v-icon size="20">mdi-account-group-outline</v-icon>
+            </v-avatar>
+          </div>
+          <div class="text-h4 font-weight-black text-primary">{{ items.count || (items.results ? items.results.length : 0) }}</div>
+          <div class="text-caption text-medium-emphasis mt-1">طالب مسجل في النظام الأكاديمي</div>
+        </v-card>
+      </v-col>
+
+      <v-col cols="12" sm="6" md="3">
+        <v-card class="stat-card pa-4 rounded-2xl" elevation="0">
+          <div class="d-flex align-center justify-space-between mb-2">
+            <span class="text-caption font-weight-bold text-medium-emphasis">التعليم الجامعي</span>
+            <v-avatar color="indigo" variant="tonal" size="36" rounded="lg">
+              <v-icon size="20">mdi-domain</v-icon>
+            </v-avatar>
+          </div>
+          <div class="text-h4 font-weight-black text-indigo">{{ statsCounts.university }}</div>
+          <div class="text-caption text-medium-emphasis mt-1">كليات وأقسام وتخصصات أكاديمية</div>
+        </v-card>
+      </v-col>
+
+      <v-col cols="12" sm="6" md="3">
+        <v-card class="stat-card pa-4 rounded-2xl" elevation="0">
+          <div class="d-flex align-center justify-space-between mb-2">
+            <span class="text-caption font-weight-bold text-medium-emphasis">التعليم المدرسي</span>
+            <v-avatar color="teal" variant="tonal" size="36" rounded="lg">
+              <v-icon size="20">mdi-school</v-icon>
+            </v-avatar>
+          </div>
+          <div class="text-h4 font-weight-black text-teal">{{ statsCounts.school }}</div>
+          <div class="text-caption text-medium-emphasis mt-1">مراحل ومسارات تعليم عام</div>
+        </v-card>
+      </v-col>
+
+      <v-col cols="12" sm="6" md="3">
+        <v-card class="stat-card pa-4 rounded-2xl" elevation="0">
+          <div class="d-flex align-center justify-space-between mb-2">
+            <span class="text-caption font-weight-bold text-medium-emphasis">المعاهد والتدريب</span>
+            <v-avatar color="amber-darken-3" variant="tonal" size="36" rounded="lg">
+              <v-icon size="20">mdi-tools</v-icon>
+            </v-avatar>
+          </div>
+          <div class="text-h4 font-weight-black text-amber-darken-3">{{ statsCounts.institute }}</div>
+          <div class="text-caption text-medium-emphasis mt-1">تخصصات ودبلومات مهنية</div>
+        </v-card>
+      </v-col>
+    </v-row>
+
     <!-- ── Comprehensive Filters Bar ── -->
     <filter-fields label="خيارات التصفية الأكاديمية والهرمية لسجلات الطلاب" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
       <v-row dense class="align-center">
         <!-- 1. نوع المؤسسة التعليمية (مدارس / جامعات / معاهد / الكل) -->
-        <v-col cols="12" md="12" class="mb-2">
-
+        <v-col cols="12" md="12" class="mb-3">
           <v-btn-toggle
             v-model="filterInstitutionType"
-            mandatory
             color="primary"
             variant="outlined"
             density="compact"
             rounded="lg"
-            class="w-100 d-flex flex-wrap"
+            class="w-100 d-flex flex-wrap institutional-toggle"
             @update:model-value="onInstitutionTypeChange"
           >
-            <v-btn value="school" class="flex-grow-1 font-weight-bold">
-              <v-icon start size="16" color="teal">mdi-school</v-icon>
-              مدارس التعليم العام
+            <v-btn value="all" class="flex-grow-1 font-weight-bold">
+              <v-icon start size="16" color="primary">mdi-asterisk</v-icon>
+              كافة المؤسسات (الكل)
             </v-btn>
             <v-btn value="university" class="flex-grow-1 font-weight-bold">
               <v-icon start size="16" color="indigo">mdi-domain</v-icon>
               الجامعات والكليات
+            </v-btn>
+            <v-btn value="school" class="flex-grow-1 font-weight-bold">
+              <v-icon start size="16" color="teal">mdi-school</v-icon>
+              مدارس التعليم العام
             </v-btn>
             <v-btn value="institute" class="flex-grow-1 font-weight-bold">
               <v-icon start size="16" color="amber-darken-3">mdi-tools</v-icon>
@@ -178,8 +274,8 @@
               v-model="filterInstituteEducationSystem"
               name="InstituteEducationSystem"
               :param="filterInstituteField"
-              :placeholder="filterInstituteField ? 'نظام التعليم والتدريب' : 'اختر المجال أولاً'"
-              label="نظام التدريب"
+              placeholder="نظام التعليم والتدريب"
+              label="نظام التعليم والتدريب"
               cols="12"
               :add="false"
               :disabled="!filterInstituteField"
@@ -227,7 +323,7 @@
             clearable
             density="compact"
             variant="outlined"
-            class="mb-6"
+            class="mb-3"
             hide-details
             @update:model-value="applyFilters"
           />
@@ -245,20 +341,20 @@
             clearable
             density="compact"
             variant="outlined"
-            class="mb-6"
+            class="mb-3"
             hide-details
             @update:model-value="applyFilters"
           />
         </v-col>
 
         <!-- أزرار الإجراءات -->
-        <v-col cols="12" sm="12" md="3" class="d-flex align-center justify-end gap-2 mb-6">
+        <v-col cols="12" sm="12" md="3" class="d-flex align-center justify-end gap-2 mb-3">
           <custom-btn
             type="show"
             label="تصفية النتائج"
             color="primary"
             icon="mdi-filter"
-            class="font-weight-bold px-6"
+            class="font-weight-bold px-5"
             :click="applyFilters"
           />
           <custom-btn
@@ -291,14 +387,27 @@
       <template v-slot:item-slot="{ item, key }">
         <!-- 1. الرقم الأكاديمي -->
         <template v-if="key === 'academic_number'">
-          <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold" v-if="item.academic_number">
+          <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold font-mono" v-if="item.academic_number">
             <v-icon start size="14">mdi-card-account-details-outline</v-icon>
             {{ item.academic_number }}
           </v-chip>
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 
-        <!-- 2. نوع المؤسسة -->
+        <!-- 2. اسم الطالب مع الصورة الرمزية -->
+        <template v-else-if="key === 'name_ar'">
+          <div class="d-flex align-center gap-3 py-1">
+            <v-avatar size="34" :color="item.gender === 2 ? 'pink' : 'primary'" variant="tonal" class="rounded-lg">
+              <v-icon size="18">{{ item.gender === 2 ? 'mdi-account-heart-outline' : 'mdi-account-outline' }}</v-icon>
+            </v-avatar>
+            <div>
+              <div class="font-weight-bold text-body-2 text-on-surface">{{ item.name_ar }}</div>
+              <div class="text-caption text-medium-emphasis font-mono" v-if="item.name_en">{{ item.name_en }}</div>
+            </div>
+          </div>
+        </template>
+
+        <!-- 3. نوع المؤسسة -->
         <template v-else-if="key === 'institution_type'">
           <v-chip
             v-if="item.institution_type === 'university'"
@@ -332,7 +441,7 @@
           </v-chip>
         </template>
 
-        <!-- 3. المؤسسة التعليمية -->
+        <!-- 4. المؤسسة التعليمية -->
         <template v-else-if="key === 'organization_name'">
           <span class="text-body-2 font-weight-bold text-truncate" style="max-width: 220px;" v-if="item.organization_name">
             <v-icon size="14" class="me-1 text-medium-emphasis">mdi-office-building</v-icon>
@@ -341,7 +450,7 @@
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 
-        <!-- 4. الارتباط والتصنيف الأكاديمي -->
+        <!-- 5. الارتباط والتصنيف الأكاديمي -->
         <template v-else-if="key === 'academic_info'">
           <div class="d-flex align-center gap-1" v-if="item.academic_info">
             <v-chip size="x-small" variant="outlined" color="primary" class="font-weight-medium">
@@ -351,7 +460,7 @@
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 
-        <!-- 5. الجنس -->
+        <!-- 6. الجنس -->
         <template v-else-if="key === 'gender_display'">
           <v-chip
             size="small"
@@ -364,7 +473,7 @@
           </v-chip>
         </template>
 
-        <!-- 6. المديرية -->
+        <!-- 7. المديرية -->
         <template v-else-if="key === 'directorate_name'">
           <span class="text-body-2" v-if="item.directorate_name">
             <v-icon size="14" class="me-1 text-medium-emphasis">mdi-map-marker-outline</v-icon>
@@ -373,16 +482,16 @@
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 
-        <!-- 7. الهاتف -->
+        <!-- 8. الهاتف -->
         <template v-else-if="key === 'phone_number'">
-          <span class="text-body-2 font-weight-medium" dir="ltr" v-if="item.phone_number">
+          <span class="text-body-2 font-weight-medium font-mono" dir="ltr" v-if="item.phone_number">
             <v-icon size="14" class="me-1 text-medium-emphasis">mdi-phone-outline</v-icon>
             {{ item.phone_number }}
           </span>
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 
-        <!-- 8. الحالة -->
+        <!-- 9. الحالة -->
         <template v-else-if="key === 'is_active'">
           <v-chip
             size="small"
@@ -412,10 +521,18 @@ export default {
       data: {},
       items: { count: 0, results: [] },
       drawer: false,
+      loading: false,
       url: "api/academic/students/",
 
+      // ── إحصائيات سريعة للبطاقات ──
+      statsCounts: {
+        university: 0,
+        school: 0,
+        institute: 0,
+      },
+
       // ── فلاتر الهيكلية والمؤسسة ──
-      filterInstitutionType: 'school',
+      filterInstitutionType: 'all',
       filterGovernorate: null,
       filterDirectorate: null,
       filterOrganization: null,
@@ -459,7 +576,7 @@ export default {
     },
     orgParam() {
       return {
-        institution_type: this.filterInstitutionType || undefined,
+        institution_type: (this.filterInstitutionType && this.filterInstitutionType !== 'all') ? this.filterInstitutionType : undefined,
         governorate: this.filterGovernorate || undefined,
         directorate: this.filterDirectorate || undefined,
       };
@@ -467,8 +584,7 @@ export default {
     headers() {
       return [
         { title: "الرقم الأكاديمي", key: "academic_number" },
-        { title: "اسم الطالب (عربي)", key: "name_ar" },
-        { title: "الاسم (إنجليزي)", key: "name_en" },
+        { title: "اسم الطالب", key: "name_ar" },
         { title: "نوع المؤسسة", key: "institution_type" },
         { title: "المؤسسة التعليمية", key: "organization_name" },
         { title: "القيد والتصنيف الأكاديمي", key: "academic_info" },
@@ -481,14 +597,30 @@ export default {
   },
   created() {
     this.getData();
+    this.fetchSummaryStats();
   },
   methods: {
+    async fetchSummaryStats() {
+      try {
+        const res = await this.$axios.get(this.url, { params: { page_size: 100 } });
+        const list = res.data?.results || [];
+        this.statsCounts = {
+          university: list.filter(s => s.institution_type === 'university').length,
+          school: list.filter(s => s.institution_type === 'school').length,
+          institute: list.filter(s => s.institution_type === 'institute').length,
+        };
+      } catch (err) {
+        console.error('Error fetching students stats:', err);
+      }
+    },
+
     async getData(params = this.$params) {
+      this.loading = true;
       const queryParams = {
         ...(params?.params || params || {}),
       };
 
-      if (this.filterInstitutionType) {
+      if (this.filterInstitutionType && this.filterInstitutionType !== 'all') {
         queryParams.institution_type = this.filterInstitutionType;
       }
       if (this.filterGovernorate) queryParams.governorate = this.filterGovernorate;
@@ -519,12 +651,14 @@ export default {
         if (this.filterInstituteLevel) queryParams.institute_level = this.filterInstituteLevel;
       }
 
-      return await this.$axios
-        .get(this.url, { params: queryParams })
-        .then((response) => (this.items = response.data))
-        .catch(() => {
-          this.items = { count: 0, results: [] };
-        });
+      try {
+        const response = await this.$axios.get(this.url, { params: queryParams });
+        this.items = response.data;
+      } catch (err) {
+        this.items = { count: 0, results: [] };
+      } finally {
+        this.loading = false;
+      }
     },
 
     onInstitutionTypeChange() {
@@ -586,7 +720,7 @@ export default {
     },
 
     resetFilters() {
-      this.filterInstitutionType = 'school';
+      this.filterInstitutionType = 'all';
       this.filterGovernorate = null;
       this.filterDirectorate = null;
       this.filterOrganization = null;
@@ -618,7 +752,28 @@ export default {
 <style scoped>
 .students-master-view {
   animation: fadeIn 0.3s ease-in-out;
+  padding: 16px;
 }
+
+/* ===== Stat Cards ===== */
+.stat-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-border-color), 0.12);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
+.main-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-border-color), 0.12);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+}
+
 .gap-1 { gap: 4px; }
 .gap-2 { gap: 8px; }
 .gap-3 { gap: 12px; }

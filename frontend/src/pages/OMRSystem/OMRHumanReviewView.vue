@@ -3,7 +3,6 @@
     <!-- Header -->
     <div class="d-flex align-center justify-space-between mb-6">
       <div class="d-flex align-center">
-        <back-to class="me-3" />
         <v-avatar size="44" color="primary" variant="tonal" class="me-3 rounded-xl">
           <v-icon size="24">mdi-account-eye-outline</v-icon>
         </v-avatar>

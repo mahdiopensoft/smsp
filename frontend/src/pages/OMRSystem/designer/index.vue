@@ -3,7 +3,6 @@
     <!-- ── Page Header (Institutional OpenSoftCore Style) ─────────────── -->
     <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-6">
       <div class="d-flex align-center">
-        <back-to class="me-3" />
         <v-avatar size="44" color="primary" variant="tonal" class="me-3 rounded-xl">
           <v-icon size="24">{{ pageMode === 'library' ? 'mdi-folder-multiple-outline' : 'mdi-tune-vertical' }}</v-icon>
         </v-avatar>

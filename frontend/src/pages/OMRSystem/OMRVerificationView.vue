@@ -2,7 +2,6 @@
   <div class="qb-omr-verification pa-4 pa-md-6">
     <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-6">
       <div class="d-flex align-center">
-        <back-to class="me-3" />
         <v-avatar size="48" color="error" variant="tonal" class="me-3 rounded-xl elevation-1">
           <v-icon size="26">mdi-shield-check</v-icon>
         </v-avatar>

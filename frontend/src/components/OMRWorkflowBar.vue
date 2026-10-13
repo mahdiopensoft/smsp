@@ -28,10 +28,10 @@
           <v-chip
             size="x-small"
             variant="tonal"
-            :color="currentActiveStep === 6 ? 'success' : 'primary'"
+            color="primary"
             class="font-weight-black px-2"
           >
-            {{ progressPercentage }}% منجز
+            المرحلة {{ currentActiveStep }} من {{ steps.length }}
           </v-chip>
 
           <v-btn
