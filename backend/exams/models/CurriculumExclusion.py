@@ -192,6 +192,14 @@ class CurriculumExclusion(SoftDeleteModel):
         ordering = ['-created_at']
 
     def __str__(self):
-        target = self.unit.name_ar if self.exclusion_type == 'unit' and self.unit else (self.lesson.name_ar if self.lesson else 'غير محدد')
-        year_str = self.academic_year.name_ar if self.academic_year else ''
-        return f"{self.get_exclusion_type_display()}: {target} ({year_str})"
+        try:
+            target = "غير محدد"
+            if self.exclusion_type == 'unit' and self.unit:
+                target = getattr(self.unit, 'name_ar', str(self.unit))
+            elif self.lesson:
+                target = getattr(self.lesson, 'name_ar', str(self.lesson))
+            year_str = str(self.academic_year) if self.academic_year_id else ''
+            disp = self.get_exclusion_type_display() if hasattr(self, 'get_exclusion_type_display') else (self.exclusion_type or '')
+            return f"{disp}: {target} ({year_str})"
+        except Exception:
+            return f"CurriculumExclusion #{getattr(self, 'id', 'unknown')}"
