@@ -328,78 +328,90 @@
           </div>
         </v-card-title>
 
-        <!-- Main Navigation Tabs in Dialog (Modern Unified Elevated Card Style) -->
+        <!-- ── Main Navigation Tabs in Dialog (خفيف وسهل ومرن) ── -->
         <div class="px-4 pt-3 pb-2 bg-surface">
-          <v-card class="main-card pa-1 rounded-xl elevation-1 border">
-            <v-tabs
-              v-model="hubActiveTab"
-              color="primary"
-              grow
-              density="comfortable"
-              class="hub-navigation-tabs"
-            >
-              <v-tab value="questions" class="font-weight-black py-3 text-body-2">
-                <v-icon start size="18">mdi-file-document-outline</v-icon>
-                <span>ورقة الأسئلة الرسمية (كراسة الأسئلة المعتمدة)</span>
-                <v-chip
+          <div class="exam-hub-nav-bar">
+            <div class="exam-hub-nav-container">
+              <div
+                class="exam-hub-nav-item"
+                :class="{ 'is-active': hubActiveTab === 'questions' }"
+                @click="hubActiveTab = 'questions'"
+                role="button"
+                tabindex="0"
+              >
+                <v-icon size="17" class="nav-icon">mdi-file-document-outline</v-icon>
+                <span>ورقة الأسئلة الرسمية (الكراسة)</span>
+                <span
                   v-if="examDetails?.versions?.length"
-                  size="x-small"
-                  color="secondary"
-                  variant="flat"
-                  class="ms-2 font-weight-black"
+                  class="hub-count-badge badge-purple"
                 >
                   {{ examDetails.versions.length }} نماذج
-                </v-chip>
-              </v-tab>
+                </span>
+              </div>
 
-              <v-tab value="template" class="font-weight-black py-3 text-body-2">
-                <v-icon start size="18">mdi-card-text-outline</v-icon>
-                <span>توليد ومعاينة ورقة التظليل والطباعة</span>
-              </v-tab>
+              <div
+                class="exam-hub-nav-item"
+                :class="{ 'is-active': hubActiveTab === 'template' }"
+                @click="hubActiveTab = 'template'"
+                role="button"
+                tabindex="0"
+              >
+                <v-icon size="17" class="nav-icon">mdi-card-text-outline</v-icon>
+                <span>توليد ومعاينة ورقة التظليل</span>
+              </div>
 
-              <v-tab value="roster" class="font-weight-black py-3 text-body-2">
-                <v-icon start size="18">mdi-account-school-outline</v-icon>
+              <div
+                class="exam-hub-nav-item"
+                :class="{ 'is-active': hubActiveTab === 'roster' }"
+                @click="hubActiveTab = 'roster'"
+                role="button"
+                tabindex="0"
+              >
+                <v-icon size="17" class="nav-icon">mdi-account-school-outline</v-icon>
                 <span>كشف الطلاب والبيانات الامتحانية</span>
-                <v-chip
+                <span
                   v-if="totalStudentsCount || examDetails?.registered_students_count || examDetails?.registered_students?.length"
-                  size="x-small"
-                  color="primary"
-                  variant="flat"
-                  class="ms-2 font-weight-black"
+                  class="hub-count-badge badge-blue"
                 >
                   {{ totalStudentsCount || examDetails?.registered_students_count || examDetails?.registered_students?.length }}
-                </v-chip>
-              </v-tab>
+                </span>
+              </div>
 
-              <v-tab value="keys" class="font-weight-black py-3 text-body-2">
-                <v-icon start size="18">mdi-key-variant</v-icon>
-                <span>نماذج الأسئلة ومفاتيح الحل</span>
-                <v-chip
+              <div
+                class="exam-hub-nav-item"
+                :class="{ 'is-active': hubActiveTab === 'keys' }"
+                @click="hubActiveTab = 'keys'"
+                role="button"
+                tabindex="0"
+              >
+                <v-icon size="17" class="nav-icon">mdi-key-variant</v-icon>
+                <span>النماذج ومفاتيح الحل</span>
+                <span
                   v-if="examDetails?.versions?.length"
-                  size="x-small"
-                  color="info"
-                  variant="flat"
-                  class="ms-2 font-weight-black"
+                  class="hub-count-badge badge-amber"
                 >
                   {{ examDetails.versions.length }}
-                </v-chip>
-              </v-tab>
+                </span>
+              </div>
 
-              <v-tab value="submissions" class="font-weight-black py-3 text-body-2">
-                <v-icon start size="18">mdi-check-decagram-outline</v-icon>
+              <div
+                class="exam-hub-nav-item"
+                :class="{ 'is-active': hubActiveTab === 'submissions' }"
+                @click="hubActiveTab = 'submissions'"
+                role="button"
+                tabindex="0"
+              >
+                <v-icon size="17" class="nav-icon">mdi-check-decagram-outline</v-icon>
                 <span>أوراق الإجابة المصححة</span>
-                <v-chip
+                <span
                   v-if="examDetails?.submissions?.length || examDetails?.recent_submissions?.length"
-                  size="x-small"
-                  color="success"
-                  variant="flat"
-                  class="ms-2 font-weight-black"
+                  class="hub-count-badge badge-green"
                 >
                   {{ (examDetails?.submissions?.length || examDetails?.recent_submissions?.length) }}
-                </v-chip>
-              </v-tab>
-            </v-tabs>
-          </v-card>
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <v-card-text class="pa-4 pa-md-6 bg-grey-lighten-5">
@@ -2527,5 +2539,104 @@ onMounted(async () => {
 .exam-row-title-trigger:hover .exam-clickable-title {
   color: rgb(var(--v-theme-primary)) !important;
   text-decoration: underline;
+}
+
+/* ── Lightweight Navigation Bar in Exam Hub Dialog ── */
+.exam-hub-nav-bar {
+  direction: rtl;
+}
+
+.exam-hub-nav-container {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 5px;
+  gap: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.exam-hub-nav-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #64748b;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.exam-hub-nav-item:hover {
+  background: #f8fafc;
+  color: #334155;
+}
+
+.exam-hub-nav-item.is-active {
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 800;
+  border-color: #bfdbfe;
+}
+
+.exam-hub-nav-item.is-active .nav-icon {
+  color: #2563eb !important;
+}
+
+.hub-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.hub-count-badge.badge-purple {
+  background: #f3e8ff;
+  color: #7e22ce;
+  border: 1px solid #e9d5ff;
+}
+
+.hub-count-badge.badge-blue {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.hub-count-badge.badge-amber {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.hub-count-badge.badge-green {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+@media (max-width: 1100px) {
+  .exam-hub-nav-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .exam-hub-nav-container {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
