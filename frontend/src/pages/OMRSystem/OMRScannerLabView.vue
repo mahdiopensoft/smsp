@@ -364,19 +364,32 @@
         </v-card>
 
 
-        <!-- نمط المسح: ورقة فردية vs مسح ضوئي جماعي -->
-        <v-card class="pa-2 rounded-xl border elevation-0 mb-6 bg-grey-lighten-4">
-          <v-tabs v-model="scanSubMode" grow color="primary">
-            <v-tab value="single" class="font-weight-bold">
-              <v-icon start>mdi-file-outline</v-icon>
-              مسح وتصحيح ورقة فردية
-            </v-tab>
-            <v-tab value="batch" class="font-weight-bold">
-              <v-icon start>mdi-folder-multiple-image</v-icon>
-              المسح الضوئي الجماعي (دفعة دفاتر / PDF / ZIP)
-            </v-tab>
-          </v-tabs>
-        </v-card>
+        <!-- نمط المسح: ورقة فردية vs مسح ضوئي جماعي (خفيف وسهل) -->
+        <div class="lab-submode-bar mb-6">
+          <div class="lab-submode-container">
+            <div
+              class="lab-submode-item"
+              :class="{ 'is-active': scanSubMode === 'single' }"
+              @click="scanSubMode = 'single'"
+              role="button"
+              tabindex="0"
+            >
+              <v-icon size="17" class="submode-icon">mdi-file-outline</v-icon>
+              <span>مسح وتصحيح ورقة فردية</span>
+            </div>
+
+            <div
+              class="lab-submode-item"
+              :class="{ 'is-active': scanSubMode === 'batch' }"
+              @click="scanSubMode = 'batch'"
+              role="button"
+              tabindex="0"
+            >
+              <v-icon size="17" class="submode-icon">mdi-folder-multiple-image</v-icon>
+              <span>المسح الضوئي الجماعي (دفعة دفاتر / PDF / ZIP)</span>
+            </div>
+          </div>
+        </div>
 
         <div v-if="scanSubMode === 'single'">
         <!-- اختيار القالب المعتمد -->
@@ -3102,6 +3115,62 @@ onMounted(async () => {
 @media (max-width: 600px) {
   .lab-workflow-container {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ── Lightweight Lab Submode Bar (Single vs Batch) ── */
+.lab-submode-bar {
+  direction: rtl;
+}
+
+.lab-submode-container {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 6px;
+  gap: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.lab-submode-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64748b;
+  background: transparent;
+  transition: all 0.2s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.lab-submode-item:hover {
+  background: #f8fafc;
+  color: #334155;
+}
+
+.lab-submode-item.is-active {
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 800;
+  border: 1px solid #bfdbfe;
+}
+
+.lab-submode-item.is-active .submode-icon {
+  color: #2563eb;
+}
+
+@media (max-width: 600px) {
+  .lab-submode-container {
+    flex-direction: column;
   }
 }
 </style>

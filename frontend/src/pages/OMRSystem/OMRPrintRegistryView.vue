@@ -85,22 +85,53 @@
       </v-row>
     </div>
 
-    <!-- ── Navigation Tabs (أوراق التظليل vs ورقة الأسئلة الرسمية vs حزمة الاختبار vs سجل الدفعات) ── -->
-    <div class="main-card rounded-2xl mb-6 pa-1 bg-surface border">
-      <v-tabs v-model="activeTab" color="primary" class="border-b">
-        <v-tab value="sheets" class="font-weight-black text-body-2" prepend-icon="mdi-checkbox-multiple-marked-circle-outline">
-          أوراق التظليل (OMR Sheets - فواتير الطلاب)
-        </v-tab>
-        <v-tab value="questions" class="font-weight-black text-body-2" prepend-icon="mdi-file-document-outline">
-          ورقة الأسئلة الرسمية (كراسة الأسئلة المعتمدة)
-        </v-tab>
-        <v-tab value="package" class="font-weight-black text-body-2" prepend-icon="mdi-package-variant-closed">
-          حزمة الاختبار المتكاملة (أسئلة + تظليل)
-        </v-tab>
-        <v-tab value="history" class="font-weight-black text-body-2" prepend-icon="mdi-history">
-          سجل الدفعات المطبوعة السابقة ({{ batches.length }})
-        </v-tab>
-      </v-tabs>
+    <!-- ── Navigation Tabs (خفيف وسهل) ───────────────────────────── -->
+    <div class="registry-nav-bar mb-6">
+      <div class="registry-nav-container">
+        <div
+          class="registry-nav-item"
+          :class="{ 'is-active': activeTab === 'sheets' }"
+          @click="activeTab = 'sheets'"
+          role="button"
+          tabindex="0"
+        >
+          <v-icon size="17" class="nav-icon">mdi-checkbox-multiple-marked-circle-outline</v-icon>
+          <span>أوراق التظليل (OMR Sheets)</span>
+        </div>
+
+        <div
+          class="registry-nav-item"
+          :class="{ 'is-active': activeTab === 'questions' }"
+          @click="activeTab = 'questions'"
+          role="button"
+          tabindex="0"
+        >
+          <v-icon size="17" class="nav-icon">mdi-file-document-outline</v-icon>
+          <span>ورقة الأسئلة الرسمية (الكراسة)</span>
+        </div>
+
+        <div
+          class="registry-nav-item"
+          :class="{ 'is-active': activeTab === 'package' }"
+          @click="activeTab = 'package'"
+          role="button"
+          tabindex="0"
+        >
+          <v-icon size="17" class="nav-icon">mdi-package-variant-closed</v-icon>
+          <span>حزمة الاختبار (أسئلة + تظليل)</span>
+        </div>
+
+        <div
+          class="registry-nav-item"
+          :class="{ 'is-active': activeTab === 'history' }"
+          @click="activeTab = 'history'"
+          role="button"
+          tabindex="0"
+        >
+          <v-icon size="17" class="nav-icon">mdi-history</v-icon>
+          <span>سجل الدفعات المطبوعة ({{ batches.length }})</span>
+        </div>
+      </div>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════ -->
@@ -1552,5 +1583,68 @@ onMounted(async () => {
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
   border: 1px solid #cbd5e1;
   background-color: #ffffff;
+}
+
+/* ── Lightweight Navigation Bar ── */
+.registry-nav-bar {
+  direction: rtl;
+}
+
+.registry-nav-container {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 6px;
+  gap: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.registry-nav-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #64748b;
+  background: transparent;
+  transition: all 0.2s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.registry-nav-item:hover {
+  background: #f8fafc;
+  color: #334155;
+}
+
+.registry-nav-item.is-active {
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 800;
+  border: 1px solid #bfdbfe;
+}
+
+.registry-nav-item.is-active .nav-icon {
+  color: #2563eb;
+}
+
+@media (max-width: 1024px) {
+  .registry-nav-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .registry-nav-container {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
