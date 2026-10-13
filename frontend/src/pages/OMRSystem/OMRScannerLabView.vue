@@ -52,23 +52,46 @@
     <!-- ── OMR Workflow Stepper (المرحلة 3: معمل وسحب المسح الضوئي والتصحيح) ── -->
     <omr-workflow-bar :active-step="3" :exam-id="selectedExamId" />
 
-    <!-- ── Step Tabs Navigation Bar ───────────────────────────────── -->
-    <v-card class="main-card pa-2 rounded-xl mb-6 elevation-1">
-      <v-tabs v-model="currentStep" grow color="primary" slider-color="primary">
-        <v-tab :value="0" class="font-weight-bold py-3">
-          <v-icon start>mdi-printer-outline</v-icon>
-          الخطوة 1: تصدير وطباعة الورقة
-        </v-tab>
-        <v-tab :value="1" class="font-weight-bold py-3">
-          <v-icon start>mdi-cloud-upload-outline</v-icon>
-          الخطوة 2: رفع الورقة والتصحيح (AI OMR)
-        </v-tab>
-        <v-tab :value="2" :disabled="!result" class="font-weight-bold py-3">
-          <v-icon start>mdi-chart-box-outline</v-icon>
-          الخطوة 3: نتائج التحليل وتتبع AI
-        </v-tab>
-      </v-tabs>
-    </v-card>
+    <!-- ── Step Tabs Navigation Bar (خفيف وسهل) ───────────────────────── -->
+    <div class="lab-workflow-bar mb-6">
+      <div class="lab-workflow-container">
+        <div
+          class="lab-workflow-step"
+          :class="{ 'is-active': currentStep === 0 }"
+          @click="currentStep = 0"
+          role="button"
+          tabindex="0"
+        >
+          <span class="step-num-pill">1</span>
+          <v-icon size="16">mdi-printer-outline</v-icon>
+          <span>الخطوة 1: تصدير وطباعة الورقة</span>
+        </div>
+
+        <div
+          class="lab-workflow-step"
+          :class="{ 'is-active': currentStep === 1 }"
+          @click="currentStep = 1"
+          role="button"
+          tabindex="0"
+        >
+          <span class="step-num-pill">2</span>
+          <v-icon size="16">mdi-cloud-upload-outline</v-icon>
+          <span>الخطوة 2: رفع الورقة والتصحيح (AI OMR)</span>
+        </div>
+
+        <div
+          class="lab-workflow-step"
+          :class="{ 'is-active': currentStep === 2, 'is-disabled': !result }"
+          @click="result && (currentStep = 2)"
+          role="button"
+          tabindex="0"
+        >
+          <span class="step-num-pill">3</span>
+          <v-icon size="16">mdi-chart-box-outline</v-icon>
+          <span>الخطوة 3: نتائج التحليل وتتبع AI</span>
+        </div>
+      </div>
+    </div>
 
     <!-- ════════════════════════════════════════════════════════════ -->
     <!-- STEP 0: تصدير وطباعة الورقة                                  -->
@@ -140,55 +163,49 @@
             </v-card>
           </v-col>
 
-          <!-- Sheet Specifications & Actions -->
+          <!-- Sheet Specifications & Actions (خفيف وسهل) -->
           <v-col cols="12" md="8" lg="9">
-            <v-card class="pa-5 rounded-xl border elevation-0 mb-4 bg-surface">
+            <div class="sheet-specs-panel mb-4">
+              <!-- Header -->
               <div class="d-flex justify-space-between align-center mb-3">
-                <h3 class="text-subtitle-1 font-weight-bold d-flex align-center mb-0">
-                  <v-icon color="primary" class="me-2" size="20">mdi-information-outline</v-icon>
-                  المواصفات الهندسية لورقة الإجابة المعتمدة
-                </h3>
-                <v-chip color="primary" variant="flat" size="small" rounded="md" class="font-weight-bold">
+                <div class="d-flex align-center gap-2">
+                  <v-icon color="primary" size="18">mdi-information-outline</v-icon>
+                  <span class="font-weight-bold text-subtitle-2">
+                    المواصفات الهندسية لورقة الإجابة المعتمدة
+                  </span>
+                </div>
+                <span class="spec-template-pill font-weight-bold">
                   {{ activeTemplateObj?.name || 'النموذج المعياري العام' }}
-                </v-chip>
+                </span>
               </div>
 
-              <v-row dense class="mb-4">
-                <v-col cols="6" sm="3">
-                  <div class="pa-3 rounded-lg border bg-grey-lighten-5 text-center">
-                    <div class="text-caption text-medium-emphasis">المقاس القياسي</div>
-                    <div class="text-subtitle-2 font-weight-bold">A4 — 210×297mm</div>
-                  </div>
-                </v-col>
-                <v-col cols="6" sm="3">
-                  <div class="pa-3 rounded-lg border bg-grey-lighten-5 text-center">
-                    <div class="text-caption text-medium-emphasis">دقة الطباعة</div>
-                    <div class="text-subtitle-2 font-weight-bold">300 DPI عالية الدقة</div>
-                  </div>
-                </v-col>
-                <v-col cols="6" sm="3">
-                  <div class="pa-3 rounded-lg border bg-grey-lighten-5 text-center">
-                    <div class="text-caption text-medium-emphasis">سعة الأسئلة</div>
-                    <div class="text-subtitle-2 font-weight-bold" v-if="selectedTemplateId === 'AUTO' && !activeTemplateObj">
-                      سيتم التعرف تلقائياً
-                    </div>
-                    <div class="text-subtitle-2 font-weight-bold" v-else>{{ activeQuestionsCount }} سؤال ({{ activeChoicesLabels.length }} خيارات)</div>
-                  </div>
-                </v-col>
-                <v-col cols="6" sm="3">
-                  <div class="pa-3 rounded-lg border bg-grey-lighten-5 text-center">
-                    <div class="text-caption text-medium-emphasis">الأعمدة الهندسية</div>
-                    <div class="text-subtitle-2 font-weight-bold">{{ activeTemplateMeta.totalColumns }} أعمدة اتجاه RTL</div>
-                  </div>
-                </v-col>
-              </v-row>
+              <!-- 4 Specs Items -->
+              <div class="specs-pill-grid mb-3">
+                <div class="spec-pill-item">
+                  <span class="spec-pill-label">المقاس القياسي</span>
+                  <span class="spec-pill-val">A4 — 210×297mm</span>
+                </div>
+                <div class="spec-pill-item">
+                  <span class="spec-pill-label">دقة الطباعة</span>
+                  <span class="spec-pill-val">300 DPI عالية الدقة</span>
+                </div>
+                <div class="spec-pill-item">
+                  <span class="spec-pill-label">سعة الأسئلة</span>
+                  <span class="spec-pill-val" v-if="selectedTemplateId === 'AUTO' && !activeTemplateObj">تلقائي</span>
+                  <span class="spec-pill-val" v-else>{{ activeQuestionsCount }} سؤال ({{ activeChoicesLabels.length }} خيارات)</span>
+                </div>
+                <div class="spec-pill-item">
+                  <span class="spec-pill-label">الأعمدة الهندسية</span>
+                  <span class="spec-pill-val">{{ activeTemplateMeta.totalColumns }} أعمدة اتجاه RTL</span>
+                </div>
+              </div>
 
-              <div class="d-flex gap-3 flex-wrap">
+              <!-- Action Buttons -->
+              <div class="d-flex gap-2 flex-wrap">
                 <v-btn
                   color="primary"
-                  size="large"
                   rounded="lg"
-                  class="font-weight-bold px-6"
+                  class="font-weight-bold"
                   prepend-icon="mdi-printer"
                   @click="printSheet"
                 >
@@ -197,27 +214,25 @@
                 <v-btn
                   variant="outlined"
                   color="secondary"
-                  size="large"
                   rounded="lg"
-                  class="font-weight-bold px-5"
+                  class="font-weight-bold"
                   prepend-icon="mdi-folder-multiple-outline"
                   @click="$router.push('/omr/templates')"
                 >
                   مكتبة القوالب ({{ savedTemplates.length }})
                 </v-btn>
                 <v-btn
-                  color="secondary"
+                  color="primary"
                   variant="tonal"
-                  size="large"
                   rounded="lg"
-                  class="font-weight-bold px-6"
+                  class="font-weight-bold"
                   append-icon="mdi-arrow-left"
                   @click="currentStep = 1"
                 >
                   الانتقال للخطوة التالية (الرفع والتصحيح)
                 </v-btn>
               </div>
-            </v-card>
+            </div>
 
             <!-- Instructions Grid -->
             <v-row dense>
@@ -2951,8 +2966,142 @@ onMounted(async () => {
 }
 
 @media print {
-  .v-card, .v-tabs {
+  .v-card, .v-tabs, .lab-workflow-bar {
     display: none !important;
+  }
+}
+
+/* ── Lightweight Lab Workflow Step Bar ── */
+.lab-workflow-bar {
+  direction: rtl;
+}
+
+.lab-workflow-container {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 6px;
+  gap: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.lab-workflow-step {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #64748b;
+  background: transparent;
+  transition: all 0.2s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.lab-workflow-step:hover:not(.is-disabled) {
+  background: #f8fafc;
+  color: #334155;
+}
+
+.lab-workflow-step.is-active {
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 800;
+  border: 1px solid #bfdbfe;
+}
+
+.lab-workflow-step.is-active .step-num-pill {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.lab-workflow-step.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.step-num-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+/* ── Lightweight Sheet Specs Panel ── */
+.sheet-specs-panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.spec-template-pill {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+.specs-pill-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.spec-pill-item {
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: center;
+}
+
+.spec-pill-label {
+  display: block;
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.spec-pill-val {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+@media (max-width: 900px) {
+  .lab-workflow-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .specs-pill-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .lab-workflow-container {
+    grid-template-columns: 1fr;
   }
 }
 </style>
