@@ -159,12 +159,12 @@ const fiducialsA4 = [
   { id: 'BR', x: 194, y: 281 },
 ]
 
-// Fiducials for Compact A5 (10mm margins on 210x148.5)
+// Fiducials for Compact A5 (6mm margins on 210x148.5)
 const fiducialsA5 = [
-  { id: 'TL', x: 10, y: 10 },
-  { id: 'TR', x: 194, y: 10 },
-  { id: 'BL', x: 10, y: 133 },
-  { id: 'BR', x: 194, y: 133 },
+  { id: 'TL', x: 6, y: 6 },
+  { id: 'TR', x: 198.5, y: 6 },
+  { id: 'BL', x: 6, y: 137 },
+  { id: 'BR', x: 198.5, y: 137 },
 ]
 
 interface ChoicePos {

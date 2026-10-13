@@ -983,23 +983,29 @@ class TemplateBuilderService:
                     {"type": "mcq", "start_q": 36, "end_q": 50, "total_q": 15},
                 ]
 
-        # 3. Position columns X
+        # 3. Position columns X (matches YemeniMinistrySheet.vue exactly)
         n_cols = len(cols_def)
         if not is_a4:
             if n_cols == 1:
-                col_xs = [102.0]
-            elif n_cols <= 4:
-                std_xs = [102.0, 72.0, 42.0, 12.0]
-                col_xs = std_xs[:n_cols]
+                col_xs = [57.0]
+            elif n_cols == 2:
+                col_xs = [82.0, 32.0]
+            elif n_cols == 3:
+                col_xs = [102.0, 57.0, 12.0]
+            elif n_cols == 4:
+                col_xs = [102.0, 72.0, 42.0, 12.0]
             else:
                 step = (102.0 - 12.0) / max(1, n_cols - 1)
                 col_xs = [round(102.0 - i * step, 1) for i in range(n_cols)]
         else:
             if n_cols == 1:
-                col_xs = [81.0]
-            elif n_cols <= 4:
-                std_xs = [81.0, 54.0, 27.0, 0.0]
-                col_xs = std_xs[:n_cols]
+                col_xs = [40.5]
+            elif n_cols == 2:
+                col_xs = [65.0, 15.0]
+            elif n_cols == 3:
+                col_xs = [81.0, 40.5, 0.0]
+            elif n_cols == 4:
+                col_xs = [81.0, 54.0, 27.0, 0.0]
             else:
                 step = 81.0 / max(1, n_cols - 1)
                 col_xs = [round(81.0 - i * step, 1) for i in range(n_cols)]
