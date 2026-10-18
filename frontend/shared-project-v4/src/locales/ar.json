@@ -1,0 +1,260 @@
+{
+    "chat": {
+        "intro": {
+            "title": "ابدأ تواصلك",
+            "subtitle": "ابقَ على اتصال مع الجميع في أي وقت ومن أي جهاز.",
+            "encryption": "تواصل آمن ومشفر بالكامل",
+            "star": "تمييز بنجمة",
+            "unstar": "إزالة النجمة",
+            "blockUser": "حظر {name}"
+        },
+        "settings": {
+            "title": "الإعدادات",
+            "blockedUsers": "المستخدمين المحظورين",
+            "noBlockedUsers": "لا يوجد مستخدمين محظورين",
+            "unblock": "إلغاء الحظر"
+        },
+        "list": {
+            "chats": "المحادثات",
+            "archived": "المؤرشفة",
+            "newGroup": "مجموعة جديدة",
+            "newChat": "محادثة جديدة",
+            "searchPlaceholder": "البحث أو بدء محادثة جديدة",
+            "pinned": "مثبتة",
+            "noResults": "لا توجد نتائج",
+            "noChats": "لا توجد محادثات",
+            "tryDiffTerms": "جرب البحث بكلمات مختلفة",
+            "startChat": "ابدأ محادثة جديدة",
+            "groups":"المجموعات",
+            "private":"محادثات فردية",
+            "all":"الكل"
+        },
+        "pinnedMessage": "رسالة مثبتة",
+        "pin": "تثبيت",
+        "unpin": "إلغاء التثبيت",
+        "window": {
+            "searchPlaceholder": "البحث في الرسائل...",
+            "loadMore": "تحميل المزيد",
+            "noMessages": "لا توجد رسائل",
+            "startMessaging": "أرسل رسالة للبدء",
+            "today": "اليوم",
+            "yesterday": "أمس",
+            "selected": "{count} محدد",
+            "copy": "نسخ",
+            "forward": "إعادة توجيه",
+            "delete": "حذف",
+            "reply": "رد",
+            "edit": "تعديل",
+            "deleteMessagesTitle": "حذف الرسائل",
+            "deleteMessagesConfirm": "هل أنت متأكد من حذف {count} رسالة؟",
+            "forwardMessagesTitle": "إعادة توجيه {count} رسالة",
+            "selectChatsToForward": "اختر المحادثات للتوجيه إليها",
+            "forwardButton": "إعادة توجيه",
+            "mutedByAdmin": "لقد تم منعك من المراسلة في هذه المجموعة",
+            "readOnlyGroup": "المراسلة في هذه المجموعة للمشرفين فقط"
+        },
+        "header": {
+            "search": "بحث",
+            "groupInfo": "معلومات المجموعة",
+            "contactInfo": "معلومات جهة الاتصال",
+            "selectMessages": "تحديد الرسائل",
+            "ring": "اتصال تنبيهي",
+            "mute": "كتم الإشعارات",
+            "unmute": "إلغاء كتم الإشعارات",
+            "participants": "{count} مشارك",
+            "archive": "أرشفة",
+            "wallpaper": "خلفية الدردشة",
+            "starredMessages": "الرسائل المميزة بنجمة",
+            "userInfo": "معلومات المستخدم",
+            "option":"خيارات"
+        },
+        "starred": {
+            "title": "الرسائل المميزة بنجمة",
+            "empty": "لا توجد رسائل مميزة بنجمة"
+        },
+        "newChat": {
+            "title": "محادثة جديدة",
+            "subtitle": "اختر شخصاً لبدء المحادثة",
+            "search": "البحث عن مستخدم...",
+            "newGroup": "إنشاء مجموعة جديدة",
+            "contacts": "جهات الاتصال",
+            "noResults": "لا توجد نتائج بحث"
+        },
+        "newGroup": {
+            "title": "مجموعة جديدة",
+            "subtitle": "أنشئ مجموعة وأضف المشاركين",
+            "groupNamePlaceholder": "اسم المجموعة (مطلوب)",
+            "searchParticipants": "البحث عن مشاركين لإضافتهم...",
+            "participants": "المشاركون ({count})",
+            "privateGroup": "مجموعة خاصة",
+            "privateGroupDesc": "يمكن للأعضاء المدعوين فقط الانضمام",
+            "create": "إنشاء ({count})"
+        },
+        "input": {
+            "replyTo": "الرد على {name}",
+            "editMessage": "تعديل الرسالة",
+            "recording": "جاري التسجيل...",
+            "placeholder": "اكتب رسالة...",
+            "audio": "تسجيل صوتي",
+            "image": "صورة",
+            "video": "فيديو",
+            "document": "مستند",
+            "cancelRecording": "حذف التسجيل",
+            "sendRecording": "إرسال التسجيل"
+        },
+        "info": {
+            "phone": "رقم الهاتف",
+            "email": "البريد الإلكتروني",
+            "bio": "نبذة",
+            "lastSeen": "آخر ظهور",
+            "unknown": "غير معروف",
+            "created": "أنشئت {date}",
+            "addMembers": "إضافة أعضاء",
+            "participants": "الأعضاء ({count})",
+            "admin": "مشرف",
+            "you": "أنت",
+            "makeAdmin": "تعيين كمشرف",
+            "removeAdmin": "إزالة الإشراف",
+            "removeMember": "إزالة من المجموعة",
+            "readOnlyMode": "المراسلة للمشرفين فقط",
+            "muteMember": "كتم العضو",
+            "unmuteMember": "إلغاء كتم العضو",
+            "blockUser": "حظر {name}"
+        },
+        "clearChat": "مسح المحادثة",
+        "clearChatConfirm": "هل أنت متأكد من مسح جميع الرسائل؟\nلا يمكن التراجع عن هذا الإجراء.",
+        "deleteChat": "حذف المحادثة",
+        "deleteChatConfirm": "هل أنت متأكد من حذف هذه المحادثة؟\nلا يمكن التراجع عن هذا الإجراء.",
+        "leaveGroup": "مغادرة المجموعة",
+        "leaveGroupConfirm": "هل أنت متأكد من مغادرة هذه المجموعة؟\nلن تتمكن من إرسال الرسائل بعد الآن.",
+        "blockUser": "حظر {name}",
+        "blockUserConfirm": "هل أنت متأكد من حظر هذا المستخدم؟\nلن يتمكن من إرسال رسائل إليك.",
+        "block": "حظر",
+        "unblock": "إلغاء الحظر",
+        "clear": "مسح",
+        "leave": "مغادرة",
+        "sendMessage": "إرسال رسالة",
+        "typeMessage": "اكتب رسالة...",
+        "online": "متصل",
+        "offline": "غير متصل",
+        "typing": "جاري الكتابة...",
+        "messages": {
+            "fileSendFailed": "فشل إرسال الملف",
+            "memberRemoved": "تم إزالة العضو بنجاح",
+            "adminPromoted": "تم تعيين العضو كمشرف",
+            "adminDemoted": "تم إزالة الإشراف",
+            "membersAdded": "تم إضافة الأعضاء بنجاح",
+            "groupUpdated": "تم تحديث المجموعة",
+            "leftGroup": "تم مغادرة المجموعة بنجاح",
+            "error": "حدث خطأ"
+        },
+        "systemMessages": {
+            "someone": "شخص ما",
+            "unknown": "رسالة نظام",
+            "groupCreated": "أنشأ {actor} هذه المجموعة",
+            "memberAdded": "أضاف {actor} {target}",
+            "memberRemoved": "أزال {actor} {target}",
+            "memberLeft": "غادر {actor} المجموعة",
+            "groupNameChanged": "غيّر {actor} اسم المجموعة إلى \"{name}\"",
+            "groupPictureChanged": "غيّر {actor} صورة المجموعة",
+            "groupDescriptionChanged": "غيّر {actor} وصف المجموعة",
+            "adminAdded": "عيّن {actor} {target} كمشرف",
+            "adminRemoved": "أزال {actor} الإشراف من {target}",
+            "youWereAdded": "تمت إضافتك إلى مجموعة \"{name}\""
+        },
+        "wallpaper": {
+            "title": "خلفية الدردشة",
+            "presets": "خلفيات جاهزة",
+            "custom": "صورة خاصة"
+        },
+        "unstar": "إزالة النجمة",
+        "star": "تمييز بنجمة",
+        "open": "فتح",
+        "message": "رسالة",
+        "hint": "تلميح",
+        "default_delete_message": "يرجى التأكد قبل حذف السجل, متابعة؟",
+        "common": {
+            "back": "رجوع",
+            "save":"حفظ",
+            "cancel":"اغلاق"
+        },
+        "noteBookGrade": {
+            "close": "اغلاق"
+        }
+    },
+
+    "clear_filters": "الغاء الفلترة",
+    "refresh": "تحديث ",
+    "item": "العنصر",
+    "operation": "العملية",
+    "user": "المستخدم",
+    "screens": "الشاشات",
+    "date": "التاريخ",
+    "actions": "الإجراءات",
+    "contact_rules": {
+        "rule_name": "اسم القاعدة",
+        "source_role": "دور المُرسِل",
+        "description": "الوصف",
+        "priority": "أولوية التنفيذ",
+        "query_config": "تكوين الاستعلام",
+        "is_active": "نشط",
+        "company_level": "مستوى الشركة",
+        "fk_user_type": "نوع المستخدم"
+    },
+
+
+    "first_name": "الأسم الأول",
+    "last_name": "الأسم الأخير",
+    "user_name": "اسم المستخدم",
+    "email": "البريد الألكتروني",
+    "system_type": "نوع النظام",
+    "groups": "المجموعات",
+    "group": "المجموعة",
+    "group_name_ar": "الاسم العربي",
+    "group_name_en": "الاسم الانجليزي",
+    "group_status": "متاح",
+    "image_user": "صورة المستخدم",
+    "is_active": "مفعل ؟",
+    "devicename": " الجهاز",
+    "os": "نظام التشغيل",
+    "close": "اغلاق",
+    "show_fields": "حقول العرض",
+    "user_type": "نوع المستخدم",
+    "are_you_sureclose_session": "هل انت متاكد تريد انهاء الجلسة",
+    "created_at": "تاريخ الاضافة",
+    "ip_address": "الموقع",  
+    "end_all_sessions": "إنهاء جميع الجلسات",
+    "confirm_exit": "تاكيد الخروج",
+    "parent": "الفئة الرئيسية",
+    "parent_screen": "الشاشة الاب",
+    "name_ar": "الأسم العربي",
+    "name_en": "الأسم الأنجليزي",
+    "permissions": "الصلاحيات",
+    "add_group_permissions": "إضافة صلاحيات المجموعة",
+    "add": "إضافة",
+    "reset_current_page": "إعادة تعيين الصفحة الحالية",
+    "reset_all_pages": "إعادة تعيين جميع الصفحات",
+    "description": "الوصف",
+    "for_manager": "للمدراء",
+    "header_footer":"الرأس والتذييل",
+    
+    "sync_status":"حالة المزامنة",
+
+    "record":"السجل",
+    "pending":"قيد الانتظار",
+    "add_other_level": "إضافة الى  مستوى آخر",
+    "branch": "الفرع",
+    "syncedRecord":"سجلات المزامنة",
+    "notSyncedRecord":"سجلات غير المتزامنة",
+    "is_main":"الرئيسي",
+    "details":"تفاصيل"
+ 
+
+
+
+
+
+
+
+
+}

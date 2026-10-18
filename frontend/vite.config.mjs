@@ -13,12 +13,15 @@ import { fileURLToPath, URL } from "node:url";
 import fs from "fs";
 import settings from "./settings";
 
-// Dynamic detection of shared-project-v4 path across Linux (Mahdi) and Windows (Ibrahim)
+// Dynamic detection of shared-project-v4 path across local, Windows, and Linux environments
 const candidatePaths = [
-  "/home/mahdi/Desktop/m/shared-project-v4",
+  fileURLToPath(new URL("./shared-project-v4", import.meta.url)),
+  "C:/Users/ibrahim/Desktop/question_bank/smsp/frontend/shared-project-v4",
   "C:/Users/ibrahim/Desktop/ibrahim/2026/portal/frontend/src/shared-project-v4",
+  path.resolve("./shared-project-v4"),
   path.resolve("../shared-project-v4"),
   path.resolve("../../shared-project-v4"),
+  "/home/mahdi/Desktop/m/shared-project-v4",
 ];
 const sharedProjectPath = candidatePaths.find(p => fs.existsSync(p)) || candidatePaths[0];
 
@@ -69,8 +72,7 @@ export default defineConfig({
       allow: [
         ".",
         sharedProjectPath,
-        "/home/mahdi/Desktop/m/shared-project-v4",
-        "C:/Users/ibrahim/Desktop/ibrahim/2026/portal/frontend/src/shared-project-v4",
+        "C:/Users/ibrahim/Desktop/question_bank/smsp/frontend/shared-project-v4",
       ],
     },
   },

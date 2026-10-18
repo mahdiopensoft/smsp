@@ -1,0 +1,15 @@
+:root {
+  /* Border Radius Scale (Aligned closer to Sneat Vuetify defaults) */
+  --radius-none: 0px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  /* Component Aliases */
+  --radius-card: var(--radius-md);
+  --radius-button: var(--radius-sm);
+  --radius-input: var(--radius-md);
+  --radius-avatar: var(--radius-full);
+}

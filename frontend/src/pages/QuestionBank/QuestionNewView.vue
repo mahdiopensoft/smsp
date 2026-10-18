@@ -116,11 +116,15 @@
 
               <!-- Scientific Formula & Question Text Editor -->
               <scientific-formula-editor
+                ref="formulaEditorRef"
                 v-model="form.text"
+                v-model:active-target="activeFormulaTarget"
+                :available-targets="availableTargets"
                 label="نص السؤال"
                 placeholder="اكتب صياغة السؤال هنا... يمكنك النقر على زر (شريط الأدوات والرموز العلمية) بالأعلى لإدراج أي معادلات رياضية أو كيميائية أو كتل برمجية بنقرة واحدة."
                 :rows="5"
                 class="mb-2"
+                @insert-symbol="onInsertSymbol"
               />
             </div>
 
@@ -128,19 +132,39 @@
 
             <!-- Dynamic Options: Single / Multiple Choice -->
             <div v-if="form.type === 'single_choice' || form.type === 'multiple_choice'">
-              <div class="d-flex align-center justify-space-between mb-4">
+              <div class="d-flex align-center justify-space-between mb-4 flex-wrap gap-2">
                 <h3 class="text-h6 mb-0 d-flex align-center gap-2">
                   <v-icon color="success">mdi-format-list-checks</v-icon>
                   خيارات الإجابة
                 </h3>
-                <v-chip size="small" variant="tonal" color="success" class="font-weight-bold">
-                  {{ form.type === 'single_choice' ? 'حدد خيار الإجابة الصحيحة' : 'حدد الإجابات الصحيحة' }}
-                </v-chip>
+                <div class="d-flex align-center gap-2">
+                  <v-chip
+                    v-if="activeFormulaTarget?.id?.startsWith('option_')"
+                    size="small"
+                    color="primary"
+                    variant="flat"
+                    class="font-weight-bold"
+                  >
+                    <v-icon start size="14">mdi-crosshairs-gps</v-icon>
+                    شريط الرموز يكتب في: {{ activeFormulaTarget.label }}
+                  </v-chip>
+                  <v-chip size="small" variant="tonal" color="success" class="font-weight-bold">
+                    {{ form.type === 'single_choice' ? 'حدد خيار الإجابة الصحيحة' : 'حدد الإجابات الصحيحة' }}
+                  </v-chip>
+                </div>
               </div>
 
               <!-- Unboxed, standard clean option rows without enclosing cards -->
-              <div v-for="(option, index) in form.options" :key="index"
-                class="d-flex align-center gap-2 mb-3">
+              <div
+                v-for="(option, index) in form.options"
+                :key="index"
+                class="d-flex align-center gap-2 mb-3 option-row-wrap"
+                :class="{ 'option-row--targeted': activeFormulaTarget?.id === `option_${index}` }"
+                @focusin="setActiveFormulaTarget(`option_${index}`, `الخيار (${String.fromCharCode(65 + index)})`, index)"
+                @click="setActiveFormulaTarget(`option_${index}`, `الخيار (${String.fromCharCode(65 + index)})`, index)"
+                @keyup="saveCursorPosition(`option_${index}`, $event)"
+                @mouseup="saveCursorPosition(`option_${index}`, $event)"
+              >
                 <!-- Selection Radio / Checkbox -->
                 <div class="cursor-pointer" @click="toggleCorrectOption(index)">
                   <v-radio-group v-if="form.type === 'single_choice'" v-model="form.correctAnswerIndex" hide-details class="ma-0">
@@ -166,8 +190,10 @@
                     variant="outlined"
                     density="compact"
                     hide-details="auto"
-                    :color="isCorrectOption(index) ? 'success' : 'primary'"
+                    :color="activeFormulaTarget?.id === `option_${index}` ? 'primary' : (isCorrectOption(index) ? 'success' : undefined)"
                     :rules="[rules.required]"
+                    @focus="setActiveFormulaTarget(`option_${index}`, `الخيار (${String.fromCharCode(65 + index)})`, index)"
+                    @click="setActiveFormulaTarget(`option_${index}`, `الخيار (${String.fromCharCode(65 + index)})`, index)"
                   />
                   <!-- Scientific Formula Auto-Preview for Option -->
                   <div
@@ -179,6 +205,17 @@
                     <span class="font-weight-bold" v-html="renderOptionMarkup(form.options[index])"></span>
                   </div>
                 </div>
+
+                <!-- Quick Button to Activate Symbol Toolbar for This Option -->
+                <v-btn
+                  size="small"
+                  :variant="activeFormulaTarget?.id === `option_${index}` ? 'flat' : 'tonal'"
+                  :color="activeFormulaTarget?.id === `option_${index}` ? 'primary' : undefined"
+                  icon="mdi-function-variant"
+                  class="rounded-lg"
+                  :title="activeFormulaTarget?.id === `option_${index}` ? 'هذا الخيار هو الوجهة النشطة لشريط الرموز' : 'إدراج رموز ومعادلات لهذا الخيار'"
+                  @click.stop="activateOptionFormula(index)"
+                />
 
                 <!-- Correct Answer Badge -->
                 <v-chip v-if="isCorrectOption(index)" size="x-small" color="success" variant="tonal" class="font-weight-bold d-none d-sm-inline-flex">
@@ -226,13 +263,43 @@
 
             <!-- Dynamic Options: Essay -->
             <div v-else-if="form.type === 'essay'">
-              <h3 class="text-h6 mb-3 d-flex align-center gap-2">
-                <v-icon color="primary">mdi-text-box-check-outline</v-icon>
-                الإجابة النموذجية (للمصحح)
-              </h3>
-              <custom-text-note v-model="form.options[0]" placeholder="اكتب الإجابة النموذجية المعتمدة لتقييم المصحح..."
-                rows="4" variant="outlined" density="comfortable" rounded="lg" color="primary" :rules="[rules.required]"
-                hide-details="auto" />
+              <div class="d-flex align-center justify-space-between mb-3 flex-wrap gap-2">
+                <h3 class="text-h6 mb-0 d-flex align-center gap-2">
+                  <v-icon color="primary">mdi-text-box-check-outline</v-icon>
+                  الإجابة النموذجية (للمصحح)
+                </h3>
+                <v-btn
+                  size="small"
+                  :variant="activeFormulaTarget?.id === 'essay_0' ? 'flat' : 'tonal'"
+                  :color="activeFormulaTarget?.id === 'essay_0' ? 'primary' : undefined"
+                  prepend-icon="mdi-function-variant"
+                  class="font-weight-bold rounded-lg"
+                  @click.stop="setActiveFormulaTarget('essay_0', 'الإجابة النموذجية', 0); if ($refs.formulaEditorRef) $refs.formulaEditorRef.openToolbar();"
+                >
+                  استخدام شريط الرموز للإجابة النموذجية
+                </v-btn>
+              </div>
+              <div
+                class="option-row-wrap"
+                :class="{ 'option-row--targeted': activeFormulaTarget?.id === 'essay_0' }"
+                @focusin="setActiveFormulaTarget('essay_0', 'الإجابة النموذجية', 0)"
+                @click="setActiveFormulaTarget('essay_0', 'الإجابة النموذجية', 0)"
+                @keyup="saveCursorPosition('essay_0', $event)"
+                @mouseup="saveCursorPosition('essay_0', $event)"
+              >
+                <custom-text-note v-model="form.options[0]" placeholder="اكتب الإجابة النموذجية المعتمدة لتقييم المصحح..."
+                  rows="4" variant="outlined" density="comfortable" rounded="lg" color="primary" :rules="[rules.required]"
+                  hide-details="auto" />
+                <!-- Scientific Preview for Essay -->
+                <div
+                  v-if="hasScientificMarkup(form.options[0])"
+                  class="option-formula-preview mt-2 px-3 py-1 rounded text-caption d-inline-flex align-center gap-2"
+                >
+                  <v-icon size="13" color="primary">mdi-variable</v-icon>
+                  <span class="text-medium-emphasis">معاينة الرموز:</span>
+                  <span class="font-weight-bold" v-html="renderOptionMarkup(form.options[0])"></span>
+                </div>
+              </div>
             </div>
 
             <!-- Dynamic Options: Fill Blanks -->
@@ -241,7 +308,16 @@
                 <v-icon color="deep-purple">mdi-form-textbox</v-icon>
                 الكلمات المفقودة (الإجابات)
               </h3>
-              <div v-for="(option, index) in form.options" :key="index" class="d-flex align-center gap-3 mb-3">
+              <div
+                v-for="(option, index) in form.options"
+                :key="index"
+                class="d-flex align-center gap-3 mb-3 option-row-wrap"
+                :class="{ 'option-row--targeted': activeFormulaTarget?.id === `blank_${index}` }"
+                @focusin="setActiveFormulaTarget(`blank_${index}`, `الفراغ (${index + 1})`, index)"
+                @click="setActiveFormulaTarget(`blank_${index}`, `الفراغ (${index + 1})`, index)"
+                @keyup="saveCursorPosition(`blank_${index}`, $event)"
+                @mouseup="saveCursorPosition(`blank_${index}`, $event)"
+              >
                 <div class="option-letter-badge font-weight-bold rounded-lg option-letter--default" style="width: 36px; height: 36px; min-width: 36px;">
                   {{ index + 1 }}
                 </div>
@@ -249,7 +325,25 @@
                   <custom-text-field v-model="form.options[index]"
                     :placeholder="'الكلمة المفقودة للفراغ (' + (index + 1) + ')'" variant="outlined" density="compact"
                     hide-details="auto" :rules="[rules.required]" />
+                  <!-- Scientific Preview for Blanks -->
+                  <div
+                    v-if="hasScientificMarkup(form.options[index])"
+                    class="option-formula-preview mt-1 px-3 py-1 rounded text-caption d-inline-flex align-center gap-2"
+                  >
+                    <v-icon size="13" color="primary">mdi-variable</v-icon>
+                    <span class="text-medium-emphasis">معاينة الرمز:</span>
+                    <span class="font-weight-bold" v-html="renderOptionMarkup(form.options[index])"></span>
+                  </div>
                 </div>
+                <v-btn
+                  size="small"
+                  :variant="activeFormulaTarget?.id === `blank_${index}` ? 'flat' : 'tonal'"
+                  :color="activeFormulaTarget?.id === `blank_${index}` ? 'primary' : undefined"
+                  icon="mdi-function-variant"
+                  class="rounded-lg"
+                  :title="activeFormulaTarget?.id === `blank_${index}` ? 'هذا الفراغ هو الوجهة النشطة لشريط الرموز' : 'إدراج رموز ومعادلات لهذا الفراغ'"
+                  @click.stop="setActiveFormulaTarget(`blank_${index}`, `الفراغ (${index + 1})`, index); if ($refs.formulaEditorRef) $refs.formulaEditorRef.openToolbar();"
+                />
                 <custom-btn v-if="form.options.length > 1" type="del" isIcon variant="text" :click="() => removeOption(index)" />
               </div>
               <custom-btn type="add" color="deep-purple" label="إضافة فراغ آخر" class="font-weight-bold mt-2"
@@ -591,6 +685,8 @@ export default {
       isEditMode: false,
       editId: null,
       previewImageDialog: false,
+      activeFormulaTarget: { id: "question", label: "نص السؤال" },
+      optionCursorPositions: {},
 
       // Tracking variables to prevent cascading resets during mount/edit
       _lastCollegeId: null,
@@ -692,6 +788,30 @@ export default {
   },
 
   computed: {
+    availableTargets() {
+      const targets = [{ id: "question", label: "نص السؤال" }];
+      if (this.form.type === "single_choice" || this.form.type === "multiple_choice") {
+        this.form.options.forEach((_, i) => {
+          targets.push({
+            id: `option_${i}`,
+            index: i,
+            label: `الخيار (${String.fromCharCode(65 + i)})`,
+          });
+        });
+      } else if (this.form.type === "essay") {
+        targets.push({ id: "essay_0", index: 0, label: "الإجابة النموذجية" });
+      } else if (this.form.type === "fill_blanks") {
+        this.form.options.forEach((_, i) => {
+          targets.push({
+            id: `blank_${i}`,
+            index: i,
+            label: `الفراغ (${i + 1})`,
+          });
+        });
+      }
+      return targets;
+    },
+
     formInstituteSpecParam() {
       const p = {};
       if (this.form.instituteFieldId) p.field = this.form.instituteFieldId;
@@ -712,6 +832,12 @@ export default {
         return this.form.instituteSubjectId ? { subject: this.form.instituteSubjectId } : null;
       }
       return this.form.subjectId ? { subject: this.form.subjectId } : null;
+    },
+  },
+
+  watch: {
+    "form.type"() {
+      this.activeFormulaTarget = { id: "question", label: "نص السؤال" };
     },
   },
 
@@ -736,6 +862,66 @@ export default {
 
     renderOptionMarkup(text) {
       return parseScientificMarkup(text);
+    },
+
+    setActiveFormulaTarget(id, label, index) {
+      this.activeFormulaTarget = { id, label, index };
+    },
+
+    activateOptionFormula(index) {
+      this.setActiveFormulaTarget(
+        `option_${index}`,
+        `الخيار (${String.fromCharCode(65 + index)})`,
+        index
+      );
+      if (this.$refs.formulaEditorRef && typeof this.$refs.formulaEditorRef.openToolbar === "function") {
+        this.$refs.formulaEditorRef.openToolbar();
+      }
+    },
+
+    saveCursorPosition(id, event) {
+      const target = event?.target;
+      if (target && typeof target.selectionStart === "number") {
+        this.optionCursorPositions[id] = {
+          start: target.selectionStart,
+          end: target.selectionEnd,
+        };
+      }
+    },
+
+    onInsertSymbol({ item, target }) {
+      if (!target || target.id === "question") return;
+      const idx = target.index;
+      if (idx === undefined || idx === null || idx < 0 || idx >= this.form.options.length) return;
+      let original = this.form.options[idx] || "";
+      let textToInsert = item.snippet;
+
+      const dollarCountBefore = (original.match(/\$/g) || []).length;
+      const isInsideMath = dollarCountBefore % 2 === 1;
+      const isLatex =
+        (textToInsert.includes("\\") || textToInsert.includes("^") || textToInsert.includes("_")) &&
+        !textToInsert.startsWith("$") &&
+        !textToInsert.startsWith("`") &&
+        !textToInsert.startsWith("\n|");
+
+      if (!isInsideMath && isLatex) {
+        textToInsert = `$${textToInsert}$`;
+      }
+
+      const pos = this.optionCursorPositions[target.id];
+      if (pos && typeof pos.start === "number" && pos.start <= original.length) {
+        const before = original.substring(0, pos.start);
+        const after = original.substring(pos.end ?? pos.start);
+        this.form.options[idx] = before + textToInsert + after;
+        const newPos = pos.start + textToInsert.length;
+        this.optionCursorPositions[target.id] = { start: newPos, end: newPos };
+      } else {
+        this.form.options[idx] = original
+          ? (original.endsWith(" ") ? original + textToInsert : original + " " + textToInsert)
+          : textToInsert;
+        const newPos = this.form.options[idx].length;
+        this.optionCursorPositions[target.id] = { start: newPos, end: newPos };
+      }
     },
 
     // === EDIT MODE LOADER ===
@@ -1095,6 +1281,9 @@ export default {
 
     removeOption(index) {
       this.form.options.splice(index, 1);
+      if (this.activeFormulaTarget && this.activeFormulaTarget.index === index) {
+        this.activeFormulaTarget = { id: "question", label: "نص السؤال" };
+      }
       if (this.form.type === "single_choice") {
         if (this.form.correctAnswerIndex >= index && this.form.correctAnswerIndex > 0) {
           this.form.correctAnswerIndex--;
@@ -1519,6 +1708,18 @@ export default {
   border: 1px dashed rgba(var(--v-theme-primary), 0.25);
   border-radius: 8px;
   color: rgb(var(--v-theme-on-surface));
+}
+
+.option-row-wrap {
+  border-radius: 12px;
+  padding: 4px 6px;
+  transition: all 0.2s ease;
+}
+
+.option-row--targeted {
+  background: rgba(var(--v-theme-primary), 0.05);
+  border: 1.5px dashed rgba(var(--v-theme-primary), 0.45);
+  box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.08);
 }
 </style>
 

@@ -1,0 +1,79 @@
+:root {
+  /* Primary Colors (Custom Brand Palette) */
+  --color-primary-50: #f0f8ff;
+  --color-primary-100: #e0f0fe;
+  --color-primary-200: #b9e1fe;
+  --color-primary-300: #7cc9fd;
+  --color-primary-400: #37adf9;
+  --color-primary-500: #1b9ef3;
+  --color-primary-600: #0174c8;
+  --color-primary-700: #025ca2;
+  --color-primary-800: #064f86;
+  --color-primary-900: #0b426f;
+  --color-primary-950: #082a49;
+
+  /* Sneat Mapped Primary Tokens - Dynamic */
+  --color-primary: rgb(var(--v-theme-primary));
+  --color-primary-darken: var(--color-primary-600);
+  --color-primary-light: var(--color-primary-400);
+  --color-on-primary: rgb(var(--v-theme-on-primary));
+
+  /* Secondary Colors */
+  --color-secondary: #8592A3;
+  --color-secondary-darken: #788393;
+  --color-secondary-light: #9DA8B5;
+  --color-on-secondary: #ffffff;
+
+  /* Success Colors */
+  --color-success: rgb(var(--v-theme-success));
+  --color-success-darken: #66C732;
+  --color-on-success: rgb(var(--v-theme-on-success));
+
+  /* Info Colors */
+  --color-info: rgb(var(--v-theme-info));
+  --color-on-info: rgb(var(--v-theme-on-info));
+
+  /* Warning Colors */
+  --color-warning: rgb(var(--v-theme-warning));
+  --color-on-warning: rgb(var(--v-theme-on-warning));
+
+  /* Error Colors */
+  --color-error: rgb(var(--v-theme-error));
+  --color-on-error: rgb(var(--v-theme-on-error));
+
+  /* Background & Surface (Dynamic Tokens) */
+  --color-background: rgb(var(--v-theme-background));
+  --color-on-background: rgba(var(--v-theme-on-surface), 0.87);
+  --color-surface: rgb(var(--v-theme-surface));
+  --color-on-surface: rgba(var(--v-theme-on-surface), 0.87);
+  --color-border: rgba(var(--v-border-color), 0.12);
+
+  /* Grey Palette (Light Defaults) */
+  --color-grey-50: #FAFAFA;
+  --color-grey-100: #F5F5F5;
+  --color-grey-200: #EEEEEE;
+  --color-grey-300: #E0E0E0;
+  --color-grey-400: #BDBDBD;
+  --color-grey-500: #9E9E9E;
+  --color-grey-600: #757575;
+  --color-grey-700: #616161;
+  --color-grey-800: #424242;
+  --color-grey-900: #212121;
+}
+
+/* --- Dark Theme Overrides --- */
+.v-theme--dark {
+  --color-grey-50: #2B2C40;
+  --color-grey-100: #323249;
+  --color-grey-200: #383854;
+  --color-grey-300: #444463;
+  --color-grey-400: #5A5B7D;
+  --color-grey-500: #7E7F96;
+  --color-grey-600: #A3A4B5;
+  --color-grey-700: #C5C5D1;
+  --color-grey-800: #E1E1E6;
+  --color-grey-900: #F5F5F9;
+  
+  --color-on-background: rgba(255, 255, 255, 0.87);
+  --color-on-surface: rgba(255, 255, 255, 0.87);
+}

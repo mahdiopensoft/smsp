@@ -79,6 +79,45 @@
 
           <v-spacer />
 
+          <!-- Target Field Selector (If multiple targets available) -->
+          <div v-if="availableTargets && availableTargets.length > 1" class="d-flex align-center gap-1 me-2">
+            <span class="text-caption font-weight-bold text-medium-emphasis">الوجهة:</span>
+            <v-menu location="bottom end">
+              <template #activator="{ props: menuProps }">
+                <v-btn
+                  v-bind="menuProps"
+                  size="x-small"
+                  :color="activeTarget?.id === 'question' ? 'primary' : 'success'"
+                  variant="flat"
+                  class="font-weight-bold rounded-lg"
+                  append-icon="mdi-menu-down"
+                >
+                  <v-icon start size="14">
+                    {{ activeTarget?.id === 'question' ? 'mdi-text-box-outline' : 'mdi-format-list-checks' }}
+                  </v-icon>
+                  {{ activeTarget?.label || 'نص السؤال' }}
+                </v-btn>
+              </template>
+              <v-list density="compact" rounded="lg" class="py-1">
+                <v-list-item
+                  v-for="t in availableTargets"
+                  :key="t.id"
+                  :active="activeTarget?.id === t.id"
+                  active-color="primary"
+                  class="rounded-md mx-1 my-0"
+                  @click="$emit('update:activeTarget', t)"
+                >
+                  <template #prepend>
+                    <v-icon size="16" :color="t.id === 'question' ? 'primary' : 'success'">
+                      {{ t.id === 'question' ? 'mdi-text-box-outline' : 'mdi-checkbox-marked-circle-outline' }}
+                    </v-icon>
+                  </template>
+                  <v-list-item-title class="font-weight-bold text-caption">{{ t.label }}</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+          </div>
+
           <!-- Helper Actions -->
           <div class="d-flex align-center gap-1">
             <v-btn
@@ -123,6 +162,8 @@
             :rows="rows || 5"
             :placeholder="placeholder || 'اكتب نص السؤال هنا... يمكنك إدراج الكسور والمعادلات من الشريط بالأعلى أو كتابة رموز LaTeX بين علامتي $ مثل: $x^2 + \\frac{1}{2}$'"
             @input="onInput"
+            @focus="onTextareaFocus"
+            @click="onTextareaFocus"
           ></textarea>
 
           <!-- Character & Formula Counter / Hint -->
@@ -270,10 +311,22 @@ const props = defineProps({
   compact: {
     type: Boolean,
     default: false
+  },
+  activeTarget: {
+    type: Object,
+    default: () => ({ id: 'question', label: 'نص السؤال' })
+  },
+  availableTargets: {
+    type: Array,
+    default: () => []
   }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'update:activeTarget', 'insert-symbol'])
+
+function onTextareaFocus() {
+  emit('update:activeTarget', { id: 'question', label: 'نص السؤال' })
+}
 
 const textareaRef = ref(null)
 const showToolbar = ref(false) // Hidden by default, toggles on button click
@@ -427,8 +480,14 @@ function onInput(e) {
   emit('update:modelValue', e.target.value)
 }
 
-// Insert Symbol or Snippet at cursor position
+// Insert Symbol or Snippet at cursor position or target
 function insertSymbol(item) {
+  // If target is an option or other field, delegate insertion to parent
+  if (props.activeTarget && props.activeTarget.id !== 'question') {
+    emit('insert-symbol', { item, target: props.activeTarget })
+    return
+  }
+
   const textarea = textareaRef.value
   if (!textarea) {
     emit('update:modelValue', (props.modelValue || '') + item.snippet)
@@ -482,6 +541,15 @@ function insertSymbol(item) {
 // =========================================================================
 const renderedHtml = computed(() => {
   return parseScientificMarkup(props.modelValue || '')
+})
+
+defineExpose({
+  openToolbar: () => {
+    showToolbar.value = true
+  },
+  toggleToolbar: () => {
+    showToolbar.value = !showToolbar.value
+  }
 })
 </script>
 

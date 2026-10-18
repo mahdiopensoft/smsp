@@ -1,0 +1,198 @@
+@import "./fonts/tajawal.css";
+
+/* --- Global Overrides --- */
+:root {
+  --v-font-family: "Tajawal", sans-serif !important;
+}
+
+html, body, .v-application, .v-application * {
+  font-family: "Tajawal", sans-serif;
+}
+
+/* Force Tajawal globally except for icons */
+*:not(.v-icon):not(.mdi):not([class*="mdi-"]) {
+  font-family: "Tajawal", sans-serif !important;
+}
+
+body {
+  background-color: rgb(var(--v-theme-background));
+  color: rgba(var(--v-theme-on-surface), 0.87);
+  /* Atmospheric Aura — The Pantheon Base */
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(var(--v-theme-primary), 0.03) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(var(--v-theme-primary), 0.03) 0px, transparent 50%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+@media screen and(max-width:768px) {
+  body{
+    zoom: 0.9;
+  }
+  
+}
+
+*:not(h1, h2, h3, h4, h5, h6, p, small, strong, .v-icon, tr, td, .text-caption) {
+  font-size: 13px !important;
+}
+
+/* --- Typography (Tajawal Weights) --- */
+h1 { font-weight: 800 !important; }
+h2, h3 { font-weight: 700 !important; }
+h4, h5, h6 { font-weight: 500 !important; }
+p { font-weight: 400; }
+strong, b, th { font-weight: 700 !important; }
+small { font-weight: 300; }
+
+.v-row {
+  margin: 0 !important;
+}
+
+/* --- Sidebar & Navigation --- */
+.sidebar .v-card {
+  cursor: pointer;
+  overflow-y: auto !important;
+}
+
+/* Sidebar Custom Scrollbar — Theme Aware */
+.sidebar .v-card::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.sidebar .v-card::-webkit-scrollbar-track {
+  background: rgba(var(--v-theme-on-surface), 0.02);
+}
+
+.sidebar .v-card::-webkit-scrollbar-thumb {
+  background: rgba(var(--v-theme-on-surface), 0.1);
+  border-radius: var(--radius-full);
+}
+
+.sidebar .v-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--v-theme-on-surface), 0.2);
+}
+
+.sidebar .v-list--slim .v-list-group {
+  --prepend-width: -9px;
+}
+
+/* --- Table & Data Display --- */
+.search {
+  margin-bottom: 0px !important;
+  margin-top: 20px !important;
+}
+
+.search .v-input__control .v-field {
+  height: 28px;
+}
+
+.search .v-field__prepend-inner {
+  margin-bottom: 7px;
+}
+
+.search input {
+  padding-top: 0;
+}
+
+.v-data-table-header__content {
+  white-space: nowrap;
+}
+
+.tree-view {
+  height: 100%;
+}
+
+.tree-view .v-col:first-child {
+  height: 100%;
+  overflow: auto;
+}
+
+/* --- Helper Classes --- */
+/* .show-item {
+  display: none;
+}
+
+.hide-item {
+  display: none;
+} */
+
+.vertical-text {
+  writing-mode: vertical-rl;
+  width: 50px !important;
+  padding-top: 20px !important;
+  padding-bottom: 20px !important;
+  height: auto !important;
+}
+
+div:has(> .v-col.create),
+div:has(> .v-col.export) {
+  display: flex;
+}
+
+/* --- Media Queries --- */
+
+/* Desktop Fixes */
+/* @media (min-width: 769px) {
+  .v-overlay__content.v-select__content {
+    position: absolute !important;
+    max-height: unset !important;
+  }
+} */
+
+/* Print Styles */
+@media print {
+
+  /* #printView {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  } */
+
+  .no_print,
+  .print-btn,
+  .print,
+  footer,
+  #footer,
+  #sidebar,
+  #toolbar,
+  .v-toolbar,
+  #printbtn,
+  .v-data-table__footer,
+  .v-data-footer {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background-color: white !important;
+  }
+
+  body {
+    font-family: 'Tajawal', sans-serif !important;
+  }
+
+  .v-table__wrapper,
+  .v-table--fixed-height > .v-table__wrapper {
+    overflow: hidden !important;
+  }
+
+  /* .v-data-table {
+    direction: rtl;
+    font-size: 1px !important;
+  } */
+
+  .hide-item {
+    display: none;
+  }
+
+  .show-item {
+    display: block;
+  }
+
+  .v-table__wrapper {
+    font-size: 1px !important;
+    color: black !important;
+  }
+ 
+}
