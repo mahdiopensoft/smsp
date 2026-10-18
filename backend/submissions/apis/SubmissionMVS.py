@@ -134,6 +134,36 @@ class SubmissionMVS(AllMVS):
 
         return qs.order_by('-id').distinct()
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.layout_result and instance.layout_result.get("dispatched_to_control"):
+            receipt = instance.layout_result.get("control_receipt_code", "CTL-CONFIRMED")
+            return Response({
+                "success": False,
+                "message": f"لا يمكن حذف هذه الورقة؛ لقد تم قفل درجاتها واعتمادها رسمياً في الكنترول المركزي (إيصال: {receipt})."
+            }, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.layout_result and instance.layout_result.get("dispatched_to_control"):
+            receipt = instance.layout_result.get("control_receipt_code", "CTL-CONFIRMED")
+            return Response({
+                "success": False,
+                "message": f"لا يمكن تعديل هذه الورقة؛ لقد تم قفل درجاتها واعتمادها رسمياً في الكنترول المركزي (إيصال: {receipt})."
+            }, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.layout_result and instance.layout_result.get("dispatched_to_control"):
+            receipt = instance.layout_result.get("control_receipt_code", "CTL-CONFIRMED")
+            return Response({
+                "success": False,
+                "message": f"لا يمكن تعديل هذه الورقة؛ لقد تم قفل درجاتها واعتمادها رسمياً في الكنترول المركزي (إيصال: {receipt})."
+            }, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+
     @action(detail=False, methods=['get'])
     def stats(self, request):
         """Calculates aggregate OMR processing statistics directly in database."""
@@ -250,23 +280,33 @@ class SubmissionMVS(AllMVS):
             batch_record.save()
             return Response({"success": False, "message": "لم يتم العثور على صور أوراق صالحة داخل الملفات المرفوعة"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # تجهيز مفاتيح الإجابة لجميع نماذج الاختبار
+        # تجهيز مفاتيح الإجابة وأوزان الدرجات لجميع نماذج الاختبار (A, B, C, D)
         versions_keys = {}
         if exam_obj:
             for v in exam_obj.versions.filter(is_deleted=False).prefetch_related('question_orders__question__options'):
                 v_key = {}
+                v_marks = {}
                 for qo in v.question_orders.filter(is_deleted=False).order_by('orderIndex'):
-                    opts = list(qo.question.options.filter(is_deleted=False))
+                    q = qo.question
+                    opts = list(q.options.filter(is_deleted=False))
                     ans_letter = 'A'
                     for idx, opt in enumerate(opts):
                         if opt.isTrue:
                             ans_letter = chr(65 + idx)
                             break
-                    v_key[qo.orderIndex] = ans_letter
-                versions_keys[v.versionCode] = (v, v_key)
+                    # معالجة أسئلة الصواب والخطأ ديناميكياً
+                    if (q.questionType in ['True/False', 'true_false', 'صح وخطأ']) or (q.isTrue is not None):
+                        ans_letter = 'A' if q.isTrue is True else ('B' if q.isTrue is False else ans_letter)
+
+                    q_order_key = str(qo.orderIndex)
+                    v_key[q_order_key] = ans_letter
+                    v_marks[q_order_key] = float(q.defaultMark or 1.0)
+
+                versions_keys[v.versionCode] = (v, v_key, v_marks)
 
         default_version = list(versions_keys.values())[0][0] if versions_keys else None
         default_answer_key = list(versions_keys.values())[0][1] if versions_keys else {}
+        default_marks_map = list(versions_keys.values())[0][2] if versions_keys else {}
 
         # معالجة الأوراق بالكامل
         processed_sheets = []
@@ -276,31 +316,43 @@ class SubmissionMVS(AllMVS):
         total_scores = 0.0
 
         for img_name, img_bytes in extracted_images:
+            # ── 0. كشف وتخطي الصفحات البيضاء الفارغة تلقائياً (Auto Blank Page Skip) ──
+            try:
+                import cv2
+                import numpy as np
+                check_mat = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_GRAYSCALE)
+                if check_mat is not None:
+                    std_dev = float(np.std(check_mat))
+                    mean_val = float(np.mean(check_mat))
+                    if std_dev < 10.0 and mean_val > 240.0:
+                        logger.info(f"Auto-skipping blank feeder/duplex page: {img_name} (std={std_dev:.1f}, mean={mean_val:.1f})")
+                        continue
+            except Exception as e_blank:
+                pass
+
             suffix = os.path.splitext(img_name)[1] or ".png"
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
                 tmp.write(img_bytes)
                 tmp_path = tmp.name
 
             try:
-                # الكشف والتصحيح بالمحرك
+                # الكشف واستخراج الفقاعات بالمحرك
                 grading_result = _grade_with_template(
                     tmp_path,
                     template_id=template_id,
                     answer_key=default_answer_key,
                     dpi=300,
-                    original_filename=img_name
+                    original_filename=img_name,
+                    marks_map=default_marks_map
                 )
 
-                score_val = float(grading_result.get("score", 0.0))
-                total_q = grading_result.get("total_questions", 40)
-                total_c = grading_result.get("total_correct", 0)
                 barcode_val = grading_result.get("barcode") or ""
                 qr_val = grading_result.get("qr") or ""
                 student_info = grading_result.get("student_info", {})
                 seat_num = student_info.get("seat_number") or ""
                 s_name = student_info.get("name") or "طالب اختبار"
 
-                # مطابقة نموذج الاختبار إن وجد في الباركود
+                # 1. مطابقة نموذج الاختبار الدقيق (A, B, C, D) من الباركود أو الـ QR
                 target_version = default_version
                 if barcode_val and "_VER_" in barcode_val:
                     try:
@@ -309,19 +361,40 @@ class SubmissionMVS(AllMVS):
                             target_version = versions_keys[v_code][0]
                     except Exception:
                         pass
+                elif qr_val and "|" in qr_val:
+                    parts = qr_val.split("|")
+                    if len(parts) >= 2 and parts[1] in versions_keys:
+                        target_version = versions_keys[parts[1]][0]
 
-                # مطابقة الطالب من رقم الجلوس أو الباركود
+                # 2. مطابقة الطالب ورقم جلوسه الفعلي من قاعدة البيانات
+                import re
+                candidate_seats = []
+                if seat_num:
+                    candidate_seats.append(str(seat_num).strip())
+                if barcode_val:
+                    if "_SEAT_" in barcode_val:
+                        candidate_seats.append(barcode_val.split("_SEAT_")[-1].split("_")[0].strip())
+                    clean_b = barcode_val.strip()
+                    candidate_seats.append(clean_b)
+                    if len(clean_b) >= 6:
+                        candidate_seats.append(clean_b[:6])
+                if qr_val:
+                    tokens = [t.strip() for t in re.split(r'[-|_/]', qr_val) if t.strip().isdigit()]
+                    candidate_seats.extend(tokens)
+
                 matched_reg = None
                 if exam_obj:
                     reg_qs = StudentExamRegistration.objects.filter(examVersion__exam=exam_obj, is_deleted=False).select_related('student', 'student_profile__organization', 'examVersion')
-                    if seat_num:
-                        matched_reg = reg_qs.filter(seatNumber=str(seat_num)).first()
+                    for c_seat in candidate_seats:
+                        if c_seat:
+                            matched_reg = reg_qs.filter(seatNumber=c_seat).first()
+                            if matched_reg:
+                                break
                     if not matched_reg and barcode_val:
-                        matched_reg = reg_qs.filter(seatNumber=barcode_val.split("_")[-1] if "SEAT_" in barcode_val else barcode_val).first()
-                    if not matched_reg and qr_val and "|" in qr_val:
-                        parts = qr_val.split("|")
-                        if len(parts) >= 3:
-                            matched_reg = reg_qs.filter(seatNumber=parts[2]).first()
+                        for r in reg_qs:
+                            if r.seatNumber and (r.seatNumber in barcode_val or barcode_val.startswith(r.seatNumber)):
+                                matched_reg = r
+                                break
 
                 if matched_reg:
                     target_version = matched_reg.examVersion
@@ -331,6 +404,64 @@ class SubmissionMVS(AllMVS):
                         s_name = matched_reg.student.first_name or matched_reg.student.username
                     if not seat_num:
                         seat_num = matched_reg.seatNumber
+
+                # ═══ فحص قفل الكنترول المركزي (Control Lock) ═══
+                locked_sub = None
+                if matched_reg:
+                    locked_sub = Submission.objects.filter(exam=exam_obj, registration=matched_reg, is_deleted=False).first()
+                elif seat_num and exam_obj:
+                    locked_sub = Submission.objects.filter(exam=exam_obj, layout_result__seat_number=str(seat_num), is_deleted=False).first()
+
+                if locked_sub and (locked_sub.layout_result or {}).get("dispatched_to_control"):
+                    receipt = (locked_sub.layout_result or {}).get("control_receipt_code", "CTL-CONFIRMED")
+                    raise PermissionError(f"درجات الطالب '{s_name}' (رقم الجلوس {seat_num}) معتمدة ومقفلة بالكنترول (إيصال: {receipt}).")
+
+                # 3. إعادة التصحيح التلقائي بمفتاح النموذج الفعلي المعتمد وأوزان الأسئلة الحقيقية
+                from omr.providers.opencv_omr import normalize_choice
+                actual_v_code = target_version.versionCode if target_version else 'A'
+                actual_version_tuple = versions_keys.get(actual_v_code)
+                actual_key = actual_version_tuple[1] if actual_version_tuple else default_answer_key
+                actual_marks = actual_version_tuple[2] if actual_version_tuple else default_marks_map
+
+                total_q = grading_result.get("total_questions", len(grading_result.get("questions", [])))
+                total_c = 0
+                total_w = 0
+                total_empty = 0
+                score_val = 0.0
+                max_score_val = 0.0
+
+                for q_item in grading_result.get("questions", []):
+                    q_num = str(q_item.get("question_id") or q_item.get("q") or 1)
+                    marked = q_item.get("marked_choice") or q_item.get("marked")
+                    expected = actual_key.get(q_num)
+                    assigned_mark = float(actual_marks.get(q_num, 1.0))
+                    max_score_val += assigned_mark
+
+                    q_item["correct_choice"] = expected
+                    q_item["assigned_mark"] = assigned_mark
+                    q_item["max_mark"] = assigned_mark
+
+                    if marked:
+                        if expected and normalize_choice(marked) == normalize_choice(expected):
+                            q_item["is_correct"] = True
+                            q_item["score_awarded"] = assigned_mark
+                            q_item["marks_awarded"] = assigned_mark
+                            score_val += assigned_mark
+                            total_c += 1
+                        else:
+                            q_item["is_correct"] = False
+                            q_item["score_awarded"] = 0.0
+                            q_item["marks_awarded"] = 0.0
+                            total_w += 1
+                    else:
+                        q_item["is_correct"] = False
+                        q_item["score_awarded"] = 0.0
+                        q_item["marks_awarded"] = 0.0
+                        total_empty += 1
+
+                score_val = round(score_val, 2)
+                max_score_val = round(max_score_val if max_score_val > 0 else float(total_q), 2)
+                score_percent = round((score_val / max(max_score_val, 1.0)) * 100.0, 1)
 
                 # تحديد حالة الورقة بناء على الثقة والالتباس
                 ambiguous_c = grading_result.get("ambiguous_count", 0)
@@ -355,13 +486,19 @@ class SubmissionMVS(AllMVS):
                         "seat_number": seat_num,
                         "template_id": grading_result.get("template_id"),
                         "template_name": grading_result.get("template_name"),
+                        "version_code": actual_v_code,
                         "barcode": barcode_val,
                         "qr": qr_val,
-                        "score_percent": grading_result.get("score_percent", 0),
+                        "score_percent": score_percent,
                         "total_questions": total_q,
+                        "total_correct": total_c,
+                        "max_score": max_score_val,
                     }
                 )
                 sub_record.original_image.save(img_name, ContentFile(img_bytes), save=False)
+                annotated_raw = grading_result.get("annotated_image")
+                if annotated_raw:
+                    sub_record.aligned_image.save(f"annotated_{img_name}", ContentFile(annotated_raw), save=False)
                 sub_record.save()
 
                 # حفظ النتيجة التفصيلية في OMRSheetResult و OMRQuestionResult
@@ -370,28 +507,28 @@ class SubmissionMVS(AllMVS):
                     status="success",
                     confidence=avg_conf,
                     total_questions=total_q,
-                    answered_questions=grading_result.get("total_answered", 0),
+                    answered_questions=total_c + total_w,
                     correct_answers=total_c,
-                    wrong_answers=grading_result.get("total_wrong", 0),
-                    unanswered=grading_result.get("total_empty", 0),
+                    wrong_answers=total_w,
+                    unanswered=total_empty,
                     ambiguous_count=ambiguous_c,
                     mcq_score=score_val,
-                    mcq_max_score=total_q,
+                    mcq_max_score=max_score_val,
                     provider_used=grading_result.get("engine_used", "opencv_omr"),
                     processing_time_ms=grading_result.get("processing_ms", 0.0),
                 )
 
                 for q_item in grading_result.get("questions", []):
+                    q_num = int(q_item.get("question_id") or q_item.get("q") or 1)
                     OMRQuestionResult.objects.create(
                         sheet_result=sheet_res,
-                        question_number=q_item.get("question_id") or q_item.get("q") or 1,
+                        question_number=q_num,
                         marked_choice=q_item.get("marked_choice") or q_item.get("marked"),
-                        correct_choice=q_item.get("correct_choice") or q_item.get("correct"),
+                        correct_choice=q_item.get("correct_choice"),
                         is_correct=q_item.get("is_correct"),
-                        bubble_state=q_item.get("bubble_state") or q_item.get("mode", "empty"),
-                        choice_confidences=q_item.get("choice_confidences") or {},
-                        final_confidence=q_item.get("final_confidence") or q_item.get("confidence") or 0.95,
-                        marks_awarded=1.0 if q_item.get("is_correct") else 0.0,
+                        marks_awarded=q_item.get("score_awarded", 0.0),
+                        final_confidence=float(q_item.get("final_confidence") or 0.95),
+                        bubble_state=q_item.get("bubble_state", "filled" if q_item.get("marked_choice") else "empty"),
                     )
 
                 if sheet_status == Submission.Status.COMPLETED:
@@ -400,6 +537,8 @@ class SubmissionMVS(AllMVS):
                     needs_review_count += 1
                 total_scores += score_val
 
+                img_url = sub_record.original_image.url if (sub_record.original_image and hasattr(sub_record.original_image, 'url')) else ""
+                annotated_url = sub_record.aligned_image.url if (sub_record.aligned_image and hasattr(sub_record.aligned_image, 'url')) else ""
                 processed_sheets.append({
                     "id": sub_record.id,
                     "filename": img_name,
@@ -407,13 +546,35 @@ class SubmissionMVS(AllMVS):
                     "student_name": s_name,
                     "model_code": target_version.versionCode if target_version else "A",
                     "score": score_val,
-                    "max_score": total_q,
-                    "percentage": round((score_val / float(max(1, total_q))) * 100, 1),
+                    "max_score": max_score_val,
+                    "total_questions": total_q,
+                    "correct_answers": total_c,
+                    "percentage": score_percent,
                     "confidence": avg_conf,
                     "status": sheet_status,
                     "ambiguous_count": ambiguous_c,
+                    "barcode": barcode_val,
+                    "qr": qr_val,
+                    "image_url": img_url,
+                    "annotated_url": annotated_url,
+                    "questions": grading_result.get("questions", []),
                 })
 
+            except PermissionError as e_perm:
+                logger.warning(f"Control lock triggered for sheet {img_name}: {e_perm}")
+                processed_sheets.append({
+                    "id": None,
+                    "filename": img_name,
+                    "seat_number": seat_num or "—",
+                    "student_name": s_name or "مقفل بالكنترول",
+                    "model_code": "—",
+                    "score": 0,
+                    "max_score": 0,
+                    "percentage": 0,
+                    "confidence": 0,
+                    "status": "locked_in_control",
+                    "error": str(e_perm),
+                })
             except Exception as e_sheet:
                 logger.error(f"Error processing sheet {img_name}: {e_sheet}")
                 failed_count += 1
@@ -475,6 +636,13 @@ class SubmissionMVS(AllMVS):
 
         submission = self.get_object()
 
+        if submission.layout_result and submission.layout_result.get("dispatched_to_control"):
+            receipt = submission.layout_result.get("control_receipt_code", "CTL-CONFIRMED")
+            return Response({
+                "success": False,
+                "message": f"لا يمكن إعادة تصحيح هذه الورقة؛ لقد تم اعتمادها وقفلها رسمياً بنظام الكنترول المركزي (إيصال: {receipt})."
+            }, status=status.HTTP_403_FORBIDDEN)
+
         if not submission.original_image or not os.path.exists(submission.original_image.path):
             submission.status = Submission.Status.PENDING
             submission.error_message = ""
@@ -487,17 +655,24 @@ class SubmissionMVS(AllMVS):
             })
 
         try:
-            # استخراج مفتاح الحل للاختبار
+            # استخراج مفتاح الحل وأوزان الأسئلة للاختبار
             answer_key = {}
+            marks_map = {}
             if submission.exam_version:
                 for qo in submission.exam_version.question_orders.filter(is_deleted=False).order_by('orderIndex'):
-                    opts = list(qo.question.options.filter(is_deleted=False))
+                    q = qo.question
+                    opts = list(q.options.filter(is_deleted=False))
                     ans_letter = 'A'
                     for idx, opt in enumerate(opts):
                         if opt.isTrue:
                             ans_letter = chr(65 + idx)
                             break
-                    answer_key[qo.orderIndex] = ans_letter
+                    if (q.questionType in ['True/False', 'true_false', 'صح وخطأ']) or (q.isTrue is not None):
+                        ans_letter = 'A' if q.isTrue is True else ('B' if q.isTrue is False else ans_letter)
+                    
+                    q_num_str = str(qo.orderIndex)
+                    answer_key[q_num_str] = ans_letter
+                    marks_map[q_num_str] = float(q.defaultMark or 1.0)
 
             template_id = (submission.layout_result or {}).get("template_id") or "AUTO"
             grading_result = _grade_with_template(
@@ -505,11 +680,13 @@ class SubmissionMVS(AllMVS):
                 template_id=template_id,
                 answer_key=answer_key,
                 dpi=300,
-                original_filename=os.path.basename(submission.original_image.name)
+                original_filename=os.path.basename(submission.original_image.name),
+                marks_map=marks_map
             )
 
             score_val = float(grading_result.get("score", 0.0))
-            total_q = grading_result.get("total_questions", 40)
+            max_score_val = float(grading_result.get("max_score", len(grading_result.get("questions", []))))
+            total_q = grading_result.get("total_questions", len(grading_result.get("questions", [])))
             ambiguous_c = grading_result.get("ambiguous_count", 0)
             avg_conf = float(grading_result.get("overall_confidence") or 0.95)
 
@@ -521,6 +698,11 @@ class SubmissionMVS(AllMVS):
             submission.overall_confidence = avg_conf
             submission.processing_time_ms = grading_result.get("processing_ms", 0.0)
             submission.omr_result = grading_result.get("questions", [])
+            lr = submission.layout_result or {}
+            lr["total_correct"] = grading_result.get("total_correct", 0)
+            lr["max_score"] = max_score_val
+            lr["score_percent"] = round((score_val / max(max_score_val, 1.0)) * 100.0, 1)
+            submission.layout_result = lr
             submission.save()
 
             # تحديث OMRSheetResult
@@ -533,22 +715,24 @@ class SubmissionMVS(AllMVS):
             sheet_res.unanswered = grading_result.get("total_empty", 0)
             sheet_res.ambiguous_count = ambiguous_c
             sheet_res.mcq_score = score_val
-            sheet_res.mcq_max_score = total_q
+            sheet_res.mcq_max_score = max_score_val
             sheet_res.save()
 
             # إعادة حفظ الأسئلة
             OMRQuestionResult.objects.filter(sheet_result=sheet_res).delete()
             for q_item in grading_result.get("questions", []):
+                q_num = int(q_item.get("question_id") or q_item.get("q") or 1)
+                q_weight = float(marks_map.get(str(q_num), q_item.get("max_mark", 1.0)))
                 OMRQuestionResult.objects.create(
                     sheet_result=sheet_res,
-                    question_number=q_item.get("question_id") or q_item.get("q") or 1,
+                    question_number=q_num,
                     marked_choice=q_item.get("marked_choice") or q_item.get("marked"),
                     correct_choice=q_item.get("correct_choice") or q_item.get("correct"),
                     is_correct=q_item.get("is_correct"),
                     bubble_state=q_item.get("bubble_state") or q_item.get("mode", "empty"),
                     choice_confidences=q_item.get("choice_confidences") or {},
                     final_confidence=q_item.get("final_confidence") or q_item.get("confidence") or 0.95,
-                    marks_awarded=1.0 if q_item.get("is_correct") else 0.0,
+                    marks_awarded=float(q_item.get("marks_awarded", q_weight if q_item.get("is_correct") else 0.0)),
                 )
 
             AuditLog.objects.create(
@@ -583,6 +767,14 @@ class SubmissionMVS(AllMVS):
             status: str (default 'completed')
         """
         submission = self.get_object()
+
+        if submission.layout_result and submission.layout_result.get("dispatched_to_control"):
+            receipt = submission.layout_result.get("control_receipt_code", "CTL-CONFIRMED")
+            return Response({
+                "success": False,
+                "message": f"لا يمكن تعديل درجات هذه الورقة؛ لقد تم اعتمادها وقفلها رسمياً بنظام الكنترول المركزي (إيصال: {receipt})."
+            }, status=status.HTTP_403_FORBIDDEN)
+
         mcq_score = request.data.get('mcq_score')
         essay_score = request.data.get('essay_score')
         new_status = request.data.get('status', Submission.Status.COMPLETED)

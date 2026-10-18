@@ -386,7 +386,7 @@ class ExamCreateMVS(AllMVS):
 
         for idx, student in enumerate(students):
             version = created_versions[idx % num_versions]
-            seat_number = f"{exam.uniqueCode}-{str(idx + 1).zfill(4)}"
+            seat_number = str(student.academic_number) if student.academic_number else f"{exam.uniqueCode}-{str(idx + 1).zfill(4)}"
             secret_number = f"S{uuid.uuid4().hex[:6].upper()}"
 
             user_id = student.user_id

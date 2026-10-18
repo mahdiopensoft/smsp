@@ -13,6 +13,8 @@ from rest_framework import status, permissions
 from django.db.models import Count, Avg, Max, Min, Q
 from django.utils import timezone
 from django.db import transaction
+import uuid
+import hashlib
 
 from exams.models.Exam import Exam
 from exams.models.ExamVersion import ExamVersion
@@ -583,6 +585,7 @@ class ExamGradebookMVS(ViewSet):
 
         now_str = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
         user_name = request.user.username if request.user and request.user.is_authenticated else "مستخدم الكنترول"
+        receipt_code = f"CTL-{str(exam.id)[:8].upper()}-{uuid.uuid4().hex[:8].upper()}"
 
         dispatched_count = 0
         with transaction.atomic():
@@ -591,6 +594,8 @@ class ExamGradebookMVS(ViewSet):
                 lr["dispatched_to_control"] = True
                 lr["dispatched_at"] = now_str
                 lr["dispatched_by"] = user_name
+                lr["control_receipt_code"] = receipt_code
+                lr["tamper_seal"] = hashlib.sha256(f"{sub.id}:{sub.total_score}:{sub.mcq_score}:{now_str}".encode()).hexdigest()[:16]
                 sub.layout_result = lr
 
                 if not sub.registration_id and lr.get("seat_number"):
@@ -613,14 +618,15 @@ class ExamGradebookMVS(ViewSet):
                 action=AuditLog.ActionChoices.UPDATE,
                 resource_type='ExamGradebook',
                 resource_id=str(exam.id),
-                description=f"ترحيل رسمي لـ ({dispatched_count}) درجة في اختبار '{exam.title}' إلى نظام الكنترول الأكاديمي."
+                description=f"ترحيل رسمي لـ ({dispatched_count}) درجة في اختبار '{exam.title}' إلى نظام الكنترول الأكاديمي (إيصال: {receipt_code})."
             )
 
         return Response({
             "success": True,
-            "message": f"تم ترحيل {dispatched_count} درجة بنجاح إلى نظام الكنترول المركزي وقفل السجلات.",
+            "message": f"تم ترحيل {dispatched_count} درجة بنجاح إلى نظام الكنترول المركزي وقفل السجلات (رقم الإيصال: {receipt_code}).",
             "dispatched_count": dispatched_count,
-            "dispatched_at": now_str
+            "dispatched_at": now_str,
+            "control_receipt_code": receipt_code,
         }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='rollback-dispatch')
@@ -658,4 +664,226 @@ class ExamGradebookMVS(ViewSet):
             "success": True,
             "message": f"تم إلغاء ترحيل {count} سجل وإعادتها لوضع المراجعة والتدقيق.",
             "count": count
+        })
+
+    @action(detail=True, methods=['get'], url_path='export-control-sheet')
+    def export_control_sheet(self, request, pk=None):
+        """
+        تصدير كشف درجات الكنترول المعتمد بصيغة CSV المتوافقة مع برامج الكنترول المركزي (UTF-8 BOM).
+        """
+        import io
+        import csv
+        from django.http import HttpResponse
+
+        try:
+            exam = Exam.objects.select_related('subject', 'year', 'governorate', 'directorate').get(pk=pk, is_deleted=False)
+        except Exam.DoesNotExist:
+            return Response({"success": False, "message": "الاختبار غير موجود"}, status=status.HTTP_404_NOT_FOUND)
+
+        # جلب جميع بيانات الطلاب والتسليمات للاختبار
+        roster_response = self.retrieve(request, pk=pk)
+        records = roster_response.data.get('records', []) if hasattr(roster_response, 'data') else []
+
+        output = io.StringIO()
+        output.write('\ufeff')  # UTF-8 BOM for Microsoft Excel Arabic support
+        writer = csv.writer(output)
+
+        # ترويسة الكشف الرسمي
+        writer.writerow(["وزارة التربية والتعليم / وزارة التعليم العالي والبحث العلمي"])
+        writer.writerow(["الإدارة العامة للامتحانات وشؤون الكنترول المركزي"])
+        writer.writerow([f"كشف رصد ودرجات اختبار: {exam.title} - الرمز: {exam.uniqueCode}"])
+        writer.writerow([f"المادة: {getattr(exam.subject, 'name_ar', str(exam.subject))} | العام الدراسي: {exam.year or ''}"])
+        writer.writerow([])
+
+        # عناوين الأعمدة
+        writer.writerow([
+            "م",
+            "رقم الجلوس",
+            "الرقم السري",
+            "اسم الطالب الرباعي",
+            "المدرسة / الكلية",
+            "المديرية",
+            "المحافظة",
+            "النموذج",
+            "الدرجة المحرزة",
+            "الدرجة العظمى",
+            "النسبة المئوية %",
+            "التقدير",
+            "حالة الحضور والتصحيح",
+            "حالة الترحيل للكنترول"
+        ])
+
+        for idx, r in enumerate(records):
+            writer.writerow([
+                idx + 1,
+                r.get('seat_number', ''),
+                r.get('secret_number') or '—',
+                r.get('student_name', ''),
+                r.get('school_name', ''),
+                r.get('directorate_name', ''),
+                r.get('governorate_name', ''),
+                r.get('version_code', 'A'),
+                'غائب' if r.get('status') == 'absent' else r.get('score', 0),
+                r.get('max_score', 100),
+                0 if r.get('status') == 'absent' else r.get('percentage', 0),
+                f"{r.get('grade_code', '')} ({r.get('grade_name_ar', '')})",
+                r.get('status_display', r.get('status', '')),
+                "مرحل رسمياً" if r.get('is_dispatched') else "قيد المراجعة"
+            ])
+
+        response = HttpResponse(output.getvalue(), content_type='text/csv; charset=utf-8-sig')
+        filename = f"Control_Sheet_{exam.uniqueCode}.csv"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+    @action(detail=True, methods=['get'], url_path='psychometrics')
+    def psychometrics(self, request, pk=None):
+        """
+        تقرير التحليل السيكومتري وتحليل الفقرات (Item Analysis & Reliability):
+        - معامل الصعوبة (Difficulty Index P)
+        - معامل التمييز (Discrimination Index D)
+        - معامل ثبات الاختبار (Cronbach's Alpha)
+        - توزيع المشتتات والخيارات (Distractor Analysis)
+        """
+        import numpy as np
+        from omr.models.OMRSheetResult import OMRSheetResult
+        from omr.models.OMRQuestionResult import OMRQuestionResult
+
+        try:
+            exam = Exam.objects.get(pk=pk, is_deleted=False)
+        except Exam.DoesNotExist:
+            return Response({"success": False, "message": "الاختبار غير موجود"}, status=status.HTTP_404_NOT_FOUND)
+
+        subs = list(Submission.objects.filter(
+            exam=exam,
+            status=Submission.Status.COMPLETED,
+            is_deleted=False
+        ).select_related('omr_detail').order_by('-total_score'))
+
+        n_students = len(subs)
+        if n_students < 2:
+            return Response({
+                "success": True,
+                "message": "عدد الأوراق المكتملة غير كافٍ لإجراء تحليل سيكومتري (يتطلب على الأقل ورقتين)",
+                "sample_size": n_students,
+                "items": [],
+                "cronbach_alpha": None,
+                "exam_title": exam.title
+            })
+
+        # تقسيم الطلاب إلى فئة عليا وفئة دنيا (أعلى 27% وأدنى 27%)
+        k_split = max(1, int(round(n_students * 0.27)))
+        upper_subs = subs[:k_split]
+        lower_subs = subs[-k_split:]
+
+        upper_sheet_ids = [s.omr_detail.id for s in upper_subs if hasattr(s, 'omr_detail') and s.omr_detail]
+        lower_sheet_ids = [s.omr_detail.id for s in lower_subs if hasattr(s, 'omr_detail') and s.omr_detail]
+        all_sheet_ids = [s.omr_detail.id for s in subs if hasattr(s, 'omr_detail') and s.omr_detail]
+
+        # جلب كافة الأسئلة وإجاباتها
+        all_q_results = OMRQuestionResult.objects.filter(
+            sheet_result_id__in=all_sheet_ids
+        ).values('sheet_result_id', 'question_number', 'marked_choice', 'correct_choice', 'is_correct')
+
+        # تجميع الإحصائيات حسب رقم السؤال
+        questions_stats = {}
+        for r in all_q_results:
+            q_num = r['question_number']
+            if q_num not in questions_stats:
+                questions_stats[q_num] = {
+                    "question_number": q_num,
+                    "correct_choice": r['correct_choice'],
+                    "total_correct": 0,
+                    "upper_correct": 0,
+                    "lower_correct": 0,
+                    "distractors": {"A": 0, "B": 0, "C": 0, "D": 0, "empty": 0},
+                    "total_responses": 0
+                }
+
+            stat = questions_stats[q_num]
+            stat["total_responses"] += 1
+            choice = r['marked_choice']
+            if choice in stat["distractors"]:
+                stat["distractors"][choice] += 1
+            elif not choice:
+                stat["distractors"]["empty"] += 1
+
+            if r['is_correct']:
+                stat["total_correct"] += 1
+                if r['sheet_result_id'] in upper_sheet_ids:
+                    stat["upper_correct"] += 1
+                elif r['sheet_result_id'] in lower_sheet_ids:
+                    stat["lower_correct"] += 1
+
+        items_analysis = []
+        p_values = []
+
+        for q_num in sorted(questions_stats.keys()):
+            stat = questions_stats[q_num]
+            p_val = round(stat["total_correct"] / float(max(1, stat["total_responses"])), 3)
+            p_values.append(p_val)
+
+            # Discrimination Index D = (Upper_correct - Lower_correct) / k_split
+            d_val = round((stat["upper_correct"] - stat["lower_correct"]) / float(k_split), 3)
+
+            # تصنيف جودة السؤال
+            if 0.30 <= p_val <= 0.70 and d_val >= 0.35:
+                quality_badge = "ممتاز"
+                quality_color = "success"
+                status_note = "سؤال معياري متوازن وقوة تمييز ممتازة"
+            elif 0.20 <= p_val <= 0.85 and d_val >= 0.20:
+                quality_badge = "جيد ومقبول"
+                quality_color = "primary"
+                status_note = "سؤال مقبول ومناسب لبنك الأسئلة"
+            elif p_val > 0.85:
+                quality_badge = "سهل جداً"
+                quality_color = "warning"
+                status_note = "معظم الطلاب أجابوا صواباً - قدرة التمييز منخفضة"
+            elif p_val < 0.20:
+                quality_badge = "صعب جداً"
+                quality_color = "error"
+                status_note = "نسبة نجاح متدنية جداً - يوصى بمراجعة الصياغة"
+            elif d_val < 0.15:
+                quality_badge = "تمييز ضعيف"
+                quality_color = "error"
+                status_note = "السؤال لا يميز بين المتفوقين والضعاف"
+            else:
+                quality_badge = "يحتاج مراجعة"
+                quality_color = "warning"
+                status_note = "يوصى بمراجعة السؤال أو المشتتات"
+
+            # كشف المشتتات غير الفعالة (خيارات لم يخترها أحد)
+            zero_distractors = [c for c, cnt in stat["distractors"].items() if c not in [stat["correct_choice"], "empty"] and cnt == 0]
+
+            items_analysis.append({
+                "question_number": q_num,
+                "correct_choice": stat["correct_choice"],
+                "difficulty_index": p_val,
+                "discrimination_index": d_val,
+                "quality_badge": quality_badge,
+                "quality_color": quality_color,
+                "status_note": status_note,
+                "zero_distractors": zero_distractors,
+                "choices_distribution": stat["distractors"]
+            })
+
+        # حساب معامل كرونباخ ألفا (Cronbach's Alpha) لقياس ثبات واتساق الاختبار
+        scores_arr = [float(s.total_score or 0) for s in subs]
+        variance_total = float(np.var(scores_arr, ddof=1)) if len(scores_arr) > 1 else 0.0
+
+        num_items = len(p_values)
+        cronbach_alpha = None
+        if num_items > 1 and variance_total > 0:
+            sum_item_variances = sum(p * (1.0 - p) for p in p_values)
+            alpha_calc = (num_items / (num_items - 1.0)) * (1.0 - (sum_item_variances / variance_total))
+            cronbach_alpha = round(max(0.0, min(1.0, alpha_calc)), 3)
+
+        return Response({
+            "success": True,
+            "sample_size": n_students,
+            "k_split": k_split,
+            "cronbach_alpha": cronbach_alpha,
+            "cronbach_quality": "موثوقية عالية جداً" if (cronbach_alpha and cronbach_alpha >= 0.8) else ("موثوقية مقبولة" if (cronbach_alpha and cronbach_alpha >= 0.7) else "موثوقية منخفضة"),
+            "items_count": len(items_analysis),
+            "items": items_analysis
         })

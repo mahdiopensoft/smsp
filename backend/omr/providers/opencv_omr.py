@@ -49,6 +49,19 @@ MM_TO_INCH       = 25.4
 DEFAULT_FILLED_THRESHOLD = FILLED_THRESHOLD  # backward compat alias
 DEFAULT_AMBIGUOUS_LOW    = EMPTY_THRESHOLD
 
+def normalize_choice(choice) -> str:
+    """Standardize Arabic letters, numbers, and True/False symbols to standard uppercase Latin."""
+    if choice is None or choice == "":
+        return ""
+    c = str(choice).strip().upper()
+    mapping = {
+        "1": "A", "2": "B", "3": "C", "4": "D", "5": "E",
+        "أ": "A", "ا": "A", "ب": "B", "ج": "C", "د": "D", "هـ": "E", "ه": "E",
+        "صح": "A", "ص": "A", "T": "A", "TRUE": "A", "✓": "A",
+        "خطأ": "B", "خ": "B", "F": "B", "FALSE": "B", "✗": "B",
+    }
+    return mapping.get(c, c)
+
 class OpenCVOMREngine(BaseEngine):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -243,6 +256,7 @@ class OpenCVOMREngine(BaseEngine):
         binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, block_size, 8)
 
         mcq_answers = answer_key.get("mcq_answers", {})
+        marks_by_q = answer_key.get("marks_by_question", {})
         marks_per_q = float(answer_key.get("mcq_marks_per_question", 1))
 
         # Dynamic detection & AI thresholds from template config
@@ -265,7 +279,8 @@ class OpenCVOMREngine(BaseEngine):
                 binary, gray, q_id, choices, mcq_answers, marks_per_q, scan_dpi,
                 filled_threshold=filled_threshold,
                 empty_threshold=empty_threshold,
-                enable_ai_verification=enable_ai_verification
+                enable_ai_verification=enable_ai_verification,
+                marks_by_q=marks_by_q
             )
             question_results.append(q_result)
 
@@ -278,8 +293,8 @@ class OpenCVOMREngine(BaseEngine):
         if total_ambiguous > 0:
             avg_confidence = max(avg_confidence - min(total_ambiguous * 0.05, 0.3), 0.0)
 
-        total_score = total_correct * marks_per_q
-        max_score = len(mcq_questions) * marks_per_q
+        total_score = round(sum(q.get("marks_awarded", 0.0) for q in question_results), 2)
+        max_score = round(sum(q.get("max_mark", marks_per_q) for q in question_results), 2)
         return EngineResult(
             engine_name=self.engine_name, 
             status="success", 
@@ -303,7 +318,8 @@ class OpenCVOMREngine(BaseEngine):
         question_id: int, choices: list, answer_key: dict, marks_per_q: float, dpi: int,
         filled_threshold: float = FILLED_THRESHOLD,
         empty_threshold: float = EMPTY_THRESHOLD,
-        enable_ai_verification: bool = True
+        enable_ai_verification: bool = True,
+        marks_by_q: dict = None
     ) -> dict:
         darkness_values   = {}
         classical_results = {}   # raw OpenCV classification per choice
@@ -469,8 +485,12 @@ class OpenCVOMREngine(BaseEngine):
                 bubble_state    = "empty"
                 final_confidence = 1.0
 
-        correct_choice = answer_key.get(str(question_id))
-        is_correct = (marked_choice == correct_choice) if marked_choice and correct_choice else None
+        correct_choice = answer_key.get(str(question_id)) or answer_key.get(int(question_id))
+        is_correct = (normalize_choice(marked_choice) == normalize_choice(correct_choice)) if (marked_choice and correct_choice) else (False if marked_choice else None)
+
+        # Dynamic marks weight calculation
+        q_weight = float(marks_by_q.get(str(question_id), marks_by_q.get(int(question_id), marks_per_q))) if marks_by_q else marks_per_q
+        marks_awarded = q_weight if is_correct else 0.0
 
         # Convert crops to base64 data URLs for visual proof in UI
         import base64
@@ -486,6 +506,8 @@ class OpenCVOMREngine(BaseEngine):
             "marked_choice":     marked_choice,
             "correct_choice":    correct_choice,
             "is_correct":        is_correct,
+            "marks_awarded":     round(marks_awarded, 2),
+            "max_mark":          round(q_weight, 2),
             "bubble_state":      bubble_state,
             "choice_confidences": darkness_values,
             "ai_results":        ai_results,

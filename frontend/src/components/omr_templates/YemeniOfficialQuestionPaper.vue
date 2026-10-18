@@ -50,6 +50,45 @@
     </div>
 
     <!-- ════════════════════════════════════════════════════════════ -->
+    <!-- ── DEVELOPER DIAGNOSTICS & EXAM READINESS CHECKLIST BAR ── -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <div class="developer-diagnostics-card d-print-none mb-3 pa-3 rounded-lg border bg-white elevation-1">
+      <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-2">
+        <div class="d-flex align-center gap-2">
+          <v-icon :color="missingFieldsCount === 0 ? 'success' : 'warning'" size="22">
+            {{ missingFieldsCount === 0 ? 'mdi-check-decagram' : 'mdi-alert-circle-outline' }}
+          </v-icon>
+          <div>
+            <div class="text-subtitle-2 font-weight-black">
+              فحص اكتمال بيانات ورقة الأسئلة (لمطور بنك الأسئلة ومولد الاختبار)
+            </div>
+            <div class="text-caption text-medium-emphasis">
+              {{ missingFieldsCount === 0 ? 'جميع البيانات الامتحانية مكتملة وحقيقية 100% من قاعدة البيانات' : `يوجد (${missingFieldsCount}) حقول غير محددة في بيانات الاختبار أو كشف الطلاب، وتظهر باللون المميز [غير محدد] لسهولة المتابعة` }}
+            </div>
+          </div>
+        </div>
+        <v-chip :color="missingFieldsCount === 0 ? 'success' : 'error'" variant="flat" size="small" class="font-weight-bold">
+          {{ 15 - missingFieldsCount }} / 15 مكتمل
+        </v-chip>
+      </div>
+
+      <!-- Field Status Chips Grid -->
+      <div class="d-flex flex-wrap gap-1">
+        <v-chip
+          v-for="f in examFieldsReadiness"
+          :key="f.key"
+          size="x-small"
+          :color="f.isAvailable ? 'success' : 'error'"
+          :variant="f.isAvailable ? 'tonal' : 'flat'"
+          class="font-weight-medium font-mono"
+        >
+          <v-icon start size="12">{{ f.isAvailable ? 'mdi-check' : 'mdi-close' }}</v-icon>
+          {{ f.label }}: {{ f.isAvailable ? f.value : `ناقص [${f.key}]` }}
+        </v-chip>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
     <!-- ── MODE 1: A3 SPREAD MODE (SINGLE LARGE SHEET - 2 COLUMNS) ── -->
     <!-- ════════════════════════════════════════════════════════════ -->
     <div v-if="isA3Landscape" class="exam-sheet-frame" :class="col2McqQuestions.length > 0 ? 'columns-two' : 'columns-one'">
@@ -62,11 +101,11 @@
           <!-- Top Section: Rows 1 to 5 -->
           <table class="table-top-section w-100">
             <colgroup>
-              <col style="width: 17.5%;">
-              <col style="width: 7.5%;">
-              <col style="width: 35.0%;">
-              <col style="width: 9.0%;">
               <col style="width: 12.0%;">
+              <col style="width: 7.5%;">
+              <col style="width: 34.5%;">
+              <col style="width: 9.0%;">
+              <col style="width: 18.0%;">
               <col style="width: 19.0%;">
             </colgroup>
             <tbody>
@@ -75,16 +114,28 @@
                 <!-- Far Right: Student Photo Box (spans rows 1 to 5) -->
                 <td rowspan="5" class="student-photo-cell">
                   <div class="student-photo-frame">
-                    <img v-if="studentPhoto" :src="studentPhoto" alt="صورة الطالب" class="student-photo-img" />
-                    <div v-else class="photo-placeholder">صورة شخصية</div>
+                    <img v-if="displayStudentPhoto" :src="displayStudentPhoto" alt="صورة الطالب" class="student-photo-img" />
+                    <div v-else-if="isBlankMode" class="photo-placeholder" style="font-size: 0.55rem; line-height: 1.2;">
+                      موضع ختم وتوقيع المركز
+                    </div>
+                    <div v-else class="photo-placeholder">
+                      <span>صورة شخصية</span>
+                      <span class="missing-field-val" style="font-size: 7px; margin-top: 2px;">[غير متوفرة]</span>
+                    </div>
                   </div>
                 </td>
 
                 <!-- Governorate & Directorate -->
                 <td class="font-weight-bold" style="font-size: 0.68rem;">المحافظة</td>
-                <td class="font-weight-bold" style="font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ governorate || 'أمانة العاصمة' }}</td>
+                <td class="font-weight-bold" style="font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  <span v-if="displayGovernorate">{{ displayGovernorate }}</span>
+                  <span v-else class="missing-field-val">[المحافظة: غير محدد]</span>
+                </td>
                 <td class="font-weight-bold" style="font-size: 0.68rem;">المديرية</td>
-                <td class="font-weight-bold" style="font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ directorate || 'الثورة / الأمانة' }}</td>
+                <td class="font-weight-bold" style="font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  <span v-if="displayDirectorate">{{ displayDirectorate }}</span>
+                  <span v-else class="missing-field-val">[المديرية: غير محدد]</span>
+                </td>
 
                 <!-- Far Left: Republic Emblem Logo & Text (spans rows 1 to 5) -->
                 <td rowspan="5" class="emblem-cell">
@@ -107,36 +158,60 @@
               <!-- Row 2: Center & Center Code -->
               <tr>
                 <td class="font-weight-bold" style="font-size: 0.68rem;">المركز</td>
-                <td class="font-weight-bold" style="font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ centerName || 'حفصة - الحوك الحديدة' }}</td>
+                <td class="font-weight-bold" style="font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  <span v-if="displayCenterName">{{ displayCenterName }}</span>
+                  <span v-else class="missing-field-val">[المركز: غير محدد]</span>
+                </td>
                 <td class="font-weight-bold" style="font-size: 0.68rem;">رقمه</td>
-                <td class="font-weight-bold font-mono" style="font-size: 0.74rem;">{{ centerCode || '3026' }}</td>
+                <td class="font-weight-bold font-mono" style="font-size: 0.74rem;">
+                  <span v-if="displayCenterCode">{{ displayCenterCode }}</span>
+                  <span v-else class="missing-field-val">[رقمه: غير محدد]</span>
+                </td>
               </tr>
 
-                <!-- Row 3: Time, Day, Date (Exact match to real ministerial layout) -->
-                <tr>
-                  <td class="font-weight-bold" style="font-size: 0.68rem;">الزمن</td>
-                  <td class="font-weight-bold time-cell" style="padding: 1px 2px; line-height: 1.2;">
-                    <div style="font-size: 0.58rem; white-space: nowrap;">{{ formattedTimeLine1 }}</div>
-                    <div style="font-size: 0.54rem; margin-top: 1px; white-space: nowrap;">{{ formattedTimeLine2 }}</div>
-                  </td>
-                  <td class="font-weight-bold" style="font-size: 0.68rem;">اليوم</td>
-                  <td class="font-weight-bold" style="font-size: 0.68rem; white-space: nowrap;">{{ dayName || 'السبت' }}</td>
-                </tr>
+              <!-- Row 3: Time, Day, Date (Exact match to real ministerial layout) -->
+              <tr>
+                <td class="font-weight-bold" style="font-size: 0.68rem;">الزمن</td>
+                <td class="font-weight-bold time-cell" style="padding: 1px 2px; line-height: 1.2;">
+                  <template v-if="displayTimeLine1 || displayTimeLine2">
+                    <div v-if="displayTimeLine1" style="font-size: 0.58rem; white-space: nowrap;">{{ displayTimeLine1 }}</div>
+                    <div v-else class="missing-field-val">[الزمن: غير محدد]</div>
+                    <div v-if="displayTimeLine2" style="font-size: 0.54rem; margin-top: 1px; white-space: nowrap;">{{ displayTimeLine2 }}</div>
+                    <div v-else class="missing-field-val" style="margin-top: 1px;">[التاريخ: غير محدد]</div>
+                  </template>
+                  <template v-else>
+                    <span class="missing-field-val">[الزمن والتاريخ: غير محدد]</span>
+                  </template>
+                </td>
+                <td class="font-weight-bold" style="font-size: 0.68rem;">اليوم</td>
+                <td class="font-weight-bold" style="font-size: 0.68rem; white-space: nowrap;">
+                  <span v-if="displayDayName">{{ displayDayName }}</span>
+                  <span v-else class="missing-field-val">[اليوم: غير محدد]</span>
+                </td>
+              </tr>
 
-                <!-- Row 4: Stage Title & Academic Year (colspan 4) -->
-                <tr>
-                  <td colspan="4" class="font-weight-black stage-year-cell" style="padding: 2px 2px; text-align: center; overflow: hidden; line-height: 1.25;">
-                    <div style="font-size: 0.60rem; white-space: nowrap; letter-spacing: -0.2px;">{{ formattedStageLine1 }}</div>
-                    <div style="font-size: 0.58rem; margin-top: 1px;">{{ formattedStageLine2 }}</div>
-                  </td>
-                </tr>
+              <!-- Row 4: Stage Title & Academic Year (colspan 4) -->
+              <tr>
+                <td colspan="4" class="font-weight-black stage-year-cell" style="padding: 2px 2px; text-align: center; overflow: hidden; line-height: 1.25;">
+                  <div v-if="displayStageLine1" style="font-size: 0.60rem; white-space: nowrap; letter-spacing: -0.2px;">{{ displayStageLine1 }}</div>
+                  <div v-else class="missing-field-val mb-1">[عنوان المرحلة والاختبار: غير محدد]</div>
+                  <div v-if="displayStageLine2" style="font-size: 0.58rem; margin-top: 1px;">{{ displayStageLine2 }}</div>
+                  <div v-else-if="!displayStageLine1" class="missing-field-val">[العام الدراسي: غير محدد]</div>
+                </td>
+              </tr>
 
               <!-- Row 5: Subject & Envelope No -->
               <tr>
                 <td class="font-weight-bold" style="font-size: 0.68rem;">اسم المادة</td>
-                <td class="font-weight-black" style="font-size: 0.84rem;">{{ isEnglish ? 'English' : (examSubject || 'الأحياء') }}</td>
+                <td class="font-weight-black" style="font-size: 0.84rem;">
+                  <span v-if="displaySubject">{{ isEnglish ? 'English' : displaySubject }}</span>
+                  <span v-else class="missing-field-val">[اسم المادة: غير محدد]</span>
+                </td>
                 <td class="font-weight-bold" style="font-size: 0.68rem;">رقم مظروف</td>
-                <td class="font-weight-bold font-mono" style="font-size: 0.74rem;">{{ envelopeNo || '1' }}</td>
+                <td class="font-weight-bold font-mono" style="font-size: 0.74rem;">
+                  <span v-if="displayEnvelopeNo">{{ displayEnvelopeNo }}</span>
+                  <span v-else class="missing-field-val">[المظروف: غير محدد]</span>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -144,23 +219,30 @@
           <!-- Row 6: Exact Match to Original (Bottom Student Info Bar) -->
           <table class="table-bottom-bar w-100">
             <colgroup>
-              <col style="width: 10.5%;">
+              <col style="width: 12.0%;">
               <col style="width: 46.5%;">
               <col style="width: 9.5%;">
-              <col style="width: 16.5%;">
-              <col style="width: 8.5%;">
-              <col style="width: 8.5%;">
+              <col style="width: 13.0%;">
+              <col style="width: 9.5%;">
+              <col style="width: 9.5%;">
             </colgroup>
             <tbody>
               <tr>
                 <td class="font-weight-black" style="font-size: 0.78rem;">الاسم</td>
                 <td class="font-weight-black" style="font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                  {{ studentName || 'علاء جميل صالح القربي' }}
+                  <span v-if="displayStudentName">{{ displayStudentName }}</span>
+                  <span v-else class="missing-field-val">[اسم الطالب: غير مسجل في الكشف]</span>
                 </td>
                 <td class="font-weight-black" style="font-size: 0.70rem;">رقم الجلوس</td>
-                <td class="font-weight-black font-mono" style="font-size: 0.85rem;">{{ seatNumber || '651736' }}</td>
+                <td class="font-weight-black font-mono" style="font-size: 0.85rem;">
+                  <span v-if="displaySeatNumber">{{ displaySeatNumber }}</span>
+                  <span v-else class="missing-field-val">[رقم الجلوس: غير محدد]</span>
+                </td>
                 <td class="font-weight-black" style="font-size: 0.70rem;">مسلسل</td>
-                <td class="font-weight-black font-mono" style="font-size: 0.85rem;">{{ secretNumber || '60' }}</td>
+                <td class="font-weight-black font-mono" style="font-size: 0.85rem;">
+                  <span v-if="displaySecretNumber">{{ displaySecretNumber }}</span>
+                  <span v-else class="missing-field-val">[مسلسل: غير محدد]</span>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -169,7 +251,7 @@
         <!-- 2. True / False Section (القسم الأول: صح وخطأ) -->
         <div v-if="tfQuestions.length > 0" class="tf-section-wrapper mb-1" :dir="isEnglish ? 'ltr' : 'rtl'">
           <!-- Instruction Banner -->
-          <div class="instruction-banner py-1 font-weight-bold" :class="isEnglish ? 'text-start ps-2' : 'text-center'">
+          <div class="instruction-banner py-1 font-weight-bold" :class="isEnglish ? 'text-start ps-2' : 'text-right pe-2 ps-2'">
             {{ tfInstructionText }}
           </div>
 
@@ -177,14 +259,14 @@
           <table class="table-tf w-100" :dir="isEnglish ? 'ltr' : 'rtl'">
             <colgroup>
               <col style="width: 26px;">
-              <col style="width: 36px;">
+              <col style="width: 32px;">
               <col style="width: auto;">
             </colgroup>
             <tbody>
               <tr v-for="q in tfQuestions" :key="`tf-${q.orderIndex}`" class="tf-row">
-                <td class="q-index-cell text-center font-weight-black font-mono">{{ q.orderIndex }}</td>
-                <td class="q-paren-cell text-center font-mono font-weight-bold" dir="ltr" style="white-space: nowrap !important; word-break: keep-all !important; letter-spacing: 0;">(&nbsp;&nbsp;&nbsp;)</td>
-                <td class="q-text-cell pe-2 ps-2 py-1 font-weight-bold" :class="isEnglish ? 'text-start' : 'text-end'" v-html="q.content"></td>
+                <td class="q-index-cell text-center font-weight-black font-mono">{{ q.displayOrder || q.orderIndex }}</td>
+                <td class="q-paren-cell text-center"><span class="paren-box">(&nbsp;&nbsp;)</span></td>
+                <td class="q-text-cell pe-2 ps-2 py-1 font-weight-bold" :class="isEnglish ? 'text-left' : 'text-right'" v-html="formatQuestionContent(q.content)"></td>
               </tr>
             </tbody>
           </table>
@@ -203,7 +285,7 @@
         <!-- 3. MCQ Section Part 1 (القسم الثاني: اختيار من متعدد - بداية الأسئلة) -->
         <div v-if="col1McqQuestions.length > 0" class="mcq-section-wrapper" :dir="isEnglish ? 'ltr' : 'rtl'">
           <!-- Instruction Banner -->
-          <div class="instruction-banner py-1 font-weight-bold" :class="isEnglish ? 'text-start ps-2' : 'text-center'">
+          <div class="instruction-banner py-1 font-weight-bold" :class="isEnglish ? 'text-start ps-2' : 'text-right pe-2 ps-2'">
             {{ mcqInstructionText }}
           </div>
 
@@ -211,38 +293,72 @@
           <table class="table-mcq-continuous w-100" :dir="isEnglish ? 'ltr' : 'rtl'">
             <colgroup>
               <col style="width: 26px;">
-              <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
-              <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
-              <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
-              <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
+              <col style="width: 20px;"><col style="width: calc(25% - 26.5px);">
+              <col style="width: 20px;"><col style="width: calc(25% - 26.5px);">
+              <col style="width: 20px;"><col style="width: calc(25% - 26.5px);">
+              <col style="width: 20px;"><col style="width: calc(25% - 26.5px);">
             </colgroup>
             <tbody>
               <template v-for="q in col1McqQuestions" :key="`mcq-${q.orderIndex}`">
                 <tr class="q-stem-row">
                   <td
-                    rowspan="2"
+                    :rowspan="getOptionsLayout(q) === 'two-rows' ? 3 : 2"
                     class="q-num-cell text-center font-weight-black font-mono"
                   >
-                    {{ q.orderIndex }}
+                    {{ q.displayOrder || q.orderIndex }}
                   </td>
-                  <td colspan="8" class="q-stem-cell pe-2 ps-2 py-1 font-weight-bold" :class="isEnglish ? 'text-start' : 'text-end'">
+                  <td colspan="8" class="q-stem-cell pe-2 ps-2 py-1 font-weight-bold" :class="isEnglish ? 'text-left' : 'text-right'">
                     <div v-if="q.image || q.figure" class="d-flex align-center justify-space-between w-100">
-                      <span v-html="q.content"></span>
+                      <span v-html="formatQuestionContent(q.content)"></span>
                       <img :src="q.image || q.figure" alt="رسم توضيحي للسؤال" class="q-diagram-img ms-2" />
                     </div>
-                    <span v-else v-html="q.content"></span>
+                    <span v-else v-html="formatQuestionContent(q.content)"></span>
                   </td>
                 </tr>
-                <tr class="q-options-row text-center">
+
+                <!-- Short options: single-row layout -->
+                <tr v-if="getOptionsLayout(q) === 'single-row'" class="q-options-row text-center">
                   <td class="opt-num-cell font-mono font-weight-black">1</td>
-                  <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'"><span :dir="isLtrText(getOptionText(q, 0)) ? 'ltr' : 'auto'" style="unicode-bidi: isolate; display: inline-block;">{{ getOptionText(q, 0) }}</span></td>
+                  <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'">
+                    <span :dir="isLtrText(getOptionText(q, 0)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 0))"></span>
+                  </td>
                   <td class="opt-num-cell font-mono font-weight-black">2</td>
-                  <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'"><span :dir="isLtrText(getOptionText(q, 1)) ? 'ltr' : 'auto'" style="unicode-bidi: isolate; display: inline-block;">{{ getOptionText(q, 1) }}</span></td>
+                  <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'">
+                    <span :dir="isLtrText(getOptionText(q, 1)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 1))"></span>
+                  </td>
                   <td class="opt-num-cell font-mono font-weight-black">3</td>
-                  <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'"><span :dir="isLtrText(getOptionText(q, 2)) ? 'ltr' : 'auto'" style="unicode-bidi: isolate; display: inline-block;">{{ getOptionText(q, 2) }}</span></td>
+                  <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'">
+                    <span :dir="isLtrText(getOptionText(q, 2)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 2))"></span>
+                  </td>
                   <td class="opt-num-cell font-mono font-weight-black">4</td>
-                  <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'"><span :dir="isLtrText(getOptionText(q, 3)) ? 'ltr' : 'auto'" style="unicode-bidi: isolate; display: inline-block;">{{ getOptionText(q, 3) }}</span></td>
+                  <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'">
+                    <span :dir="isLtrText(getOptionText(q, 3)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 3))"></span>
+                  </td>
                 </tr>
+
+                <!-- Long options: two-rows layout (2 options per row with colspan 3) -->
+                <template v-else>
+                  <tr class="q-options-row">
+                    <td class="opt-num-cell font-mono font-weight-black">1</td>
+                    <td colspan="3" class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-left ps-2' : 'text-right pe-2 ps-1'">
+                      <span :dir="isLtrText(getOptionText(q, 0)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 0))"></span>
+                    </td>
+                    <td class="opt-num-cell font-mono font-weight-black">2</td>
+                    <td colspan="3" class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-left ps-2' : 'text-right pe-2 ps-1'">
+                      <span :dir="isLtrText(getOptionText(q, 1)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 1))"></span>
+                    </td>
+                  </tr>
+                  <tr class="q-options-row">
+                    <td class="opt-num-cell font-mono font-weight-black">3</td>
+                    <td colspan="3" class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-left ps-2' : 'text-right pe-2 ps-1'">
+                      <span :dir="isLtrText(getOptionText(q, 2)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 2))"></span>
+                    </td>
+                    <td class="opt-num-cell font-mono font-weight-black">4</td>
+                    <td colspan="3" class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-left ps-2' : 'text-right pe-2 ps-1'">
+                      <span :dir="isLtrText(getOptionText(q, 3)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 3))"></span>
+                    </td>
+                  </tr>
+                </template>
               </template>
             </tbody>
           </table>
@@ -254,51 +370,79 @@
         </div>
       </div>
 
-      <!-- ── COLUMN 2 (LEFT): MCQ CONTINUATION + DIAGRAMS ───────── -->
+      <!-- ── COLUMN 2 (LEFT): MCQ CONTINUATION (Q30 to Q50) ───────── -->
       <div v-if="col2McqQuestions.length > 0" class="sheet-column column-left">
-
-        <!-- Watermark / Secret Printing Press Vertical Side Ribbon -->
-        <div class="secret-press-ribbon d-flex justify-space-between align-center mb-1 pb-1" :dir="isEnglish ? 'ltr' : 'rtl'">
-          <span>{{ secretPressRibbonText.press }}</span>
-          <span class="font-mono">{{ secretPressRibbonText.continuation }}</span>
-        </div>
 
         <!-- Continuous MCQ Table for Column 2 -->
         <table class="table-mcq-continuous w-100" :dir="isEnglish ? 'ltr' : 'rtl'">
           <colgroup>
             <col style="width: 26px;">
-            <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
-            <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
-            <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
-            <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
+            <col style="width: 20px;"><col style="width: calc(25% - 26.5px);">
+            <col style="width: 20px;"><col style="width: calc(25% - 26.5px);">
+            <col style="width: 20px;"><col style="width: calc(25% - 26.5px);">
+            <col style="width: 20px;"><col style="width: calc(25% - 26.5px);">
           </colgroup>
           <tbody>
             <template v-for="q in col2McqQuestions" :key="`mcq-${q.orderIndex}`">
               <tr class="q-stem-row">
                 <td
-                  rowspan="2"
+                  :rowspan="getOptionsLayout(q) === 'two-rows' ? 3 : 2"
                   class="q-num-cell text-center font-weight-black font-mono"
                 >
-                  {{ q.orderIndex }}
+                  {{ q.displayOrder || q.orderIndex }}
                 </td>
-                <td colspan="8" class="q-stem-cell pe-2 ps-2 py-1 font-weight-bold" :class="isEnglish ? 'text-start' : 'text-end'">
+                <td colspan="8" class="q-stem-cell pe-2 ps-2 py-1 font-weight-bold" :class="isEnglish ? 'text-left' : 'text-right'">
                   <div v-if="q.image || q.figure" class="d-flex align-center justify-space-between w-100">
-                    <span v-html="q.content"></span>
+                    <span v-html="formatQuestionContent(q.content)"></span>
                     <img :src="q.image || q.figure" alt="رسم توضيحي للسؤال" class="q-diagram-img ms-2" />
                   </div>
-                  <span v-else v-html="q.content"></span>
+                  <span v-else v-html="formatQuestionContent(q.content)"></span>
                 </td>
               </tr>
-              <tr class="q-options-row text-center">
+
+              <!-- Short options: single-row layout -->
+              <tr v-if="getOptionsLayout(q) === 'single-row'" class="q-options-row text-center">
                 <td class="opt-num-cell font-mono font-weight-black">1</td>
-                <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'"><span :dir="isLtrText(getOptionText(q, 0)) ? 'ltr' : 'auto'" style="unicode-bidi: isolate; display: inline-block;">{{ getOptionText(q, 0) }}</span></td>
+                <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'">
+                  <span :dir="isLtrText(getOptionText(q, 0)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 0))"></span>
+                </td>
                 <td class="opt-num-cell font-mono font-weight-black">2</td>
-                <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'"><span :dir="isLtrText(getOptionText(q, 1)) ? 'ltr' : 'auto'" style="unicode-bidi: isolate; display: inline-block;">{{ getOptionText(q, 1) }}</span></td>
+                <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'">
+                  <span :dir="isLtrText(getOptionText(q, 1)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 1))"></span>
+                </td>
                 <td class="opt-num-cell font-mono font-weight-black">3</td>
-                <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'"><span :dir="isLtrText(getOptionText(q, 2)) ? 'ltr' : 'auto'" style="unicode-bidi: isolate; display: inline-block;">{{ getOptionText(q, 2) }}</span></td>
+                <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'">
+                  <span :dir="isLtrText(getOptionText(q, 2)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 2))"></span>
+                </td>
                 <td class="opt-num-cell font-mono font-weight-black">4</td>
-                <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'"><span :dir="isLtrText(getOptionText(q, 3)) ? 'ltr' : 'auto'" style="unicode-bidi: isolate; display: inline-block;">{{ getOptionText(q, 3) }}</span></td>
+                <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'">
+                  <span :dir="isLtrText(getOptionText(q, 3)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 3))"></span>
+                </td>
               </tr>
+
+              <!-- Long options: two-rows layout (2 options per row with colspan 3) -->
+              <template v-else>
+                <tr class="q-options-row">
+                  <td class="opt-num-cell font-mono font-weight-black">1</td>
+                  <td colspan="3" class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-left ps-2' : 'text-right pe-2 ps-1'">
+                    <span :dir="isLtrText(getOptionText(q, 0)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 0))"></span>
+                  </td>
+                  <td class="opt-num-cell font-mono font-weight-black">2</td>
+                  <td colspan="3" class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-left ps-2' : 'text-right pe-2 ps-1'">
+                    <span :dir="isLtrText(getOptionText(q, 1)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 1))"></span>
+                  </td>
+                </tr>
+                <tr class="q-options-row">
+                  <td class="opt-num-cell font-mono font-weight-black">3</td>
+                  <td colspan="3" class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-left ps-2' : 'text-right pe-2 ps-1'">
+                    <span :dir="isLtrText(getOptionText(q, 2)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 2))"></span>
+                  </td>
+                  <td class="opt-num-cell font-mono font-weight-black">4</td>
+                  <td colspan="3" class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-left ps-2' : 'text-right pe-2 ps-1'">
+                    <span :dir="isLtrText(getOptionText(q, 3)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 3))"></span>
+                  </td>
+                </tr>
+              </template>
             </template>
           </tbody>
         </table>
@@ -325,11 +469,11 @@
             <!-- Top Section: Rows 1 to 5 -->
             <table class="table-top-section w-100">
               <colgroup>
-                <col style="width: 17.5%;">
-                <col style="width: 7.5%;">
-                <col style="width: 35.0%;">
-                <col style="width: 9.0%;">
                 <col style="width: 12.0%;">
+                <col style="width: 7.5%;">
+                <col style="width: 34.5%;">
+                <col style="width: 9.0%;">
+                <col style="width: 18.0%;">
                 <col style="width: 19.0%;">
               </colgroup>
               <tbody>
@@ -338,16 +482,28 @@
                   <!-- Far Right: Student Photo Box (spans rows 1 to 5) -->
                   <td rowspan="5" class="student-photo-cell">
                     <div class="student-photo-frame">
-                      <img v-if="studentPhoto" :src="studentPhoto" alt="صورة الطالب" class="student-photo-img" />
-                      <div v-else class="photo-placeholder">صورة شخصية</div>
+                      <img v-if="displayStudentPhoto" :src="displayStudentPhoto" alt="صورة الطالب" class="student-photo-img" />
+                      <div v-else-if="isBlankMode" class="photo-placeholder" style="font-size: 0.55rem; line-height: 1.2;">
+                        موضع ختم وتوقيع المركز
+                      </div>
+                      <div v-else class="photo-placeholder">
+                        <span>صورة شخصية</span>
+                        <span class="missing-field-val" style="font-size: 7px; margin-top: 2px;">[غير متوفرة]</span>
+                      </div>
                     </div>
                   </td>
 
                   <!-- Governorate & Directorate -->
                   <td class="font-weight-bold" style="font-size: 0.68rem;">المحافظة</td>
-                  <td class="font-weight-bold" style="font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ governorate || 'أمانة العاصمة' }}</td>
+                  <td class="font-weight-bold" style="font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <span v-if="displayGovernorate">{{ displayGovernorate }}</span>
+                    <span v-else class="missing-field-val">[المحافظة: غير محدد]</span>
+                  </td>
                   <td class="font-weight-bold" style="font-size: 0.68rem;">المديرية</td>
-                  <td class="font-weight-bold" style="font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ directorate || 'الثورة / الأمانة' }}</td>
+                  <td class="font-weight-bold" style="font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <span v-if="displayDirectorate">{{ displayDirectorate }}</span>
+                    <span v-else class="missing-field-val">[المديرية: غير محدد]</span>
+                  </td>
 
                   <!-- Far Left: Republic Emblem Logo & Text (spans rows 1 to 5) -->
                   <td rowspan="5" class="emblem-cell">
@@ -370,36 +526,60 @@
                 <!-- Row 2: Center & Center Code -->
                 <tr>
                   <td class="font-weight-bold" style="font-size: 0.68rem;">المركز</td>
-                  <td class="font-weight-bold" style="font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ centerName || 'حفصة - الحوك الحديدة' }}</td>
+                  <td class="font-weight-bold" style="font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <span v-if="displayCenterName">{{ displayCenterName }}</span>
+                    <span v-else class="missing-field-val">[المركز: غير محدد]</span>
+                  </td>
                   <td class="font-weight-bold" style="font-size: 0.68rem;">رقمه</td>
-                  <td class="font-weight-bold font-mono" style="font-size: 0.74rem;">{{ centerCode || '3026' }}</td>
+                  <td class="font-weight-bold font-mono" style="font-size: 0.74rem;">
+                    <span v-if="displayCenterCode">{{ displayCenterCode }}</span>
+                    <span v-else class="missing-field-val">[رقمه: غير محدد]</span>
+                  </td>
                 </tr>
 
                 <!-- Row 3: Time, Day, Date (Exact match to real ministerial layout) -->
                 <tr>
                   <td class="font-weight-bold" style="font-size: 0.68rem;">الزمن</td>
                   <td class="font-weight-bold time-cell" style="padding: 1px 2px; line-height: 1.2;">
-                    <div style="font-size: 0.58rem; white-space: nowrap;">{{ formattedTimeLine1 }}</div>
-                    <div style="font-size: 0.54rem; margin-top: 1px; white-space: nowrap;">{{ formattedTimeLine2 }}</div>
+                    <template v-if="displayTimeLine1 || displayTimeLine2">
+                      <div v-if="displayTimeLine1" style="font-size: 0.58rem; white-space: nowrap;">{{ displayTimeLine1 }}</div>
+                      <div v-else class="missing-field-val">[الزمن: غير محدد]</div>
+                      <div v-if="displayTimeLine2" style="font-size: 0.54rem; margin-top: 1px; white-space: nowrap;">{{ displayTimeLine2 }}</div>
+                      <div v-else class="missing-field-val" style="margin-top: 1px;">[التاريخ: غير محدد]</div>
+                    </template>
+                    <template v-else>
+                      <span class="missing-field-val">[الزمن والتاريخ: غير محدد]</span>
+                    </template>
                   </td>
                   <td class="font-weight-bold" style="font-size: 0.68rem;">اليوم</td>
-                  <td class="font-weight-bold" style="font-size: 0.68rem; white-space: nowrap;">{{ dayName || 'السبت' }}</td>
+                  <td class="font-weight-bold" style="font-size: 0.68rem; white-space: nowrap;">
+                    <span v-if="displayDayName">{{ displayDayName }}</span>
+                    <span v-else class="missing-field-val">[اليوم: غير محدد]</span>
+                  </td>
                 </tr>
 
                 <!-- Row 4: Stage Title & Academic Year (colspan 4) -->
                 <tr>
                   <td colspan="4" class="font-weight-black stage-year-cell" style="padding: 2px 2px; text-align: center; overflow: hidden; line-height: 1.25;">
-                    <div style="font-size: 0.60rem; white-space: nowrap; letter-spacing: -0.2px;">{{ formattedStageLine1 }}</div>
-                    <div style="font-size: 0.58rem; margin-top: 1px;">{{ formattedStageLine2 }}</div>
+                    <div v-if="displayStageLine1" style="font-size: 0.60rem; white-space: nowrap; letter-spacing: -0.2px;">{{ displayStageLine1 }}</div>
+                    <div v-else class="missing-field-val mb-1">[عنوان المرحلة والاختبار: غير محدد]</div>
+                    <div v-if="displayStageLine2" style="font-size: 0.58rem; margin-top: 1px;">{{ displayStageLine2 }}</div>
+                    <div v-else-if="!displayStageLine1" class="missing-field-val">[العام الدراسي: غير محدد]</div>
                   </td>
                 </tr>
 
                 <!-- Row 5: Subject & Envelope No -->
                 <tr>
                   <td class="font-weight-bold" style="font-size: 0.68rem;">اسم المادة</td>
-                  <td class="font-weight-black" style="font-size: 0.84rem;">{{ isEnglish ? 'English' : (examSubject || 'الأحياء') }}</td>
+                  <td class="font-weight-black" style="font-size: 0.84rem;">
+                    <span v-if="displaySubject">{{ isEnglish ? 'English' : displaySubject }}</span>
+                    <span v-else class="missing-field-val">[اسم المادة: غير محدد]</span>
+                  </td>
                   <td class="font-weight-bold" style="font-size: 0.68rem;">رقم مظروف</td>
-                  <td class="font-weight-bold font-mono" style="font-size: 0.74rem;">{{ envelopeNo || '1' }}</td>
+                  <td class="font-weight-bold font-mono" style="font-size: 0.74rem;">
+                    <span v-if="displayEnvelopeNo">{{ displayEnvelopeNo }}</span>
+                    <span v-else class="missing-field-val">[المظروف: غير محدد]</span>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -407,23 +587,30 @@
             <!-- Row 6: Exact Match to Original (Bottom Student Info Bar) -->
             <table class="table-bottom-bar w-100">
               <colgroup>
-                <col style="width: 10.5%;">
+                <col style="width: 12.0%;">
                 <col style="width: 46.5%;">
                 <col style="width: 9.5%;">
-                <col style="width: 16.5%;">
-                <col style="width: 8.5%;">
-                <col style="width: 8.5%;">
+                <col style="width: 13.0%;">
+                <col style="width: 9.5%;">
+                <col style="width: 9.5%;">
               </colgroup>
               <tbody>
                 <tr>
                   <td class="font-weight-black" style="font-size: 0.78rem;">الاسم</td>
                   <td class="font-weight-black" style="font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    {{ studentName || 'علاء جميل صالح القربي' }}
+                    <span v-if="displayStudentName">{{ displayStudentName }}</span>
+                    <span v-else class="missing-field-val">[اسم الطالب: غير مسجل في الكشف]</span>
                   </td>
                   <td class="font-weight-black" style="font-size: 0.70rem;">رقم الجلوس</td>
-                  <td class="font-weight-black font-mono" style="font-size: 0.85rem;">{{ seatNumber || '651736' }}</td>
+                  <td class="font-weight-black font-mono" style="font-size: 0.85rem;">
+                    <span v-if="displaySeatNumber">{{ displaySeatNumber }}</span>
+                    <span v-else class="missing-field-val">[رقم الجلوس: غير محدد]</span>
+                  </td>
                   <td class="font-weight-black" style="font-size: 0.70rem;">مسلسل</td>
-                  <td class="font-weight-black font-mono" style="font-size: 0.85rem;">{{ secretNumber || '60' }}</td>
+                  <td class="font-weight-black font-mono" style="font-size: 0.85rem;">
+                    <span v-if="displaySecretNumber">{{ displaySecretNumber }}</span>
+                    <span v-else class="missing-field-val">[مسلسل: غير محدد]</span>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -431,20 +618,20 @@
 
           <!-- 2. True / False Section -->
           <div v-if="tfQuestions.length > 0" class="tf-section-wrapper mb-1" :dir="isEnglish ? 'ltr' : 'rtl'">
-            <div class="instruction-banner py-1 font-weight-bold" :class="isEnglish ? 'text-start ps-2' : 'text-center'">
+            <div class="instruction-banner py-1 font-weight-bold" :class="isEnglish ? 'text-start ps-2' : 'text-right pe-2 ps-2'">
               {{ tfInstructionText }}
             </div>
             <table class="table-tf w-100" :dir="isEnglish ? 'ltr' : 'rtl'">
               <colgroup>
                 <col style="width: 26px;">
-                <col style="width: 36px;">
+                <col style="width: 32px;">
                 <col style="width: auto;">
               </colgroup>
               <tbody>
                 <tr v-for="q in tfQuestions" :key="`a4-tf-${q.orderIndex}`" class="tf-row">
-                  <td class="q-index-cell text-center font-weight-black font-mono">{{ q.orderIndex }}</td>
-                  <td class="q-paren-cell text-center font-mono font-weight-bold" dir="ltr" style="white-space: nowrap !important; word-break: keep-all !important; letter-spacing: 0;">(&nbsp;&nbsp;&nbsp;)</td>
-                  <td class="q-text-cell pe-2 ps-2 py-1 font-weight-bold" :class="isEnglish ? 'text-start' : 'text-end'" v-html="q.content"></td>
+                  <td class="q-index-cell text-center font-weight-black font-mono">{{ q.displayOrder || q.orderIndex }}</td>
+                  <td class="q-paren-cell text-center"><span class="paren-box">(&nbsp;&nbsp;)</span></td>
+                  <td class="q-text-cell pe-2 ps-2 py-1 font-weight-bold" :class="isEnglish ? 'text-left' : 'text-right'" v-html="formatQuestionContent(q.content)"></td>
                 </tr>
               </tbody>
             </table>
@@ -462,41 +649,78 @@
 
           <!-- 3. MCQ Part 1 -->
           <div v-if="col1McqQuestions.length > 0" class="mcq-section-wrapper" :dir="isEnglish ? 'ltr' : 'rtl'">
-            <div class="instruction-banner py-1 font-weight-bold" :class="isEnglish ? 'text-start ps-2' : 'text-center'">
+            <div class="instruction-banner py-1 font-weight-bold" :class="isEnglish ? 'text-start ps-2' : 'text-right pe-2 ps-2'">
               {{ mcqInstructionText }}
             </div>
             <table class="table-mcq-continuous w-100" :dir="isEnglish ? 'ltr' : 'rtl'">
               <colgroup>
                 <col style="width: 26px;">
-                <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
-                <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
-                <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
-                <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
+                <col style="width: 20px;"><col style="width: calc(25% - 26.5px);">
+                <col style="width: 20px;"><col style="width: calc(25% - 26.5px);">
+                <col style="width: 20px;"><col style="width: calc(25% - 26.5px);">
+                <col style="width: 20px;"><col style="width: calc(25% - 26.5px);">
               </colgroup>
               <tbody>
                 <template v-for="q in col1McqQuestions" :key="`a4-mcq-${q.orderIndex}`">
                   <tr class="q-stem-row">
-                    <td rowspan="2" class="q-num-cell text-center font-weight-black font-mono">
-                      {{ q.orderIndex }}
+                    <td
+                      :rowspan="getOptionsLayout(q) === 'two-rows' ? 3 : 2"
+                      class="q-num-cell text-center font-weight-black font-mono"
+                    >
+                      {{ q.displayOrder || q.orderIndex }}
                     </td>
-                    <td colspan="8" class="q-stem-cell pe-2 ps-2 py-1 font-weight-bold" :class="isEnglish ? 'text-start' : 'text-end'">
+                    <td colspan="8" class="q-stem-cell pe-2 ps-2 py-1 font-weight-bold" :class="isEnglish ? 'text-left' : 'text-right'">
                       <div v-if="q.image || q.figure" class="d-flex align-center justify-space-between w-100">
-                        <span v-html="q.content"></span>
+                        <span v-html="formatQuestionContent(q.content)"></span>
                         <img :src="q.image || q.figure" alt="رسم توضيحي للسؤال" class="q-diagram-img ms-2" />
                       </div>
-                      <span v-else v-html="q.content"></span>
+                      <span v-else v-html="formatQuestionContent(q.content)"></span>
                     </td>
                   </tr>
-                  <tr class="q-options-row text-center">
+
+                  <!-- Short options: single-row layout -->
+                  <tr v-if="getOptionsLayout(q) === 'single-row'" class="q-options-row text-center">
                     <td class="opt-num-cell font-mono font-weight-black">1</td>
-                    <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'"><span :dir="isLtrText(getOptionText(q, 0)) ? 'ltr' : 'auto'" style="unicode-bidi: isolate; display: inline-block;">{{ getOptionText(q, 0) }}</span></td>
+                    <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'">
+                      <span :dir="isLtrText(getOptionText(q, 0)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 0))"></span>
+                    </td>
                     <td class="opt-num-cell font-mono font-weight-black">2</td>
-                    <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'"><span :dir="isLtrText(getOptionText(q, 1)) ? 'ltr' : 'auto'" style="unicode-bidi: isolate; display: inline-block;">{{ getOptionText(q, 1) }}</span></td>
+                    <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'">
+                      <span :dir="isLtrText(getOptionText(q, 1)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 1))"></span>
+                    </td>
                     <td class="opt-num-cell font-mono font-weight-black">3</td>
-                    <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'"><span :dir="isLtrText(getOptionText(q, 2)) ? 'ltr' : 'auto'" style="unicode-bidi: isolate; display: inline-block;">{{ getOptionText(q, 2) }}</span></td>
+                    <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'">
+                      <span :dir="isLtrText(getOptionText(q, 2)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 2))"></span>
+                    </td>
                     <td class="opt-num-cell font-mono font-weight-black">4</td>
-                    <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'"><span :dir="isLtrText(getOptionText(q, 3)) ? 'ltr' : 'auto'" style="unicode-bidi: isolate; display: inline-block;">{{ getOptionText(q, 3) }}</span></td>
+                    <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'">
+                      <span :dir="isLtrText(getOptionText(q, 3)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 3))"></span>
+                    </td>
                   </tr>
+
+                  <!-- Long options: two-rows layout (2 options per row with colspan 3) -->
+                  <template v-else>
+                    <tr class="q-options-row">
+                      <td class="opt-num-cell font-mono font-weight-black">1</td>
+                      <td colspan="3" class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-left ps-2' : 'text-right pe-2 ps-1'">
+                        <span :dir="isLtrText(getOptionText(q, 0)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 0))"></span>
+                      </td>
+                      <td class="opt-num-cell font-mono font-weight-black">2</td>
+                      <td colspan="3" class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-left ps-2' : 'text-right pe-2 ps-1'">
+                        <span :dir="isLtrText(getOptionText(q, 1)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 1))"></span>
+                      </td>
+                    </tr>
+                    <tr class="q-options-row">
+                      <td class="opt-num-cell font-mono font-weight-black">3</td>
+                      <td colspan="3" class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-left ps-2' : 'text-right pe-2 ps-1'">
+                        <span :dir="isLtrText(getOptionText(q, 2)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 2))"></span>
+                      </td>
+                      <td class="opt-num-cell font-mono font-weight-black">4</td>
+                      <td colspan="3" class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-left ps-2' : 'text-right pe-2 ps-1'">
+                        <span :dir="isLtrText(getOptionText(q, 3)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 3))"></span>
+                      </td>
+                    </tr>
+                  </template>
                 </template>
               </tbody>
             </table>
@@ -509,55 +733,86 @@
         </div>
 
         <!-- Page 1 Footer -->
-        <div class="a4-page-footer d-flex justify-space-between align-center font-weight-bold pt-2 mt-2 border-t">
+        <div class="a4-page-footer d-print-none d-flex justify-space-between align-center font-weight-bold pt-2 mt-2 border-t">
           <span>{{ isEnglish ? 'English' : examSubject }} • {{ isEnglish ? 'Form' : 'النموذج' }} ({{ modelCode || '1' }})</span>
           <span>{{ isEnglish ? (hasSecondPage ? 'Page 1 of 2 (Turn over)' : 'Page 1 of 1') : (hasSecondPage ? 'الصفحة 1 من 2 (يتبع في الصفحة التالية)' : 'الصفحة 1 من 1') }}</span>
         </div>
       </div>
 
-      <!-- ── PAGE 2 (A4): TOP RIBBON + PART 2 MCQs + END BANNER ─── -->
+      <!-- ── PAGE 2 (A4): PART 2 MCQs (Q30 to Q50) + END BANNER ─── -->
       <div v-if="hasSecondPage" class="a4-sheet-page sheet-page-2 mt-4">
         <div class="page-content-wrapper">
-          <!-- Ribbon -->
-          <div class="secret-press-ribbon d-flex justify-space-between align-center mb-1 pb-1" :dir="isEnglish ? 'ltr' : 'rtl'">
-            <span>{{ secretPressRibbonText.press }}</span>
-            <span class="font-mono">{{ secretPressRibbonText.continuation }}</span>
-          </div>
-
-          <!-- MCQs Part 2 -->
+          <!-- MCQs Part 2 (Starts directly at Q30 like authentic ministerial layout) -->
           <div class="mcq-section-wrapper" :dir="isEnglish ? 'ltr' : 'rtl'">
             <table class="table-mcq-continuous w-100" :dir="isEnglish ? 'ltr' : 'rtl'">
               <colgroup>
                 <col style="width: 26px;">
-                <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
-                <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
-                <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
-                <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
+                <col style="width: 20px;"><col style="width: calc(25% - 26.5px);">
+                <col style="width: 20px;"><col style="width: calc(25% - 26.5px);">
+                <col style="width: 20px;"><col style="width: calc(25% - 26.5px);">
+                <col style="width: 20px;"><col style="width: calc(25% - 26.5px);">
               </colgroup>
               <tbody>
                 <template v-for="q in col2McqQuestions" :key="`a4-mcq2-${q.orderIndex}`">
                   <tr class="q-stem-row">
-                    <td rowspan="2" class="q-num-cell text-center font-weight-black font-mono">
-                      {{ q.orderIndex }}
+                    <td
+                      :rowspan="getOptionsLayout(q) === 'two-rows' ? 3 : 2"
+                      class="q-num-cell text-center font-weight-black font-mono"
+                    >
+                      {{ q.displayOrder || q.orderIndex }}
                     </td>
-                    <td colspan="8" class="q-stem-cell pe-2 ps-2 py-1 font-weight-bold" :class="isEnglish ? 'text-start' : 'text-end'">
+                    <td colspan="8" class="q-stem-cell pe-2 ps-2 py-1 font-weight-bold" :class="isEnglish ? 'text-left' : 'text-right'">
                       <div v-if="q.image || q.figure" class="d-flex align-center justify-space-between w-100">
-                        <span v-html="q.content"></span>
+                        <span v-html="formatQuestionContent(q.content)"></span>
                         <img :src="q.image || q.figure" alt="رسم توضيحي للسؤال" class="q-diagram-img ms-2" />
                       </div>
-                      <span v-else v-html="q.content"></span>
+                      <span v-else v-html="formatQuestionContent(q.content)"></span>
                     </td>
                   </tr>
-                  <tr class="q-options-row text-center">
+
+                  <!-- Short options: single-row layout -->
+                  <tr v-if="getOptionsLayout(q) === 'single-row'" class="q-options-row text-center">
                     <td class="opt-num-cell font-mono font-weight-black">1</td>
-                    <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'"><span :dir="isLtrText(getOptionText(q, 0)) ? 'ltr' : 'auto'" style="unicode-bidi: isolate; display: inline-block;">{{ getOptionText(q, 0) }}</span></td>
+                    <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'">
+                      <span :dir="isLtrText(getOptionText(q, 0)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 0))"></span>
+                    </td>
                     <td class="opt-num-cell font-mono font-weight-black">2</td>
-                    <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'"><span :dir="isLtrText(getOptionText(q, 1)) ? 'ltr' : 'auto'" style="unicode-bidi: isolate; display: inline-block;">{{ getOptionText(q, 1) }}</span></td>
+                    <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'">
+                      <span :dir="isLtrText(getOptionText(q, 1)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 1))"></span>
+                    </td>
                     <td class="opt-num-cell font-mono font-weight-black">3</td>
-                    <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'"><span :dir="isLtrText(getOptionText(q, 2)) ? 'ltr' : 'auto'" style="unicode-bidi: isolate; display: inline-block;">{{ getOptionText(q, 2) }}</span></td>
+                    <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'">
+                      <span :dir="isLtrText(getOptionText(q, 2)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 2))"></span>
+                    </td>
                     <td class="opt-num-cell font-mono font-weight-black">4</td>
-                    <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'"><span :dir="isLtrText(getOptionText(q, 3)) ? 'ltr' : 'auto'" style="unicode-bidi: isolate; display: inline-block;">{{ getOptionText(q, 3) }}</span></td>
+                    <td class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-start ps-1' : 'text-center'">
+                      <span :dir="isLtrText(getOptionText(q, 3)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 3))"></span>
+                    </td>
                   </tr>
+
+                  <!-- Long options: two-rows layout (2 options per row with colspan 3) -->
+                  <template v-else>
+                    <tr class="q-options-row">
+                      <td class="opt-num-cell font-mono font-weight-black">1</td>
+                      <td colspan="3" class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-left ps-2' : 'text-right pe-2 ps-1'">
+                        <span :dir="isLtrText(getOptionText(q, 0)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 0))"></span>
+                      </td>
+                      <td class="opt-num-cell font-mono font-weight-black">2</td>
+                      <td colspan="3" class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-left ps-2' : 'text-right pe-2 ps-1'">
+                        <span :dir="isLtrText(getOptionText(q, 1)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 1))"></span>
+                      </td>
+                    </tr>
+                    <tr class="q-options-row">
+                      <td class="opt-num-cell font-mono font-weight-black">3</td>
+                      <td colspan="3" class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-left ps-2' : 'text-right pe-2 ps-1'">
+                        <span :dir="isLtrText(getOptionText(q, 2)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 2))"></span>
+                      </td>
+                      <td class="opt-num-cell font-mono font-weight-black">4</td>
+                      <td colspan="3" class="opt-text-cell font-weight-bold" :class="isEnglish ? 'text-left ps-2' : 'text-right pe-2 ps-1'">
+                        <span :dir="isLtrText(getOptionText(q, 3)) ? 'ltr' : 'auto'" class="opt-text-inner" v-html="formatOptionContent(getOptionText(q, 3))"></span>
+                      </td>
+                    </tr>
+                  </template>
                 </template>
               </tbody>
             </table>
@@ -570,7 +825,7 @@
         </div>
 
         <!-- Page 2 Footer -->
-        <div class="a4-page-footer d-flex justify-space-between align-center font-weight-bold pt-2 mt-2 border-t">
+        <div class="a4-page-footer d-print-none d-flex justify-space-between align-center font-weight-bold pt-2 mt-2 border-t">
           <span>{{ isEnglish ? 'English' : examSubject }} • {{ isEnglish ? 'Form' : 'النموذج' }} ({{ modelCode || '1' }})</span>
           <span>{{ isEnglish ? 'Page 2 of 2' : 'الصفحة 2 من 2' }}</span>
         </div>
@@ -610,6 +865,7 @@ const props = withDefaults(
     mcqMark?: number
     totalScore?: number
     readingPassage?: string
+    isBlankMode?: boolean
     questions?: Array<{
       id?: string | number
       orderIndex: number
@@ -629,27 +885,28 @@ const props = withDefaults(
     defaultLayout?: 'a3' | 'a4' | 'auto'
   }>(),
   {
-    examTitle: 'اختبار الشهادة الثانوية العامة (القسم العلمي)',
-    examSubject: 'الأحياء',
-    stageTitle: 'اختبار الشهادة الثانوية العامة (المراكز الفرعية - علمي)',
-    examYear: '1445هـ - 2023-2024م',
-    governorate: 'أمانة العاصمة',
-    directorate: 'الثورة / الأمانة',
-    centerName: 'حفصة - الحوك الحديدة',
-    centerCode: '3026',
-    examTime: 'ثلاث ساعات (من 8:30 إلى 11:30)',
-    dayName: 'السبت',
-    examDate: '2024/5/18م - 1445/11/10هـ',
-    envelopeNo: '1',
-    studentName: 'علاء جميل صالح القربي',
-    seatNumber: '651736',
-    secretNumber: '60',
+    examTitle: '',
+    examSubject: '',
+    stageTitle: '',
+    examYear: '',
+    governorate: '',
+    directorate: '',
+    centerName: '',
+    centerCode: '',
+    examTime: '',
+    dayName: '',
+    examDate: '',
+    envelopeNo: '',
+    studentName: '',
+    seatNumber: '',
+    secretNumber: '',
     modelCode: '1',
     studentPhoto: '',
     tfMark: 1,
     mcqMark: 2,
     totalScore: 80,
     readingPassage: '',
+    isBlankMode: false,
     questions: () => [],
     defaultLayout: 'auto',
   }
@@ -692,26 +949,118 @@ const isEnglish = computed(() => {
   return false
 })
 
-const displayExamYear = computed(() => {
-  const y = String(props.examYear || '').trim()
-  if (!y || y === '1' || y === '0' || y.length < 4) {
-    return '1445هـ - 2024-2023م'
+// ── Pure Authentic Data Getters (Without fake mock text) ──
+const displayGovernorate = computed(() => props.governorate?.trim() || '')
+const displayDirectorate = computed(() => props.directorate?.trim() || '')
+const displayCenterName = computed(() => props.centerName?.trim() || '')
+const displayCenterCode = computed(() => (props.centerCode !== undefined && props.centerCode !== null && String(props.centerCode).trim() !== '') ? String(props.centerCode).trim() : '')
+const displaySubject = computed(() => props.examSubject?.trim() || '')
+const displayEnvelopeNo = computed(() => (props.envelopeNo !== undefined && props.envelopeNo !== null && String(props.envelopeNo).trim() !== '') ? String(props.envelopeNo).trim() : '')
+const displayDayName = computed(() => props.dayName?.trim() || '')
+
+const displayTimeLine1 = computed(() => {
+  if (props.examTime?.trim()) {
+    const t = props.examTime.trim()
+    if (t.includes('وحتى')) {
+      return t.split('وحتى')[0].trim() + (isEnglish.value ? ' to' : ' وحتى')
+    }
+    return t
   }
-  return y
+  return ''
 })
+
+const displayTimeLine2 = computed(() => {
+  const t = props.examTime?.trim() || ''
+  const d = props.examDate?.trim() || ''
+  if (t.includes('وحتى')) {
+    const afterUntil = t.split('وحتى')[1].trim()
+    return d ? `${afterUntil} - ${d}` : afterUntil
+  }
+  return d
+})
+
+const displayStageLine1 = computed(() => {
+  const st = props.stageTitle?.trim() || props.examTitle?.trim() || ''
+  const yr = props.examYear?.trim() || ''
+  if (!st && !yr) return ''
+  if (!st) return yr ? `للعام الدراسي ${yr}` : ''
+  if (st.includes('للعام') || st.includes('144') || st.includes('202')) return st
+  const hijriMatch = yr.match(/(\d{4}\s*هـ?)/)
+  const hijriStr = hijriMatch ? hijriMatch[1].replace('ه', '') + 'هـ' : ''
+  if (hijriStr) {
+    return isEnglish.value ? `${st} Academic Year ${hijriStr}` : `${st} للعام الدراسي ${hijriStr}`
+  }
+  return st
+})
+
+const displayStageLine2 = computed(() => {
+  const yr = props.examYear?.trim() || ''
+  if (!yr) return ''
+  const gregMatch = yr.match(/(\d{4}\s*[-/]\s*\d{4}\s*م?)/)
+  if (gregMatch) {
+    let g = gregMatch[1].trim()
+    if (!g.endsWith('م')) g += 'م'
+    if (!g.startsWith('-')) g = '-' + g
+    return g
+  }
+  if (yr.includes('م') || yr.includes('-')) return yr
+  return ''
+})
+
+const isBlankMode = computed(() => props.isBlankMode || props.studentName === '__BLANK__')
+
+const displayStudentName = computed(() => {
+  if (isBlankMode.value) return '........................................................'
+  return props.studentName?.trim() || ''
+})
+
+const displaySeatNumber = computed(() => {
+  if (isBlankMode.value) return '..........'
+  return (props.seatNumber !== undefined && props.seatNumber !== null && String(props.seatNumber).trim() !== '') ? String(props.seatNumber).trim() : ''
+})
+
+const displaySecretNumber = computed(() => {
+  if (isBlankMode.value) return '.....'
+  return (props.secretNumber !== undefined && props.secretNumber !== null && String(props.secretNumber).trim() !== '') ? String(props.secretNumber).trim() : ''
+})
+
+const displayStudentPhoto = computed(() => props.studentPhoto?.trim() || '')
+
+// Developer Diagnostics & Readiness Checklist
+const examFieldsReadiness = computed(() => [
+  { key: 'subject_name', label: 'المادة', value: displaySubject.value, isAvailable: !!displaySubject.value },
+  { key: 'stage_name', label: 'المرحلة والصف', value: displayStageLine1.value, isAvailable: !!displayStageLine1.value },
+  { key: 'year_name', label: 'العام الدراسي', value: props.examYear?.trim() || '', isAvailable: !!(props.examYear?.trim()) },
+  { key: 'governorate', label: 'المحافظة', value: displayGovernorate.value, isAvailable: !!displayGovernorate.value },
+  { key: 'directorate', label: 'المديرية', value: displayDirectorate.value, isAvailable: !!displayDirectorate.value },
+  { key: 'center_name', label: 'المركز الاختباري', value: displayCenterName.value, isAvailable: !!displayCenterName.value },
+  { key: 'center_code', label: 'رقم المركز', value: displayCenterCode.value, isAvailable: !!displayCenterCode.value },
+  { key: 'time_allowed', label: 'الزمن', value: displayTimeLine1.value, isAvailable: !!displayTimeLine1.value },
+  { key: 'day_name', label: 'اليوم', value: displayDayName.value, isAvailable: !!displayDayName.value },
+  { key: 'exam_date', label: 'التاريخ', value: displayTimeLine2.value, isAvailable: !!displayTimeLine2.value },
+  { key: 'envelope_no', label: 'رقم المظروف', value: displayEnvelopeNo.value, isAvailable: !!displayEnvelopeNo.value },
+  { key: 'student_name', label: 'اسم الطالب', value: isBlankMode.value ? 'نموذج خام' : displayStudentName.value, isAvailable: isBlankMode.value || !!displayStudentName.value },
+  { key: 'seat_number', label: 'رقم الجلوس', value: isBlankMode.value ? 'نموذج خام' : displaySeatNumber.value, isAvailable: isBlankMode.value || !!displaySeatNumber.value },
+  { key: 'secret_number', label: 'الرقم السري', value: isBlankMode.value ? 'نموذج خام' : displaySecretNumber.value, isAvailable: isBlankMode.value || !!displaySecretNumber.value },
+  { key: 'student_photo', label: 'الصورة الشخصية', value: displayStudentPhoto.value ? 'متوفرة' : (isBlankMode.value ? 'ختم المركز' : ''), isAvailable: isBlankMode.value || !!displayStudentPhoto.value },
+])
+
+const missingFieldsCount = computed(() => examFieldsReadiness.value.filter(f => !f.isAvailable).length)
 
 const tfInstructionText = computed(() => {
   if (isEnglish.value) {
     return `Read the following questions, and on the answer sheet, darken the number that matches the correct alternative.\nPart One: Mark (T/True) for the true statements and (F/False) for the false ones.    (${props.tfMark || 1}) point each`
   }
-  return `ظلل في ورقة الإجابة الدائرة التي تحتوي على الحرف (ص) للإجابة الصحيحة والحرف (خ) للإجابة الخطأ بحسب رقم الفقرة لكل مما يأتي: ${props.tfMark || 1} درجة لكل فقرة.`
+  const markText = props.tfMark && props.tfMark !== 1 ? `${props.tfMark} درجات لكل فقرة.` : 'درجة لكل فقرة.'
+  return `ظلل في ورقة الإجابة الدائرة التي تحتوي على الحرف (ص) للإجابة الصحيحة والحرف (خ) للإجابة الخطأ بحسب رقم الفقرة لكل مما يأتي: ${markText}`
 })
 
 const mcqInstructionText = computed(() => {
   if (isEnglish.value) {
     return `Part two: Choose the best alternative:    (${props.mcqMark || 2}) points each`
   }
-  return `اختر الإجابة الصحيحة ثم ظلل في ورقة الإجابة الدائرة بحسب الاختيار ورقم الفقرة لكل مما يأتي: ${props.mcqMark || 2} درجات لكل فقرة.`
+  const markText = props.mcqMark && props.mcqMark !== 2 ? `${props.mcqMark} درجات لكل فقرة.` : 'درجتان لكل فقرة.'
+  return `اختر الإجابة الصحيحة ثم ظلل في ورقة الإجابة الدائرة بحسب الإختيار ورقم الفقرة لكل مما يأتي:${markText}`
 })
 
 const readingPassageHeader = computed(() => {
@@ -750,68 +1099,28 @@ const endBannerText = computed(() => {
   return `*** انتهت أسئلة النموذج (${props.modelCode || '1'}) — مع تمنياتنا لجميع الطلاب بالتوفيق والنجاح ***`
 })
 
-const formattedTimeLine1 = computed(() => {
-  const t = props.examTime || ''
-  if (!t || t.includes('8:30') || t.includes('ثلاث ساعات')) {
-    return isEnglish.value ? 'Three hours from 8:30 AM to' : 'ثلاث ساعات من الساعة 8:30 صباحاً وحتى'
-  }
-  if (t.includes('وحتى')) {
-    return t.split('وحتى')[0].trim() + (isEnglish.value ? ' to' : ' وحتى')
-  }
-  return t
-})
-
-const formattedTimeLine2 = computed(() => {
-  const t = props.examTime || ''
-  const d = props.examDate || '1445/11/10هـ - 2024/5/18م'
-  if (t.includes('وحتى')) {
-    const afterUntil = t.split('وحتى')[1].trim()
-    if (d.includes(afterUntil)) return d
-    return `${afterUntil} - ${d}`
-  }
-  if (d.includes('11:30')) return d
-  return `11:30 - ${d}`
-})
-
-const formattedStageLine1 = computed(() => {
-  const st = props.stageTitle || 'اختبار الشهادة الثانوية العامة (المراكز الفرعية-علمي)'
-  const yr = props.examYear || '1445هـ - 2024-2023م'
-  if (st.includes('1445') || st.includes('للعام')) {
-    return st
-  }
-  const hijriMatch = yr.match(/(\d{4}\s*هـ?)/)
-  const hijriStr = hijriMatch ? hijriMatch[1].replace('ه', '') + 'هـ' : '1445هـ'
-  if (isEnglish.value) {
-    return `${st} Academic Year ${hijriStr}`
-  }
-  return `${st} للعام الدراسي ${hijriStr}`
-})
-
-const formattedStageLine2 = computed(() => {
-  const yr = props.examYear || '1445هـ - 2024-2023م'
-  const gregMatch = yr.match(/(\d{4}\s*[-/]\s*\d{4}\s*م?)/)
-  if (gregMatch) {
-    let g = gregMatch[1].trim()
-    if (!g.endsWith('م')) g += 'م'
-    if (!g.startsWith('-')) g = '-' + g
-    return g
-  }
-  return '-2024-2023م'
-})
-
-// Filter True/False vs MCQ Questions
+// Filter True/False vs MCQ Questions with strict sequential numbering
 const tfQuestions = computed(() => {
-  return (props.questions || []).filter((q) => {
+  const filtered = (props.questions || []).filter((q) => {
     const typeStr = String(q.questionType || '').toLowerCase()
     return typeStr.includes('true') || typeStr.includes('false') || typeStr.includes('صح') || typeStr.includes('خطأ')
   })
+  return filtered.map((q, idx) => ({
+    ...q,
+    displayOrder: idx + 1,
+  }))
 })
 
 const mcqQuestions = computed(() => {
-  return (props.questions || []).filter((q) => {
+  const filtered = (props.questions || []).filter((q) => {
     const typeStr = String(q.questionType || '').toLowerCase()
     return !(typeStr.includes('true') || typeStr.includes('false') || typeStr.includes('صح') || typeStr.includes('خطأ'))
   })
+  const tfCount = tfQuestions.value.length
+  return filtered.map((q, idx) => ({
+    ...q,
+    displayOrder: tfCount + idx + 1,
+  }))
 })
 
 // Dynamic multi-page decision:
@@ -837,7 +1146,7 @@ const splitIndex = computed(() => {
 
   // If exam has True/False section (typically 15-20 questions)
   if (tfQuestions.value.length >= 12) {
-    const col1Capacity = effectiveReadingPassage.value ? 6 : 10
+    const col1Capacity = effectiveReadingPassage.value ? 6 : 9
     return Math.min(mcq.length, col1Capacity)
   }
 
@@ -880,12 +1189,46 @@ function getOptionText(q: any, idx: number): string {
   return opts[idx]?.text || ''
 }
 
+function getOptionMaxLen(q: any): number {
+  const opts = getNormalizedOptions(q)
+  return Math.max(...opts.map((o) => (o.text || '').length), 0)
+}
+
+function getOptionsLayout(_q: any): 'single-row' | 'two-rows' {
+  // In official ministerial exam booklets, all 30 MCQs strictly use single-row 4-column options.
+  return 'single-row'
+}
+
 function isLtrText(text: string): boolean {
   if (!text) return false
   const clean = text.replace(/^<p>/i, '').replace(/<\/p>$/i, '').trim()
   const hasArabic = /[\u0600-\u06FF]/.test(clean)
   const hasMathOrLatin = /[a-zA-Z0-9^=+\-*/_()\\%π]/.test(clean)
   return !hasArabic && hasMathOrLatin
+}
+
+function formatQuestionContent(content: string): string {
+  if (!content) return ''
+  let clean = content.replace(/^<p[^>]*>/i, '').replace(/<\/p>$/i, '').trim()
+  // Isolate English phrases in parentheses (e.g. "(Inflammatory Mediators)", "(Apoptosis vs Necrosis)")
+  clean = clean.replace(
+    /\(([A-Za-z0-9\s,._+\-*/%&]+)\)/g,
+    '&rlm;<span class="latin-term" dir="ltr">($1)</span>&rlm;'
+  )
+  // Ensure trailing question mark following English terms or tags stays at the natural Arabic end
+  clean = clean.replace(/([A-Za-z0-9\)\}\]»”"]|<\/strong>|<\/b>|<\/span>)\s*(؟|\?)/g, '$1&rlm;&nbsp;؟&rlm;')
+  return clean
+}
+
+function formatOptionContent(text: string): string {
+  if (!text) return ''
+  let clean = text.replace(/^<p[^>]*>/i, '').replace(/<\/p>$/i, '').trim()
+  // Isolate English phrases in parentheses (e.g. "(Low Coupling & High Cohesion)", "(AES, DES)")
+  clean = clean.replace(
+    /\(([A-Za-z0-9\s,._+\-*/%&]+)\)/g,
+    '&rlm;<span class="latin-term" dir="ltr">($1)</span>&rlm;'
+  )
+  return clean
 }
 
 async function printOfficialPaper() {
@@ -897,8 +1240,10 @@ async function printOfficialPaper() {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
 .yemeni-official-question-paper {
-  font-family: 'Tajawal', 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, sans-serif !important;
+  font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Tahoma, Arial, sans-serif !important;
   color: #000000;
   background-color: #ffffff;
   box-sizing: border-box;
@@ -938,6 +1283,14 @@ async function printOfficialPaper() {
   margin: 0 auto;
 }
 
+/* Outer enclosing border for each sheet column matching authentic ministerial booklet */
+.sheet-column {
+  border: 1.5px solid #000000 !important;
+  padding: 4px 5px !important;
+  background-color: #ffffff !important;
+  box-sizing: border-box !important;
+}
+
 /* ── A4 PORTRAIT MODE (TWO DISTINCT PAGES) ──────────────────── */
 .a4-portrait-mode {
   width: 100%;
@@ -956,7 +1309,7 @@ async function printOfficialPaper() {
 .a4-sheet-page {
   width: 210mm;
   min-height: 297mm;
-  padding: 8mm 10mm;
+  padding: 6mm 8mm;
   margin: 0 auto;
   background-color: #ffffff;
   border: 1px solid #dcdcdc;
@@ -967,8 +1320,13 @@ async function printOfficialPaper() {
   justify-content: space-between;
 }
 
+/* Outer enclosing border for A4 page content matching authentic ministerial booklet */
 .page-content-wrapper {
   flex-grow: 1;
+  border: 1.5px solid #000000 !important;
+  padding: 4px 5px !important;
+  background-color: #ffffff !important;
+  box-sizing: border-box !important;
 }
 
 .a4-page-footer {
@@ -996,10 +1354,10 @@ async function printOfficialPaper() {
 /* ── OFFICIAL HEADER BOX ────────────────────────────────────────── */
 .official-header-box {
   width: 100%;
-  margin: 0 auto 4px auto;
+  margin: 0 auto 3px auto;
   border: 1.5px solid #000000;
   background-color: #ffffff;
-  font-family: 'Arial', 'Simplified Arabic', Tahoma, sans-serif !important;
+  font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Arial, Tahoma, sans-serif !important;
   color: #000000;
   box-sizing: border-box;
 }
@@ -1018,22 +1376,24 @@ async function printOfficialPaper() {
   vertical-align: middle;
   background-color: #ffffff;
   color: #000000;
-  font-size: 0.68rem;
+  font-size: 0.70rem;
   line-height: 1.15;
   box-sizing: border-box;
   overflow: hidden;
 }
 
 .student-photo-cell {
-  width: 17.5% !important;
-  padding: 2px !important;
+  width: 12.0% !important;
+  padding: 1px !important;
   vertical-align: middle !important;
   background-color: #ffffff;
 }
 
 .student-photo-frame {
-  width: 82px;
-  height: 100px;
+  width: 100%;
+  height: 100%;
+  max-width: 68px;
+  max-height: 84px;
   border: 1px solid #000000;
   margin: 0 auto;
   display: flex;
@@ -1102,97 +1462,222 @@ async function printOfficialPaper() {
 
 /* ── INSTRUCTION BANNERS ─────────────────────────────────────── */
 .instruction-banner {
-  font-size: 0.70rem;
-  font-weight: 800;
-  border: 1px solid #000000;
-  border-bottom: 0;
-  padding: 2.5px 4px;
-  line-height: 1.2;
-  background-color: #ffffff;
-  color: #000000;
+  font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Tahoma, Arial, sans-serif !important;
+  font-size: 0.76rem !important;
+  font-weight: 700 !important;
+  border: 1.5px solid #000000 !important;
+  border-bottom: 0 !important;
+  padding: 2px 6px !important;
+  line-height: 1.25 !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  text-align: right !important;
+}
+
+.instruction-banner.text-start {
+  text-align: left !important;
 }
 
 .table-tf {
   border-collapse: collapse;
   table-layout: fixed;
-  font-size: 0.74rem;
+  font-size: 0.76rem;
   line-height: 1.15;
-  border: 1px solid #000000;
+  border: 1.5px solid #000000 !important;
   background-color: #ffffff;
 }
 
 .table-tf td {
   border: 1px solid #000000;
-  padding: 1.5px 3px;
+  padding: 2px 4px;
   background-color: #ffffff;
+  vertical-align: middle;
 }
 
 .q-index-cell {
-  font-weight: 900;
-  font-size: 0.78rem;
+  background-color: #ffffff !important;
+  font-family: Arial, 'Times New Roman', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 0.84rem !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  padding: 2px 0 !important;
+  width: 26px !important;
+  color: #000000 !important;
+  border: 1px solid #000000 !important;
 }
 
 .q-paren-cell {
+  background-color: #ffffff !important;
+  width: 32px !important;
   white-space: nowrap !important;
   word-break: keep-all !important;
-  direction: ltr !important;
   text-align: center !important;
+  vertical-align: middle !important;
+  padding: 2px 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  border: 1px solid #000000 !important;
+}
+
+.paren-box {
+  display: inline-block !important;
+  direction: ltr !important;
+  unicode-bidi: isolate !important;
+  font-family: Arial, 'Times New Roman', sans-serif !important;
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
   letter-spacing: 0 !important;
-  font-family: monospace, sans-serif !important;
-  font-size: 0.85rem !important;
-  font-weight: 900 !important;
-  color: #111;
+  color: #000000 !important;
+  line-height: 1 !important;
+  margin: 0 auto !important;
 }
 
 .q-text-cell {
-  font-weight: 600;
-  unicode-bidi: plaintext !important;
+  font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Tahoma, Arial, sans-serif !important;
+  font-size: 0.78rem !important;
+  line-height: 1.35 !important;
+  font-weight: 700 !important;
+  text-align: right !important;
+  direction: rtl !important;
+  unicode-bidi: isolate !important;
+  color: #000000 !important;
+  background-color: #ffffff !important;
+  border: 1px solid #000000 !important;
+  padding: 2px 6px !important;
+}
+
+.q-text-cell.text-left {
+  text-align: left !important;
+  direction: ltr !important;
+}
+
+.q-text-cell strong,
+.q-text-cell b {
+  font-weight: 800 !important;
+  font-size: inherit !important;
+}
+
+.q-text-cell p {
+  margin: 0 !important;
+  display: inline !important;
+  font-size: inherit !important;
 }
 
 /* ── CONTINUOUS MCQ SECTION ──────────────────────────────────── */
 .table-mcq-continuous {
   border-collapse: collapse;
   width: 100%;
-  border: 1px solid #000000 !important;
+  border: 1.5px solid #000000 !important;
   table-layout: fixed;
   background-color: #ffffff;
 }
 
 .table-mcq-continuous td {
   border: 1px solid #000000 !important;
-  padding: 1px 2px;
+  padding: 2px 3px;
   background-color: #ffffff;
+  vertical-align: middle;
+}
+
+.q-stem-row {
+  border-top: 1.5px solid #000000 !important;
 }
 
 .q-num-cell {
-  font-family: monospace, sans-serif;
-  font-weight: 900;
-  font-size: 0.82rem;
-  text-align: center;
+  background-color: #ffffff !important;
+  font-family: Arial, 'Times New Roman', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 0.84rem !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  padding: 2px 0 !important;
+  width: 26px !important;
+  color: #000000 !important;
+  border: 1px solid #000000 !important;
 }
 
 .q-stem-cell {
-  font-size: 0.75rem;
-  line-height: 1.25;
-  font-weight: 700;
-  unicode-bidi: plaintext !important;
+  font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Tahoma, Arial, sans-serif !important;
+  font-size: 0.78rem !important;
+  line-height: 1.35 !important;
+  font-weight: 700 !important;
+  text-align: right !important;
+  direction: rtl !important;
+  unicode-bidi: isolate !important;
+  color: #000000 !important;
+  background-color: #ffffff !important;
+  border: 1px solid #000000 !important;
+  padding: 2px 6px !important;
+}
+
+.q-stem-cell.text-left {
+  text-align: left !important;
+  direction: ltr !important;
+}
+
+.q-stem-cell strong,
+.q-stem-cell b {
+  font-weight: 800 !important;
+  font-size: inherit !important;
+}
+
+.q-stem-cell p {
+  margin: 0 !important;
+  display: inline !important;
+  font-size: inherit !important;
 }
 
 .opt-num-cell {
-  font-family: monospace, sans-serif;
-  font-weight: 900;
-  font-size: 0.74rem;
-  text-align: center;
+  background-color: #ffffff !important;
+  font-family: Arial, 'Times New Roman', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 0.78rem !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  padding: 1px 0 !important;
+  width: 20px !important;
+  color: #000000 !important;
+  border: 1px solid #000000 !important;
 }
 
 .opt-text-cell {
-  font-size: 0.70rem;
-  font-weight: 700;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Tahoma, Arial, sans-serif !important;
+  font-size: 0.76rem !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+  padding: 2px 4px !important;
+  line-height: 1.25 !important;
+  vertical-align: middle !important;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
   unicode-bidi: plaintext !important;
+  color: #000000 !important;
+  background-color: #ffffff !important;
+  border: 1px solid #000000 !important;
+}
+
+.opt-text-inner {
+  display: block;
+  width: 100%;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  white-space: normal;
+  line-height: 1.25 !important;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  text-align: center;
+}
+
+.latin-term {
+  direction: ltr !important;
+  unicode-bidi: isolate !important;
+  display: inline-block !important;
+  white-space: nowrap !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif !important;
+  font-size: 0.92em !important;
+  font-weight: 700 !important;
 }
 
 .q-diagram-img {
@@ -1210,18 +1695,47 @@ async function printOfficialPaper() {
 }
 
 .exam-paper-end-banner {
-  font-size: 0.76rem;
-  font-weight: 900;
-  border: 1px solid #000000;
-  padding: 3px 6px;
-  background-color: #ffffff;
-  margin-top: 4px;
+  font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Tahoma, Arial, sans-serif !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  border: 1.5px solid #000000 !important;
+  padding: 3px 6px !important;
+  background-color: #ffffff !important;
+  margin-top: 3px !important;
+  color: #000000 !important;
+  text-align: center !important;
+}
+
+.missing-field-val {
+  color: #c62828 !important;
+  font-weight: 800 !important;
+  font-size: 0.62rem !important;
+  background-color: #ffebee !important;
+  padding: 1px 3px !important;
+  border-radius: 2px !important;
+  border: 1px dashed #ef9a9a !important;
+  display: inline-block !important;
+  line-height: 1.15 !important;
+}
+
+.developer-diagnostics-card {
+  border: 1px solid #e0e0e0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  background: #fdfdfd !important;
 }
 
 /* ── PRINT MEDIA RULES ───────────────────────────────────────── */
 @media print {
+  .missing-field-val {
+    color: #000000 !important;
+    background-color: transparent !important;
+    border: 1px dashed #555555 !important;
+    font-size: 7.2pt !important;
+  }
+
   .d-print-none,
   .action-bar,
+  .developer-diagnostics-card,
   .v-btn,
   button {
     display: none !important;

@@ -94,7 +94,7 @@ def analyze_bubble(gray: np.ndarray, cx: int, cy: int, r: int) -> dict:
     return {'state': state, 'fill_ratio': round(fill_ratio, 4), 'mean_gray': round(mean_gray, 1)}
 
 
-def grade_sheet(image_path: str, answer_key: dict = None, dpi: int = DPI, use_ai: bool = True) -> dict:
+def grade_sheet(image_path: str, answer_key: dict = None, dpi: int = DPI, use_ai: bool = True, marks_map: dict = None) -> dict:
     """
     تصحيح ورقة OMR كاملة.
 
@@ -167,19 +167,24 @@ def grade_sheet(image_path: str, answer_key: dict = None, dpi: int = DPI, use_ai
         else:
             marked = None; mode = 'empty'
 
+        from omr.providers.opencv_omr import normalize_choice
         correct_ch = (answer_key or {}).get(q) or (answer_key or {}).get(str(q))
-        is_correct = (marked == correct_ch) if (marked and correct_ch) else None
-        marks = 1.0 if is_correct else 0.0
+        is_correct = (normalize_choice(marked) == normalize_choice(correct_ch)) if (marked and correct_ch) else None
+        q_weight = float((marks_map or {}).get(q, (marks_map or {}).get(str(q), 1.0)))
+        marks = q_weight if is_correct else 0.0
 
         if marked: total_answered += 1
         if is_correct: total_correct += 1; score += marks
 
         question_results.append({
-            'q': q, 'marked': marked, 'mode': mode,
-            'correct': correct_ch, 'is_correct': is_correct, 'marks': marks,
+            'q': q, 'question_id': q, 'marked': marked, 'marked_choice': marked, 'mode': mode,
+            'correct': correct_ch, 'correct_choice': correct_ch, 'is_correct': is_correct,
+            'marks': marks, 'marks_awarded': marks, 'max_mark': q_weight,
             'fill_ratios': {ch: states[ch]['fill_ratio'] for ch in CHOICES},
             'states':      {ch: states[ch]['state']      for ch in CHOICES},
         })
+
+    total_possible = sum(float((marks_map or {}).get(q, (marks_map or {}).get(str(q), 1.0))) for q in range(1, 181))
 
     # ── رسم الصورة المُعلَّقة ───────────────────────────────────
     annotated = _draw_annotated(img.copy(), question_results, dpi)
@@ -194,8 +199,8 @@ def grade_sheet(image_path: str, answer_key: dict = None, dpi: int = DPI, use_ai
         'total_wrong':     total_answered - total_correct,
         'total_empty':     180 - total_answered,
         'score':           round(score, 2),
-        'max_score':       180.0,
-        'score_percent':   round(score / 180 * 100, 1),
+        'max_score':       round(total_possible, 2),
+        'score_percent':   round(score / max(total_possible, 1.0) * 100, 1),
         'ai_corrections':  ai_used,
         'processing_ms':   round(elapsed_ms, 1),
         'questions':       question_results,
@@ -227,6 +232,9 @@ def _draw_annotated(img: np.ndarray, results: list, dpi: int) -> np.ndarray:
                         cv2.line(img, (cx+int(rr*.4), cy-int(rr*.4)), (cx-int(rr*.4), cy+int(rr*.4)), (255,255,255), 2)
                     else:
                         cv2.circle(img, (cx, cy), mk, (255, 180, 0), 2)
+            else:
+                # إظهار إطار الدائرة المكتشفة باللون الأزرق الفاتح لإثبات مسح وموضع الدائرة
+                cv2.circle(img, (cx, cy), mk, (240, 160, 40), 1)
 
             cv2.circle(img, (cx, cy), 2, (80, 80, 80), -1)
 
@@ -235,4 +243,3 @@ def _draw_annotated(img: np.ndarray, results: list, dpi: int) -> np.ndarray:
             cv2.circle(img, (cxc, cyc), max(6, int(rrc * 0.9)), (0, 210, 0), 2)
 
     return img
-ث

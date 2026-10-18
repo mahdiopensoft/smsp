@@ -1105,6 +1105,47 @@
     <!-- STEP 2: النتائج وتتبع الذكاء الاصطناعي                       -->
     <!-- ════════════════════════════════════════════════════════════ -->
     <div v-if="currentStep === 2 && result">
+      <!-- شريط التنقل بين الصفحات في حالة الملف متعدد الصفحات (Multipage PDF / ADF Scanner) -->
+      <div v-if="result.pages && result.pages.length > 1" class="d-flex align-center justify-space-between flex-wrap gap-3 bg-surface pa-4 rounded-xl mb-6 border shadow-xs">
+        <div class="d-flex align-center gap-3">
+          <v-avatar color="primary" variant="tonal" size="42" rounded="lg">
+            <v-icon size="24">mdi-file-document-multiple-outline</v-icon>
+          </v-avatar>
+          <div>
+            <div class="text-subtitle-1 font-weight-black text-on-surface">
+              مستند متعدد الصفحات (تم مسح {{ result.pages.length }} ورقة/صفحة بنجاح)
+            </div>
+            <div class="text-caption text-medium-emphasis">
+              انقر على أي صفحة للانتقال المباشر لبياناتها وتدقيق علاماتها
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex align-center gap-2 flex-wrap">
+          <v-btn
+            v-for="(pg, idx) in result.pages"
+            :key="idx"
+            :color="selectedPageIndex === idx ? 'primary' : 'grey-lighten-2'"
+            :variant="selectedPageIndex === idx ? 'flat' : 'tonal'"
+            size="small"
+            rounded="lg"
+            class="font-weight-bold"
+            @click="selectPage(idx)"
+          >
+            <v-icon start size="16">mdi-numeric-{{ idx + 1 }}-box</v-icon>
+            صفحة {{ idx + 1 }}
+            <v-chip
+              size="x-small"
+              :color="pg.status === 'completed' ? 'success' : (pg.status === 'locked_in_control' ? 'warning' : 'info')"
+              class="ms-2 font-weight-bold"
+              variant="flat"
+            >
+              {{ pg.score }} / {{ pg.max_score }}
+            </v-chip>
+          </v-btn>
+        </div>
+      </div>
+
       <!-- بطاقات الإحصائيات (Institutional Standard Vuetify 3 Cards) -->
       <v-row class="mb-6">
         <v-col cols="12" sm="6" md="2">
@@ -1824,7 +1865,38 @@ const isGrading = ref(false)
 const gradingProgress = ref(0)
 const gradingStatus = ref('')
 const result = ref(null)
+const selectedPageIndex = ref(0)
 const annotatedUrl = ref(null)
+
+function selectPage(idx) {
+  selectedPageIndex.value = idx
+  if (!result.value || !result.value.pages || !result.value.pages[idx]) return
+  const pg = result.value.pages[idx]
+  if (pg.annotated_image) {
+    annotatedUrl.value = 'data:image/png;base64,' + pg.annotated_image
+  }
+  result.value.score = pg.score
+  result.value.max_score = pg.max_score
+  result.value.score_percent = pg.score_percent
+  result.value.total_correct = pg.total_correct
+  result.value.total_wrong = pg.total_wrong
+  result.value.total_answered = pg.total_answered
+  result.value.total_empty = pg.total_empty
+  result.value.student_name = pg.student_name
+  result.value.seat_number = pg.seat_number
+  result.value.student_info = pg.student_info || {}
+  result.value.result_id = pg.result_id
+  if (pg.questions && Array.isArray(pg.questions)) {
+    result.value.questions = pg.questions.map(q => ({
+      ...q,
+      q: q.question_id ?? q.q,
+      marked: q.marked_choice ?? q.marked,
+      correct: q.correct_choice ?? q.correct,
+      mode: q.mode || q.bubble_state || 'empty',
+    }))
+  }
+}
+
 const activeFilter = ref('all')
 const answerKey = ref({})
 const isZoomed = ref(false)
@@ -2716,6 +2788,7 @@ function resetWorkflow() {
   uploadedFile.value = null
   previewUrl.value = null
   result.value = null
+  selectedPageIndex.value = 0
   annotatedUrl.value = null
   gradingProgress.value = 0
   interactiveGradeMode.value = false

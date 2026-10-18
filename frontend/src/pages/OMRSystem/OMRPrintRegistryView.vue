@@ -563,17 +563,23 @@
           <!-- Official Question Paper Component Frame -->
           <div ref="questionPaperRef" class="overflow-auto bg-grey-lighten-4 pa-4 rounded-2xl border d-flex justify-center">
             <YemeniOfficialQuestionPaper
-              :exam-title="customStageTitle || selectedExam?.title || 'اختبار الشهادة الثانوية العامة'"
-              :exam-subject="selectedExam?.subject_name || 'الرياضيات'"
-              :stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || 'اختبار الشهادة الثانوية العامة (المراكز الفرعية - علمي)'))"
-              :exam-year="customExamYear || selectedExam?.year_name || '1445هـ - 2024-2023م'"
-              :governorate="customGovernorate || selectedExam?.governorate || 'أمانة العاصمة'"
-              :directorate="customDirectorate || selectedExam?.directorate || 'السبعين'"
-              :center-name="customCenterName || activeSheetStudent?.school_name || selectedExam?.directorate || 'المركز الاختباري الرئيسي'"
-              :center-code="activeSheetStudent?.school_id || selectedExam?.id || '3026'"
-              :student-name="sheetGenerationMode === 'student' ? activeSheetStudent?.student_name : ''"
-              :seat-number="sheetGenerationMode === 'student' ? activeSheetStudent?.seat_number : ''"
-              :secret-number="sheetGenerationMode === 'student' ? activeSheetStudent?.secret_number : '60'"
+              :exam-title="customStageTitle || selectedExam?.title || ''"
+              :exam-subject="selectedExam?.subject_name || ''"
+              :stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || ''))"
+              :exam-year="customExamYear || selectedExam?.year_name || ''"
+              :governorate="customGovernorate || selectedExam?.governorate || ''"
+              :directorate="customDirectorate || selectedExam?.directorate || ''"
+              :center-name="customCenterName || activeSheetStudent?.school_name || ''"
+              :center-code="activeSheetStudent?.school_id || selectedExam?.id || ''"
+              :exam-time="selectedExam?.time_allowed || selectedExam?.exam_time || ''"
+              :day-name="selectedExam?.day_name || ''"
+              :exam-date="selectedExam?.exam_date || ''"
+              :envelope-no="selectedExam?.envelope_no || ''"
+              :student-name="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_name || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.student_name || ''))"
+              :seat-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.seat_number || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.seat_number || ''))"
+              :secret-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.secret_number || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.secret_number || ''))"
+              :student-photo="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_photo || activeSheetStudent?.photo || '') : ''"
+              :is-blank-mode="sheetGenerationMode === 'blank'"
               :model-code="selectedQuestionsModelCode"
               :questions="selectedQuestionsVersionObj?.questions || []"
               :default-layout="selectedQuestionPaperLayout"
@@ -611,17 +617,23 @@
           <div class="d-flex flex-column align-center gap-6 overflow-auto bg-grey-lighten-4 pa-4 rounded-2xl border">
             <div class="text-caption font-weight-black text-primary">1. كراسة الأسئلة الرسمية:</div>
             <YemeniOfficialQuestionPaper
-              :exam-title="customStageTitle || selectedExam?.title || 'اختبار الشهادة الثانوية العامة'"
-              :exam-subject="selectedExam?.subject_name || 'الرياضيات'"
-              :stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || 'اختبار الشهادة الثانوية العامة (المراكز الفرعية - علمي)'))"
-              :exam-year="customExamYear || selectedExam?.year_name || '1445هـ - 2024-2023م'"
-              :governorate="customGovernorate || selectedExam?.governorate || 'أمانة العاصمة'"
-              :directorate="customDirectorate || selectedExam?.directorate || 'السبعين'"
-              :center-name="customCenterName || activeSheetStudent?.school_name || selectedExam?.directorate || 'المركز الاختباري الرئيسي'"
-              :center-code="activeSheetStudent?.school_id || selectedExam?.id || '3026'"
-              :student-name="sheetGenerationMode === 'student' ? activeSheetStudent?.student_name : ''"
-              :seat-number="sheetGenerationMode === 'student' ? activeSheetStudent?.seat_number : ''"
-              :secret-number="sheetGenerationMode === 'student' ? activeSheetStudent?.secret_number : '60'"
+              :exam-title="customStageTitle || selectedExam?.title || ''"
+              :exam-subject="selectedExam?.subject_name || ''"
+              :stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || ''))"
+              :exam-year="customExamYear || selectedExam?.year_name || ''"
+              :governorate="customGovernorate || selectedExam?.governorate || ''"
+              :directorate="customDirectorate || selectedExam?.directorate || ''"
+              :center-name="customCenterName || activeSheetStudent?.school_name || ''"
+              :center-code="activeSheetStudent?.school_id || selectedExam?.id || ''"
+              :exam-time="selectedExam?.time_allowed || selectedExam?.exam_time || ''"
+              :day-name="selectedExam?.day_name || ''"
+              :exam-date="selectedExam?.exam_date || ''"
+              :envelope-no="selectedExam?.envelope_no || ''"
+              :student-name="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_name || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.student_name || ''))"
+              :seat-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.seat_number || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.seat_number || ''))"
+              :secret-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.secret_number || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.secret_number || ''))"
+              :student-photo="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_photo || activeSheetStudent?.photo || '') : ''"
+              :is-blank-mode="sheetGenerationMode === 'blank'"
               :model-code="activeSheetModelCode"
               :questions="selectedQuestionsVersionObj?.questions || []"
               :default-layout="'a4'"
@@ -1075,7 +1087,11 @@ watch(selectedDocType, (newDoc) => {
 const loadingExams = ref(false)
 const examsList = ref([])
 const selectedExamId = ref(null)
-const selectedExam = computed(() => examsList.value.find(e => e.id === selectedExamId.value) || null)
+const selectedExam = computed(() => {
+  const base = examsList.value.find(e => e.id === selectedExamId.value) || {}
+  const detailed = examDetails.value?.exam || {}
+  return (base.id || detailed.id) ? { ...base, ...detailed } : null
+})
 
 // Exam Details State
 const loadingExamDetails = ref(false)

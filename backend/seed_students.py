@@ -281,7 +281,7 @@ def seed_students():
                 new_regs = []
                 for idx, st in enumerate(matching_students):
                     v = versions[idx % len(versions)]
-                    seat = f"{ex.uniqueCode}-{str(idx + 1).zfill(4)}"
+                    seat = str(st.academic_number) if st.academic_number else f"{ex.uniqueCode}-{str(idx + 1).zfill(4)}"
                     secr = f"S{uuid.uuid4().hex[:6].upper()}"
                     new_regs.append(StudentExamRegistration(
                         student=st.user,

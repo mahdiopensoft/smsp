@@ -1,4 +1,4 @@
-/**
+  /**
  * API endpoints — organized by module for OMR and Exam Management.
  */
 
@@ -125,4 +125,6 @@ export const gradebookAPI = {
   getRoster: (examId, params) => api.get(`/api/omr/gradebook/${examId}/`, { params }),
   dispatchToControl: (examId, data) => api.post(`/api/omr/gradebook/${examId}/dispatch-to-control/`, data),
   rollbackDispatch: (examId, data) => api.post(`/api/omr/gradebook/${examId}/rollback-dispatch/`, data),
+  getPsychometrics: (examId) => api.get(`/api/omr/gradebook/${examId}/psychometrics/`),
+  exportControlSheetUrl: (examId) => `/api/omr/gradebook/${examId}/export-control-sheet/`,
 }

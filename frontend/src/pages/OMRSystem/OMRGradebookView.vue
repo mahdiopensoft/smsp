@@ -371,6 +371,20 @@
             إلغاء الترحيل للتدقيق
           </v-btn>
 
+          <!-- Psychometrics Button -->
+          <v-btn
+            color="purple-darken-1"
+            variant="tonal"
+            rounded="lg"
+            class="font-weight-bold px-3"
+            prepend-icon="mdi-chart-bell-curve-cumulative"
+            :loading="psychometricsLoading"
+            :disabled="!selectedExamId"
+            @click="openPsychometricsDialog"
+          >
+            التحليل السيكومتري (Item Analysis)
+          </v-btn>
+
           <!-- Export Excel / CSV -->
           <v-btn
             color="primary"
@@ -380,7 +394,7 @@
             prepend-icon="mdi-file-excel-outline"
             @click="exportToExcel"
           >
-            تصدير الكشف (Excel)
+            تصدير كشف الكنترول (Excel/CSV)
           </v-btn>
 
           <!-- Print Official Roster -->
@@ -788,6 +802,135 @@
       </v-card>
     </v-dialog>
 
+    <!-- ── Psychometrics & Item Analysis Modal ───────────────────────── -->
+    <v-dialog v-model="psychometricsDialog" max-width="1100" scrollable>
+      <v-card class="rounded-2xl overflow-hidden" v-if="psychometricsData">
+        <v-card-title class="d-flex align-center justify-space-between bg-surface-variant px-6 py-4 border-b">
+          <div class="d-flex align-center gap-3">
+            <v-avatar color="purple" variant="tonal" size="44" rounded="lg">
+              <v-icon size="26" color="purple-darken-2">mdi-chart-bell-curve-cumulative</v-icon>
+            </v-avatar>
+            <div>
+              <h3 class="text-h6 font-weight-black mb-0">التحليل السيكومتري وتحليل الفقرات (Item Analysis)</h3>
+              <p class="text-caption text-medium-emphasis mb-0">
+                قياس ثبات الاختبار (Cronbach's Alpha) ومؤشرات الصعوبة والتمييز وكفاءة المشتتات
+              </p>
+            </div>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" @click="psychometricsDialog = false" />
+        </v-card-title>
+
+        <v-card-text class="pa-6" style="max-height: 75vh;">
+          <!-- ملخص ثبات الاختبار والعينة -->
+          <v-row class="mb-4">
+            <v-col cols="12" sm="4">
+              <v-card variant="tonal" color="purple" class="pa-4 rounded-xl text-center border">
+                <div class="text-caption font-weight-bold text-medium-emphasis mb-1">معامل ثبات ألفا كرونباخ (α)</div>
+                <div class="text-h4 font-weight-black text-purple-darken-2 font-mono">
+                  {{ psychometricsData.cronbach_alpha != null ? psychometricsData.cronbach_alpha : '—' }}
+                </div>
+                <v-chip size="x-small" color="purple" variant="flat" class="font-weight-black mt-2">
+                  {{ psychometricsData.cronbach_quality || 'يتطلب مزيداً من البيانات' }}
+                </v-chip>
+              </v-card>
+            </v-col>
+
+            <v-col cols="12" sm="4">
+              <v-card variant="tonal" color="primary" class="pa-4 rounded-xl text-center border">
+                <div class="text-caption font-weight-bold text-medium-emphasis mb-1">حجم العينة المصححة ضوئياً</div>
+                <div class="text-h4 font-weight-black text-primary font-mono">
+                  {{ psychometricsData.sample_size || 0 }}
+                </div>
+                <div class="text-caption text-medium-emphasis mt-2">ورقة إجابة مكتملة</div>
+              </v-card>
+            </v-col>
+
+            <v-col cols="12" sm="4">
+              <v-card variant="tonal" color="info" class="pa-4 rounded-xl text-center border">
+                <div class="text-caption font-weight-bold text-medium-emphasis mb-1">إجمالي الفقرات المحللة</div>
+                <div class="text-h4 font-weight-black text-info font-mono">
+                  {{ psychometricsData.items_count || 0 }}
+                </div>
+                <div class="text-caption text-medium-emphasis mt-2">فقرة امتحانية</div>
+              </v-card>
+            </v-col>
+          </v-row>
+
+          <v-alert
+            v-if="psychometricsData.sample_size < 2"
+            type="info"
+            variant="tonal"
+            class="rounded-xl font-weight-bold mb-4"
+          >
+            {{ psychometricsData.message || 'يتطلب التحليل السيكومتري تصحيح ورقتي إجابة على الأقل لاحتساب التباين ومعاملات الصعوبة.' }}
+          </v-alert>
+
+          <!-- جدول تحليل الفقرات التفصيلي -->
+          <div v-if="psychometricsData.items && psychometricsData.items.length > 0">
+            <h4 class="text-subtitle-1 font-weight-black mb-3">مؤشرات صعوبة وتمييز الفقرات الامتحانية:</h4>
+            <v-table class="border rounded-xl" density="comfortable">
+              <thead>
+                <tr class="bg-surface-variant font-weight-bold">
+                  <th class="text-center font-weight-bold">رقم الفقرة</th>
+                  <th class="text-center font-weight-bold">المفتاح</th>
+                  <th class="text-center font-weight-bold">معامل الصعوبة (P)</th>
+                  <th class="text-center font-weight-bold">معامل التمييز (D)</th>
+                  <th class="text-center font-weight-bold">التقييم المعياري</th>
+                  <th class="text-center font-weight-bold">توزيع الإجابات (المشتتات)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in psychometricsData.items" :key="item.question_number">
+                  <td class="text-center font-mono font-weight-black">{{ item.question_number }}</td>
+                  <td class="text-center">
+                    <v-chip size="x-small" color="primary" variant="flat" class="font-weight-black">
+                      {{ item.correct_choice }}
+                    </v-chip>
+                  </td>
+                  <td class="text-center font-mono font-weight-bold">
+                    {{ (item.difficulty_index * 100).toFixed(1) }}%
+                  </td>
+                  <td class="text-center font-mono font-weight-bold">
+                    {{ item.discrimination_index }}
+                  </td>
+                  <td class="text-center">
+                    <v-chip size="x-small" :color="item.quality_color" variant="tonal" class="font-weight-black">
+                      {{ item.quality_badge }}
+                    </v-chip>
+                  </td>
+                  <td class="text-center">
+                    <div class="d-flex align-center justify-center gap-1 flex-wrap">
+                      <span
+                        v-for="(count, opt) in item.choices_distribution"
+                        :key="opt"
+                        class="text-caption font-mono px-1 rounded"
+                        :class="opt === item.correct_choice ? 'bg-success text-white font-weight-bold' : (count > 0 ? 'bg-grey-lighten-3' : 'text-disabled')"
+                      >
+                        {{ opt }}: {{ count }}
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </div>
+        </v-card-text>
+
+        <v-card-actions class="px-6 py-4 bg-surface-variant border-t">
+          <v-spacer />
+          <v-btn
+            color="primary"
+            variant="flat"
+            rounded="lg"
+            class="font-weight-bold px-6"
+            @click="psychometricsDialog = false"
+          >
+            إغلاق
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- ── Print Layout View (Shown only on print) ───────────────────── -->
     <div class="d-none d-print-block print-roster-container">
       <div class="print-header text-center mb-6">
@@ -980,6 +1123,9 @@ export default {
       // Dialogs
       dispatchDialog: false,
       rollbackDialog: false,
+      psychometricsDialog: false,
+      psychometricsLoading: false,
+      psychometricsData: null,
 
       snackbar: {
         show: false,
@@ -1597,18 +1743,30 @@ export default {
           ])
         })
 
-        const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + rows.map(e => e.join(',')).join('\n')
-        const encodedUri = encodeURI(csvContent)
-        const link = document.createElement('a')
-        link.setAttribute('href', encodedUri)
-        link.setAttribute('download', `كشف_درجات_الكنترول_${this.selectedExamObj?.title || 'exam'}.csv`)
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        this.notify('تم تصدير كشف الدرجات بنجاح', 'success')
+        const downloadUrl = gradebookAPI.exportControlSheetUrl(this.selectedExamId)
+        window.open(downloadUrl, '_blank')
+        this.notify('تم تصدير كشف الكنترول الرسمي المعتمد بنجاح', 'success')
       } catch (e) {
         console.error('Error exporting gradebook:', e)
         this.notify('حدث خطأ أثناء تصدير الكشف', 'error')
+      }
+    },
+
+    async openPsychometricsDialog() {
+      if (!this.selectedExamId) {
+        this.notify('يرجى اختيار اختبار أولاً', 'warning')
+        return
+      }
+      this.psychometricsLoading = true
+      try {
+        const res = await gradebookAPI.getPsychometrics(this.selectedExamId)
+        this.psychometricsData = res.data
+        this.psychometricsDialog = true
+      } catch (err) {
+        console.error('Failed to load psychometrics:', err)
+        this.notify('تعذر استخراج التحليل السيكومتري للاختبار', 'error')
+      } finally {
+        this.psychometricsLoading = false
       }
     },
 

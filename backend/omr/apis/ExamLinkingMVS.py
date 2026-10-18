@@ -71,9 +71,11 @@ class ExamLinkingMVS(ViewSet):
                 "institution_type": exam.institution_type,
                 "institution_type_display": exam.get_institution_type_display() if hasattr(exam, 'get_institution_type_display') else ("معاهد وتدريب مهني" if exam.institution_type == 'institute' else ("جامعي" if exam.institution_type == 'university' else "مدرسي")),
                 "subject_id": exam.subject_id,
-                "subject_name": getattr(exam.subject, 'name_ar', str(exam.subject)) if exam.subject else "غير محدد",
+                "subject_name": getattr(exam.subject, 'name_ar', str(exam.subject)) if exam.subject else None,
                 "year_id": exam.year_id,
-                "year_name": exam.year.gregorian_year if (exam.year and hasattr(exam.year, 'gregorian_year')) else (str(exam.year) if exam.year else "العام الحالي"),
+                "year_name": (exam.year.hijri_year + "هـ - " + exam.year.gregorian_year + "م") if (exam.year and getattr(exam.year, 'hijri_year', None) and getattr(exam.year, 'gregorian_year', None)) else (getattr(exam.year, 'gregorian_year', None) or (str(exam.year) if exam.year else None)),
+                "governorate": exam.governorate.name_ar if exam.governorate else None,
+                "directorate": exam.directorate.name_ar if exam.directorate else None,
                 "created_at": exam.created_at.strftime("%Y-%m-%d %H:%M") if exam.created_at else "",
                 "versions_count": len(versions_data),
                 "versions": versions_data,
@@ -99,9 +101,68 @@ class ExamLinkingMVS(ViewSet):
         questions, options, and model answer keys.
         """
         try:
-            exam = Exam.objects.select_related('subject', 'year').get(pk=pk, is_deleted=False)
+            exam = Exam.objects.select_related(
+                'subject', 'year', 'governorate', 'directorate',
+                'class_track__level', 'class_track__track', 'examSchedule'
+            ).get(pk=pk, is_deleted=False)
         except Exam.DoesNotExist:
             return Response({"success": False, "message": "الاختبار غير موجود"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Stage / Track representation
+        stage_name = None
+        if exam.class_track:
+            parts = []
+            if hasattr(exam.class_track, 'level') and exam.class_track.level and exam.class_track.level.name_ar:
+                parts.append(exam.class_track.level.name_ar)
+            if hasattr(exam.class_track, 'track') and exam.class_track.track and exam.class_track.track.name_ar:
+                parts.append(f"({exam.class_track.track.name_ar})")
+            if parts:
+                stage_name = " ".join(parts)
+
+        # Academic Year representation
+        year_name = None
+        if exam.year:
+            parts = []
+            if getattr(exam.year, 'hijri_year', None):
+                parts.append(f"{exam.year.hijri_year}هـ")
+            if getattr(exam.year, 'gregorian_year', None):
+                parts.append(f"{exam.year.gregorian_year}م")
+            year_name = " - ".join(parts) if parts else str(exam.year)
+
+        # Schedule / Time representation
+        exam_date = None
+        day_name = None
+        time_allowed = None
+        exam_time = None
+        if exam.examSchedule:
+            if exam.examSchedule.date:
+                exam_date = exam.examSchedule.date.strftime("%Y/%m/%d")
+                arabic_days = ['الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد']
+                try:
+                    day_name = arabic_days[exam.examSchedule.date.weekday()]
+                except Exception:
+                    day_name = None
+            if exam.examSchedule.duration:
+                dur = exam.examSchedule.duration
+                hours = dur // 60
+                mins = dur % 60
+                time_parts = []
+                if hours > 0:
+                    if hours == 1:
+                        time_parts.append("ساعة واحدة")
+                    elif hours == 2:
+                        time_parts.append("ساعتان")
+                    elif 3 <= hours <= 10:
+                        time_parts.append(f"{hours} ساعات")
+                    else:
+                        time_parts.append(f"{hours} ساعة")
+                if mins > 0:
+                    time_parts.append(f"{mins} دقيقة")
+                time_allowed = " و".join(time_parts) if time_parts else f"{dur} دقيقة"
+                exam_time = time_allowed
+
+        gov_name = exam.governorate.name_ar if exam.governorate else None
+        dir_name = exam.directorate.name_ar if exam.directorate else None
 
         versions = ExamVersion.objects.filter(
             exam=exam,
@@ -142,9 +203,15 @@ class ExamLinkingMVS(ViewSet):
                         "isTrue": opt.isTrue,
                     })
 
-                if not opts and q.isTrue is not None:
-                    correct_letter = 'A' if q.isTrue else 'B'
-                    correct_arabic = 'صواب' if q.isTrue else 'خطأ'
+                is_tf = (q.questionType in ['True/False', 'true_false', 'صح وخطأ']) or (q.isTrue is not None)
+                if is_tf:
+                    if not options_data:
+                        options_data = [
+                            {"id": f"tf_{q.id}_1", "letter": "A", "arabic_letter": "صح", "text": "صح / صواب", "isTrue": q.isTrue is True},
+                            {"id": f"tf_{q.id}_2", "letter": "B", "arabic_letter": "خطأ", "text": "خطأ", "isTrue": q.isTrue is False},
+                        ]
+                    correct_letter = 'A' if q.isTrue is True else ('B' if q.isTrue is False else correct_letter)
+                    correct_arabic = 'صح' if q.isTrue is True else ('خطأ' if q.isTrue is False else correct_arabic)
 
                 answer_key[str(qo.orderIndex)] = correct_letter
 
@@ -152,7 +219,8 @@ class ExamLinkingMVS(ViewSet):
                     "id": q.id,
                     "orderIndex": qo.orderIndex,
                     "content": q.content,
-                    "questionType": q.questionType,
+                    "questionType": 'true_false' if is_tf else q.questionType,
+                    "choicesCount": len(options_data),
                     "bloomLevel": q.bloomLevel,
                     "assignedMark": q.defaultMark or 1.0,
                     "correctLetter": correct_letter,
@@ -206,20 +274,29 @@ class ExamLinkingMVS(ViewSet):
             elif reg.student:
                 s_name = reg.student.get_full_name() or reg.student.username
             else:
-                s_name = f"طالب ({reg.seatNumber})"
-            inst_name = reg.student_profile.organization.name_ar if (reg.student_profile and reg.student_profile.organization) else ""
-            gov_name = exam.governorate.name_ar if exam.governorate else ""
-            dir_name = reg.student_profile.directorate.name_ar if (reg.student_profile and reg.student_profile.directorate) else (exam.directorate.name_ar if exam.directorate else "")
+                s_name = None
+            inst_name = reg.student_profile.organization.name_ar if (reg.student_profile and reg.student_profile.organization) else None
+            inst_id = reg.student_profile.organization.id if (reg.student_profile and reg.student_profile.organization) else None
+            st_dir = reg.student_profile.directorate.name_ar if (reg.student_profile and reg.student_profile.directorate) else dir_name
+            st_photo = None
+            if reg.student_profile and hasattr(reg.student_profile, 'photo') and reg.student_profile.photo:
+                try:
+                    st_photo = reg.student_profile.photo.url
+                except Exception:
+                    st_photo = None
+
             v_code = reg.examVersion.versionCode
             students_list.append({
                 "id": reg.id,
                 "student_name": s_name,
                 "seat_number": reg.seatNumber,
-                "secret_number": reg.secretNumber or "",
+                "secret_number": reg.secretNumber or None,
+                "student_photo": st_photo,
                 "model_code": v_code,
                 "school_name": inst_name,
+                "school_id": inst_id,
                 "governorate": gov_name,
-                "directorate": dir_name,
+                "directorate": st_dir,
                 "is_present": reg.isPresent,
                 "is_printed": reg.is_printed,
                 "printed_at": reg.printed_at.strftime("%Y-%m-%d %H:%M:%S") if reg.printed_at else None,
@@ -236,10 +313,16 @@ class ExamLinkingMVS(ViewSet):
                 "uniqueCode": exam.uniqueCode,
                 "institution_type": exam.institution_type,
                 "institution_type_display": exam.get_institution_type_display() if hasattr(exam, 'get_institution_type_display') else ("معاهد وتدريب مهني" if exam.institution_type == 'institute' else ("جامعي" if exam.institution_type == 'university' else "مدرسي")),
-                "subject_name": getattr(exam.subject, 'name_ar', str(exam.subject)) if exam.subject else "",
-                "year_name": exam.year.gregorian_year if (exam.year and hasattr(exam.year, 'gregorian_year')) else (str(exam.year) if exam.year else ""),
-                "governorate": exam.governorate.name_ar if exam.governorate else "أمانة العاصمة",
-                "directorate": exam.directorate.name_ar if exam.directorate else "السبعين",
+                "subject_name": getattr(exam.subject, 'name_ar', str(exam.subject)) if exam.subject else None,
+                "stage_name": stage_name,
+                "year_name": year_name,
+                "governorate": gov_name,
+                "directorate": dir_name,
+                "exam_date": exam_date,
+                "day_name": day_name,
+                "time_allowed": time_allowed,
+                "exam_time": exam_time,
+                "envelope_no": getattr(exam, 'envelope_no', None),
                 "created_at": exam.created_at.strftime("%Y-%m-%d %H:%M") if exam.created_at else "",
             },
             "versions": versions_details,
@@ -346,18 +429,28 @@ class ExamLinkingMVS(ViewSet):
             else:
                 s_name = f"طالب ({reg.seatNumber})"
 
-            inst_name = profile.organization.name_ar if (profile and profile.organization) else ""
-            dir_name = profile.directorate.name_ar if (profile and profile.directorate) else (exam.directorate.name_ar if exam.directorate else "")
+            inst_name = profile.organization.name_ar if (profile and profile.organization) else None
+            inst_id = profile.organization.id if (profile and profile.organization) else None
+            dir_name = profile.directorate.name_ar if (profile and profile.directorate) else (exam.directorate.name_ar if exam.directorate else None)
             v_code = reg.examVersion.versionCode if reg.examVersion else "-"
+
+            st_photo = None
+            if profile and hasattr(profile, 'photo') and profile.photo:
+                try:
+                    st_photo = profile.photo.url
+                except Exception:
+                    st_photo = None
 
             students_data.append({
                 "id": reg.id,
                 "student_name": s_name,
                 "seat_number": reg.seatNumber,
-                "secret_number": reg.secretNumber or "",
+                "secret_number": reg.secretNumber or None,
+                "student_photo": st_photo,
                 "model_code": v_code,
                 "school_name": inst_name,
-                "governorate": gov_name,
+                "school_id": inst_id,
+                "governorate": gov_name or None,
                 "directorate": dir_name,
                 "is_present": reg.isPresent,
                 "is_printed": reg.is_printed,
@@ -402,30 +495,40 @@ class ExamLinkingMVS(ViewSet):
         ).prefetch_related('question_orders__question__options')
 
         result = {}
+        marks_result = {}
         for v in versions:
             v_key = {}
+            v_marks = {}
             for qo in v.question_orders.filter(is_deleted=False).order_by('orderIndex'):
-                opts = list(qo.question.options.filter(is_deleted=False))
+                q = qo.question
+                opts = list(q.options.filter(is_deleted=False))
                 ans = 'A'
                 for idx, opt in enumerate(opts):
                     if opt.isTrue:
                         ans = chr(65 + idx)
                         break
-                v_key[str(qo.orderIndex)] = ans
+                if (q.questionType in ['True/False', 'true_false', 'صح وخطأ']) or (q.isTrue is not None):
+                    ans = 'A' if q.isTrue is True else ('B' if q.isTrue is False else ans)
+                q_id_str = str(qo.orderIndex)
+                v_key[q_id_str] = ans
+                v_marks[q_id_str] = float(q.defaultMark or 1.0)
+
             result[v.versionCode] = v_key
+            marks_result[v.versionCode] = v_marks
 
         return Response({
             "success": True,
             "exam_id": exam.id,
             "exam_title": exam.title,
-            "keys_by_version": result
+            "keys_by_version": result,
+            "marks_by_version": marks_result,
         })
 
     @action(detail=True, methods=['post'], url_path='seed-students')
     def seed_sample_students(self, request, pk=None):
         """
-        Generate realistic sample registered students for this exam
-        if none exist or when requested for testing / exam preparation.
+        تسجيل وربط الطلاب الفعليين المقيدين في النظام التعليمي بهذا الاختبار
+        باستخدام أرقام القيد والأرقام الأكاديمية الرسمية الحقيقية (بدون أرقام جلوس وهمية).
         """
         try:
             exam = Exam.objects.get(pk=pk, is_deleted=False)
@@ -441,22 +544,31 @@ class ExamLinkingMVS(ViewSet):
         from django.contrib.auth import get_user_model
         User = get_user_model()
 
-        # جلب الطلاب الفعليين المسجلين في النظام من قاعدة البيانات
-        students_qs = Student.objects.filter(is_active=True).select_related('organization', 'user', 'directorate')
+        # 1. تصفية الطلاب الفعليين المنتظمين المرتبطين بمستوى ومؤسسة هذا الاختبار
+        students_qs = Student.objects.filter(is_active=True).select_related('organization', 'user', 'directorate', 'class_track')
+
+        # فلترة حسب نوع المؤسسة
         if exam.institution_type:
             org_students = students_qs.filter(organization__institution_type=exam.institution_type)
             if org_students.exists():
                 students_qs = org_students
 
-        db_students = list(students_qs[:50])
+        # فلترة دقيقة حسب مسار وصف الاختبار إن وجد
+        if exam.class_track_id:
+            track_students = students_qs.filter(class_track_id=exam.class_track_id)
+            if track_students.exists():
+                students_qs = track_students
+
+        db_students = list(students_qs[:100])
         if not db_students:
             return Response({
                 "success": False,
-                "message": "لا يوجد طلاب مسجلين في قاعدة بيانات النظام. يرجى إضافة الطلاب من شاشة شؤون الطلاب أولاً."
+                "message": "لا يوجد طلاب مقيدين في النظام لهذه المرحلة أو المسار. يرجى تسجيل الطلاب في شؤون الطلاب أولاً."
             }, status=status.HTTP_400_BAD_REQUEST)
 
         created_count = 0
-        base_seat = 418485
+        updated_count = 0
+
         for idx, student_obj in enumerate(db_students):
             version = versions[idx % len(versions)]
             user = student_obj.user
@@ -472,8 +584,10 @@ class ExamLinkingMVS(ViewSet):
                 student_obj.user = user
                 student_obj.save(update_fields=['user'])
 
-            seat_no = str(base_seat + idx)
-            secret_no = str(100 + idx + 1)
+            # استخدام الرقم الأكاديمي الحقيقي كرقم جلوس رسمي معتمد
+            seat_no = str(student_obj.academic_number)
+            secret_no = str(1000 + idx + 1)
+
             reg, created = StudentExamRegistration.objects.get_or_create(
                 student=user,
                 examVersion=version,
@@ -486,11 +600,19 @@ class ExamLinkingMVS(ViewSet):
             )
             if created:
                 created_count += 1
+            else:
+                # تصحيح أي رقم جلوس قديم غير حقيقي إلى الرقم الأكاديمي الرسمي
+                if reg.seatNumber != seat_no or reg.student_profile != student_obj:
+                    reg.student_profile = student_obj
+                    reg.seatNumber = seat_no
+                    reg.save(update_fields=['student_profile', 'seatNumber'])
+                    updated_count += 1
 
         return Response({
             "success": True,
-            "message": f"تم تسجيل {created_count} طالباً فعلياً من قاعدة البيانات في الاختبار بنجاح",
+            "message": f"تم تسجيل ومطابقة {created_count + updated_count} طالباً فعلياً بالرقم الأكاديمي المعتمد بنجاح",
             "created_count": created_count,
+            "updated_count": updated_count,
         })
 
     @action(detail=True, methods=['post'], url_path='mark-printed')

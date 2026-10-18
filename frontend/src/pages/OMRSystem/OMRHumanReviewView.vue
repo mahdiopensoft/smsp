@@ -273,6 +273,16 @@
           <!-- Actions -->
           <template v-else-if="key === 'actions'">
             <div class="d-flex align-center justify-center gap-1">
+              <v-btn
+                size="small"
+                color="primary"
+                variant="tonal"
+                class="font-weight-bold px-2"
+                prepend-icon="mdi-file-find-outline"
+                @click="openReviewModal(item)"
+              >
+                تدقيق وتعديل
+              </v-btn>
               <custom-btn
                 v-if="item.status !== 'verified'"
                 type="ok"
@@ -292,6 +302,171 @@
         </template>
       </custom-data-table>
     </div>
+
+    <!-- ── نافذة المراجعة والتدقيق وتعديل الإجابات الملتبسة ── -->
+    <v-dialog v-model="reviewDialog" max-width="960" scrollable>
+      <v-card class="rounded-2xl overflow-hidden" v-if="activeReviewSheet">
+        <!-- Dialog Header -->
+        <v-card-title class="d-flex align-center justify-space-between bg-surface-variant px-6 py-4 border-b">
+          <div class="d-flex align-center gap-3">
+            <v-avatar color="primary" variant="tonal" size="42" rounded="lg">
+              <v-icon size="24">mdi-file-eye-outline</v-icon>
+            </v-avatar>
+            <div>
+              <div class="d-flex align-center gap-2">
+                <h3 class="text-h6 font-weight-black mb-0">{{ activeReviewSheet.student_name || 'ورقة بدون اسم' }}</h3>
+                <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold">
+                  {{ activeReviewSheet.seat_number ? 'جلوس: ' + activeReviewSheet.seat_number : 'ورقة #' + activeReviewSheet.id }}
+                </v-chip>
+                <v-chip size="x-small" color="secondary" variant="tonal" class="font-weight-bold">
+                  النموذج: {{ activeReviewSheet.version_code || 'A' }}
+                </v-chip>
+              </div>
+              <p class="text-caption text-medium-emphasis mb-0 mt-0.5">
+                {{ activeReviewSheet.exam_title }} • نسبة الثقة: {{ Math.round((activeReviewSheet.confidence || 0) * 100) }}%
+              </p>
+            </div>
+          </div>
+          <div class="d-flex align-center gap-2">
+            <v-chip color="success" variant="tonal" class="font-weight-black">
+              الدرجة الحالية: {{ activeReviewSheet.mcq_score != null ? activeReviewSheet.mcq_score : 0 }} / {{ activeReviewSheet.mcq_max_score || 0 }}
+            </v-chip>
+            <v-btn icon="mdi-close" variant="text" size="small" @click="reviewDialog = false" />
+          </div>
+        </v-card-title>
+
+        <v-card-text class="pa-6" style="max-height: 70vh;">
+          <!-- تنبيه الأسئلة الملتبسة -->
+          <v-alert
+            v-if="activeReviewSheet.ambiguous_count > 0"
+            type="warning"
+            variant="tonal"
+            density="compact"
+            class="mb-4 rounded-xl font-weight-bold"
+          >
+            توجد {{ activeReviewSheet.ambiguous_count }} إجابات ملتبسة أو غير مؤكدة تتطلب تدقيقاً بشرياً وتأكيد التظليل الصحيح.
+          </v-alert>
+
+          <!-- Sheet image preview if present -->
+          <div v-if="activeReviewSheet.sheet_image" class="mb-4 text-center">
+            <v-expansion-panels variant="accordion">
+              <v-expansion-panel title="معاينة الصورة الأصلية للورقة المصححة ضوئياً">
+                <v-expansion-panel-text>
+                  <img :src="activeReviewSheet.sheet_image" alt="Scanned OMR Sheet" style="max-width: 100%; border-radius: 8px; border: 1px solid #ddd;" />
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
+          </div>
+
+          <!-- قائمة الأسئلة والخيارات والتدقيق -->
+          <div class="text-subtitle-2 font-weight-black mb-3">
+            سجل أسئلة الورقة وتظليل الطالب المكتشف:
+          </div>
+
+          <v-row dense>
+            <v-col
+              v-for="q in (activeReviewSheet.questions || [])"
+              :key="q.id || q.question_number"
+              cols="12"
+              md="6"
+            >
+              <v-card
+                variant="outlined"
+                class="pa-3 rounded-xl mb-2"
+                :class="{
+                  'border-warning border-opacity-75 bg-amber-lighten-5': q.bubble_state === 'ambiguous' || (q.final_confidence && q.final_confidence < 0.7),
+                  'border-success border-opacity-50': q.is_correct,
+                  'border-error border-opacity-50': q.is_correct === false && q.marked_choice
+                }"
+              >
+                <div class="d-flex align-center justify-space-between mb-2">
+                  <div class="d-flex align-center gap-2">
+                    <v-avatar size="26" color="primary" variant="tonal" class="font-weight-black text-caption">
+                      {{ q.question_number }}
+                    </v-avatar>
+                    <span class="font-weight-bold text-body-2">السؤال {{ q.question_number }}</span>
+                    <v-chip
+                      size="x-small"
+                      :color="q.is_correct ? 'success' : (q.marked_choice ? 'error' : 'grey')"
+                      variant="flat"
+                      class="font-weight-bold"
+                    >
+                      {{ q.is_correct ? 'صحيح' : (q.marked_choice ? 'خطأ' : 'فارغ') }}
+                    </v-chip>
+                    <v-chip
+                      v-if="q.bubble_state === 'ambiguous'"
+                      size="x-small"
+                      color="warning"
+                      variant="flat"
+                      class="font-weight-black"
+                    >
+                      ملتبس
+                    </v-chip>
+                  </div>
+
+                  <div class="text-caption text-medium-emphasis">
+                    الإجابة الصحيحة: <strong class="text-primary">{{ q.correct_choice || '—' }}</strong>
+                  </div>
+                </div>
+
+                <!-- خيارات السؤال للتدقيق والتعديل اليدوي السريع -->
+                <div class="d-flex align-center justify-space-between gap-1 flex-wrap pt-1 border-t">
+                  <span class="text-caption text-medium-emphasis">تظليل الطالب:</span>
+                  <div class="d-flex align-center gap-1">
+                    <v-btn
+                      v-for="opt in getQuestionOptions(q)"
+                      :key="opt"
+                      size="x-small"
+                      :variant="q.marked_choice === opt ? 'flat' : 'outlined'"
+                      :color="q.marked_choice === opt ? (q.is_correct ? 'success' : 'primary') : 'grey-lighten-1'"
+                      class="font-weight-bold px-2 rounded-lg"
+                      :loading="overridingLoading === `${q.question_number}_${opt}`"
+                      @click="overrideQuestionChoice(q, opt)"
+                    >
+                      {{ opt }}
+                    </v-btn>
+                    <!-- خيار مسح التظليل -->
+                    <v-btn
+                      size="x-small"
+                      variant="text"
+                      color="error"
+                      class="px-1"
+                      title="مسح إجابة هذا السؤال"
+                      :loading="overridingLoading === `${q.question_number}_clear`"
+                      @click="overrideQuestionChoice(q, '')"
+                    >
+                      <v-icon size="14">mdi-eraser</v-icon>
+                    </v-btn>
+                  </div>
+                </div>
+              </v-card>
+            </v-col>
+          </v-row>
+        </v-card-text>
+
+        <v-card-actions class="px-6 py-4 bg-surface-variant border-t">
+          <v-btn
+            variant="text"
+            color="grey-darken-1"
+            class="font-weight-bold"
+            @click="reviewDialog = false"
+          >
+            إغلاق
+          </v-btn>
+          <v-spacer />
+          <v-btn
+            color="success"
+            rounded="lg"
+            class="font-weight-bold px-6"
+            prepend-icon="mdi-check-decagram"
+            :loading="approvingLoading"
+            @click="approveCurrentSheet"
+          >
+            اعتماد ومصادقة الورقة نهائياً
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -304,14 +479,21 @@ const loading = ref(false)
 const sheets = ref([])
 const stats = ref({ pendingReview: 0, ambiguousSheets: 0, verifiedSheets: 0, totalSheets: 0 })
 
-// Table headers (Clean & Professional, no color overload)
+// Dialog & Override state
+const reviewDialog = ref(false)
+const activeReviewSheet = ref(null)
+const overridingLoading = ref('')
+const approvingLoading = ref(false)
+
+// Table headers (Clean & Professional, with actions column)
 const headers = computed(() => [
   { title: "الطالب ورقم الجلوس / القيد", key: "student_info", sortable: true },
   { title: "الاختبار", key: "exam_title", sortable: true },
-  { title: "نسبة الثقة", key: "confidence", sortable: true, align: "center", width: "130px" },
-  { title: "الأسئلة الملتبسة", key: "ambiguous_count", sortable: true, align: "center", width: "140px" },
+  { title: "نسبة الثقة", key: "confidence", sortable: true, align: "center", width: "120px" },
+  { title: "الأسئلة الملتبسة", key: "ambiguous_count", sortable: true, align: "center", width: "130px" },
   { title: "الدرجة المقدرة", key: "score", sortable: false, align: "center", width: "130px" },
-  { title: "حالة المراجعة", key: "status", sortable: true, align: "center", width: "130px" },
+  { title: "حالة المراجعة", key: "status", sortable: true, align: "center", width: "120px" },
+  { title: "الإجراءات والتدقيق", key: "actions", sortable: false, align: "center", width: "180px" },
 ])
 
 // Bound items for custom-data-table
@@ -449,6 +631,67 @@ const approveSheet = async (sheet) => {
   } catch (err) {
     proxy.$alert('errorData', { message: 'فشل اعتماد الورقة' })
     console.error(err)
+  }
+}
+
+const openReviewModal = (sheet) => {
+  activeReviewSheet.value = { ...sheet }
+  reviewDialog.value = true
+}
+
+const getQuestionOptions = (q) => {
+  const correct = String(q.correct_choice || '').trim()
+  if (correct === 'صح' || correct === 'خطأ') {
+    return ['صح', 'خطأ']
+  }
+  return ['A', 'B', 'C', 'D']
+}
+
+const overrideQuestionChoice = async (q, choice) => {
+  if (!activeReviewSheet.value) return
+  const key = `${q.question_number}_${choice || 'clear'}`
+  overridingLoading.value = key
+  try {
+    const res = await humanReviewAPI.overrideQuestion(activeReviewSheet.value.id, {
+      question_number: q.question_number,
+      marked_choice: choice
+    })
+    q.marked_choice = choice
+    q.is_correct = (choice === q.correct_choice)
+    q.bubble_state = choice ? 'filled' : 'empty'
+
+    if (res.data?.mcq_score != null) {
+      activeReviewSheet.value.mcq_score = res.data.mcq_score
+    }
+    if (res.data?.correct_answers != null) {
+      activeReviewSheet.value.correct_answers = res.data.correct_answers
+    }
+    if (res.data?.ambiguous_count != null) {
+      activeReviewSheet.value.ambiguous_count = res.data.ambiguous_count
+    }
+
+    proxy.$alert('success', { message: `تم تحديث إجابة السؤال ${q.question_number} بنجاح` })
+  } catch (err) {
+    console.error('Error overriding question choice:', err)
+    proxy.$alert('errorData', { message: 'تعذر تعديل إجابة السؤال' })
+  } finally {
+    overridingLoading.value = ''
+  }
+}
+
+const approveCurrentSheet = async () => {
+  if (!activeReviewSheet.value) return
+  approvingLoading.value = true
+  try {
+    await humanReviewAPI.approveReview(activeReviewSheet.value.id)
+    proxy.$alert('success', { message: 'تم اعتماد ومصادقة الورقة بنجاح' })
+    reviewDialog.value = false
+    await fetchData()
+  } catch (err) {
+    proxy.$alert('errorData', { message: 'فشل اعتماد الورقة' })
+    console.error(err)
+  } finally {
+    approvingLoading.value = false
   }
 }
 

@@ -79,5 +79,16 @@ class Submission(SoftDeleteModel):
         ]
 
     def __str__(self):
-        student_name = self.registration.student.name if self.registration and hasattr(self.registration, 'student') and self.registration.student else "Unknown"
-        return f"Submission: {student_name} — {self.exam.title} [{self.status}]"
+        student_name = "Unknown"
+        try:
+            if self.registration:
+                if self.registration.student_profile and self.registration.student_profile.name_ar:
+                    student_name = self.registration.student_profile.name_ar
+                elif self.registration.student:
+                    student_name = getattr(self.registration.student, 'first_name', None) or getattr(self.registration.student, 'username', 'Unknown')
+            elif self.layout_result and self.layout_result.get("student_name"):
+                student_name = self.layout_result.get("student_name")
+        except Exception:
+            pass
+        exam_title = getattr(self.exam, 'title', '') if self.exam else ''
+        return f"Submission: {student_name} — {exam_title} [{self.status}]"

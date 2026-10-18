@@ -678,6 +678,8 @@ export async function printOfficialQuestionPaper(
   const pageSize = isA3 ? 'A3 landscape' : 'A4 portrait'
   const isDocLtr = (cloned.getAttribute('dir') || '').toLowerCase() === 'ltr'
   const headStyles = `
+    @import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
     @page {
       size: ${pageSize};
       margin: 6mm 8mm !important;
@@ -692,18 +694,27 @@ export async function printOfficialQuestionPaper(
       padding: 0 !important;
       width: 100% !important;
       background: #ffffff !important;
-      font-family: 'Tajawal', 'Cairo', Tahoma, Arial, sans-serif !important;
+      font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Tahoma, Arial, sans-serif !important;
       color: #000;
       direction: ${isDocLtr ? 'ltr' : 'rtl'};
     }
-    .d-print-none, .action-bar, button, .v-btn {
+    .d-print-none, .action-bar, .developer-diagnostics-card, button, .v-btn {
       display: none !important;
+    }
+    .missing-field-val {
+      color: #000000 !important;
+      background: transparent !important;
+      border: 1px dashed #555555 !important;
+      font-size: 7.2pt !important;
+      padding: 0 2px !important;
+      display: inline-block !important;
     }
     .yemeni-official-question-paper {
       width: 100% !important;
       max-width: 100% !important;
       margin: 0 !important;
       padding: 0 !important;
+      font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Tahoma, Arial, sans-serif !important;
     }
     .a4-pages-wrapper {
       gap: 0 !important;
@@ -728,11 +739,21 @@ export async function printOfficialQuestionPaper(
       page-break-after: auto !important;
       break-after: auto !important;
     }
+    .sheet-column {
+      border: 1.5px solid #000000 !important;
+      padding: 4px 5px !important;
+      background-color: #ffffff !important;
+      box-sizing: border-box !important;
+    }
+    .page-content-wrapper {
+      flex-grow: 1 !important;
+      border: 1.5px solid #000000 !important;
+      padding: 4px 5px !important;
+      background-color: #ffffff !important;
+      box-sizing: border-box !important;
+    }
     .a4-page-footer {
-      font-size: 0.68rem !important;
-      border-top: 1px solid #000000 !important;
-      padding-top: 3px !important;
-      margin-top: 6px !important;
+      display: none !important;
     }
     .reading-passage-box {
       border: 1px solid #000000 !important;
@@ -757,10 +778,10 @@ export async function printOfficialQuestionPaper(
     }
     .official-header-box {
       width: 100% !important;
-      margin: 0 auto 4px auto !important;
+      margin: 0 auto 3px auto !important;
       border: 1.5px solid #000000 !important;
       background-color: #ffffff !important;
-      font-family: 'Arial', 'Simplified Arabic', Tahoma, sans-serif !important;
+      font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Arial, Tahoma, sans-serif !important;
       color: #000000 !important;
       box-sizing: border-box !important;
     }
@@ -783,8 +804,8 @@ export async function printOfficialQuestionPaper(
       overflow: hidden !important;
     }
     .student-photo-cell {
-      width: 17.5% !important;
-      padding: 2px !important;
+      width: 12.0% !important;
+      padding: 1px !important;
       vertical-align: middle !important;
       background-color: #ffffff !important;
     }
@@ -851,7 +872,7 @@ export async function printOfficialQuestionPaper(
       box-sizing: border-box !important;
     }
     .table-tf {
-      border: 1px solid #000 !important;
+      border: 1.5px solid #000 !important;
       font-size: 0.74rem !important;
       width: 100% !important;
       border-collapse: collapse !important;
@@ -860,12 +881,12 @@ export async function printOfficialQuestionPaper(
     }
     .table-tf td {
       border: 1px solid #000 !important;
-      padding: 1.5px 3px !important;
+      padding: 2px 4px !important;
       background-color: #ffffff !important;
       color: #000000 !important;
     }
     .table-mcq-continuous {
-      border: 1px solid #000 !important;
+      border: 1.5px solid #000 !important;
       border-collapse: collapse !important;
       table-layout: fixed !important;
       width: 100% !important;
@@ -875,12 +896,12 @@ export async function printOfficialQuestionPaper(
     }
     .table-mcq-continuous td {
       border: 1px solid #000 !important;
-      padding: 1px 2px !important;
+      padding: 2px 3px !important;
       background-color: #ffffff !important;
       color: #000000 !important;
     }
     .table-mcq-question {
-      border: 1px solid #000 !important;
+      border: 1.5px solid #000 !important;
       border-collapse: collapse !important;
       page-break-inside: avoid !important;
       break-inside: avoid !important;
@@ -891,46 +912,172 @@ export async function printOfficialQuestionPaper(
     }
     .table-mcq-question td {
       border: 1px solid #000 !important;
-      padding: 1px 2px !important;
+      padding: 2px 3px !important;
       background-color: #ffffff !important;
       color: #000000 !important;
+    }
+    .q-stem-row {
+      border-top: 1.5px solid #000000 !important;
     }
     .q-num-cell {
-      font-family: monospace, sans-serif !important;
-      font-weight: 900 !important;
-      font-size: 0.82rem !important;
+      font-family: Arial, 'Times New Roman', sans-serif !important;
+      font-weight: 700 !important;
+      font-size: 0.84rem !important;
       background: #ffffff !important;
       text-align: center !important;
+      vertical-align: middle !important;
+      padding: 2px 0 !important;
+      width: 26px !important;
+      color: #000000 !important;
+      border: 1px solid #000000 !important;
     }
-    .q-stem-cell {
-      font-size: 0.76rem !important;
-      line-height: 1.25 !important;
+    .q-index-cell {
+      font-family: Arial, 'Times New Roman', sans-serif !important;
       font-weight: 700 !important;
+      font-size: 0.84rem !important;
+      background: #ffffff !important;
+      text-align: center !important;
+      vertical-align: middle !important;
+      padding: 2px 0 !important;
+      width: 26px !important;
+      color: #000000 !important;
+      border: 1px solid #000000 !important;
+    }
+    .q-paren-cell {
+      background: #ffffff !important;
+      width: 32px !important;
+      white-space: nowrap !important;
+      word-break: keep-all !important;
+      text-align: center !important;
+      vertical-align: middle !important;
+      padding: 2px 0 !important;
+      overflow: hidden !important;
+      box-sizing: border-box !important;
+      border: 1px solid #000000 !important;
+    }
+    .paren-box {
+      display: inline-block !important;
+      direction: ltr !important;
+      unicode-bidi: isolate !important;
+      font-family: Arial, 'Times New Roman', sans-serif !important;
+      font-size: 0.88rem !important;
+      font-weight: 700 !important;
+      letter-spacing: 0 !important;
+      color: #000000 !important;
+      line-height: 1 !important;
+      margin: 0 auto !important;
+    }
+    .latin-term {
+      direction: ltr !important;
+      unicode-bidi: isolate !important;
+      display: inline-block !important;
+      white-space: nowrap !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif !important;
+      font-size: 0.92em !important;
+      font-weight: 700 !important;
+    }
+    .q-stem-cell,
+    .q-text-cell {
+      font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Tahoma, Arial, sans-serif !important;
+      font-size: 0.78rem !important;
+      line-height: 1.35 !important;
+      font-weight: 700 !important;
+      text-align: right !important;
+      direction: rtl !important;
+      unicode-bidi: isolate !important;
+      color: #000000 !important;
+      border: 1px solid #000000 !important;
+      padding: 2px 6px !important;
+    }
+    .q-stem-cell.text-left,
+    .q-text-cell.text-left {
+      text-align: left !important;
+      direction: ltr !important;
+    }
+    .q-stem-cell strong,
+    .q-stem-cell b,
+    .q-text-cell strong,
+    .q-text-cell b {
+      font-weight: 800 !important;
+      font-size: inherit !important;
+    }
+    .q-stem-cell p,
+    .q-text-cell p {
+      margin: 0 !important;
+      display: inline !important;
+      font-size: inherit !important;
     }
     .opt-num-cell {
-      font-family: monospace, sans-serif !important;
-      font-weight: 900 !important;
-      font-size: 0.74rem !important;
+      font-family: Arial, 'Times New Roman', sans-serif !important;
+      font-weight: 700 !important;
+      font-size: 0.78rem !important;
       background: #ffffff !important;
       text-align: center !important;
+      vertical-align: middle !important;
+      padding: 1px 0 !important;
+      width: 20px !important;
+      color: #000000 !important;
+      border: 1px solid #000000 !important;
     }
     .opt-text-cell {
-      font-size: 0.72rem !important;
+      font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Tahoma, Arial, sans-serif !important;
+      font-size: 0.76rem !important;
       font-weight: 700 !important;
       text-align: center !important;
-      white-space: nowrap !important;
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
+      padding: 2px 4px !important;
+      line-height: 1.25 !important;
+      vertical-align: middle !important;
+      white-space: normal !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+      color: #000000 !important;
+      background: #ffffff !important;
+      border: 1px solid #000000 !important;
+    }
+    .opt-text-inner {
+      display: block !important;
+      width: 100% !important;
+      font-size: inherit !important;
+      font-weight: inherit !important;
+      white-space: normal !important;
+      line-height: 1.25 !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+      text-align: center !important;
     }
     .instruction-banner {
-      font-size: 0.70rem !important;
-      font-weight: 800 !important;
-      border: 1px solid #000 !important;
+      font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Tahoma, Arial, sans-serif !important;
+      font-size: 0.76rem !important;
+      font-weight: 700 !important;
+      border: 1.5px solid #000 !important;
       border-bottom: 0 !important;
-      padding: 2.5px 4px !important;
+      padding: 2px 6px !important;
       background-color: #ffffff !important;
       color: #000000 !important;
-      line-height: 1.2 !important;
+      line-height: 1.25 !important;
+      text-align: right !important;
+    }
+    .exam-paper-end-banner {
+      font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Tahoma, Arial, sans-serif !important;
+      font-size: 0.78rem !important;
+      font-weight: 700 !important;
+      border: 1.5px solid #000 !important;
+      padding: 3px 6px !important;
+      background-color: #ffffff !important;
+      margin-top: 3px !important;
+      text-align: center !important;
+      color: #000000 !important;
+    }
+    .developer-diagnostics-card {
+      display: none !important;
+    }
+    .missing-field-val {
+      color: #000000 !important;
+      background: transparent !important;
+      border: 1px dashed #555555 !important;
+      font-size: 7.2pt !important;
+      padding: 0 2px !important;
+      display: inline-block !important;
     }
     .student-photo-frame {
       width: 100% !important;
@@ -1010,7 +1157,7 @@ export async function printOfficialQuestionPaper(
         <title>${options.title || 'ورقة_الأسئلة_الرسمية'}</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
         ${docStyles}
         <style>${headStyles}</style>
       </head>
@@ -1177,16 +1324,16 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
     if (!questions || questions.length === 0) return ''
     const rows = questions.map(q => `
       <tr class="tf-row">
-        <td class="q-index-cell text-center font-weight-black font-mono" style="width: 26px; border: 1px solid #000;">${q.orderIndex}</td>
-        <td class="q-paren-cell text-center font-mono font-weight-bold" dir="ltr" style="width: 38px; min-width: 38px; border: 1px solid #000; white-space: nowrap !important; word-break: keep-all !important; letter-spacing: 0;">(&nbsp;&nbsp;&nbsp;)</td>
-        <td class="q-text-cell pe-2 ps-2 py-1 font-weight-bold" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'right'};">${q.content}</td>
+        <td class="q-index-cell text-center font-weight-black" style="width: 24px; border: 1px solid #000; vertical-align: middle; background: #ffffff;">${q.orderIndex}</td>
+        <td class="q-paren-cell text-center font-weight-bold" dir="ltr" style="width: 32px; min-width: 32px; border: 1px solid #000; white-space: nowrap !important; word-break: keep-all !important; letter-spacing: 0; vertical-align: middle; background: #ffffff;">(&nbsp;&nbsp;)</td>
+        <td class="q-text-cell pe-2 ps-2 py-1 font-weight-bold" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'right'}; background: #ffffff;">${q.content}</td>
       </tr>
     `).join('')
     return `
       <table class="table-tf w-100" dir="${isEnglish ? 'ltr' : 'rtl'}">
         <colgroup>
-          <col style="width: 26px;">
-          <col style="width: 38px;">
+          <col style="width: 24px;">
+          <col style="width: 32px;">
           <col style="width: auto;">
         </colgroup>
         <tbody>
@@ -1211,31 +1358,31 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
 
       const maxLen = Math.max(...opts.map(o => (o || '').length))
 
-      if (maxLen > 30) {
+      if (maxLen > 45) {
         // Two-column layout (2 rows of 2 options: 50% width each)
         return `
           <table class="table-mcq-continuous w-100 mb-1" dir="${isEnglish ? 'ltr' : 'rtl'}">
             <colgroup>
-              <col style="width: 26px;">
-              <col style="width: 20px;"><col style="width: calc(50% - 33px);">
-              <col style="width: 20px;"><col style="width: calc(50% - 33px);">
+              <col style="width: 24px;">
+              <col style="width: 20px;"><col style="width: calc(50% - 32px);">
+              <col style="width: 20px;"><col style="width: calc(50% - 32px);">
             </colgroup>
             <tbody>
               <tr class="q-stem-row">
-                <td rowspan="3" class="q-num-cell text-center font-weight-black font-mono" style="width: 26px; border: 1px solid #000;">${q.orderIndex}</td>
-                <td colspan="4" class="q-stem-cell pe-2 ps-2 py-1 font-weight-bold" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'right'};">${stemContent}</td>
+                <td rowspan="3" class="q-num-cell text-center font-weight-black" style="width: 24px; border: 1px solid #000; vertical-align: middle; background: #ffffff;">${q.orderIndex}</td>
+                <td colspan="4" class="q-stem-cell pe-2 ps-2 py-1 font-weight-bold" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'right'}; background: #ffffff;">${stemContent}</td>
               </tr>
               <tr class="q-options-row">
-                <td class="opt-num-cell font-mono font-weight-black text-center" style="width: 20px; border: 1px solid #000;">1</td>
-                <td class="opt-text-cell font-weight-bold pe-2 ps-2 py-1" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'right'};">${formatCellContent(opts[0])}</td>
-                <td class="opt-num-cell font-mono font-weight-black text-center" style="width: 20px; border: 1px solid #000;">2</td>
-                <td class="opt-text-cell font-weight-bold pe-2 ps-2 py-1" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'right'};">${formatCellContent(opts[1])}</td>
+                <td class="opt-num-cell font-weight-black text-center" style="width: 20px; border: 1px solid #000; vertical-align: middle; background: #ffffff;">1</td>
+                <td class="opt-text-cell font-weight-bold pe-2 ps-2 py-1" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'right'}; background: #ffffff;">${formatCellContent(opts[0])}</td>
+                <td class="opt-num-cell font-weight-black text-center" style="width: 20px; border: 1px solid #000; vertical-align: middle; background: #ffffff;">2</td>
+                <td class="opt-text-cell font-weight-bold pe-2 ps-2 py-1" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'right'}; background: #ffffff;">${formatCellContent(opts[1])}</td>
               </tr>
               <tr class="q-options-row">
-                <td class="opt-num-cell font-mono font-weight-black text-center" style="width: 20px; border: 1px solid #000;">3</td>
-                <td class="opt-text-cell font-weight-bold pe-2 ps-2 py-1" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'right'};">${formatCellContent(opts[2])}</td>
-                <td class="opt-num-cell font-mono font-weight-black text-center" style="width: 20px; border: 1px solid #000;">4</td>
-                <td class="opt-text-cell font-weight-bold pe-2 ps-2 py-1" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'right'};">${formatCellContent(opts[3])}</td>
+                <td class="opt-num-cell font-weight-black text-center" style="width: 20px; border: 1px solid #000; vertical-align: middle; background: #ffffff;">3</td>
+                <td class="opt-text-cell font-weight-bold pe-2 ps-2 py-1" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'right'}; background: #ffffff;">${formatCellContent(opts[2])}</td>
+                <td class="opt-num-cell font-weight-black text-center" style="width: 20px; border: 1px solid #000; vertical-align: middle; background: #ffffff;">4</td>
+                <td class="opt-text-cell font-weight-bold pe-2 ps-2 py-1" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'right'}; background: #ffffff;">${formatCellContent(opts[3])}</td>
               </tr>
             </tbody>
           </table>
@@ -1246,26 +1393,26 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
       return `
         <table class="table-mcq-continuous w-100 mb-1" dir="${isEnglish ? 'ltr' : 'rtl'}">
           <colgroup>
-            <col style="width: 26px;">
-            <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
-            <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
-            <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
-            <col style="width: 20px;"><col style="width: calc(25% - 11.5px);">
+            <col style="width: 24px;">
+            <col style="width: 20px;"><col style="width: calc(25% - 26px);">
+            <col style="width: 20px;"><col style="width: calc(25% - 26px);">
+            <col style="width: 20px;"><col style="width: calc(25% - 26px);">
+            <col style="width: 20px;"><col style="width: calc(25% - 26px);">
           </colgroup>
           <tbody>
             <tr class="q-stem-row">
-              <td rowspan="2" class="q-num-cell text-center font-weight-black font-mono" style="width: 26px; border: 1px solid #000;">${q.orderIndex}</td>
-              <td colspan="8" class="q-stem-cell pe-2 ps-2 py-1 font-weight-bold" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'right'};">${stemContent}</td>
+              <td rowspan="2" class="q-num-cell text-center font-weight-black" style="width: 24px; border: 1px solid #000; vertical-align: middle; background: #ffffff;">${q.orderIndex}</td>
+              <td colspan="8" class="q-stem-cell pe-2 ps-2 py-1 font-weight-bold" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'right'}; background: #ffffff;">${stemContent}</td>
             </tr>
             <tr class="q-options-row text-center">
-              <td class="opt-num-cell font-mono font-weight-black" style="width: 20px; border: 1px solid #000;">1</td>
-              <td class="opt-text-cell font-weight-bold pe-1 ps-1" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'center'};">${formatCellContent(opts[0])}</td>
-              <td class="opt-num-cell font-mono font-weight-black" style="width: 20px; border: 1px solid #000;">2</td>
-              <td class="opt-text-cell font-weight-bold pe-1 ps-1" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'center'};">${formatCellContent(opts[1])}</td>
-              <td class="opt-num-cell font-mono font-weight-black" style="width: 20px; border: 1px solid #000;">3</td>
-              <td class="opt-text-cell font-weight-bold pe-1 ps-1" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'center'};">${formatCellContent(opts[2])}</td>
-              <td class="opt-num-cell font-mono font-weight-black" style="width: 20px; border: 1px solid #000;">4</td>
-              <td class="opt-text-cell font-weight-bold pe-1 ps-1" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'center'};">${formatCellContent(opts[3])}</td>
+              <td class="opt-num-cell font-weight-black" style="width: 20px; border: 1px solid #000; vertical-align: middle; background: #ffffff;">1</td>
+              <td class="opt-text-cell font-weight-bold pe-1 ps-1" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'center'}; background: #ffffff;">${formatCellContent(opts[0])}</td>
+              <td class="opt-num-cell font-weight-black" style="width: 20px; border: 1px solid #000; vertical-align: middle; background: #ffffff;">2</td>
+              <td class="opt-text-cell font-weight-bold pe-1 ps-1" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'center'}; background: #ffffff;">${formatCellContent(opts[1])}</td>
+              <td class="opt-num-cell font-weight-black" style="width: 20px; border: 1px solid #000; vertical-align: middle; background: #ffffff;">3</td>
+              <td class="opt-text-cell font-weight-bold pe-1 ps-1" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'center'}; background: #ffffff;">${formatCellContent(opts[2])}</td>
+              <td class="opt-num-cell font-weight-black" style="width: 20px; border: 1px solid #000; vertical-align: middle; background: #ffffff;">4</td>
+              <td class="opt-text-cell font-weight-bold pe-1 ps-1" style="border: 1px solid #000; text-align: ${isEnglish ? 'left' : 'center'}; background: #ffffff;">${formatCellContent(opts[3])}</td>
             </tr>
           </tbody>
         </table>
@@ -1339,11 +1486,11 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
       <!-- Top Section: Rows 1 to 5 -->
       <table class="table-top-section w-100">
         <colgroup>
-          <col style="width: 17.5%;">
-          <col style="width: 7.5%;">
-          <col style="width: 35.0%;">
-          <col style="width: 9.0%;">
           <col style="width: 12.0%;">
+          <col style="width: 7.5%;">
+          <col style="width: 34.5%;">
+          <col style="width: 9.0%;">
+          <col style="width: 18.0%;">
           <col style="width: 19.0%;">
         </colgroup>
         <tbody>
@@ -1435,12 +1582,12 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
       <!-- Row 6: Exact Match to Original (Bottom Student Info Bar) -->
       <table class="table-bottom-bar w-100">
         <colgroup>
-          <col style="width: 10.5%;">
+          <col style="width: 12.0%;">
           <col style="width: 46.5%;">
           <col style="width: 9.5%;">
-          <col style="width: 16.5%;">
-          <col style="width: 8.5%;">
-          <col style="width: 8.5%;">
+          <col style="width: 13.0%;">
+          <col style="width: 9.5%;">
+          <col style="width: 9.5%;">
         </colgroup>
         <tbody>
           <tr>
@@ -1469,13 +1616,15 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
     </div>
   ` : ''
 
+  const markTfText = options.tfMark && options.tfMark !== 1 ? `${options.tfMark} درجات لكل فقرة.` : 'درجة لكل فقرة.'
   const tfInstructionText = isEnglish
     ? `Read the following questions, and on the answer sheet, darken the number that matches the correct alternative.<br>Part One: Mark (T/True) for the true statements and (F/False) for the false ones. (${options.tfMark || 1}) point each`
-    : `أولاً: ظلل في ورقة الإجابة الدائرة التي تحتوي على الحرف (ص) للإجابة الصحيحة والحرف (خ) للإجابة الخطأ بحسب رقم الفقرة لكل مما يأتي: ${options.tfMark || 1} درجة لكل فقرة.`
+    : `ظلل في ورقة الإجابة الدائرة التي تحتوي على الحرف (ص) للإجابة الصحيحة والحرف (خ) للإجابة الخطأ بحسب رقم الفقرة لكل مما يأتي: ${markTfText}`
 
+  const markMcqText = options.mcqMark && options.mcqMark !== 2 ? `${options.mcqMark} درجات لكل فقرة.` : 'درجتان لكل فقرة.'
   const mcqInstructionText = isEnglish
     ? `Part two: Choose the best alternative: (${options.mcqMark || 2}) points each`
-    : `ثانياً: لكل فقرة مما يأتي أربع إجابات واحدة فقط منها صحيحة، اختر الإجابة الصحيحة ثم ظلل في ورقة الإجابة الدائرة بحسب الاختيار ورقم الفقرة: ${options.mcqMark || 2} درجات لكل فقرة.`
+    : `اختر الإجابة الصحيحة ثم ظلل في ورقة الإجابة الدائرة بحسب الإختيار ورقم الفقرة لكل مما يأتي:${markMcqText}`
 
   const secretPressRibbonHtml = isEnglish ? `
     <div class="secret-press-ribbon d-flex justify-space-between align-center mb-1 pb-1" dir="ltr">
@@ -1505,7 +1654,7 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
   let col1Capacity = mcqQuestions.length
   if (hasSecondPage) {
     if (tfQuestions.length >= 12) {
-      col1Capacity = readingPassageHtml ? 6 : 10
+      col1Capacity = readingPassageHtml ? 6 : 9
     } else {
       col1Capacity = Math.ceil(mcqQuestions.length * 0.42)
     }
@@ -1574,7 +1723,7 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
 
               ${tfQuestions.length > 0 ? `
                 <div class="tf-section-wrapper mb-1">
-                  <div class="instruction-banner ${isEnglish ? 'text-start ps-2' : 'text-center'} py-1 font-weight-bold">
+                  <div class="instruction-banner ${isEnglish ? 'text-start ps-2' : 'text-right pe-2 ps-2'} py-1 font-weight-bold">
                     ${tfInstructionText}
                   </div>
                   ${renderTfTable(tfQuestions)}
@@ -1585,7 +1734,7 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
 
               ${col1McqList.length > 0 ? `
                 <div class="mcq-section-wrapper">
-                  <div class="instruction-banner ${isEnglish ? 'text-start ps-2' : 'text-center'} py-1 font-weight-bold">
+                  <div class="instruction-banner ${isEnglish ? 'text-start ps-2' : 'text-right pe-2 ps-2'} py-1 font-weight-bold">
                     ${mcqInstructionText}
                   </div>
                   ${renderContinuousMcqTable(col1McqList)}
@@ -1603,8 +1752,6 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
         <div class="exam-package-page questions-booklet-page a4-page-2">
           <div class="a4-sheet-page sheet-page-2" dir="${isEnglish ? 'ltr' : 'rtl'}">
             <div class="page-content-wrapper">
-              ${secretPressRibbonHtml}
-
               <div class="mcq-section-wrapper">
                 ${renderContinuousMcqTable(col2McqList)}
               </div>
@@ -1716,6 +1863,8 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
   }
 
   const headStyles = `
+    @import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
     @page {
       size: ${isA3 ? 'A3 landscape' : 'A4 portrait'};
       margin: 6mm 8mm !important;
@@ -1730,7 +1879,7 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
       padding: 0 !important;
       width: 100% !important;
       background: #ffffff !important;
-      font-family: 'Tajawal', 'Cairo', Tahoma, Arial, sans-serif !important;
+      font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Tahoma, Arial, sans-serif !important;
       color: #000 !important;
       direction: ${isEnglish ? 'ltr' : 'rtl'};
     }
@@ -1748,6 +1897,19 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
       page-break-after: auto !important;
       break-after: auto !important;
     }
+    .sheet-column {
+      border: 1.5px solid #000000 !important;
+      padding: 4px 5px !important;
+      background-color: #ffffff !important;
+      box-sizing: border-box !important;
+    }
+    .page-content-wrapper {
+      flex-grow: 1 !important;
+      border: 1.5px solid #000000 !important;
+      padding: 4px 5px !important;
+      background-color: #ffffff !important;
+      box-sizing: border-box !important;
+    }
     .a4-sheet-page {
       width: 100% !important;
       min-height: 0 !important;
@@ -1761,10 +1923,7 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
       justify-content: space-between !important;
     }
     .a4-page-footer {
-      font-size: 0.68rem !important;
-      border-top: 1px solid #000000 !important;
-      padding-top: 3px !important;
-      margin-top: 6px !important;
+      display: none !important;
     }
     .reading-passage-box {
       border: 1px solid #000000 !important;
@@ -1792,10 +1951,10 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
     }
     .official-header-box {
       width: 100% !important;
-      margin: 0 auto 4px auto !important;
+      margin: 0 auto 3px auto !important;
       border: 1.5px solid #000000 !important;
       background-color: #ffffff !important;
-      font-family: 'Arial', 'Simplified Arabic', Tahoma, sans-serif !important;
+      font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Arial, Tahoma, sans-serif !important;
       color: #000000 !important;
       box-sizing: border-box !important;
     }
@@ -1812,14 +1971,14 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
       vertical-align: middle !important;
       background-color: #ffffff !important;
       color: #000000 !important;
-      font-size: 0.68rem !important;
+      font-size: 0.70rem !important;
       line-height: 1.15 !important;
       box-sizing: border-box !important;
       overflow: hidden !important;
     }
     .student-photo-cell {
-      width: 17.5% !important;
-      padding: 2px !important;
+      width: 12.0% !important;
+      padding: 1px !important;
       vertical-align: middle !important;
       background-color: #ffffff !important;
     }
@@ -1886,107 +2045,165 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
       box-sizing: border-box !important;
     }
     .table-tf {
-      border: 1px solid #000 !important;
-      font-size: 0.74rem !important;
+      border: 1.5px solid #000 !important;
+      font-size: 0.76rem !important;
       width: 100% !important;
       border-collapse: collapse !important;
       table-layout: fixed !important;
       background-color: #ffffff !important;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
     .table-tf td {
       border: 1px solid #000 !important;
-      padding: 1.5px 3px !important;
+      padding: 2px 4px !important;
       background-color: #ffffff !important;
       color: #000000 !important;
+      vertical-align: middle !important;
+    }
+    .q-index-cell {
+      font-family: Arial, 'Times New Roman', sans-serif !important;
+      font-weight: 700 !important;
+      font-size: 0.84rem !important;
+      background: #ffffff !important;
+      text-align: center !important;
+      vertical-align: middle !important;
+      padding: 2px 0 !important;
+      width: 26px !important;
+      color: #000000 !important;
+      border: 1px solid #000000 !important;
     }
     .q-paren-cell {
+      background: #ffffff !important;
+      width: 32px !important;
       white-space: nowrap !important;
       word-break: keep-all !important;
-      direction: ltr !important;
       text-align: center !important;
-      letter-spacing: 0 !important;
-      font-family: monospace, sans-serif !important;
-      font-size: 0.85rem !important;
-      font-weight: 900 !important;
+      vertical-align: middle !important;
+      padding: 2px 0 !important;
+      overflow: hidden !important;
+      box-sizing: border-box !important;
+      border: 1px solid #000000 !important;
     }
-    .q-text-cell {
-      unicode-bidi: plaintext !important;
+    .paren-box {
+      display: inline-block !important;
+      direction: ltr !important;
+      unicode-bidi: isolate !important;
+      font-family: Arial, 'Times New Roman', sans-serif !important;
+      font-size: 0.88rem !important;
+      font-weight: 700 !important;
+      letter-spacing: 0 !important;
+      color: #000000 !important;
+      line-height: 1 !important;
+      margin: 0 auto !important;
     }
     .table-mcq-continuous {
-      border: 1px solid #000 !important;
+      border: 1.5px solid #000 !important;
       border-collapse: collapse !important;
       table-layout: fixed !important;
       width: 100% !important;
       background-color: #ffffff !important;
       page-break-inside: avoid !important;
       break-inside: avoid !important;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
     .table-mcq-continuous td {
       border: 1px solid #000 !important;
-      padding: 1px 2px !important;
+      padding: 2px 3px !important;
       background-color: #ffffff !important;
       color: #000000 !important;
+      vertical-align: middle !important;
+    }
+    .q-stem-row {
+      border-top: 1.5px solid #000000 !important;
     }
     .q-num-cell {
-      font-family: monospace, sans-serif !important;
-      font-weight: 900 !important;
-      font-size: 0.82rem !important;
+      font-family: Arial, 'Times New Roman', sans-serif !important;
+      font-weight: 700 !important;
+      font-size: 0.84rem !important;
       background: #ffffff !important;
       text-align: center !important;
+      vertical-align: middle !important;
+      padding: 2px 0 !important;
+      width: 26px !important;
+      color: #000000 !important;
+      border: 1px solid #000000 !important;
     }
-    .q-stem-cell {
-      font-size: 0.75rem !important;
-      line-height: 1.25 !important;
+    .q-stem-cell,
+    .q-text-cell {
+      font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Tahoma, Arial, sans-serif !important;
+      font-size: 0.78rem !important;
+      line-height: 1.35 !important;
       font-weight: 700 !important;
-      unicode-bidi: plaintext !important;
+      text-align: right !important;
+      direction: rtl !important;
+      unicode-bidi: isolate !important;
+      color: #000000 !important;
+      border: 1px solid #000000 !important;
+      padding: 2px 6px !important;
+    }
+    .q-stem-cell.text-left,
+    .q-text-cell.text-left {
+      text-align: left !important;
+      direction: ltr !important;
     }
     .opt-num-cell {
-      font-family: monospace, sans-serif !important;
-      font-weight: 900 !important;
-      font-size: 0.74rem !important;
+      font-family: Arial, 'Times New Roman', sans-serif !important;
+      font-weight: 700 !important;
+      font-size: 0.78rem !important;
       background: #ffffff !important;
       text-align: center !important;
+      vertical-align: middle !important;
+      padding: 1px 0 !important;
+      width: 20px !important;
+      color: #000000 !important;
+      border: 1px solid #000000 !important;
     }
     .opt-text-cell {
-      font-size: 0.70rem !important;
+      font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Tahoma, Arial, sans-serif !important;
+      font-size: 0.76rem !important;
       font-weight: 700 !important;
       text-align: center !important;
-      white-space: nowrap !important;
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
-      unicode-bidi: plaintext !important;
+      padding: 2px 4px !important;
+      line-height: 1.25 !important;
+      vertical-align: middle !important;
+      white-space: normal !important;
+      word-break: break-word !important;
+      color: #000000 !important;
+      background: #ffffff !important;
+      border: 1px solid #000000 !important;
+    }
+    .opt-text-inner {
+      display: block !important;
+      width: 100% !important;
+      font-size: inherit !important;
+      font-weight: inherit !important;
+      white-space: normal !important;
+      line-height: 1.25 !important;
+      word-break: break-word !important;
+      text-align: center !important;
     }
     .instruction-banner {
-      font-size: 0.70rem !important;
-      font-weight: 800 !important;
-      border: 1px solid #000 !important;
+      font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Tahoma, Arial, sans-serif !important;
+      font-size: 0.76rem !important;
+      font-weight: 700 !important;
+      border: 1.5px solid #000 !important;
       border-bottom: 0 !important;
-      padding: 2.5px 4px !important;
+      padding: 2px 6px !important;
       background-color: #ffffff !important;
       color: #000000 !important;
-      line-height: 1.2 !important;
-    }
-    .secret-press-ribbon {
-      font-size: 0.68rem !important;
-      border-bottom: 1px solid #000 !important;
-      padding-bottom: 2px !important;
-      margin-bottom: 4px !important;
-      display: flex !important;
-      justify-content: space-between !important;
-      align-items: center !important;
-      font-weight: 800 !important;
+      line-height: 1.25 !important;
+      text-align: right !important;
     }
     .exam-paper-end-banner {
-      font-size: 0.76rem !important;
-      font-weight: 900 !important;
-      border: 1px solid #000 !important;
+      font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Tahoma, Arial, sans-serif !important;
+      font-size: 0.78rem !important;
+      font-weight: 700 !important;
+      border: 1.5px solid #000 !important;
       padding: 3px 6px !important;
       background-color: #ffffff !important;
       color: #000000 !important;
       text-align: center !important;
-      margin-top: 6px !important;
+      margin-top: 3px !important;
     }
     .omr-attachment-page {
       width: 100% !important;
@@ -2067,7 +2284,7 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
         <title>${options.title || `حزمة_اختبار_${options.subjectName}_النموذج_${options.versionCode}`}</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
         ${docStyles}
         <style>${headStyles}</style>
       </head>

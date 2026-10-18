@@ -138,9 +138,24 @@ class OMRHumanReviewMVS(AllMVS):
     def approve_review(self, request, pk=None):
         """Mark sheet review as completed after human audit."""
         sheet = self.get_object()
+
+        # ── فحص قفل الكنترول المركزي ─────────────────────────────────────
+        if hasattr(sheet, 'submission') and sheet.submission:
+            lr = sheet.submission.layout_result or {}
+            if lr.get("dispatched_to_control") is True or lr.get("dispatched_to_control") == "true":
+                return Response({
+                    "success": False,
+                    "message": "لا يمكن اعتماد المراجعة: درجات هذا الاختبار مقفلة ومرحلة رسمياً إلى نظام الكنترول المركزي. يتطلب التعديل إلغاء الترحيل أولاً."
+                }, status=status.HTTP_403_FORBIDDEN)
+
         sheet.status = 'verified'
         sheet.confidence = max(sheet.confidence, 0.95)
         sheet.save(update_fields=['status', 'confidence'])
+
+        if hasattr(sheet, 'submission') and sheet.submission:
+            from submissions.models.Submission import Submission
+            sheet.submission.status = Submission.Status.COMPLETED
+            sheet.submission.save(update_fields=['status'])
 
         return Response({
             "success": True,
@@ -152,32 +167,72 @@ class OMRHumanReviewMVS(AllMVS):
     def override_question(self, request, pk=None):
         """Manual human override of a specific question's detected bubble."""
         sheet = self.get_object()
+
+        # ── فحص قفل الكنترول المركزي ─────────────────────────────────────
+        if hasattr(sheet, 'submission') and sheet.submission:
+            lr = sheet.submission.layout_result or {}
+            if lr.get("dispatched_to_control") is True or lr.get("dispatched_to_control") == "true":
+                return Response({
+                    "success": False,
+                    "message": "تم رفض التعديل: درجات هذا الاختبار مقفلة ومرحلة رسمياً لنظام الكنترول المركزي. يجب إلغاء الترحيل أولاً بطلب من إدارة الكنترول."
+                }, status=status.HTTP_403_FORBIDDEN)
+
         q_num = request.data.get('question_number')
-        choice = request.data.get('marked_choice')
+        choice = request.data.get('marked_choice') or request.data.get('new_choice') or request.data.get('choice')
 
         if q_num is None or choice is None:
             return Response({"success": False, "message": "يجب تحديد رقم السؤال والخيار المعدل"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            from omr.providers.opencv_omr import normalize_choice
             q_res = OMRQuestionResult.objects.get(sheet_result=sheet, question_number=q_num)
             q_res.marked_choice = choice
-            q_res.is_correct = (choice == q_res.correct_choice) if q_res.correct_choice else False
+            is_right = (normalize_choice(choice) == normalize_choice(q_res.correct_choice)) if q_res.correct_choice else False
+            q_res.is_correct = is_right
             q_res.bubble_state = OMRQuestionResult.BubbleState.FILLED
             q_res.final_confidence = 1.0
+
+            if is_right:
+                if float(q_res.marks_awarded or 0.0) <= 0.0:
+                    unit_mark = float(sheet.mcq_max_score or sheet.total_questions) / max(1, sheet.total_questions)
+                    q_res.marks_awarded = round(unit_mark, 2)
+            else:
+                q_res.marks_awarded = 0.0
+
             q_res.save()
 
-            # Recalculate sheet statistics
+            # Recalculate sheet statistics & update student's submission score
             with transaction.atomic():
-                all_q = sheet.questions.all()
+                all_q = list(OMRQuestionResult.objects.filter(sheet_result=sheet))
                 sheet.correct_answers = sum(1 for q in all_q if q.is_correct)
                 sheet.wrong_answers = sum(1 for q in all_q if q.is_correct is False and q.marked_choice)
                 sheet.unanswered = sum(1 for q in all_q if not q.marked_choice)
                 sheet.ambiguous_count = sum(1 for q in all_q if q.bubble_state == OMRQuestionResult.BubbleState.AMBIGUOUS)
+
+                # احتساب الدرجة المحرزة بناء على أوزان الأسئلة
+                computed_score = sum(float(q.marks_awarded) for q in all_q if q.is_correct)
+                if computed_score == 0 and sheet.correct_answers > 0:
+                    marks_per_q = float(sheet.mcq_max_score or sheet.total_questions) / max(1, sheet.total_questions)
+                    computed_score = round(sheet.correct_answers * marks_per_q, 2)
+
+                sheet.mcq_score = round(computed_score, 2)
                 sheet.save()
+
+                if hasattr(sheet, 'submission') and sheet.submission:
+                    sub = sheet.submission
+                    sub.mcq_score = sheet.mcq_score
+                    essay_sc = float(sub.essay_score or 0.0)
+                    sub.total_score = round(float(sheet.mcq_score) + essay_sc, 2)
+                    lr = sub.layout_result or {}
+                    lr["total_correct"] = sheet.correct_answers
+                    max_sc = float(sheet.mcq_max_score or sheet.total_questions or 100)
+                    lr["score_percent"] = round((float(sub.total_score) / max(1.0, max_sc)) * 100.0, 1)
+                    sub.layout_result = lr
+                    sub.save(update_fields=['mcq_score', 'total_score', 'layout_result'])
 
             return Response({
                 "success": True,
-                "message": f"تم تعديل إجابة السؤال {q_num} بنجاح",
+                "message": f"تم تعديل إجابة السؤال {q_num} وتحديث الدرجة الكلية بنجاح",
                 "data": self.get_serializer(sheet).data
             })
         except OMRQuestionResult.DoesNotExist:

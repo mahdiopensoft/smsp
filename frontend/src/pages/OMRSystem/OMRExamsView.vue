@@ -493,17 +493,23 @@
               <!-- Official Question Paper Component Frame -->
               <div class="overflow-auto bg-grey-lighten-4 pa-4 rounded-2xl border d-flex justify-center mb-6">
                 <YemeniOfficialQuestionPaper
-                  :exam-title="customStageTitle || activeExam?.title || 'اختبار الشهادة الثانوية العامة'"
-                  :exam-subject="activeExam?.subject_name || 'الرياضيات'"
-                  :stage-title="customStageTitle || (activeExam?.stage_name ? `اختبار ${activeExam.stage_name}` : 'اختبار الشهادة الثانوية العامة (المراكز الفرعية - علمي)')"
-                  :exam-year="(customExamYear || activeExam?.year_name || '1445هـ - 2024-2023م')"
-                  :governorate="customGovernorate || activeExam?.governorate || 'أمانة العاصمة'"
-                  :directorate="customDirectorate || activeExam?.directorate || 'الثورة / الأمانة'"
-                  :center-name="customCenterName || activeSheetStudent?.school_name || activeExam?.directorate || 'المركز الاختباري الرئيسي'"
-                  :center-code="activeSheetStudent?.school_id || activeExam?.id || '3026'"
-                  :student-name="sheetGenerationMode === 'student' ? activeSheetStudent?.student_name : ''"
-                  :seat-number="sheetGenerationMode === 'student' ? activeSheetStudent?.seat_number : ''"
-                  :secret-number="sheetGenerationMode === 'student' ? activeSheetStudent?.secret_number : '60'"
+                  :exam-title="customStageTitle || activeExam?.title || ''"
+                  :exam-subject="activeExam?.subject_name || ''"
+                  :stage-title="customStageTitle || (activeExam?.stage_name ? `اختبار ${activeExam.stage_name}` : (activeExam?.title || ''))"
+                  :exam-year="customExamYear || activeExam?.year_name || ''"
+                  :governorate="customGovernorate || activeExam?.governorate || ''"
+                  :directorate="customDirectorate || activeExam?.directorate || ''"
+                  :center-name="customCenterName || activeSheetStudent?.school_name || ''"
+                  :center-code="activeSheetStudent?.school_id || activeExam?.id || ''"
+                  :exam-time="activeExam?.time_allowed || activeExam?.exam_time || ''"
+                  :day-name="activeExam?.day_name || ''"
+                  :exam-date="activeExam?.exam_date || ''"
+                  :envelope-no="activeExam?.envelope_no || ''"
+                  :student-name="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_name || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.student_name || ''))"
+                  :seat-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.seat_number || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.seat_number || ''))"
+                  :secret-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.secret_number || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.secret_number || ''))"
+                  :student-photo="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_photo || activeSheetStudent?.photo || '') : ''"
+                  :is-blank-mode="sheetGenerationMode === 'blank'"
                   :model-code="currentVersionObj?.versionCode || 'A'"
                   :questions="currentVersionObj?.questions || []"
                   :default-layout="selectedQuestionPaperLayout"
@@ -1115,7 +1121,7 @@
                     v-if="selectedSheetLayout === 'full_a4'"
                     :key="`audit-sheet-${activeSheetStudent?.id || selectedBlankVersionCode}`"
                     :student-name="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_name || '................................') : '................................'"
-                    :seat-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.seat_number || '418485') : '................'"
+                    :seat-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.seat_number || '................') : '................'"
                     :serial-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.secret_number || '101') : activeSheetModelCode"
                     :model-code="activeSheetModelCode"
                     :form-number="activeSheetModelCode"
@@ -1131,6 +1137,7 @@
                     :total-questions="activeModelQuestionsCount"
                     :sections="activeExamSections"
                     :answer-key="activeSheetAnswerKey"
+                    :question-marks="activeSheetQuestionMarks"
                   />
 
                   <!-- Mode 2: Compact A5 Ministry Student Sheet (ورقة الطالب A5) -->
@@ -1139,7 +1146,7 @@
                     :key="`compact-sheet-${activeSheetStudent?.id || selectedBlankVersionCode}`"
                     layout-mode="compact_a5"
                     :student-name="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_name || '................................') : '................................'"
-                    :seat-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.seat_number || '418485') : '................'"
+                    :seat-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.seat_number || '................') : '................'"
                     :serial-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.secret_number || '101') : activeSheetModelCode"
                     :model-code="activeSheetModelCode"
                     :exam-subject="activeExam?.subject_name || 'الرياضيات'"
@@ -1499,17 +1506,23 @@
 
         <div class="overflow-auto bg-grey-lighten-4 pa-4 rounded-xl d-flex justify-center" style="max-height: 80vh;">
           <YemeniOfficialQuestionPaper
-            :exam-title="activeExam?.title || 'اختبار الشهادة الثانوية العامة'"
-            :exam-subject="activeExam?.subject_name || 'الأحياء'"
-            :stage-title="activeExam?.stage_name ? `اختبار ${activeExam.stage_name}` : 'اختبار الشهادة الثانوية العامة (المراكز الفرعية - علمي)'"
-            :exam-year="(activeExam?.year_name && String(activeExam.year_name).length > 2 && activeExam.year_name !== '1') ? activeExam.year_name : '1445هـ - 2024-2023م'"
-            :governorate="activeExam?.governorate || 'أمانة العاصمة'"
-            :directorate="activeExam?.directorate || 'الثورة / الأمانة'"
-            :center-name="activeSheetStudent?.school_name || activeExam?.directorate || 'المركز الاختباري الرئيسي'"
-            :center-code="activeSheetStudent?.school_id || activeExam?.id || '3026'"
-            :student-name="sheetGenerationMode === 'student' ? activeSheetStudent?.student_name : ''"
-            :seat-number="sheetGenerationMode === 'student' ? activeSheetStudent?.seat_number : ''"
-            :secret-number="sheetGenerationMode === 'student' ? activeSheetStudent?.secret_number : '60'"
+            :exam-title="activeExam?.title || ''"
+            :exam-subject="activeExam?.subject_name || ''"
+            :stage-title="activeExam?.stage_name ? `اختبار ${activeExam.stage_name}` : (activeExam?.title || '')"
+            :exam-year="activeExam?.year_name || ''"
+            :governorate="activeExam?.governorate || ''"
+            :directorate="activeExam?.directorate || ''"
+            :center-name="activeSheetStudent?.school_name || ''"
+            :center-code="activeSheetStudent?.school_id || activeExam?.id || ''"
+            :exam-time="activeExam?.time_allowed || activeExam?.exam_time || ''"
+            :day-name="activeExam?.day_name || ''"
+            :exam-date="activeExam?.exam_date || ''"
+            :envelope-no="activeExam?.envelope_no || ''"
+            :student-name="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_name || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.student_name || ''))"
+            :seat-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.seat_number || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.seat_number || ''))"
+            :secret-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.secret_number || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.secret_number || ''))"
+            :student-photo="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_photo || activeSheetStudent?.photo || '') : ''"
+            :is-blank-mode="sheetGenerationMode === 'blank'"
             :model-code="currentVersionObj?.versionCode || '1'"
             :questions="currentVersionObj?.questions || []"
             :default-layout="'a4'"
@@ -1721,17 +1734,21 @@ const getSectionsForVersion = (versionCode) => {
   }
 
   if (tfCount > 0 && mcqCount > 0) {
+    const tfAvg = qList.filter(q => String(q.questionType || '').toLowerCase().includes('true') || String(q.questionType || '').toLowerCase().includes('صح')).reduce((acc, q) => acc + (q.assignedMark || 1), 0) / Math.max(1, tfCount)
+    const mcqAvg = qList.filter(q => !String(q.questionType || '').toLowerCase().includes('true') && !String(q.questionType || '').toLowerCase().includes('صح')).reduce((acc, q) => acc + (q.assignedMark || 1), 0) / Math.max(1, mcqCount)
     return [
-      { id: 'sec1', title: 'القسم الأول: أسئلة الصواب والخطأ', type: 'true_false', from_q: 1, to_q: tfCount, choices: ['صح', 'خطأ'], mark: 1 },
-      { id: 'sec2', title: 'القسم الثاني: أسئلة الاختيار من متعدد', type: 'mcq', from_q: tfCount + 1, to_q: total, choices: ['1', '2', '3', '4'], mark: 2 }
+      { id: 'sec1', title: 'القسم الأول: أسئلة الصواب والخطأ', type: 'true_false', from_q: 1, to_q: tfCount, choices: ['صح', 'خطأ'], mark: Math.round(tfAvg * 10) / 10 },
+      { id: 'sec2', title: 'القسم الثاني: أسئلة الاختيار من متعدد', type: 'mcq', from_q: tfCount + 1, to_q: total, choices: ['1', '2', '3', '4'], mark: Math.round(mcqAvg * 10) / 10 }
     ]
   } else if (tfCount > 0) {
+    const avg = qList.reduce((acc, q) => acc + (q.assignedMark || 1), 0) / Math.max(1, total)
     return [
-      { id: 'sec1', title: 'أسئلة الصواب والخطأ', type: 'true_false', from_q: 1, to_q: total, choices: ['صح', 'خطأ'], mark: 1 }
+      { id: 'sec1', title: 'أسئلة الصواب والخطأ', type: 'true_false', from_q: 1, to_q: total, choices: ['صح', 'خطأ'], mark: Math.round(avg * 10) / 10 }
     ]
   } else {
+    const avg = qList.reduce((acc, q) => acc + (q.assignedMark || 1), 0) / Math.max(1, total)
     return [
-      { id: 'sec1', title: 'أسئلة الاختيار من متعدد', type: 'mcq', from_q: 1, to_q: total, choices: ['1', '2', '3', '4'], mark: 2 }
+      { id: 'sec1', title: 'أسئلة الاختيار من متعدد', type: 'mcq', from_q: 1, to_q: total, choices: ['1', '2', '3', '4'], mark: Math.round(avg * 10) / 10 }
     ]
   }
 }
@@ -1998,6 +2015,17 @@ const activeSheetAnswerKey = computed(() => {
   return v?.answerKey || {}
 })
 
+const activeSheetQuestionMarks = computed(() => {
+  if (!examDetails.value?.versions) return {}
+  const v = examDetails.value.versions.find(ver => ver.versionCode === activeSheetModelCode.value)
+  if (!v?.questions) return {}
+  const marks = {}
+  v.questions.forEach(q => {
+    marks[q.orderIndex] = q.assignedMark || 1
+  })
+  return marks
+})
+
 const headers = computed(() => [
   { title: "رمز وعنوان الاختبار", key: "exam_info", sortable: true },
   { title: "المادة والعام", key: "subject_info", sortable: true, align: "center", width: "180px" },
@@ -2096,6 +2124,9 @@ const openExamHub = async (exam, tab = 'template') => {
   try {
     const resp = await api.get(`/api/omr/exam-linking/${exam.id}/`)
     examDetails.value = resp.data
+    if (resp.data && resp.data.exam) {
+      activeExam.value = { ...activeExam.value, ...resp.data.exam }
+    }
     totalStudentsCount.value = resp.data.registered_students_count || (resp.data.registered_students?.length || 0)
     if (resp.data.registered_students && resp.data.registered_students.length > 0) {
       selectedStudentId.value = resp.data.registered_students[0].id

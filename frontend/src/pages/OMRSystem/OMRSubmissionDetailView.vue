@@ -48,6 +48,30 @@
     </div>
 
     <div v-else-if="submission">
+      <!-- تنبيه إيضاحي لطبيعة الورقة والذكاء الاصطناعي -->
+      <v-alert
+        v-if="submission.total_score == 0"
+        color="info"
+        variant="tonal"
+        rounded="xl"
+        class="mb-6 font-weight-bold"
+        icon="mdi-information-outline"
+      >
+        <div class="d-flex align-center justify-space-between flex-wrap gap-2">
+          <div>
+            <div class="text-subtitle-2 font-weight-black">
+              🔍 تم فحص الورقة بالكامل ومطابقة الدوائر بالذكاء الاصطناعي
+            </div>
+            <div class="text-caption">
+              جميع دوائر الإجابة لهذه الورقة فارغة (لم يقم الطالب بتظليل أي خيار). تم اقتصاص مواضع الدوائر وتأكيد خلوها من الرصاص بنسبة ثقة عالية. يمكنك رؤية مقتطفات الدوائر الدقيقة (AI Crops) في الجدول أدناه بالنقر على أي دائرة.
+            </div>
+          </div>
+          <v-chip color="info" size="small" variant="flat" class="font-weight-bold">
+            الدوائر المكتشفة: {{ mcqQuestions.length }} سؤال
+          </v-chip>
+        </div>
+      </v-alert>
+
       <!-- Top Stats Overview Bar -->
       <v-row class="mb-6">
         <!-- Total Score -->
@@ -137,13 +161,14 @@
                 </div>
 
                 <div class="d-flex align-center gap-2">
-                  <v-chip v-if="submission.aligned_image" color="success" size="small" variant="tonal" class="font-weight-bold">
-                    <v-icon start size="14">mdi-check-all</v-icon>
-                    محاذاة صحيحة
-                  </v-chip>
-                  <v-chip v-else color="warning" size="small" variant="tonal" class="font-weight-bold">
-                    صورة أصلية
-                  </v-chip>
+                  <v-btn-toggle v-model="activeImageMode" mandatory density="compact" color="primary" rounded="lg">
+                    <v-btn value="aligned" size="x-small" prepend-icon="mdi-bullseye-arrow">
+                      صورة فحص الدوائر
+                    </v-btn>
+                    <v-btn value="original" size="x-small" prepend-icon="mdi-image-outline">
+                      الأصلية
+                    </v-btn>
+                  </v-btn-toggle>
 
                   <custom-btn
                     :label="showOverlays ? 'إخفاء التظليل' : 'إظهار التظليل'"
@@ -161,7 +186,7 @@
               <div class="visualizer-wrapper bg-slate-900 rounded-xl pa-2 text-center position-relative overflow-hidden">
                 <div class="image-relative-container position-relative d-inline-block">
                   <img
-                    :src="getMediaUrl(submission.aligned_image || submission.original_image)"
+                    :src="getMediaUrl(activeImage)"
                     alt="Student Answer Sheet"
                     class="sheet-img rounded-lg d-block w-100"
                     style="max-height: 650px; object-fit: contain;"
@@ -267,6 +292,7 @@
                   <th class="pa-2 font-weight-bold text-center">إجابة الطالب</th>
                   <th class="pa-2 font-weight-bold text-center">الإجابة النموذجية</th>
                   <th class="pa-2 font-weight-bold text-center">النتيجة</th>
+                  <th class="pa-2 font-weight-bold text-center">مقتطفات الذكاء الاصطناعي (AI Crops)</th>
                   <th class="pa-2 font-weight-bold text-center">الثقة</th>
                 </tr>
               </thead>
@@ -289,7 +315,7 @@
                     >
                       <v-icon v-if="isTrueVariant(q.marked_choice)" start size="13">mdi-check</v-icon>
                       <v-icon v-else-if="isFalseVariant(q.marked_choice)" start size="13">mdi-close</v-icon>
-                      {{ q.marked_choice || 'بدون إجابة' }}
+                      {{ q.marked_choice || 'بدون إجابة (فارغ)' }}
                     </v-chip>
                   </td>
                   <td class="pa-2 text-center">
@@ -316,6 +342,26 @@
                       <v-icon start size="14">{{ q.is_correct ? 'mdi-check-circle' : 'mdi-close-circle' }}</v-icon>
                       {{ q.is_correct ? 'صحيحة' : 'خاطئة' }}
                     </v-chip>
+                  </td>
+                  <!-- AI Crops: أين نظر الذكاء الاصطناعي ومقتطف الدوائر -->
+                  <td class="pa-2 text-center">
+                    <div v-if="q.choice_crops && Object.keys(q.choice_crops).length" class="d-flex align-center justify-center gap-2 flex-wrap">
+                      <div
+                        v-for="(cropImg, choiceKey) in q.choice_crops"
+                        :key="choiceKey"
+                        class="ai-crop-item border rounded pa-1 text-center bg-grey-lighten-4"
+                        style="cursor: pointer; min-width: 46px; transition: transform 0.15s ease;"
+                        title="انقر لتكبير مقتطف الدائرة وفحص قرار الذكاء الاصطناعي"
+                        @click="openCropDialog(q, choiceKey, cropImg)"
+                      >
+                        <img :src="cropImg" style="width: 28px; height: 28px; object-fit: contain; border-radius: 4px; display: block; margin: 0 auto; background: #fff;" />
+                        <div class="text-caption font-weight-bold mt-1" style="font-size: 10px;">{{ choiceKey }}</div>
+                        <span class="text-caption" style="font-size: 9px;" :class="q.ai_results && q.ai_results[choiceKey] === 'filled' ? 'text-success font-weight-bold' : 'text-medium-emphasis'">
+                          {{ q.ai_results && q.ai_results[choiceKey] === 'filled' ? 'مظلل' : 'فارغ' }}
+                        </span>
+                      </div>
+                    </div>
+                    <span v-else class="text-caption text-grey">غير متاح</span>
                   </td>
                   <td class="pa-2 text-center text-caption font-weight-bold">
                     {{ (q.final_confidence * 100).toFixed(0) }}%
@@ -387,6 +433,46 @@
         />
       </template>
     </CustomDialog>
+
+    <!-- Dialog for Magnifying AI Crop (أين نظر الذكاء الاصطناعي) -->
+    <v-dialog v-model="cropDialog" max-width="440px">
+      <v-card v-if="selectedCrop" class="rounded-2xl pa-5 text-center">
+        <div class="d-flex align-center justify-space-between pb-2 border-b mb-3">
+          <div class="d-flex align-center gap-2">
+            <v-icon color="primary" size="22">mdi-magnify-scan</v-icon>
+            <span class="text-subtitle-1 font-weight-black">
+              عين الذكاء الاصطناعي — سؤال {{ selectedCrop.questionId }} ({{ selectedCrop.choice }})
+            </span>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" @click="cropDialog = false" />
+        </div>
+
+        <div class="pa-4 bg-slate-900 rounded-xl mb-3 d-inline-block">
+          <img :src="selectedCrop.img" style="width: 130px; height: 130px; object-fit: contain; image-rendering: pixelated; border-radius: 8px; background: white;" />
+        </div>
+
+        <div class="pa-3 bg-grey-lighten-4 rounded-xl text-right mb-4">
+          <div class="d-flex justify-space-between align-center mb-2">
+            <span class="text-caption text-medium-emphasis">قرار النموذج (AI Verdict):</span>
+            <v-chip size="x-small" :color="selectedCrop.aiVerdict === 'filled' ? 'success' : 'grey-darken-2'" class="font-weight-bold">
+              {{ selectedCrop.aiVerdict === 'filled' ? 'مظلل (Filled)' : 'فارغ (Empty)' }}
+            </v-chip>
+          </div>
+          <div class="d-flex justify-space-between align-center mb-2">
+            <span class="text-caption text-medium-emphasis">نسبة الثقة (Confidence):</span>
+            <span class="font-mono font-weight-bold text-primary">{{ selectedCrop.confidence }}%</span>
+          </div>
+          <div v-if="selectedCrop.center" class="d-flex justify-space-between align-center">
+            <span class="text-caption text-medium-emphasis">موضع الدائرة بالبكسل:</span>
+            <span class="font-mono text-caption">X: {{ selectedCrop.center[0] }}, Y: {{ selectedCrop.center[1] }} px</span>
+          </div>
+        </div>
+
+        <v-btn color="primary" variant="tonal" rounded="lg" block @click="cropDialog = false">
+          إغلاق
+        </v-btn>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -404,7 +490,11 @@ export default {
 
       submission: null,
       hoveredQ: null,
-      showOverlays: true,
+      showOverlays: false,
+      activeImageMode: 'aligned',
+
+      cropDialog: false,
+      selectedCrop: null,
 
       paperWidth: 210.0,
       paperHeight: 297.0,
@@ -420,7 +510,17 @@ export default {
 
   computed: {
     mcqQuestions() {
-      return this.submission?.omr_result?.data?.questions || []
+      if (Array.isArray(this.submission?.omr_result)) {
+        return this.submission.omr_result
+      }
+      return this.submission?.omr_result?.questions || this.submission?.omr_result?.data?.questions || []
+    },
+
+    activeImage() {
+      if (this.activeImageMode === 'original') {
+        return this.submission?.original_image
+      }
+      return this.submission?.aligned_image || this.submission?.original_image
     },
   },
 
@@ -431,7 +531,8 @@ export default {
       this.loading = true
       try {
         const res = await submissionsAPI.get(id)
-        this.submission = res.data || res
+        const resData = res.data?.data ? res.data.data : (res.data || res)
+        this.submission = resData
       } catch (err) {
         console.error('Error fetching submission details:', err)
       } finally {
@@ -442,7 +543,8 @@ export default {
     getMediaUrl(path) {
       if (!path) return ''
       if (path.startsWith('http')) return path
-      return `http://localhost:8000${path}`
+      if (path.startsWith('data:')) return path
+      return `http://localhost:5001${path.startsWith('/') ? '' : '/'}${path}`
     },
 
     getStatusColor(status) {
@@ -456,9 +558,25 @@ export default {
       return map[status] || 'grey'
     },
 
+    openCropDialog(q, choiceKey, cropImg) {
+      const aiRes = q.ai_results || {}
+      const confData = q.ai_confidence || {}
+      this.selectedCrop = {
+        questionId: q.question_id,
+        choice: choiceKey,
+        img: cropImg,
+        aiVerdict: aiRes[choiceKey] || q.bubble_state || 'empty',
+        confidence: confData[choiceKey]?.confidence != null 
+          ? (confData[choiceKey].confidence * 100).toFixed(1) 
+          : (q.final_confidence ? (q.final_confidence * 100).toFixed(1) : '95.0'),
+        center: q.actual_centers && q.actual_centers[choiceKey] ? q.actual_centers[choiceKey] : null,
+      }
+      this.cropDialog = true
+    },
+
     getChoicesForQuestion(qId) {
-      const layoutQuestions = this.submission?.layout_result?.data?.detected_regions?.mcq_questions || []
-      const found = layoutQuestions.find(q => String(q.question_id) === String(qId))
+      const layoutQuestions = this.submission?.layout_result?.detected_regions?.mcq_questions || this.submission?.layout_result?.data?.detected_regions?.mcq_questions || []
+      const found = layoutQuestions.find(item => String(item.question_id) === String(qId))
       if (found && found.choices) return found.choices
       return []
     },

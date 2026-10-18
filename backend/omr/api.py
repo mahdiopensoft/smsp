@@ -12,18 +12,342 @@ import logging
 import os
 import tempfile
 import uuid
+import io
+import zipfile
 
 from django.http import HttpResponse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import permissions, status
 from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
+try:
+    import fitz  # PyMuPDF
+except ImportError:
+    fitz = None
+
 logger = logging.getLogger("omr.api")
 
 # مخزن مؤقت للنتائج (demo mode — لا قاعدة بيانات)
 _RESULT_CACHE: dict = {}
+
+
+
+def _process_and_grade_image_file(
+    image_path: str,
+    original_filename: str = "",
+    template_id: str = "",
+    answer_key: dict = None,
+    marks_map: dict = None,
+    dpi: int = 300,
+    exam_id=None,
+    version_id=None,
+    version_code=None,
+    target_version=None,
+    exam_obj=None,
+    batch_obj=None,
+    page_number: int = 1,
+    request_user=None,
+) -> dict:
+    """
+    الدالة المركزية لتصحيح ورقة إجابة واحدة (صورة أو صفحة مفردة من PDF)،
+    مطابقة بيانات الطالب ورقم الجلوس، التحقق الصارم من عدم انتهاك قفل الكنترول المركزي،
+    وحفظ النتيجة في قاعدة البيانات.
+    """
+    answer_key = answer_key or {}
+    marks_map = marks_map or {}
+
+    # ═══ التصحيح بالمحرك المناسب ═══
+    if template_id or template_id == "":
+        result = _grade_with_template(
+            image_path, template_id or "AUTO", answer_key, dpi,
+            original_filename=original_filename or os.path.basename(image_path),
+            marks_map=marks_map
+        )
+    else:
+        result = _grade_with_legacy(image_path, answer_key, dpi, marks_map=marks_map)
+
+    from exams.models.Exam import Exam
+    from exams.models.StudentExamRegistration import StudentExamRegistration
+    from exams.models.ExamVersion import ExamVersion
+    from submissions.models.Submission import Submission
+    from omr.models.OMRSheetResult import OMRSheetResult
+    from omr.models.OMRQuestionResult import OMRQuestionResult
+    from omr.providers.opencv_omr import normalize_choice
+    from django.core.files.base import ContentFile
+
+    student_info = result.get("student_info", {})
+    s_name = student_info.get("name") or "طالب اختبار"
+    seat_num = student_info.get("seat_number") or result.get("barcode") or ""
+    total_q = result.get("total_questions", len(result.get("questions", [])))
+
+    if not exam_obj:
+        if exam_id:
+            exam_obj = Exam.objects.filter(id=exam_id, is_deleted=False).first()
+        if not exam_obj and target_version:
+            exam_obj = target_version.exam
+        if not exam_obj:
+            exam_obj = Exam.objects.filter(is_deleted=False).order_by('-created_at').first()
+        if not exam_obj:
+            exam_obj, _ = Exam.objects.get_or_create(title="اختبار عام OMR")
+
+    # مطابقة الاختبار والطالب ورقم جلوسه آلياً من الباركود والـ QR وقاعدة البيانات
+    import re
+    barcode_val = result.get("barcode") or ""
+    qr_val = result.get("qr") or ""
+
+    # استخراج معرف الاختبار من الباركود إذا وجد (مثال: EXAM_7_VER_A_SEAT_418485)
+    if barcode_val and "EXAM_" in barcode_val:
+        try:
+            ex_part = barcode_val.split("EXAM_")[1].split("_")[0]
+            if ex_part.isdigit():
+                found_ex = Exam.objects.filter(id=int(ex_part), is_deleted=False).first()
+                if found_ex:
+                    exam_obj = found_ex
+        except Exception:
+            pass
+
+    # تجهيز قائمة بأرقام الجلوس المحتملة من الباركود والـ QR
+    candidate_seats = []
+    if seat_num:
+        candidate_seats.append(str(seat_num).strip())
+    if barcode_val:
+        if "_SEAT_" in barcode_val:
+            candidate_seats.append(barcode_val.split("_SEAT_")[-1].split("_")[0].strip())
+        clean_b = barcode_val.strip()
+        candidate_seats.append(clean_b)
+        if len(clean_b) >= 6:
+            candidate_seats.append(clean_b[:6])
+    if qr_val:
+        tokens = [t.strip() for t in re.split(r'[-|_/]', qr_val) if t.strip().isdigit()]
+        candidate_seats.extend(tokens)
+
+    matched_reg = None
+    if exam_obj:
+        reg_qs = StudentExamRegistration.objects.filter(examVersion__exam=exam_obj, is_deleted=False).select_related('student', 'student_profile__organization', 'examVersion')
+        for c_seat in candidate_seats:
+            if c_seat:
+                matched_reg = reg_qs.filter(seatNumber=c_seat).first()
+                if matched_reg:
+                    break
+        if not matched_reg and barcode_val:
+            for r in reg_qs:
+                if r.seatNumber and (r.seatNumber in barcode_val or barcode_val.startswith(r.seatNumber)):
+                    matched_reg = r
+                    break
+
+    inst_name = ""
+    if matched_reg:
+        if not target_version:
+            target_version = matched_reg.examVersion
+        if matched_reg.student_profile and matched_reg.student_profile.name_ar:
+            s_name = matched_reg.student_profile.name_ar
+        elif matched_reg.student:
+            s_name = matched_reg.student.first_name or matched_reg.student.username
+        if not seat_num:
+            seat_num = matched_reg.seatNumber
+        if matched_reg.student_profile and matched_reg.student_profile.organization:
+            inst_name = matched_reg.student_profile.organization.name_ar
+
+    # ═══ قفل وحماية الكنترول المركزي الصارم (Control Lock Enforcement) ═══
+    # يمنع منعاً باتاً تعديل أو إعادة تصحيح أي ورقة لطالب تم ترحيلها واعتمادها رسمياً في الكنترول
+    existing_locked_sub = None
+    if matched_reg:
+        existing_locked_sub = Submission.objects.filter(
+            exam=exam_obj, registration=matched_reg, is_deleted=False
+        ).first()
+    elif seat_num and exam_obj:
+        existing_locked_sub = Submission.objects.filter(
+            exam=exam_obj, layout_result__seat_number=str(seat_num), is_deleted=False
+        ).first()
+
+    if existing_locked_sub:
+        lr_check = existing_locked_sub.layout_result or {}
+        if lr_check.get("dispatched_to_control"):
+            receipt = lr_check.get("control_receipt_code", "CTL-CONFIRMED")
+            disp_date = lr_check.get("dispatched_at", "")
+            raise PermissionError(
+                f"درجات الطالب '{s_name}' (رقم الجلوس: {seat_num}) معتمدة ومقفلة رسمياً بنظام الكنترول المركزي (إيصال: {receipt} بتاريخ: {disp_date}). يمنع منعاً باتاً إعادة تصحيح أو تعديل الورقة."
+            )
+
+    # مطابقة النموذج المحدد من الباركود إذا لم يكن محدداً
+    if not target_version and barcode_val and "_VER_" in barcode_val and exam_obj:
+        try:
+            v_code = barcode_val.split("_VER_")[1].split("_")[0]
+            target_version = ExamVersion.objects.filter(exam=exam_obj, versionCode=v_code, is_deleted=False).prefetch_related('question_orders__question__options').first()
+        except Exception:
+            pass
+
+    # إذا تم كشف نموذج معتمد بدقة، يتم إعادة احتساب الدرجات بمفتاح النموذج الفعلي
+    if target_version:
+        v_key = {}
+        v_marks = {}
+        for qo in target_version.question_orders.filter(is_deleted=False).order_by('orderIndex'):
+            q = qo.question
+            opts = list(q.options.filter(is_deleted=False))
+            ans_letter = 'A'
+            for idx, opt in enumerate(opts):
+                if opt.isTrue:
+                    ans_letter = chr(65 + idx)
+                    break
+            if (q.questionType in ['True/False', 'true_false', 'صح وخطأ']) or (q.isTrue is not None):
+                ans_letter = 'A' if q.isTrue is True else ('B' if q.isTrue is False else ans_letter)
+            v_key[str(qo.orderIndex)] = ans_letter
+            v_marks[str(qo.orderIndex)] = float(q.defaultMark or 1.0)
+
+        re_score = 0.0
+        re_max = 0.0
+        re_correct = 0
+        for q_item in result.get("questions", []):
+            q_id_str = str(q_item.get("question_id") or q_item.get("q") or 1)
+            exp = v_key.get(q_id_str)
+            w = float(v_marks.get(q_id_str, 1.0))
+            re_max += w
+            q_item["correct_choice"] = exp
+            q_item["max_mark"] = w
+            m_choice = q_item.get("marked_choice") or q_item.get("marked")
+            if m_choice and exp:
+                if normalize_choice(m_choice) == normalize_choice(exp):
+                    q_item["is_correct"] = True
+                    q_item["marks_awarded"] = w
+                    re_score += w
+                    re_correct += 1
+                else:
+                    q_item["is_correct"] = False
+                    q_item["marks_awarded"] = 0.0
+            else:
+                q_item["is_correct"] = False if m_choice else None
+                q_item["marks_awarded"] = 0.0
+
+        result["score"] = round(re_score, 2)
+        result["max_score"] = round(re_max if re_max > 0 else float(total_q), 2)
+        result["total_correct"] = re_correct
+        result["total_wrong"] = result.get("total_answered", 0) - re_correct
+        result["score_percent"] = round((result["score"] / max(result["max_score"], 1.0)) * 100.0, 1)
+
+    total_c = result.get("total_correct", 0)
+    qs = result.get("questions", [])
+    if qs:
+        avg_conf = sum(float(q.get("final_confidence") or q.get("confidence") or 0.95) for q in qs) / len(qs)
+    else:
+        avg_conf = 0.95
+    confidence = float(result.get("overall_confidence") or result.get("confidence") or avg_conf)
+
+    ambiguous_cnt = sum(1 for q in qs if q.get("bubble_state") in ["ambiguous", "multiple"])
+    if ambiguous_cnt == 0:
+        ambiguous_cnt = result.get("ai_corrections", 0)
+
+    initial_sub_status = Submission.Status.NEEDS_REVIEW if (ambiguous_cnt > 0 or confidence < 0.85) else Submission.Status.COMPLETED
+    initial_sheet_status = "needs_review" if (ambiguous_cnt > 0 or confidence < 0.85) else "success"
+
+    annotated_raw = result.pop("annotated_image", b"")
+    annotated_b64 = base64.b64encode(annotated_raw).decode() if annotated_raw else ""
+
+    sub_kwargs = {
+        "exam": exam_obj,
+        "batch": batch_obj,
+        "status": initial_sub_status,
+        "current_engine": result.get("engine_used", "opencv_omr"),
+        "mcq_score": result.get("score", 0),
+        "total_score": result.get("score", 0),
+        "overall_confidence": confidence,
+        "processing_time_ms": result.get("processing_ms", 0.0),
+        "omr_result": result.get("questions", []),
+        "layout_result": {
+            "student_name": s_name,
+            "seat_number": seat_num,
+            "institution_name": inst_name,
+            "template_id": result.get("template_id"),
+            "template_name": result.get("template_name"),
+            "barcode": barcode_val,
+            "qr": qr_val,
+            "total_questions": total_q,
+            "score_percent": result.get("score_percent", 0),
+            "ambiguous_count": ambiguous_cnt,
+            "page_number": page_number,
+        }
+    }
+    if target_version:
+        sub_kwargs["exam_version"] = target_version
+    if matched_reg and not Submission.objects.filter(registration=matched_reg, exam=exam_obj, is_deleted=False).exists():
+        sub_kwargs["registration"] = matched_reg
+
+    sub_record = Submission(**sub_kwargs)
+    try:
+        with open(image_path, "rb") as f_img:
+            sub_record.original_image.save(os.path.basename(original_filename or image_path), ContentFile(f_img.read()), save=False)
+    except Exception as img_save_err:
+        logger.warning(f"Could not save original image to submission: {img_save_err}")
+
+    sub_record.save()
+
+    sheet_obj = OMRSheetResult.objects.create(
+        submission=sub_record,
+        status=initial_sheet_status,
+        confidence=confidence,
+        total_questions=total_q,
+        answered_questions=result.get("total_answered", 0),
+        correct_answers=total_c,
+        wrong_answers=result.get("total_wrong", 0),
+        unanswered=result.get("total_empty", 0),
+        ambiguous_count=ambiguous_cnt,
+        mcq_score=result.get("score", 0),
+        mcq_max_score=result.get("max_score", total_q),
+        provider_used=result.get("engine_used", "opencv_omr"),
+        processing_time_ms=result.get("processing_ms", 0.0),
+    )
+
+    for q_item in result.get("questions", []):
+        q_num = int(q_item.get("question_id") or q_item.get("q") or 1)
+        OMRQuestionResult.objects.create(
+            sheet_result=sheet_obj,
+            question_number=q_num,
+            marked_choice=q_item.get("marked_choice") or q_item.get("marked"),
+            correct_choice=q_item.get("correct_choice") or q_item.get("correct"),
+            is_correct=q_item.get("is_correct"),
+            bubble_state=q_item.get("bubble_state") or ("filled" if q_item.get("marked_choice") else "empty"),
+            choice_confidences=q_item.get("choice_confidences") or {},
+            final_confidence=float(q_item.get("final_confidence") or q_item.get("confidence") or 0.95),
+            marks_awarded=float(q_item.get("marks_awarded", q_item.get("score_awarded", 1.0 if q_item.get("is_correct") else 0.0))),
+        )
+
+    result_id = str(sub_record.id)
+    _RESULT_CACHE[result_id] = {
+        "meta": {k: v for k, v in result.items() if k != "questions"},
+        "questions": result["questions"],
+        "annotated_b64": annotated_b64,
+    }
+
+    return {
+        "result_id":       result_id,
+        "submission_id":   sub_record.id,
+        "page_number":     page_number,
+        "student_name":    s_name,
+        "seat_number":     seat_num,
+        "status":          initial_sub_status,
+        "confidence":      confidence,
+        "total_questions": total_q,
+        "score":           result["score"],
+        "max_score":       result["max_score"],
+        "score_percent":   result["score_percent"],
+        "total_correct":   result["total_correct"],
+        "total_wrong":     result["total_wrong"],
+        "total_answered":  result["total_answered"],
+        "total_empty":     result["total_empty"],
+        "ai_corrections":  ambiguous_cnt,
+        "processing_ms":   result["processing_ms"],
+        "questions":       result["questions"],
+        "annotated_image": annotated_b64,
+        "engine_used":     result.get("engine_used", "legacy"),
+        "template_id":     result.get("template_id") or template_id or "svg_hardcoded",
+        "template_name":   result.get("template_name", ""),
+        "barcode":         barcode_val,
+        "qr":              qr_val,
+        "student_info":    result.get("student_info", {}),
+        "switched_notice": result.get("switched_notice", ""),
+    }
 
 
 @csrf_exempt
@@ -32,39 +356,39 @@ _RESULT_CACHE: dict = {}
 @permission_classes([permissions.AllowAny])
 def grade_sheet(request):
     """
-    رفع ورقة OMR وتصحيحها — Template-Driven Architecture.
-
-    Form-data:
-        sheet_image   (file)    — صورة الورقة (PNG/JPG)
-        answer_key    (str, optional) — JSON: {"1":"A","2":"C",...}
-        template_id   (str, optional) — معرّف القالب (default: OMR_YEMEN_180)
-        dpi           (int, optional) — دقة الصورة (default: 300)
-
-    إذا تم تحديد template_id، يتم استخدام المحرك الاحترافي (OpenCVOMREngine)
-    الذي يقرأ الإحداثيات من القالب. وإلا يُستخدم المحرك القديم (svg_omr_engine) كـ fallback.
+    رفع ورقة OMR وتصحيحها الفوري — يدعم الصور والـ PDF (صفحة واحدة أو متعدد الصفحات).
     """
     image_file = request.FILES.get("sheet_image")
     if not image_file:
         return Response({"error": "sheet_image مطلوب"}, status=status.HTTP_400_BAD_REQUEST)
 
-    # تحليل مفتاح الإجابات والربط بالاختبار
     answer_key = {}
+    marks_map = {}
     raw_key = request.data.get("answer_key", "")
     if raw_key:
         try:
-            parsed = json.loads(raw_key)
-            answer_key = {int(k): v for k, v in parsed.items()}
+            parsed = json.loads(raw_key) if isinstance(raw_key, str) else raw_key
+            answer_key = {str(k): v for k, v in parsed.items()}
         except (json.JSONDecodeError, ValueError) as e:
             return Response({"error": f"answer_key غير صحيح: {e}"}, status=status.HTTP_400_BAD_REQUEST)
 
-    # التحقق من وجود معرف الاختبار أو النموذج لجلب مفتاح الإجابة تلقائياً
+    raw_marks = request.data.get("marks_map", "") or request.data.get("question_marks", "")
+    if raw_marks:
+        try:
+            parsed_marks = json.loads(raw_marks) if isinstance(raw_marks, str) else raw_marks
+            marks_map = {str(k): float(v) for k, v in parsed_marks.items()}
+        except (json.JSONDecodeError, ValueError):
+            pass
+
     exam_id = request.data.get("exam_id") or request.data.get("exam")
     version_id = request.data.get("version_id")
     version_code = request.data.get("version_code") or request.data.get("version")
     target_version = None
+    exam_obj = None
 
     if exam_id or version_id:
         try:
+            from exams.models.Exam import Exam
             from exams.models.ExamVersion import ExamVersion
             if version_id:
                 target_version = ExamVersion.objects.filter(id=version_id, is_deleted=False).prefetch_related('question_orders__question__options').first()
@@ -75,23 +399,34 @@ def grade_sheet(request):
             elif exam_id:
                 target_version = ExamVersion.objects.filter(exam_id=exam_id, is_deleted=False).prefetch_related('question_orders__question__options').first()
 
-            # جلب مفتاح الحل تلقائياً من النموذج إذا لم يُمرر يدوياً
-            if target_version and not answer_key:
+            if exam_id:
+                exam_obj = Exam.objects.filter(id=exam_id, is_deleted=False).first()
+            elif target_version:
+                exam_obj = target_version.exam
+
+            if target_version:
                 for qo in target_version.question_orders.filter(is_deleted=False).order_by('orderIndex'):
-                    opts = list(qo.question.options.filter(is_deleted=False))
+                    q = qo.question
+                    opts = list(q.options.filter(is_deleted=False))
                     ans_letter = 'A'
                     for idx, opt in enumerate(opts):
                         if opt.isTrue:
                             ans_letter = chr(65 + idx)
                             break
-                    answer_key[qo.orderIndex] = ans_letter
+                    if (q.questionType in ['True/False', 'true_false', 'صح وخطأ']) or (q.isTrue is not None):
+                        ans_letter = 'A' if q.isTrue is True else ('B' if q.isTrue is False else ans_letter)
+                    
+                    q_num_str = str(qo.orderIndex)
+                    if not answer_key or q_num_str not in answer_key:
+                        answer_key[q_num_str] = ans_letter
+                    if q_num_str not in marks_map:
+                        marks_map[q_num_str] = float(q.defaultMark or 1.0)
         except Exception as e_key:
             logger.warning(f"Could not auto-fetch answer key from ExamVersion: {e_key}")
 
     dpi = int(request.data.get("dpi", 300))
     template_id = request.data.get("template_id", "").strip()
 
-    # حفظ الصورة مؤقتاً
     suffix = os.path.splitext(image_file.name)[1] or ".png"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         for chunk in image_file.chunks():
@@ -99,156 +434,298 @@ def grade_sheet(request):
         tmp_path = tmp.name
 
     try:
-        if template_id:
-            # ═══ المحرك الاحترافي (Template-Driven) ═══
-            result = _grade_with_template(tmp_path, template_id, answer_key, dpi, original_filename=image_file.name)
+        # فحص ما إذا كان الملف PDF
+        if image_file.name.lower().endswith(".pdf"):
+            if fitz is None:
+                return Response({"error": "مكتبة معالجة الـ PDF (PyMuPDF) غير متوفرة بالسيرفر"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            doc = fitz.open(tmp_path)
+            num_pages = len(doc)
+            if num_pages == 0:
+                return Response({"error": "ملف الـ PDF فارغ لا يحتوي على أي صفحات"}, status=status.HTTP_400_BAD_REQUEST)
+
+            if num_pages == 1:
+                # PDF صفحة واحدة
+                page = doc[0]
+                pix = page.get_pixmap(dpi=dpi)
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as p_tmp:
+                    p_tmp.write(pix.tobytes("png"))
+                    p_img_path = p_tmp.name
+                try:
+                    res = _process_and_grade_image_file(
+                        p_img_path,
+                        original_filename=f"{os.path.splitext(image_file.name)[0]}_page_1.png",
+                        template_id=template_id,
+                        answer_key=answer_key,
+                        marks_map=marks_map,
+                        dpi=dpi,
+                        exam_id=exam_id,
+                        version_id=version_id,
+                        version_code=version_code,
+                        target_version=target_version,
+                        exam_obj=exam_obj,
+                        request_user=request.user if request.user.is_authenticated else None,
+                    )
+                    return Response(res, status=status.HTTP_200_OK)
+                finally:
+                    if os.path.exists(p_img_path):
+                        os.unlink(p_img_path)
+            else:
+                # PDF متعدد الصفحات
+                from submissions.models.SubmissionBatch import SubmissionBatch
+                batch_name = f"مسح PDF متعدد ({num_pages} ص) - {image_file.name} - {timezone.now().strftime('%H:%M')}"
+                batch_record = SubmissionBatch.objects.create(
+                    name=batch_name,
+                    exam=exam_obj,
+                    uploaded_by=request.user if request.user.is_authenticated else None,
+                    status=SubmissionBatch.Status.PROCESSING,
+                    total_papers=num_pages,
+                )
+
+                pages_results = []
+                for p_idx in range(num_pages):
+                    page = doc[p_idx]
+                    pix = page.get_pixmap(dpi=dpi)
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as p_tmp:
+                        p_tmp.write(pix.tobytes("png"))
+                        p_img_path = p_tmp.name
+                    try:
+                        p_res = _process_and_grade_image_file(
+                            p_img_path,
+                            original_filename=f"{os.path.splitext(image_file.name)[0]}_page_{p_idx+1}.png",
+                            template_id=template_id,
+                            answer_key=answer_key,
+                            marks_map=marks_map,
+                            dpi=dpi,
+                            exam_id=exam_id,
+                            version_id=version_id,
+                            version_code=version_code,
+                            target_version=target_version,
+                            exam_obj=exam_obj,
+                            batch_obj=batch_record,
+                            page_number=p_idx + 1,
+                            request_user=request.user if request.user.is_authenticated else None,
+                        )
+                        pages_results.append(p_res)
+                    except PermissionError as p_err:
+                        pages_results.append({
+                            "page_number": p_idx + 1,
+                            "student_name": "مقفل بالكنترول",
+                            "error": str(p_err),
+                            "status": "locked_in_control",
+                        })
+                    except Exception as p_err:
+                        logger.warning(f"Error grading page {p_idx+1}: {p_err}")
+                        pages_results.append({
+                            "page_number": p_idx + 1,
+                            "student_name": f"خطأ ص {p_idx+1}",
+                            "error": str(p_err),
+                            "status": "failed",
+                        })
+                    finally:
+                        if os.path.exists(p_img_path):
+                            os.unlink(p_img_path)
+
+                from submissions.models.Submission import Submission
+                completed_cnt = sum(1 for p in pages_results if p.get("status") == Submission.Status.COMPLETED)
+                needs_rev_cnt = sum(1 for p in pages_results if p.get("status") == Submission.Status.NEEDS_REVIEW)
+                batch_record.processed_papers = completed_cnt + needs_rev_cnt
+                batch_record.failed_papers = num_pages - (completed_cnt + needs_rev_cnt)
+                batch_record.status = SubmissionBatch.Status.COMPLETED if batch_record.failed_papers == 0 else SubmissionBatch.Status.PARTIALLY_COMPLETED
+                batch_record.save()
+
+                first_valid = next((p for p in pages_results if "score" in p), pages_results[0])
+                resp_payload = {
+                    "is_batch": True,
+                    "batch_id": batch_record.id,
+                    "total_pages": num_pages,
+                    "completed_count": completed_cnt,
+                    "needs_review_count": needs_rev_cnt,
+                    "pages": pages_results,
+                    "result_id": first_valid.get("result_id"),
+                    "score": first_valid.get("score", 0),
+                    "max_score": first_valid.get("max_score", 0),
+                    "score_percent": first_valid.get("score_percent", 0),
+                    "total_correct": first_valid.get("total_correct", 0),
+                    "total_wrong": first_valid.get("total_wrong", 0),
+                    "total_answered": first_valid.get("total_answered", 0),
+                    "total_empty": first_valid.get("total_empty", 0),
+                    "questions": first_valid.get("questions", []),
+                    "annotated_image": first_valid.get("annotated_image", ""),
+                    "engine_used": first_valid.get("engine_used", "template_driven"),
+                    "template_id": first_valid.get("template_id", ""),
+                    "template_name": first_valid.get("template_name", ""),
+                    "barcode": first_valid.get("barcode", ""),
+                    "qr": first_valid.get("qr", ""),
+                    "student_info": first_valid.get("student_info", {}),
+                }
+                return Response(resp_payload, status=status.HTTP_200_OK)
+
         else:
-            # ═══ Fallback: المحرك القديم (svg_omr_engine) ═══
-            result = _grade_with_legacy(tmp_path, answer_key, dpi)
+            # صورة منفردة (PNG / JPG / TIFF)
+            res = _process_and_grade_image_file(
+                tmp_path,
+                original_filename=image_file.name,
+                template_id=template_id,
+                answer_key=answer_key,
+                marks_map=marks_map,
+                dpi=dpi,
+                exam_id=exam_id,
+                version_id=version_id,
+                version_code=version_code,
+                target_version=target_version,
+                exam_obj=exam_obj,
+                request_user=request.user if request.user.is_authenticated else None,
+            )
+            return Response(res, status=status.HTTP_200_OK)
+
+    except PermissionError as perm_err:
+        return Response({"error": str(perm_err)}, status=status.HTTP_403_FORBIDDEN)
     except Exception as e:
         logger.exception("خطأ في التصحيح")
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     finally:
-        os.unlink(tmp_path)
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
 
-    # تحويل الصورة المُعلَّقة إلى base64
-    annotated_b64 = base64.b64encode(result.pop("annotated_image")).decode()
 
-    # توليد معرّف النتيجة وتخزينها
-    result_id = str(uuid.uuid4())
-    _RESULT_CACHE[result_id] = {
-        "meta": {k: v for k, v in result.items() if k != "questions"},
-        "questions": result["questions"],
-        "annotated_b64": annotated_b64,
-    }
+@csrf_exempt
+@api_view(["POST"])
+@parser_classes([MultiPartParser, FormParser])
+@permission_classes([permissions.AllowAny])
+def batch_scan_api(request):
+    """
+    المسح والتصحيح الجماعي المباشر (Multi-file / Multipage Batch Scan API)
+    يستقبل ملفات متعددة (صور فردية، PDF متعدد الصفحات، ZIP).
+    """
+    from submissions.models.SubmissionBatch import SubmissionBatch
+    from exams.models.Exam import Exam
 
-    # ═══ حفظ النتيجة آلياً في قاعدة البيانات في نموذج Submission و OMRSheetResult ═══
-    try:
-        from submissions.models.Submission import Submission
-        from omr.models.OMRSheetResult import OMRSheetResult
+    uploaded_files = request.FILES.getlist('files') or request.FILES.getlist('images') or []
+    single_file = request.FILES.get('file') or request.FILES.get('sheet_image')
+    if single_file and not uploaded_files:
+        uploaded_files = [single_file]
 
-        student_info = result.get("student_info", {})
-        s_name = student_info.get("name") or "طالب اختبار"
-        seat_num = student_info.get("seat_number") or result.get("barcode") or ""
-        total_q = result.get("total_questions", len(result.get("questions", [])))
-        total_c = result.get("total_correct", 0)
+    if not uploaded_files:
+        return Response({"error": "لم يتم العثور على أي ملفات أو صور للمعالجة"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # حساب نسبة الثقة الكلية
-        qs = result.get("questions", [])
-        if qs:
-            avg_conf = sum(float(q.get("final_confidence") or q.get("confidence") or 0.95) for q in qs) / len(qs)
-        else:
-            avg_conf = 0.95
-        confidence = float(result.get("overall_confidence") or result.get("confidence") or avg_conf)
+    exam_id = request.data.get('exam_id') or request.data.get('exam')
+    template_id = request.data.get('template_id', 'AUTO')
+    dpi = int(request.data.get('dpi', 300))
+    batch_title = request.data.get('title') or request.data.get('name') or f"دفعة مسح ضوئي {timezone.now().strftime('%Y-%m-%d %H:%M')}"
 
-        # ربط الاختبار والنموذج في التسليم
-        from exams.models.Exam import Exam
-        from exams.models.StudentExamRegistration import StudentExamRegistration
-        exam_obj = None
-        if exam_id:
-            exam_obj = Exam.objects.filter(id=exam_id, is_deleted=False).first()
-        if not exam_obj:
-            exam_obj = Exam.objects.filter(is_deleted=False).order_by('-created_at').first()
-        if not exam_obj:
-            exam_obj, _ = Exam.objects.get_or_create(title="اختبار عام OMR", defaults={"total_score": 100})
+    exam_obj = None
+    if exam_id:
+        exam_obj = Exam.objects.filter(id=exam_id, is_deleted=False).first()
+    if not exam_obj:
+        exam_obj = Exam.objects.filter(is_deleted=False).order_by('-created_at').first()
 
-        # محاولة مطابقة تسجيل الطالب آلياً عبر رقم الجلوس أو الباركود
-        barcode_val = result.get("barcode") or ""
-        qr_val = result.get("qr") or ""
-        matched_reg = None
-        if exam_obj:
-            reg_qs = StudentExamRegistration.objects.filter(examVersion__exam=exam_obj, is_deleted=False).select_related('student', 'student_profile__organization', 'examVersion')
-            if seat_num:
-                matched_reg = reg_qs.filter(seatNumber=str(seat_num)).first()
-            if not matched_reg and barcode_val:
-                matched_reg = reg_qs.filter(seatNumber=barcode_val.split("_")[-1] if "SEAT_" in barcode_val else barcode_val).first()
-            if not matched_reg and qr_val and "|" in qr_val:
-                parts = qr_val.split("|")
-                if len(parts) >= 3:
-                    matched_reg = reg_qs.filter(seatNumber=parts[2]).first()
+    batch_record = SubmissionBatch.objects.create(
+        name=batch_title,
+        exam=exam_obj,
+        uploaded_by=request.user if request.user.is_authenticated else None,
+        status=SubmissionBatch.Status.PROCESSING,
+    )
 
-        inst_name = ""
-        if matched_reg:
-            if not target_version:
-                target_version = matched_reg.examVersion
-            if not s_name or s_name == "طالب اختبار":
-                if matched_reg.student_profile and matched_reg.student_profile.name_ar:
-                    s_name = matched_reg.student_profile.name_ar
-                elif matched_reg.student:
-                    s_name = matched_reg.student.first_name or matched_reg.student.username
-            if not seat_num:
-                seat_num = matched_reg.seatNumber
-            if matched_reg.student_profile and matched_reg.student_profile.organization:
-                inst_name = matched_reg.student_profile.organization.name_ar
+    extracted_images = []
+    for up_file in uploaded_files:
+        fn_lower = up_file.name.lower()
+        file_bytes = up_file.read()
+        if fn_lower.endswith('.zip'):
+            try:
+                with zipfile.ZipFile(io.BytesIO(file_bytes)) as z:
+                    for zinfo in z.infolist():
+                        if zinfo.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tif', '.tiff', '.webp')):
+                            extracted_images.append((os.path.basename(zinfo.filename), z.read(zinfo.filename)))
+            except Exception as ze:
+                logger.warning(f"Error reading ZIP: {ze}")
+        elif fn_lower.endswith('.pdf'):
+            if fitz is not None:
+                try:
+                    doc = fitz.open(stream=file_bytes, filetype="pdf")
+                    for p_idx in range(len(doc)):
+                        pix = doc[p_idx].get_pixmap(dpi=dpi)
+                        extracted_images.append((f"{os.path.splitext(up_file.name)[0]}_page_{p_idx+1}.png", pix.tobytes("png")))
+                except Exception as pe:
+                    logger.warning(f"Error rendering PDF {up_file.name}: {pe}")
+        elif fn_lower.endswith(('.png', '.jpg', '.jpeg', '.tif', '.tiff', '.webp')):
+            extracted_images.append((up_file.name, file_bytes))
 
-        sub_kwargs = {
-            "exam": exam_obj,
-            "status": Submission.Status.COMPLETED,
-            "current_engine": result.get("engine_used", "opencv_omr"),
-            "mcq_score": result.get("score", 0),
-            "total_score": result.get("score", 0),
-            "overall_confidence": confidence,
-            "processing_time_ms": result.get("processing_ms", 0.0),
-            "omr_result": result.get("questions", []),
-            "layout_result": {
-                "student_name": s_name,
-                "seat_number": seat_num,
-                "institution_name": inst_name,
-                "template_id": result.get("template_id"),
-                "template_name": result.get("template_name"),
-                "barcode": barcode_val,
-                "qr": qr_val,
-                "total_questions": total_q,
-                "score_percent": result.get("score_percent", 0),
-            }
-        }
-        if target_version:
-            sub_kwargs["exam_version"] = target_version
-        if matched_reg and not Submission.objects.filter(registration=matched_reg).exists():
-            sub_kwargs["registration"] = matched_reg
+    if not extracted_images:
+        batch_record.status = SubmissionBatch.Status.FAILED
+        batch_record.save()
+        return Response({"error": "لم يتم العثور على أوراق صالحة داخل الملفات المرفوعة"}, status=status.HTTP_400_BAD_REQUEST)
 
-        sub_record = Submission.objects.create(**sub_kwargs)
+    batch_record.total_papers = len(extracted_images)
+    batch_record.save()
 
-        OMRSheetResult.objects.create(
-            submission=sub_record,
-            status="success",
-            confidence=confidence,
-            total_questions=total_q,
-            answered_questions=result.get("total_answered", 0),
-            correct_answers=total_c,
-            wrong_answers=result.get("total_wrong", 0),
-            unanswered=result.get("total_empty", 0),
-            mcq_score=result.get("score", 0),
-            mcq_max_score=result.get("max_score", total_q),
-            provider_used=result.get("engine_used", "opencv_omr"),
-            processing_time_ms=result.get("processing_ms", 0.0),
-        )
-        result_id = str(sub_record.id)
-        _RESULT_CACHE[result_id] = _RESULT_CACHE[list(_RESULT_CACHE.keys())[-1]]
-    except Exception as db_err:
-        logger.warning(f"Could not persist submission record to DB: {db_err}")
+    from submissions.models.Submission import Submission
+    processed_sheets = []
+    success_count = 0
+    needs_review_count = 0
+    locked_count = 0
+    failed_count = 0
+
+    for idx, (img_name, img_bytes) in enumerate(extracted_images):
+        suffix = os.path.splitext(img_name)[1] or ".png"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_f:
+            tmp_f.write(img_bytes)
+            tmp_p = tmp_f.name
+
+        try:
+            res = _process_and_grade_image_file(
+                tmp_p,
+                original_filename=img_name,
+                template_id=template_id,
+                dpi=dpi,
+                exam_obj=exam_obj,
+                batch_obj=batch_record,
+                page_number=idx + 1,
+                request_user=request.user if request.user.is_authenticated else None,
+            )
+            processed_sheets.append(res)
+            if res.get("status") == Submission.Status.COMPLETED:
+                success_count += 1
+            else:
+                needs_review_count += 1
+        except PermissionError as perm_e:
+            locked_count += 1
+            processed_sheets.append({
+                "page_number": idx + 1,
+                "filename": img_name,
+                "student_name": "مقفل بالكنترول",
+                "status": "locked_in_control",
+                "error": str(perm_e),
+            })
+        except Exception as sheet_e:
+            failed_count += 1
+            processed_sheets.append({
+                "page_number": idx + 1,
+                "filename": img_name,
+                "student_name": "خطأ في المعالجة",
+                "status": Submission.Status.FAILED,
+                "error": str(sheet_e),
+            })
+        finally:
+            if os.path.exists(tmp_p):
+                os.unlink(tmp_p)
+
+    batch_record.processed_papers = success_count + needs_review_count
+    batch_record.failed_papers = failed_count
+    batch_record.status = SubmissionBatch.Status.COMPLETED if failed_count == 0 else SubmissionBatch.Status.PARTIALLY_COMPLETED
+    batch_record.save()
 
     return Response({
-        "result_id":       result_id,
-        "total_questions": result.get("total_questions", len(result.get("questions", []))),
-        "score":           result["score"],
-        "max_score":       result["max_score"],
-        "score_percent":   result["score_percent"],
-        "total_correct":   result["total_correct"],
-        "total_wrong":     result["total_wrong"],
-        "total_answered":  result["total_answered"],
-        "total_empty":     result["total_empty"],
-        "ai_corrections":  result.get("ai_corrections", 0),
-        "processing_ms":   result["processing_ms"],
-        "questions":       result["questions"],
-        "annotated_image": annotated_b64,
-        "engine_used":     result.get("engine_used", "legacy"),
-        "template_id":     result.get("template_id") or template_id or "svg_hardcoded",
-        "template_name":   result.get("template_name", ""),
-        "barcode":         result.get("barcode", ""),
-        "qr":              result.get("qr", ""),
-        "student_info":    result.get("student_info", {}),
-        "switched_notice": result.get("switched_notice", ""),
+        "success": True,
+        "message": f"اكتملت المعالجة الجماعية بنجاح ({batch_record.processed_papers}/{len(extracted_images)} ورقة)",
+        "batch_id": batch_record.id,
+        "batch_name": batch_record.name,
+        "total_papers": len(extracted_images),
+        "completed_count": success_count,
+        "needs_review_count": needs_review_count,
+        "locked_count": locked_count,
+        "failed_count": failed_count,
+        "sheets": processed_sheets,
     }, status=status.HTTP_200_OK)
 
 
@@ -258,8 +735,7 @@ def grade_sheet(request):
 @permission_classes([permissions.AllowAny])
 def detect_template_api(request):
     """
-    التعرف التلقائي الفوري على القالب من الورقة المرفوعة مباشرة.
-    يرجع معرّف القالب المطابق، اسمه، وعدد الأسئلة دون الحاجة لاختيار يدوي من المستخدم.
+    التعرف التلقائي الفوري على القالب من الورقة المرفوعة مباشرة (يدعم الصور والـ PDF).
     """
     image_file = request.FILES.get("sheet_image")
     if not image_file:
@@ -271,8 +747,21 @@ def detect_template_api(request):
             tmp.write(chunk)
         tmp_path = tmp.name
 
+    sheet_to_check = tmp_path
+    cleanup_sheet = False
+
     try:
-        db_obj, detected_code, detected_qs = _detect_template_from_sheet(tmp_path, original_filename=image_file.name)
+        if image_file.name.lower().endswith(".pdf"):
+            if fitz is not None:
+                doc = fitz.open(tmp_path)
+                if len(doc) > 0:
+                    pix = doc[0].get_pixmap(dpi=300)
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as p_tmp:
+                        p_tmp.write(pix.tobytes("png"))
+                        sheet_to_check = p_tmp.name
+                        cleanup_sheet = True
+
+        db_obj, detected_code, detected_qs = _detect_template_from_sheet(sheet_to_check, original_filename=image_file.name)
         if not db_obj:
             return Response({"error": "تعذر التعرف على القالب من الورقة"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -291,8 +780,11 @@ def detect_template_api(request):
         logger.exception("خطأ في كشف القالب")
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     finally:
+        if cleanup_sheet and os.path.exists(sheet_to_check):
+            os.unlink(sheet_to_check)
         if os.path.exists(tmp_path):
             os.unlink(tmp_path)
+
 
 
 def _detect_template_from_sheet(image_path: str, requested_template_id: str = "", original_filename: str = ""):
@@ -390,6 +882,134 @@ def _detect_template_from_sheet(image_path: str, requested_template_id: str = ""
         except Exception as q_err:
             logger.debug("cv2 QR scan error: %s", q_err)
 
+    import re
+    if not detected_code:
+        try:
+            import pytesseract
+            # فحص حجرة الباركود النصية أسفل يسار الورقة (OCR Barcode Text Fallback)
+            bc_roi = img[int(h * 0.65):int(h * 0.98), int(w * 0.03):int(w * 0.40)]
+            ocr_txt = pytesseract.image_to_string(bc_roi).strip()
+            m_ocr = re.search(r"EXAM_\d+_VER_[A-Za-z0-9]+(_SEAT_\d+)?", ocr_txt)
+            if m_ocr:
+                detected_code = m_ocr.group(0)
+                logger.info("Auto-detected exam barcode via OCR fallback: %s", detected_code)
+        except Exception as ocr_err:
+            logger.debug("OCR barcode fallback error: %s", ocr_err)
+
+    # ── 3.1 مطابقة باركود جلسات الاختبار EXAM_{id}_VER_{code}...
+    if detected_code:
+        exam_bar_m = re.search(r"EXAM_(\d+)_VER_([A-Za-z0-9]+)", detected_code)
+        if exam_bar_m:
+            try:
+                ex_id = int(exam_bar_m.group(1))
+                v_code = exam_bar_m.group(2)
+                from exams.models.ExamVersion import ExamVersion
+                v_match = ExamVersion.objects.filter(exam_id=ex_id, versionCode=v_code, is_deleted=False).prefetch_related('question_orders').first()
+                if not v_match:
+                    v_match = ExamVersion.objects.filter(exam_id=ex_id, is_deleted=False).prefetch_related('question_orders').first()
+                if v_match:
+                    v_q_cnt = v_match.question_orders.filter(is_deleted=False).count()
+                    if v_q_cnt > 0:
+                        tpl_match = None
+                        for tpl in active_templates:
+                            t_td = tpl.template_data or {}
+                            t_qs = (
+                                t_td.get("questions", {}).get("metadata", {}).get("num_questions") or
+                                len(t_td.get("mcq_questions", [])) or
+                                getattr(tpl, "total_mcq", None)
+                            )
+                            if t_qs == v_q_cnt or f"({v_q_cnt} سؤال)" in tpl.name or f"({v_q_cnt}سؤال)" in tpl.name:
+                                tpl_match = tpl
+                                break
+                        if not tpl_match:
+                            try:
+                                from templates_engine.builder import TemplateBuilderService
+                                builder = TemplateBuilderService()
+                                tf_orders = [qo for qo in v_match.question_orders.filter(is_deleted=False).order_by('orderIndex') if (qo.question.questionType in ['True/False', 'true_false', 'صح وخطأ']) or (qo.question.isTrue is not None)]
+                                mcq_orders = [qo for qo in v_match.question_orders.filter(is_deleted=False).order_by('orderIndex') if qo not in tf_orders]
+                                sections = []
+                                if tf_orders:
+                                    sections.append({
+                                        "id": "sec_tf",
+                                        "title": "صح وخطأ",
+                                        "from_q": tf_orders[0].orderIndex,
+                                        "to_q": tf_orders[-1].orderIndex,
+                                        "type": "true_false",
+                                        "choices": ["صح", "خطأ"]
+                                    })
+                                if mcq_orders:
+                                    sections.append({
+                                        "id": "sec_mcq",
+                                        "title": "اختيار من متعدد",
+                                        "from_q": mcq_orders[0].orderIndex,
+                                        "to_q": mcq_orders[-1].orderIndex,
+                                        "type": "mcq",
+                                        "choices": ["1", "2", "3", "4"]
+                                    })
+                                dyn_cfg = {
+                                    "template_id": f"EXAM_{ex_id}_AUTO",
+                                    "template_name": f"{v_match.exam.title} ({v_q_cnt} سؤال)",
+                                    "name": f"{v_match.exam.title} ({v_q_cnt} سؤال)",
+                                    "paper": {"size": "A5", "dpi": 300},
+                                    "paper_size": "A5",
+                                    "total_mcq": v_q_cnt,
+                                    "questions": {
+                                        "metadata": {"num_questions": v_q_cnt},
+                                        "layout": {"columns_count": 4},
+                                        "sections": sections
+                                    }
+                                }
+                                dyn_contract = builder.build_from_designer_config(dyn_cfg)
+                                dyn_cfg["mcq_questions"] = [q.model_dump() for q in dyn_contract.mcq_questions]
+                                tpl_match, _ = ExamTemplate.objects.get_or_create(
+                                    name=f"{v_match.exam.title} ({v_q_cnt} سؤال)",
+                                    defaults={"template_data": dyn_cfg, "is_active": True}
+                                )
+                            except Exception as dyn_err:
+                                logger.warning("Could not auto-generate dynamic template: %s", dyn_err)
+                        if not tpl_match and active_templates:
+                            tpl_match = active_templates[0]
+                        if tpl_match:
+                            logger.info("Auto-bound sheet via exam barcode %s to template: %s (%d Qs)", detected_code, tpl_match.name, v_q_cnt)
+                            return tpl_match, detected_code, v_q_cnt
+            except Exception as ex_err:
+                logger.debug("Error resolving exam barcode: %s", ex_err)
+
+        # ── 3.2 مطابقة رمز QR المشفر بصيغة {uniqueCode}|{versionCode}|{seatNumber}
+        if "|" in detected_code:
+            parts = [p.strip() for p in detected_code.split("|")]
+            if len(parts) >= 2:
+                u_code, v_code = parts[0], parts[1]
+                try:
+                    from exams.models.Exam import Exam
+                    from exams.models.ExamVersion import ExamVersion
+                    ex_match = Exam.objects.filter(uniqueCode=u_code, is_deleted=False).first()
+                    if ex_match:
+                        v_match = ExamVersion.objects.filter(exam=ex_match, versionCode=v_code, is_deleted=False).prefetch_related('question_orders').first()
+                        if not v_match:
+                            v_match = ExamVersion.objects.filter(exam=ex_match, is_deleted=False).prefetch_related('question_orders').first()
+                        if v_match:
+                            v_q_cnt = v_match.question_orders.filter(is_deleted=False).count()
+                            if v_q_cnt > 0:
+                                tpl_match = None
+                                for tpl in active_templates:
+                                    t_td = tpl.template_data or {}
+                                    t_qs = (
+                                        t_td.get("questions", {}).get("metadata", {}).get("num_questions") or
+                                        len(t_td.get("mcq_questions", [])) or
+                                        getattr(tpl, "total_mcq", None)
+                                    )
+                                    if t_qs == v_q_cnt or f"({v_q_cnt} سؤال)" in tpl.name or f"({v_q_cnt}سؤال)" in tpl.name:
+                                        tpl_match = tpl
+                                        break
+                                if not tpl_match and active_templates:
+                                    tpl_match = active_templates[0]
+                                if tpl_match:
+                                    logger.info("Auto-bound sheet via QR %s to template: %s (%d Qs)", detected_code, tpl_match.name, v_q_cnt)
+                                    return tpl_match, detected_code, v_q_cnt
+                except Exception as qr_err:
+                    logger.debug("Error resolving exam QR: %s", qr_err)
+
     # التحقق مما إذا كان الباركود يطابق قالباً فريداً غير باركود الوزارة العام
     is_generic_ministry_code = (
         detected_code in ("41848501164148", "YE-MOE-1444-418485-SUB1") or
@@ -412,14 +1032,65 @@ def _detect_template_from_sheet(image_path: str, requested_template_id: str = ""
             logger.info("Auto-detected custom template by unique barcode: %s (%d Qs)", match_obj.name, q_cnt)
             return match_obj, detected_code, q_cnt
 
-    # ── 4. فحص هيئة وأبعاد الورقة (A4 طولي مقابل A5 عرضي) ───────────
+    # ── 4. فحص هيئة وأبعاد الورقة وتصحيح التدوير (A4 طولي مقابل A5 عرضي) ───────────
     is_portrait = h > w * 1.15
     if is_portrait:
-        db_obj = ExamTemplate.objects.filter(
-            Q(template_data__paper__size__iexact="A4") | Q(name__icontains="180"),
-            is_active=True
-        ).order_by("-created_at").first()
-        return db_obj, detected_code, 180
+        def _check_fiducials_simple(test_im):
+            th_h, th_w = test_im.shape[:2]
+            t_scale = max(th_w / 210.0, th_h / 148.5)
+            exp_sz = 5.5 * t_scale
+            mn_sz, mx_sz = max(4.0, exp_sz * 0.35), max(exp_sz * 2.2, 12.0)
+            t_gr = cv2.cvtColor(test_im, cv2.COLOR_BGR2GRAY) if len(test_im.shape) == 3 else test_im
+            try:
+                _, t_ot = cv2.threshold(t_gr, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+            except Exception:
+                return 0
+            q_boxes = [
+                (0, 0, th_w // 4, th_h // 4),
+                (3 * th_w // 4, 0, th_w, th_h // 4),
+                (0, 3 * th_h // 4, th_w // 4, th_h),
+                (3 * th_w // 4, 3 * th_h // 4, th_w, th_h),
+            ]
+            f_hits = 0
+            for qx1, qy1, qx2, qy2 in q_boxes:
+                roi = t_ot[qy1:qy2, qx1:qx2]
+                cnts, _ = cv2.findContours(roi, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+                for c in cnts:
+                    bx, by, bw, bh = cv2.boundingRect(c)
+                    if mn_sz <= bw <= mx_sz and mn_sz <= bh <= mx_sz and 0.55 <= bw / float(bh) <= 1.80:
+                        c_roi = roi[by:by+bh, bx:bx+bw]
+                        if cv2.countNonZero(c_roi) / float(bw * bh) > 0.50:
+                            f_hits += 1
+                            break
+            return f_hits
+
+        cw_hits = _check_fiducials_simple(cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE))
+        ccw_hits = _check_fiducials_simple(cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE))
+
+        if cw_hits >= 3:
+            img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+            h, w = img.shape[:2]
+            logger.info("Auto-rotated sheet 90° CW to match A5 landscape layout (fiducials=%d)", cw_hits)
+        elif ccw_hits >= 3:
+            img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            h, w = img.shape[:2]
+            logger.info("Auto-rotated sheet 90° CCW to match A5 landscape layout (fiducials=%d)", ccw_hits)
+        else:
+            db_obj = ExamTemplate.objects.filter(
+                Q(template_data__paper__size__iexact="A4") | Q(name__icontains="180") | Q(paper_height_mm__gt=250),
+                is_active=True
+            ).order_by("-created_at").first()
+            q_cnt = 180
+            if db_obj:
+                td = db_obj.template_data or {}
+                q_cnt = (
+                    td.get("questions", {}).get("metadata", {}).get("num_questions") or
+                    len(td.get("mcq_questions", [])) or
+                    getattr(db_obj, "total_mcq", None) or
+                    (180 if "180" in db_obj.name else 50)
+                )
+            logger.info("Auto-detected portrait A4 sheet -> Bound Template: %s (%d Qs)", db_obj.name if db_obj else "None", q_cnt)
+            return db_obj, detected_code, q_cnt
 
     # ── 5. ورقة A5 عرضية: محاذاة الزوايا الأربع (Fiducials) ──────────
     canon_w, canon_h = 2480, 1754
@@ -680,7 +1351,7 @@ def _detect_template_from_sheet(image_path: str, requested_template_id: str = ""
     return db_obj, detected_code, detected_qs
 
 
-def _grade_with_template(image_path: str, template_id: str, answer_key: dict, dpi: int, original_filename: str = "") -> dict:
+def _grade_with_template(image_path: str, template_id: str, answer_key: dict, dpi: int, original_filename: str = "", marks_map: dict = None) -> dict:
     """
     التصحيح باستخدام المحرك الاحترافي (OpenCVOMREngine + Template).
     يتعرف تلقائياً على القالب المطابق مباشرة من محتوى الورقة (40 سؤال أو 50 سؤال أو 60 أو 180).
@@ -830,14 +1501,16 @@ def _grade_with_template(image_path: str, template_id: str, answer_key: dict, dp
     from omr.providers.opencv_omr import OpenCVOMREngine
     engine = OpenCVOMREngine()
 
+    marks_by_q = {str(k): float(v) for k, v in (marks_map or {}).items()}
     engine_result = engine._process(
         input_data={"image_path": image_path},
         context={
             "template": template,
             "dpi": effective_dpi,
             "answer_key": {
-                "mcq_answers": {str(k): v for k, v in answer_key.items()},
-                "mcq_marks_per_question": 1,
+                "mcq_answers": {str(k): v for k, v in (answer_key or {}).items()},
+                "marks_by_question": marks_by_q,
+                "mcq_marks_per_question": 1.0,
             },
         },
     )
@@ -863,10 +1536,11 @@ def _grade_with_template(image_path: str, template_id: str, answer_key: dict, dp
     student_info = {}
     if db_obj and isinstance(db_obj.template_data, dict):
         td = db_obj.template_data
-        if not barcode_val:
-            barcode_val = td.get("barcode", {}).get("value", "")
-        qr_val = td.get("qr", {}).get("value", "")
         student_info = td.get("header", {})
+
+    final_score = float(data.get("total_score", total_correct))
+    final_max = float(data.get("max_score", total_questions))
+    score_pct = round((final_score / max(final_max, 1.0)) * 100, 1)
 
     return {
         "total_questions": total_questions,
@@ -874,9 +1548,9 @@ def _grade_with_template(image_path: str, template_id: str, answer_key: dict, dp
         "total_correct":   total_correct,
         "total_wrong":     total_answered - total_correct,
         "total_empty":     total_questions - total_answered,
-        "score":           round(data.get("total_score", total_correct), 2),
-        "max_score":       float(data.get("max_score", total_questions)),
-        "score_percent":   round((total_correct / max(total_questions, 1)) * 100, 1),
+        "score":           round(final_score, 2),
+        "max_score":       round(final_max, 2),
+        "score_percent":   score_pct,
         "ai_corrections":  data.get("ambiguous_count", 0),
         "processing_ms":   round(elapsed_ms, 1),
         "questions":       questions_raw,
@@ -890,7 +1564,7 @@ def _grade_with_template(image_path: str, template_id: str, answer_key: dict, dp
     }
 
 
-def _grade_with_legacy(image_path: str, answer_key: dict, dpi: int) -> dict:
+def _grade_with_legacy(image_path: str, answer_key: dict, dpi: int, marks_map: dict = None) -> dict:
     """Fallback: المحرك القديم svg_omr_engine (إحداثيات ثابتة)."""
     from omr.providers.svg_omr_engine import grade_sheet as _grade
     result = _grade(
@@ -898,6 +1572,7 @@ def _grade_with_legacy(image_path: str, answer_key: dict, dpi: int) -> dict:
         answer_key=answer_key if answer_key else None,
         dpi=dpi,
         use_ai=True,
+        marks_map=marks_map
     )
     result["engine_used"] = "legacy_svg"
     return result
@@ -952,6 +1627,9 @@ def _draw_template_annotated(img, questions, template, dpi):
                         cv2.line(img, (cx+int(r*.4), cy-int(r*.4)), (cx-int(r*.4), cy+int(r*.4)), (255,255,255), 2)
                     else:
                         cv2.circle(img, (cx, cy), mk, (255, 180, 0), 2)
+            else:
+                # إظهار إطار الدائرة المكتشفة باللون الأزرق الفاتح لإثبات مسح وموضع الدائرة
+                cv2.circle(img, (cx, cy), mk, (240, 160, 40), 1)
 
             cv2.circle(img, (cx, cy), 2, (80, 80, 80), -1)
 

@@ -17,18 +17,30 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
     def get_student_name(self, obj):
         try:
-            if obj.registration and obj.registration.student:
-                s = obj.registration.student
-                full_name = f"{s.first_name or ''} {s.last_name or ''}".strip()
-                return full_name or s.username
+            if obj.registration:
+                if obj.registration.student_profile and obj.registration.student_profile.name_ar:
+                    return obj.registration.student_profile.name_ar
+                if obj.registration.student:
+                    s = obj.registration.student
+                    full_name = f"{s.first_name or ''} {s.last_name or ''}".strip()
+                    if full_name:
+                        return full_name
+                    if s.username:
+                        return s.username
+            if obj.layout_result and obj.layout_result.get("student_name"):
+                name = obj.layout_result.get("student_name")
+                if name and name != "طالب اختبار":
+                    return name
         except Exception:
             pass
         return "طالب غير محدد"
 
     def get_seat_number(self, obj):
         try:
-            if obj.registration:
+            if obj.registration and obj.registration.seatNumber:
                 return obj.registration.seatNumber
+            if obj.layout_result and obj.layout_result.get("seat_number"):
+                return str(obj.layout_result.get("seat_number"))
         except Exception:
             pass
         return "-"
@@ -42,7 +54,11 @@ class SubmissionSerializer(serializers.ModelSerializer):
     def get_exam_version_code(self, obj):
         try:
             if obj.exam_version:
-                return f"نموذج {obj.exam_version.version_code}"
+                code = getattr(obj.exam_version, 'versionCode', None) or getattr(obj.exam_version, 'version_code', None)
+                if code:
+                    return f"نموذج {code}"
+            if obj.layout_result and obj.layout_result.get("version_code"):
+                return f"نموذج {obj.layout_result.get('version_code')}"
         except Exception:
             pass
         return ""
