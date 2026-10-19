@@ -55,7 +55,7 @@ const routes = [
   {
     path: "/index",
     name: "Index",
-    component: shared.SystemInfo,
+    component: shared.SystemSelector,
     meta: { requiresAuth: true, title: "عرض الانظمة" },
   },
 ];
