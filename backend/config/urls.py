@@ -5,6 +5,7 @@ from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from drf_spectacular.views import SpectacularAPIView,SpectacularSwaggerView,SpectacularRedocView
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 import importlib
 import pkgutil
 
@@ -59,6 +60,29 @@ urlpatterns = [
     path('api/schema/redoc-ss/',SpectacularRedocView.as_view(url_name='schema'),name='redoc'),
 
     path('choices/<str:choice_name>/', dynamic_choices_view),
+]
+
+@csrf_exempt
+def safe_generalization_counts_view(request):
+    try:
+        from OpenSoftCoreV41.advanced_chat.apis.Generalization import GeneralizationMVS
+        view = GeneralizationMVS.as_view({'get': 'counts'})
+        return view(request)
+    except Exception:
+        return JsonResponse({'sent': 0, 'inbox': 0, 'unread': 0})
+
+@csrf_exempt
+def safe_generalization_list_view(request):
+    try:
+        from OpenSoftCoreV41.advanced_chat.apis.Generalization import GeneralizationMVS
+        view = GeneralizationMVS.as_view({'get': 'list'})
+        return view(request)
+    except Exception:
+        return JsonResponse({'results': [], 'count': 0})
+
+urlpatterns += [
+    path('chat/generalizations/counts/', safe_generalization_counts_view, name='safe_generalization_counts'),
+    path('chat/generalizations/', safe_generalization_list_view, name='safe_generalization_list'),
 ]
 
 from .imports.viewmodel_core import urlpatterns_core

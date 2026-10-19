@@ -21,7 +21,7 @@
           variant="flat"
           class="font-weight-bold text-white px-4 rounded-xl shadow-indigo"
           prepend-icon="mdi-file-document-check-outline"
-          @click="$router.push(`/omr/submissions${selectedExamId ? '?exam=' + selectedExamId : ''}`)"
+          @click="$router.push(`/omr-submissions${selectedExamId ? '?exam=' + selectedExamId : ''}`)"
         >
           سجل الأوراق المصححة (Submissions)
           <v-chip size="x-small" color="white" variant="outlined" class="ms-2 font-weight-black" v-if="activeExamStats.completed_count">
@@ -31,7 +31,7 @@
 
         <custom-btn
           type="add"
-          :click="() => $router.push('/omr/scanner-lab')"
+          :click="() => $router.push('/omr-scanner-lab')"
           label="معمل المسح الضوئي"
           color="primary"
           variant="tonal"
@@ -40,7 +40,7 @@
 
         <custom-btn
           type="restore"
-          :click="() => $router.push('/omr/dashboard')"
+          :click="() => $router.push('/omr-dashboard')"
           label="لوحة التحكم"
           color="secondary"
           variant="tonal"
@@ -674,7 +674,7 @@
                 variant="text"
                 color="primary"
                 title="معاينة وتدقيق ورقة الإجابة"
-                @click="$router.push(`/omr/submissions/${item.submission_id}`)"
+                @click="$router.push(`/omr-submissions/${item.submission_id}`)"
               />
               <v-btn
                 v-else

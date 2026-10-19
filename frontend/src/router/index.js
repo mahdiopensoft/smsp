@@ -97,30 +97,6 @@ var routes_paths = {
       meta: { requiresAuth: true },
       props: true,
     },
-    // ── OMR System Parameterized Routes & Redirects ──────────────
-    {
-      path: "omr",
-      redirect: "/omr-dashboard",
-    },
-    {
-      path: "omr-submissions/:id",
-      name: "omr-submission-detail",
-      component: () => import("../pages/OMRSystem/OMRSubmissionDetailView.vue"),
-      meta: { requiresAuth: true, title: "تفاصيل ورقة الإجابة والتصحيح" },
-      props: true,
-    },
-
-    // Aliases to support legacy / short links
-    { path: "submissions", redirect: (to) => ({ path: "/omr-submissions", query: to.query }) },
-    { path: "submissions/:id", redirect: (to) => ({ path: `/omr-submissions/${to.params.id}`, query: to.query }) },
-    { path: "gradebook", redirect: (to) => ({ path: "/omr-gradebook", query: to.query }) },
-    { path: "human-review", redirect: (to) => ({ path: "/omr-human-review", query: to.query }) },
-    { path: "omr-workflow", redirect: (to) => ({ path: "/omr-scanner-lab", query: to.query }) },
-    { path: "omr-extraction", redirect: (to) => ({ path: "/omr-full-extraction", query: to.query }) },
-    { path: "omr-bubble-sheets", redirect: (to) => ({ path: "/omr-templates", query: to.query }) },
-    // ── Decommissioned Screens (مخرجات التعلم المحذوفة) ───────────
-    { path: "learning-outcomes", redirect: "/" },
-    { path: "reports-alignment-matrix", redirect: "/" },
     {
       path: "instructions",
       name: "instructions",

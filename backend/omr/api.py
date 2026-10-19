@@ -34,7 +34,6 @@ logger = logging.getLogger("omr.api")
 _RESULT_CACHE: dict = {}
 
 
-
 def _process_and_grade_image_file(
     image_path: str,
     original_filename: str = "",
@@ -85,13 +84,12 @@ def _process_and_grade_image_file(
 
     if not exam_obj:
         if exam_id:
-            exam_obj = Exam.objects.filter(id=exam_id, is_deleted=False).first()
-        if not exam_obj and target_version:
+            try:
+                exam_obj = Exam.objects.filter(id=int(exam_id), is_deleted=False).first()
+            except (ValueError, TypeError):
+                pass
+        if not exam_obj and target_version and hasattr(target_version, "exam"):
             exam_obj = target_version.exam
-        if not exam_obj:
-            exam_obj = Exam.objects.filter(is_deleted=False).order_by('-created_at').first()
-        if not exam_obj:
-            exam_obj, _ = Exam.objects.get_or_create(title="اختبار عام OMR")
 
     # مطابقة الاختبار والطالب ورقم جلوسه آلياً من الباركود والـ QR وقاعدة البيانات
     import re
@@ -244,6 +242,43 @@ def _process_and_grade_image_file(
 
     annotated_raw = result.pop("annotated_image", b"")
     annotated_b64 = base64.b64encode(annotated_raw).decode() if annotated_raw else ""
+
+    if not exam_obj:
+        # لم يتم تحديد أي اختبار: نرجع النتيجة الفورية بدون إنشاء أي اختبار أو حشو قاعدة البيانات
+        result_id = str(uuid.uuid4())
+        _RESULT_CACHE[result_id] = {
+            "meta": {k: v for k, v in result.items() if k != "questions"},
+            "questions": result["questions"],
+            "annotated_b64": annotated_b64,
+        }
+        return {
+            "result_id":       result_id,
+            "submission_id":   None,
+            "page_number":     page_number,
+            "student_name":    s_name,
+            "seat_number":     seat_num,
+            "status":          initial_sub_status,
+            "confidence":      confidence,
+            "total_questions": total_q,
+            "score":           result["score"],
+            "max_score":       result["max_score"],
+            "score_percent":   result["score_percent"],
+            "total_correct":   total_c,
+            "total_wrong":     result.get("total_wrong", 0),
+            "total_answered":  result.get("total_answered", 0),
+            "total_empty":     result.get("total_empty", 0),
+            "ai_corrections":  ambiguous_cnt,
+            "processing_ms":   result["processing_ms"],
+            "questions":       result["questions"],
+            "annotated_image": annotated_b64,
+            "engine_used":     result.get("engine_used", "legacy"),
+            "template_id":     result.get("template_id") or template_id or "svg_hardcoded",
+            "template_name":   result.get("template_name", ""),
+            "barcode":         barcode_val,
+            "qr":              qr_val,
+            "student_info":    result.get("student_info", {}),
+            "switched_notice": result.get("switched_notice", ""),
+        }
 
     sub_kwargs = {
         "exam": exam_obj,
@@ -632,9 +667,12 @@ def batch_scan_api(request):
 
     exam_obj = None
     if exam_id:
-        exam_obj = Exam.objects.filter(id=exam_id, is_deleted=False).first()
+        try:
+            exam_obj = Exam.objects.filter(id=int(exam_id), is_deleted=False).first()
+        except (ValueError, TypeError):
+            pass
     if not exam_obj:
-        exam_obj = Exam.objects.filter(is_deleted=False).order_by('-created_at').first()
+        return Response({"error": "يرجى تحديد الاختبار المطلوب قبل بدء المسح الجماعي"}, status=status.HTTP_400_BAD_REQUEST)
 
     batch_record = SubmissionBatch.objects.create(
         name=batch_title,
@@ -779,11 +817,18 @@ def detect_template_api(request):
 
         db_obj, detected_code, detected_qs = _detect_template_from_sheet(sheet_to_check, original_filename=image_file.name)
         if not db_obj:
-            return Response({"error": "تعذر التعرف على القالب من الورقة"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({
+                "found": False,
+                "template_id": None,
+                "total_questions": detected_qs or None,
+                "barcode": detected_code or "",
+                "message": "تعذر التعرف على القالب من الورقة تلقائياً"
+            }, status=status.HTTP_200_OK)
 
         td = db_obj.template_data or {}
         q_count = detected_qs or td.get("questions", {}).get("metadata", {}).get("num_questions", 50)
         return Response({
+            "found": True,
             "template_id": db_obj.id,
             "template_name": db_obj.name,
             "total_questions": q_count,

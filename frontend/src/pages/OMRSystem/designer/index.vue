@@ -731,7 +731,7 @@ function openPreviewModal(t: any) {
 
 function goToScannerWithTemplate(id: number | string) {
   showPreviewModal.value = false
-  router.push({ path: '/omr/scanner', query: { templateId: id } })
+  router.push({ path: '/omr-scanner', query: { templateId: id } })
 }
 
 function duplicateTemplate(t: any) {
@@ -1047,7 +1047,7 @@ const goToPrintForExam = () => {
 const goToScannerForExam = () => {
   if (linkedExam.value?.id) {
     router.push({
-      path: '/omr/scanner-lab',
+      path: '/omr-scanner-lab',
       query: {
         exam_id: linkedExam.value.id,
         exam_code: linkedExam.value.uniqueCode,
@@ -1055,7 +1055,7 @@ const goToScannerForExam = () => {
       }
     })
   } else {
-    router.push('/omr/scanner-lab')
+    router.push('/omr-scanner-lab')
   }
 }
 

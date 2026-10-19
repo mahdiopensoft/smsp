@@ -21,7 +21,7 @@
           rounded="lg"
           class="font-weight-bold"
           prepend-icon="mdi-scanner"
-          to="/omr/scanner-lab"
+          to="/omr-scanner-lab"
         >
           مختبر المسح والتصحيح
         </v-btn>
@@ -31,7 +31,7 @@
           rounded="lg"
           class="font-weight-bold"
           prepend-icon="mdi-card-text-outline"
-          to="/omr/bubble-sheets"
+          to="/omr-templates"
         >
           مكتبة القوالب
         </v-btn>
@@ -2677,7 +2677,7 @@ const printRosterList = () => {
 
 const startGradingExam = (exam, versionCode = 'A') => {
   router.push({
-    path: '/omr/scanner-lab',
+    path: '/omr-scanner-lab',
     query: {
       exam_id: exam.id,
       exam_code: exam.uniqueCode,
@@ -2689,7 +2689,7 @@ const startGradingExam = (exam, versionCode = 'A') => {
 
 const viewSubmissions = (exam) => {
   router.push({
-    path: '/omr/submissions',
+    path: '/omr-submissions',
     query: {
       exam_id: exam.id,
     }

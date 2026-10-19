@@ -16,7 +16,7 @@
       <div class="d-flex align-center gap-2 flex-wrap">
         <custom-btn
           type="restore"
-          :click="() => $router.push('/omr/dashboard')"
+          :click="() => $router.push('/omr-dashboard')"
           label="لوحة التحكم"
           color="secondary"
           variant="tonal"
@@ -24,7 +24,7 @@
         />
         <custom-btn
           type="imports"
-          :click="() => $router.push('/omr/templates')"
+          :click="() => $router.push('/omr-templates')"
           label="مكتبة القوالب"
           color="secondary"
           variant="tonal"
@@ -32,7 +32,7 @@
         />
         <custom-btn
           type="cancel_filter"
-          :click="() => $router.push('/omr/submissions')"
+          :click="() => $router.push('/omr-submissions')"
           label="سجل الأوراق"
           color="secondary"
           variant="tonal"
@@ -40,7 +40,7 @@
         />
         <custom-btn
           type="show"
-          :click="() => $router.push('/omr/gradebook')"
+          :click="() => $router.push('/omr-gradebook')"
           label="سجل الدرجات والكنترول"
           color="primary"
           variant="tonal"
@@ -217,7 +217,7 @@
                   rounded="lg"
                   class="font-weight-bold"
                   prepend-icon="mdi-folder-multiple-outline"
-                  @click="$router.push('/omr/templates')"
+                  @click="$router.push('/omr-templates')"
                 >
                   مكتبة القوالب ({{ savedTemplates.length }})
                 </v-btn>
@@ -294,7 +294,7 @@
                 size="small"
                 class="font-weight-bold"
                 prepend-icon="mdi-format-list-bulleted"
-                to="/omr/exams"
+                to="/omr-exams"
               >
                 شاشة ربط الاختبارات
               </v-btn>
@@ -438,7 +438,7 @@
                 rounded="lg"
                 class="font-weight-bold"
                 prepend-icon="mdi-folder-multiple-outline"
-                @click="$router.push('/omr/templates')"
+                @click="$router.push('/omr-templates')"
               >
                 تصفح المكتبة
               </v-btn>
@@ -1000,7 +1000,7 @@
                     rounded="lg"
                     prepend-icon="mdi-clipboard-check-outline"
                     class="font-weight-bold"
-                    @click="$router.push(`/omr/gradebook${selectedExamId ? '?exam=' + selectedExamId : ''}`)"
+                    @click="$router.push(`/omr-gradebook${selectedExamId ? '?exam=' + selectedExamId : ''}`)"
                   >
                     الانتقال لسجل الدرجات والكنترول
                   </v-btn>
@@ -1011,7 +1011,7 @@
                     rounded="lg"
                     prepend-icon="mdi-file-document-multiple-outline"
                     class="font-weight-bold"
-                    @click="$router.push('/omr/submissions')"
+                    @click="$router.push('/omr-submissions')"
                   >
                     عرض في سجل التسليمات
                   </v-btn>
@@ -1071,7 +1071,7 @@
                         variant="text"
                         color="primary"
                         title="معاينة الورقة"
-                        @click="$router.push(`/omr/submissions/${sheet.id}`)"
+                        @click="$router.push(`/omr-submissions/${sheet.id}`)"
                       />
                     </td>
                   </tr>
@@ -2407,9 +2407,12 @@ function setFile(file) {
   if (file.type.startsWith('image/')) {
     const form = new FormData()
     form.append('sheet_image', file)
-    api.post('/api/omr/detect-template/', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+    api.post('/api/omr/detect-template/', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      validateStatus: () => true, // منع المعترض العام من إظهار تنبيه المسار غير صحيح في حال تعذر كشف القالب
+    })
       .then(resp => {
-        if (resp.data?.template_id) {
+        if (resp?.status === 200 && resp.data?.template_id) {
           const matched = savedTemplates.value.find(t => String(t.id) === String(resp.data.template_id))
           if (matched) {
             // لا نغير القالب إذا كان المستخدم قد اختار قالباً محدداً بنفسه
@@ -2420,6 +2423,10 @@ function setFile(file) {
               }
               notify(`تم التعرف التلقائي على القالب من الورقة: ${matched.name} (${resp.data.total_questions || activeQuestionsCount.value} سؤال)`, 'success')
             }
+          }
+        } else if (resp?.status === 200 && resp.data?.total_questions) {
+          if (!selectedTemplateId.value || selectedTemplateId.value === 'AUTO') {
+            activeQuestionsCount.value = resp.data.total_questions
           }
         }
       })

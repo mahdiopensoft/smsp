@@ -16,7 +16,7 @@
           color="indigo"
           variant="tonal"
           class="font-weight-bold px-4"
-          :click="() => $router.push('/omr/scanner-lab')"
+          :click="() => $router.push('/omr-scanner-lab')"
         />
         <custom-btn
           type="add"
@@ -24,7 +24,7 @@
           label="استخراج وتصحيح مباشر"
           color="primary"
           class="font-weight-bold px-4"
-          :click="() => $router.push('/omr/full-extraction')"
+          :click="() => $router.push('/omr-full-extraction')"
         />
         <custom-btn
           type="show"
@@ -33,7 +33,7 @@
           color="success"
           variant="flat"
           class="font-weight-bold px-4 shadow-emerald"
-          :click="() => $router.push(`/omr/gradebook${filterExam ? '?exam=' + filterExam : ''}`)"
+          :click="() => $router.push(`/omr-gradebook${filterExam ? '?exam=' + filterExam : ''}`)"
         />
       </div>
     </div>
