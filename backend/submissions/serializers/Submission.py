@@ -9,6 +9,8 @@ class SubmissionSerializer(serializers.ModelSerializer):
     subject_name = serializers.SerializerMethodField(read_only=True)
     institution_type = serializers.SerializerMethodField(read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    is_control_locked = serializers.SerializerMethodField(read_only=True)
+    control_receipt_no = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Submission
@@ -78,3 +80,18 @@ class SubmissionSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         return "school"
+
+    def get_is_control_locked(self, obj):
+        try:
+            lr = obj.layout_result or {}
+            return bool(lr.get("dispatched_to_control") is True or lr.get("dispatched_to_control") == "true")
+        except Exception:
+            return False
+
+    def get_control_receipt_no(self, obj):
+        try:
+            lr = obj.layout_result or {}
+            return lr.get("control_receipt_no") or ""
+        except Exception:
+            return ""
+

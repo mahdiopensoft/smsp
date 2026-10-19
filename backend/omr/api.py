@@ -271,15 +271,31 @@ def _process_and_grade_image_file(
     }
     if target_version:
         sub_kwargs["exam_version"] = target_version
-    if matched_reg and not Submission.objects.filter(registration=matched_reg, exam=exam_obj, is_deleted=False).exists():
-        sub_kwargs["registration"] = matched_reg
 
-    sub_record = Submission(**sub_kwargs)
+    if existing_locked_sub:
+        # تحديث السجل غير المقفل القائم لمنع التكرار في المظروف الامتحاني
+        sub_record = existing_locked_sub
+        for k, v in sub_kwargs.items():
+            setattr(sub_record, k, v)
+        if matched_reg:
+            sub_record.registration = matched_reg
+        OMRSheetResult.objects.filter(submission=sub_record).delete()
+    else:
+        if matched_reg and not Submission.objects.filter(registration=matched_reg, exam=exam_obj, is_deleted=False).exists():
+            sub_kwargs["registration"] = matched_reg
+        sub_record = Submission(**sub_kwargs)
+
     try:
         with open(image_path, "rb") as f_img:
             sub_record.original_image.save(os.path.basename(original_filename or image_path), ContentFile(f_img.read()), save=False)
     except Exception as img_save_err:
         logger.warning(f"Could not save original image to submission: {img_save_err}")
+
+    if annotated_raw:
+        try:
+            sub_record.aligned_image.save(f"annotated_sub_{sub_record.id or 'scan'}.png", ContentFile(annotated_raw), save=False)
+        except Exception as img_save_err:
+            logger.warning(f"Could not save aligned image to submission: {img_save_err}")
 
     sub_record.save()
 

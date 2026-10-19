@@ -83,7 +83,8 @@ class OMRPrintRegistryMVS(ViewSet):
             if reg.student_profile and reg.student_profile.name_ar:
                 s_name = reg.student_profile.name_ar
             elif reg.student:
-                s_name = reg.student.get_full_name() or reg.student.username
+                st = reg.student
+                s_name = getattr(st, 'get_full_name', lambda: '')() or f"{st.first_name or ''} {st.last_name or ''}".strip() or st.username
             else:
                 s_name = f"طالب ({reg.seatNumber})"
             students.append({

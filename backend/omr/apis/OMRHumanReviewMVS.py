@@ -87,6 +87,35 @@ class OMRHumanReviewMVS(AllMVS):
                 Q(submission__exam__subject__semester_subjects__id=sem_sub_id)
             )
 
+        # Institute Filters
+        inst_field_id = self.request.query_params.get('institute_field')
+        if inst_field_id:
+            qs = qs.filter(
+                Q(submission__exam__versions__question_orders__question__lesson__unit__institute_subject__field_id=inst_field_id) |
+                Q(submission__exam__subject__institute_subjects__field_id=inst_field_id)
+            )
+
+        inst_system_id = self.request.query_params.get('institute_education_system')
+        if inst_system_id:
+            qs = qs.filter(
+                Q(submission__exam__versions__question_orders__question__lesson__unit__institute_subject__specialization__education_system_id=inst_system_id) |
+                Q(submission__exam__subject__institute_subjects__specialization__education_system_id=inst_system_id)
+            )
+
+        inst_spec_id = self.request.query_params.get('institute_specialization')
+        if inst_spec_id:
+            qs = qs.filter(
+                Q(submission__exam__versions__question_orders__question__lesson__unit__institute_subject__specialization_id=inst_spec_id) |
+                Q(submission__exam__subject__institute_subjects__specialization_id=inst_spec_id)
+            )
+
+        inst_sub_id = self.request.query_params.get('institute_subject')
+        if inst_sub_id:
+            qs = qs.filter(
+                Q(submission__exam__versions__question_orders__question__lesson__unit__institute_subject_id=inst_sub_id) |
+                Q(submission__exam__subject__institute_subjects__id=inst_sub_id)
+            )
+
         subject_id = self.request.query_params.get('subject') or self.request.query_params.get('subject_id')
         if subject_id:
             qs = qs.filter(
@@ -178,18 +207,24 @@ class OMRHumanReviewMVS(AllMVS):
                 }, status=status.HTTP_403_FORBIDDEN)
 
         q_num = request.data.get('question_number')
-        choice = request.data.get('marked_choice') or request.data.get('new_choice') or request.data.get('choice')
+        choice = None
+        for k in ['marked_choice', 'new_choice', 'choice']:
+            if k in request.data:
+                choice = request.data[k]
+                break
 
         if q_num is None or choice is None:
             return Response({"success": False, "message": "يجب تحديد رقم السؤال والخيار المعدل"}, status=status.HTTP_400_BAD_REQUEST)
 
+        choice_str = str(choice).strip() if choice else ""
+
         try:
             from omr.providers.opencv_omr import normalize_choice
             q_res = OMRQuestionResult.objects.get(sheet_result=sheet, question_number=q_num)
-            q_res.marked_choice = choice
-            is_right = (normalize_choice(choice) == normalize_choice(q_res.correct_choice)) if q_res.correct_choice else False
+            q_res.marked_choice = choice_str
+            is_right = (normalize_choice(choice_str) == normalize_choice(q_res.correct_choice)) if (q_res.correct_choice and choice_str) else False
             q_res.is_correct = is_right
-            q_res.bubble_state = OMRQuestionResult.BubbleState.FILLED
+            q_res.bubble_state = OMRQuestionResult.BubbleState.FILLED if choice_str else OMRQuestionResult.BubbleState.EMPTY
             q_res.final_confidence = 1.0
 
             if is_right:

@@ -24,3 +24,8 @@ redis>=5.0.1
 opencv-python>=4.8.0
 numpy>=1.26.0
 Pillow>=10.0.0
+
+# Deep Learning & AI Verification (CNN & YOLO OMR Engine)
+torch>=2.0.0
+ultralytics>=8.0.0
+

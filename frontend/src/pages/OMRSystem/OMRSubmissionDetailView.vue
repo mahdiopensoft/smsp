@@ -29,6 +29,7 @@
           variant="tonal"
           class="font-weight-bold"
           :loading="reprocessing"
+          :disabled="Boolean(submission && submission.is_control_locked)"
           :click="reprocessSheet"
         />
         <custom-btn
@@ -36,6 +37,7 @@
           icon="mdi-pencil-outline"
           color="primary"
           class="font-weight-bold"
+          :disabled="Boolean(submission && submission.is_control_locked)"
           :click="openEditDialog"
         />
       </div>
@@ -48,9 +50,59 @@
     </div>
 
     <div v-else-if="submission">
-      <!-- تنبيه إيضاحي لطبيعة الورقة والذكاء الاصطناعي -->
+      <!-- تنبيه القفل الأكاديمي للكنترول المركزي -->
       <v-alert
-        v-if="submission.total_score == 0"
+        v-if="submission.is_control_locked"
+        color="warning"
+        variant="tonal"
+        rounded="xl"
+        class="mb-6 font-weight-bold"
+        icon="mdi-shield-lock"
+      >
+        <div class="d-flex align-center justify-space-between flex-wrap gap-2">
+          <div>
+            <div class="text-subtitle-2 font-weight-black">
+              🔒 هذه الورقة مقفلة ومرحلة للكنترول المركزي
+            </div>
+            <div class="text-caption">
+              تم تثبيت ورصد درجات هذه الورقة رسمياً بموجب الإيصال الأكاديمي المشفر رقم:
+              <strong class="font-mono text-primary font-weight-bold">{{ submission.control_receipt_no || 'CTL-RECEIPT' }}</strong>.
+              الورقة محمية ضد أي تعديل لضمان أعلى معايير النزاهة الامتحانية.
+            </div>
+          </div>
+          <v-chip color="warning" size="small" variant="flat" class="font-weight-bold">
+            مغلق للكنترول
+          </v-chip>
+        </div>
+      </v-alert>
+
+      <!-- تنبيه إيضاحي للورقة المعتمدة والدرجات المرصودة -->
+      <v-alert
+        v-else-if="Number(submission.total_score) > 0"
+        color="success"
+        variant="tonal"
+        rounded="xl"
+        class="mb-6 font-weight-bold"
+        icon="mdi-check-decagram"
+      >
+        <div class="d-flex align-center justify-space-between flex-wrap gap-2">
+          <div>
+            <div class="text-subtitle-2 font-weight-black">
+              ✅ تم التصحيح والرصد الآلي بنجاح بمطابقة الذكاء الاصطناعي
+            </div>
+            <div class="text-caption">
+              تم التعرف على تظليلات الطالب بدقة عالية ومقارنتها بنموذج الإجابة الرسمي ({{ submission.exam_version_code || 'النموذج المعتمد' }}). يمكنك النقر على مقتطفات الدوائر الدقيقة (AI Crops) في الجدول أدناه لفحص كيفية رؤية الذكاء الاصطناعي لكل دائرة.
+            </div>
+          </div>
+          <v-chip color="success" size="small" variant="flat" class="font-weight-bold">
+            درجة الطالب: {{ submission.total_score }} / {{ submission.exam_max_score || submission.mcq_score || 16 }}
+          </v-chip>
+        </div>
+      </v-alert>
+
+      <!-- تنبيه إيضاحي لورقة إجابات فارغة بالكامل -->
+      <v-alert
+        v-else-if="submission.total_score == 0"
         color="info"
         variant="tonal"
         rounded="xl"
@@ -177,37 +229,38 @@
                     variant="tonal"
                     color="indigo"
                     class="font-weight-bold"
-                    :click="() => showOverlays = !showOverlays"
+                    :click="toggleOverlays"
                   />
                 </div>
               </div>
 
               <!-- Visualizer Wrapper -->
               <div class="visualizer-wrapper bg-slate-900 rounded-xl pa-2 text-center position-relative overflow-hidden">
-                <div class="image-relative-container position-relative d-inline-block">
+                <div class="image-relative-container">
                   <img
+                    ref="sheetImg"
                     :src="getMediaUrl(activeImage)"
                     alt="Student Answer Sheet"
-                    class="sheet-img rounded-lg d-block w-100"
-                    style="max-height: 650px; object-fit: contain;"
+                    class="sheet-img"
+                    @load="onImageLoad"
                   />
 
-                  <!-- Bubble overlays mapped onto the image -->
-                  <template v-if="showOverlays">
-                    <div v-for="q in mcqQuestions" :key="'overlay-' + q.question_id">
-                      <div
-                        v-for="choice in getChoicesForQuestion(q.question_id)"
-                        :key="'choice-' + choice.bubble_id"
-                        class="image-bubble-overlay"
-                        :class="getOverlayClass(q, choice.choice)"
-                        :style="getOverlayStyle(choice.bubble_region)"
-                        :title="'سؤال ' + q.question_id + ' - خيار ' + choice.choice"
-                        @mouseenter="hoveredQ = q.question_id"
-                        @mouseleave="hoveredQ = null"
-                      >
-                        <span class="overlay-letter">{{ choice.choice }}</span>
-                      </div>
-                    </div>
+                  <!-- Bubble overlays mapped onto the image (only on aligned mode for 100% geometric accuracy) -->
+                  <template v-if="(showOverlays || hoveredQ) && activeImageMode === 'aligned'">
+                    <template v-for="q in mcqQuestions" :key="'overlay-' + q.question_id">
+                      <template v-if="showOverlays || hoveredQ === q.question_id">
+                        <div
+                          v-for="choice in getChoicesForQuestion(q)"
+                          :key="'choice-' + q.question_id + '-' + choice.choice"
+                          class="image-bubble-overlay"
+                          :class="[getOverlayClass(q, choice.choice), { 'overlay-highlighted': hoveredQ === q.question_id }]"
+                          :style="getOverlayStyle(choice)"
+                          :title="'سؤال ' + q.question_id + ' - خيار (' + choice.choice + ')'"
+                          @mouseenter="hoveredQ = q.question_id"
+                          @mouseleave="hoveredQ = null"
+                        />
+                      </template>
+                    </template>
                   </template>
                 </div>
               </div>
@@ -278,93 +331,142 @@
 
           <!-- Detailed Questions Breakdown -->
           <v-card elevation="0" class="main-card pa-5 rounded-2xl border">
-            <div class="d-flex align-center justify-space-between mb-3 border-b pb-2">
-              <h3 class="text-subtitle-1 font-weight-black mb-0">نتائج الأسئلة التفصيلية</h3>
-              <v-chip size="small" color="secondary" variant="tonal">
-                {{ mcqQuestions.length }} سؤال خيارات
-              </v-chip>
+            <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-4 border-b pb-3">
+              <div class="d-flex align-center gap-2">
+                <v-icon color="primary" size="22">mdi-format-list-checks</v-icon>
+                <h3 class="text-subtitle-1 font-weight-black mb-0">نتائج الأسئلة التفصيلية</h3>
+                <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
+                  {{ mcqQuestions.length }} سؤال
+                </v-chip>
+              </div>
+
+              <!-- Quick Stats Summary -->
+              <div class="d-flex align-center gap-2 flex-wrap">
+                <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold">
+                  <v-icon start size="13">mdi-check-circle</v-icon>
+                  صحيحة: {{ correctCount }}
+                </v-chip>
+                <v-chip size="x-small" color="error" variant="tonal" class="font-weight-bold">
+                  <v-icon start size="13">mdi-close-circle</v-icon>
+                  خاطئة: {{ incorrectCount }}
+                </v-chip>
+                <v-chip size="x-small" color="grey-darken-1" variant="tonal" class="font-weight-bold">
+                  <v-icon start size="13">mdi-circle-outline</v-icon>
+                  فارغة: {{ emptyCount }}
+                </v-chip>
+              </div>
             </div>
 
-            <v-table class="border rounded-xl">
+            <!-- Filter Controls -->
+            <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3">
+              <span class="text-caption text-medium-emphasis">
+                انقر على أي مقتطف دائرة (AI Crop) لمعاينتها بدقة الذكاء الاصطناعي، أو مرر الفأرة لإضاءتها على الورقة.
+              </span>
+              <v-btn-toggle v-model="filterMode" mandatory density="compact" rounded="lg" color="primary">
+                <v-btn value="all" size="x-small">الكل ({{ mcqQuestions.length }})</v-btn>
+                <v-btn value="correct" size="x-small" color="success">الصحيحة</v-btn>
+                <v-btn value="incorrect" size="x-small" color="error">الخاطئة</v-btn>
+                <v-btn value="empty" size="x-small">الفارغة</v-btn>
+              </v-btn-toggle>
+            </div>
+
+            <v-table class="border rounded-xl questions-table overflow-hidden">
               <thead>
                 <tr class="bg-slate-50">
-                  <th class="pa-2 font-weight-bold text-center">السؤال</th>
-                  <th class="pa-2 font-weight-bold text-center">إجابة الطالب</th>
-                  <th class="pa-2 font-weight-bold text-center">الإجابة النموذجية</th>
-                  <th class="pa-2 font-weight-bold text-center">النتيجة</th>
-                  <th class="pa-2 font-weight-bold text-center">مقتطفات الذكاء الاصطناعي (AI Crops)</th>
-                  <th class="pa-2 font-weight-bold text-center">الثقة</th>
+                  <th class="pa-3 font-weight-black text-center" style="width: 75px;">السؤال</th>
+                  <th class="pa-3 font-weight-black text-center">إجابة الطالب</th>
+                  <th class="pa-3 font-weight-black text-center">الإجابة النموذجية</th>
+                  <th class="pa-3 font-weight-black text-center" style="width: 85px;">الدرجة</th>
+                  <th class="pa-3 font-weight-black text-center">مقتطفات الذكاء الاصطناعي (AI Crops)</th>
+                  <th class="pa-3 font-weight-black text-center" style="width: 75px;">الثقة</th>
                 </tr>
               </thead>
               <tbody>
                 <tr
-                  v-for="q in mcqQuestions"
+                  v-for="q in filteredQuestions"
                   :key="'detail-q-' + q.question_id"
-                  :class="{ 'bg-primary-lighten-5': hoveredQ === q.question_id }"
+                  :class="{ 'table-row-hovered': hoveredQ === q.question_id }"
+                  class="question-row"
                   @mouseenter="hoveredQ = q.question_id"
                   @mouseleave="hoveredQ = null"
                 >
-                  <td class="pa-2 text-center font-weight-bold">سـ {{ q.question_id }}</td>
-                  <td class="pa-2 text-center">
+                  <td class="pa-3 text-center">
+                    <div class="font-weight-black text-body-2 text-slate-800">سـ {{ q.question_id }}</div>
+                    <div class="text-caption text-medium-emphasis" style="font-size: 10px;">
+                      {{ isTrueFalseQ(q) ? 'صح/خطأ' : 'خيارات' }}
+                    </div>
+                  </td>
+                  <td class="pa-3 text-center">
                     <v-chip
                       size="small"
                       rounded="md"
-                      :color="isTrueVariant(q.marked_choice) ? 'success' : isFalseVariant(q.marked_choice) ? 'error' : q.marked_choice ? 'primary' : 'grey'"
-                      variant="tonal"
+                      :color="!q.marked_choice ? 'grey-lighten-4' : q.is_correct ? 'success' : 'error'"
+                      :variant="!q.marked_choice ? 'flat' : 'tonal'"
                       class="font-weight-bold"
                     >
-                      <v-icon v-if="isTrueVariant(q.marked_choice)" start size="13">mdi-check</v-icon>
-                      <v-icon v-else-if="isFalseVariant(q.marked_choice)" start size="13">mdi-close</v-icon>
-                      {{ q.marked_choice || 'بدون إجابة (فارغ)' }}
+                      <v-icon start size="13" :color="!q.marked_choice ? 'grey-darken-1' : ''">
+                        {{ !q.marked_choice ? 'mdi-circle-outline' : q.is_correct ? 'mdi-check' : 'mdi-close' }}
+                      </v-icon>
+                      <span :class="!q.marked_choice ? 'text-grey-darken-2' : ''">
+                        {{ q.marked_choice ? formatChoiceLabel(q.marked_choice, q) : 'بدون إجابة (فارغ)' }}
+                      </span>
                     </v-chip>
                   </td>
-                  <td class="pa-2 text-center">
+                  <td class="pa-3 text-center">
                     <v-chip
                       size="small"
                       rounded="md"
-                      :color="isTrueVariant(q.correct_choice) ? 'success' : isFalseVariant(q.correct_choice) ? 'error' : 'teal'"
+                      color="teal"
                       variant="tonal"
                       class="font-weight-bold"
                     >
-                      <v-icon v-if="isTrueVariant(q.correct_choice)" start size="13">mdi-check</v-icon>
-                      <v-icon v-else-if="isFalseVariant(q.correct_choice)" start size="13">mdi-close</v-icon>
-                      {{ q.correct_choice }}
+                      <v-icon start size="13">mdi-check-decagram-outline</v-icon>
+                      {{ formatChoiceLabel(q.correct_choice, q) }}
                     </v-chip>
                   </td>
-                  <td class="pa-2 text-center">
-                    <v-chip
-                      size="small"
-                      rounded="md"
-                      :color="q.is_correct ? 'success' : 'error'"
-                      variant="tonal"
-                      class="font-weight-bold"
-                    >
-                      <v-icon start size="14">{{ q.is_correct ? 'mdi-check-circle' : 'mdi-close-circle' }}</v-icon>
-                      {{ q.is_correct ? 'صحيحة' : 'خاطئة' }}
-                    </v-chip>
+                  <td class="pa-3 text-center">
+                    <div class="font-weight-black text-body-2" :class="Number(q.marks_awarded) > 0 ? 'text-success' : 'text-medium-emphasis'">
+                      {{ q.marks_awarded != null ? Number(q.marks_awarded).toFixed(1).replace('.0', '') : '0' }} / {{ q.max_mark || 1 }}
+                    </div>
                   </td>
                   <!-- AI Crops: أين نظر الذكاء الاصطناعي ومقتطف الدوائر -->
-                  <td class="pa-2 text-center">
+                  <td class="pa-3 text-center">
                     <div v-if="q.choice_crops && Object.keys(q.choice_crops).length" class="d-flex align-center justify-center gap-2 flex-wrap">
                       <div
                         v-for="(cropImg, choiceKey) in q.choice_crops"
                         :key="choiceKey"
-                        class="ai-crop-item border rounded pa-1 text-center bg-grey-lighten-4"
-                        style="cursor: pointer; min-width: 46px; transition: transform 0.15s ease;"
+                        class="ai-crop-card pa-1 text-center"
+                        :class="q.ai_results && q.ai_results[choiceKey] === 'filled' ? 'crop-filled' : 'crop-empty'"
                         title="انقر لتكبير مقتطف الدائرة وفحص قرار الذكاء الاصطناعي"
                         @click="openCropDialog(q, choiceKey, cropImg)"
                       >
-                        <img :src="cropImg" style="width: 28px; height: 28px; object-fit: contain; border-radius: 4px; display: block; margin: 0 auto; background: #fff;" />
-                        <div class="text-caption font-weight-bold mt-1" style="font-size: 10px;">{{ choiceKey }}</div>
-                        <span class="text-caption" style="font-size: 9px;" :class="q.ai_results && q.ai_results[choiceKey] === 'filled' ? 'text-success font-weight-bold' : 'text-medium-emphasis'">
+                        <div class="crop-img-wrapper mb-1">
+                          <img :src="cropImg" class="crop-thumbnail" />
+                        </div>
+                        <div class="crop-label font-weight-black">{{ choiceKey }}</div>
+                        <div class="crop-verdict" :class="q.ai_results && q.ai_results[choiceKey] === 'filled' ? 'verdict-filled' : 'verdict-empty'">
                           {{ q.ai_results && q.ai_results[choiceKey] === 'filled' ? 'مظلل' : 'فارغ' }}
-                        </span>
+                        </div>
                       </div>
                     </div>
                     <span v-else class="text-caption text-grey">غير متاح</span>
                   </td>
-                  <td class="pa-2 text-center text-caption font-weight-bold">
-                    {{ (q.final_confidence * 100).toFixed(0) }}%
+                  <td class="pa-3 text-center">
+                    <v-chip
+                      size="x-small"
+                      :color="(q.final_confidence || 1) >= 0.9 ? 'success' : 'warning'"
+                      variant="tonal"
+                      class="font-weight-bold"
+                    >
+                      <v-icon start size="11">mdi-brain</v-icon>
+                      {{ ((q.final_confidence || 1) * 100).toFixed(0) }}%
+                    </v-chip>
+                  </td>
+                </tr>
+
+                <tr v-if="filteredQuestions.length === 0">
+                  <td colspan="6" class="text-center pa-6 text-medium-emphasis text-caption">
+                    لا توجد أسئلة تطابق الفلتر المحدد
                   </td>
                 </tr>
               </tbody>
@@ -496,8 +598,12 @@ export default {
       cropDialog: false,
       selectedCrop: null,
 
+      filterMode: 'all',
+
       paperWidth: 210.0,
       paperHeight: 297.0,
+      naturalWidth: 2480,
+      naturalHeight: 1754,
 
       editDialog: false,
       editForm: {
@@ -514,6 +620,31 @@ export default {
         return this.submission.omr_result
       }
       return this.submission?.omr_result?.questions || this.submission?.omr_result?.data?.questions || []
+    },
+
+    correctCount() {
+      return this.mcqQuestions.filter(q => q.is_correct === true).length
+    },
+
+    incorrectCount() {
+      return this.mcqQuestions.filter(q => q.marked_choice && q.is_correct === false).length
+    },
+
+    emptyCount() {
+      return this.mcqQuestions.filter(q => !q.marked_choice).length
+    },
+
+    filteredQuestions() {
+      if (this.filterMode === 'correct') {
+        return this.mcqQuestions.filter(q => q.is_correct === true)
+      }
+      if (this.filterMode === 'incorrect') {
+        return this.mcqQuestions.filter(q => q.marked_choice && q.is_correct === false)
+      }
+      if (this.filterMode === 'empty') {
+        return this.mcqQuestions.filter(q => !q.marked_choice)
+      }
+      return this.mcqQuestions
     },
 
     activeImage() {
@@ -574,32 +705,76 @@ export default {
       this.cropDialog = true
     },
 
-    getChoicesForQuestion(qId) {
+    onImageLoad(event) {
+      if (event?.target) {
+        this.naturalWidth = event.target.naturalWidth || 2480
+        this.naturalHeight = event.target.naturalHeight || 1754
+      }
+    },
+
+    getChoicesForQuestion(q) {
+      if (!q) return []
+      // 1. If actual_centers is available from OMR processing
+      if (q.actual_centers && typeof q.actual_centers === 'object') {
+        return Object.entries(q.actual_centers).map(([k, center]) => ({
+          choice: k,
+          center: center,
+        }))
+      }
+      // 2. Fallback to layout_result detected_regions
+      const qId = q.question_id
       const layoutQuestions = this.submission?.layout_result?.detected_regions?.mcq_questions || this.submission?.layout_result?.data?.detected_regions?.mcq_questions || []
       const found = layoutQuestions.find(item => String(item.question_id) === String(qId))
       if (found && found.choices) return found.choices
       return []
     },
 
-    getOverlayStyle(reg) {
-      if (!reg) return {}
-      const w = reg.width_mm || 4.5
-      const h = reg.height_mm || 4.5
-      const cx = reg.dx_mm + w / 2.0
-      const cy = reg.dy_mm + h / 2.0
-      return {
-        left: `${(cx / this.paperWidth) * 100}%`,
-        top: `${(cy / this.paperHeight) * 100}%`,
-        width: `${(w / this.paperWidth) * 100}%`,
-        height: `${(h / this.paperHeight) * 100}%`,
+    toggleOverlays() {
+      this.showOverlays = !this.showOverlays
+      if (this.showOverlays && this.activeImageMode === 'original') {
+        this.activeImageMode = 'aligned'
       }
     },
 
+    getOverlayStyle(choice) {
+      if (!choice) return {}
+      if (choice.center && Array.isArray(choice.center)) {
+        const cx = choice.center[0]
+        const cy = choice.center[1]
+        const imgW = this.naturalWidth || 2480
+        const imgH = this.naturalHeight || 1754
+        return {
+          left: `${(cx / imgW) * 100}%`,
+          top: `${(cy / imgH) * 100}%`,
+          width: '2.2%',
+          aspectRatio: '1 / 1',
+        }
+      }
+      if (choice.bubble_region) {
+        const reg = choice.bubble_region
+        const w = reg.width_mm || 4.5
+        const h = reg.height_mm || 4.5
+        const cx = reg.dx_mm + w / 2.0
+        const cy = reg.dy_mm + h / 2.0
+        return {
+          left: `${(cx / this.paperWidth) * 100}%`,
+          top: `${(cy / this.paperHeight) * 100}%`,
+          width: `${(w / this.paperWidth) * 100}%`,
+          aspectRatio: '1 / 1',
+        }
+      }
+      return {}
+    },
+
     getOverlayClass(q, letter) {
-      if (q.marked_choice === letter) {
+      const formattedMarked = this.formatChoiceLabel(q.marked_choice, q)
+      const formattedCorrect = this.formatChoiceLabel(q.correct_choice, q)
+      const isSelected = String(q.marked_choice) === String(letter) || String(formattedMarked) === String(letter)
+      const isCorrectKey = String(q.correct_choice) === String(letter) || String(formattedCorrect) === String(letter)
+      if (isSelected) {
         return q.is_correct ? 'overlay-selected-correct' : 'overlay-selected-incorrect'
       }
-      if (q.correct_choice === letter) {
+      if (isCorrectKey) {
         return 'overlay-correct-key'
       }
       return 'overlay-normal'
@@ -629,16 +804,38 @@ export default {
       }
     },
 
-    isTrueVariant(val) {
-      if (val === null || val === undefined) return false
-      const s = String(val).trim().toLowerCase()
-      return s === 'صح' || s === 'ص' || s === 'true' || s === 't' || s === '1' || s === 'yes'
+    formatChoiceLabel(val, q) {
+      if (!val) return 'فارغ'
+      const s = String(val).trim().toUpperCase()
+      if (q && q.choices && q.choices.length) {
+        if (s === 'A') return q.choices[0] || 'A'
+        if (s === 'B') return q.choices[1] || 'B'
+        if (s === 'C') return q.choices[2] || 'C'
+        if (s === 'D') return q.choices[3] || 'D'
+        if (s === 'E') return q.choices[4] || 'E'
+      }
+      return val
     },
 
-    isFalseVariant(val) {
+    isTrueVariant(val, q) {
       if (val === null || val === undefined) return false
-      const s = String(val).trim().toLowerCase()
-      return s === 'خطأ' || s === 'خطا' || s === 'خ' || s === 'false' || s === 'f' || s === '2' || s === 'no'
+      const label = this.formatChoiceLabel(val, q)
+      const s = String(label).trim().toLowerCase()
+      return s === 'صح' || s === 'ص' || s === 'true' || s === 't' || s === 'yes'
+    },
+
+    isFalseVariant(val, q) {
+      if (val === null || val === undefined) return false
+      const label = this.formatChoiceLabel(val, q)
+      const s = String(label).trim().toLowerCase()
+      return s === 'خطأ' || s === 'خطا' || s === 'خ' || s === 'false' || s === 'f' || s === 'no'
+    },
+
+    isTrueFalseQ(q) {
+      if (!q) return false
+      if (q.choices && q.choices.length === 2) return true
+      const c = String(q.correct_choice).trim().toLowerCase()
+      return c === 'صح' || c === 'خطأ' || c === 'ص' || c === 'خ' || (q.choices && (q.choices.includes('صح') || q.choices.includes('ص')))
     },
 
     async reprocessSheet() {
@@ -726,41 +923,149 @@ export default {
 }
 
 /* Image overlays */
+.image-relative-container {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  line-height: 0;
+  aspect-ratio: 2480 / 1754;
+}
+
+.sheet-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 8px;
+  object-fit: fill;
+}
+
 .image-bubble-overlay {
   position: absolute;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   z-index: 10;
+  box-sizing: border-box;
 }
 
 .overlay-selected-correct {
-  background: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.35);
   border: 2px solid #10b981;
-  color: white;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
 }
 
 .overlay-selected-incorrect {
-  background: rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.35);
   border: 2px solid #ef4444;
-  color: white;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
 }
 
 .overlay-correct-key {
   border: 2px dashed #10b981;
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.15);
+  background: rgba(16, 185, 129, 0.12);
 }
 
 .overlay-normal {
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  background: rgba(0, 0, 0, 0.15);
-  color: white;
+  border: 1.5px dashed rgba(59, 130, 246, 0.5);
+  background: transparent;
+}
+
+.overlay-highlighted {
+  transform: translate(-50%, -50%) scale(1.4) !important;
+  z-index: 50 !important;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 1) !important;
+  border: 2.5px solid #3b82f6 !important;
+  background: rgba(59, 130, 246, 0.2) !important;
+}
+
+.table-row-hovered {
+  background-color: rgba(59, 130, 246, 0.12) !important;
+  transition: background-color 0.15s ease;
+}
+
+/* AI Crop Cards */
+.ai-crop-card {
+  min-width: 44px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.ai-crop-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+  border-color: #3b82f6 !important;
+}
+
+.crop-filled {
+  border: 1.5px solid #10b981 !important;
+  background: #f0fdf4 !important;
+}
+
+.crop-empty {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #f8fafc;
+}
+
+.crop-img-wrapper {
+  width: 30px;
+  height: 30px;
+  margin: 0 auto;
+  border-radius: 6px;
+  overflow: hidden;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.crop-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.crop-label {
+  font-size: 10px;
+  color: #1e293b;
+  line-height: 1.2;
+}
+
+.crop-verdict {
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-top: 1px;
+}
+
+.verdict-filled {
+  color: #059669;
+}
+
+.verdict-empty {
+  color: #64748b;
+}
+
+.questions-table th {
+  background: #f8fafc !important;
+  color: #334155 !important;
+  font-size: 12px !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+
+.question-row {
+  transition: background-color 0.15s ease;
+}
+
+.question-row:hover {
+  background-color: #f8fafc;
 }
 </style>

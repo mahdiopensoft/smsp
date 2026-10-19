@@ -437,13 +437,24 @@ class OpenCVOMREngine(BaseEngine):
             predictions = self.ai_verifier.predict_batch(crop_imgs)
 
             for key, pred in zip(crop_keys, predictions):
-                ai_results[key]   = pred["label"]
+                classical_lbl = classical_results.get(key, "empty")
+                d_val = darkness_values.get(key, 0.0)
+
+                # Safeguard: Never downgrade a high-density ink bubble (>=filled_threshold) to empty
+                if d_val >= filled_threshold and pred["label"] == "empty":
+                    ai_lbl = classical_lbl if classical_lbl != "empty" else "filled"
+                # Safeguard: Never upgrade a clean white bubble (<=empty_threshold) to filled
+                elif d_val <= empty_threshold and pred["label"] in ["filled", "crossed"]:
+                    ai_lbl = "empty"
+                else:
+                    ai_lbl = pred["label"]
+
+                ai_results[key]   = ai_lbl
                 ai_conf_data[key] = pred
-                classical_lbl     = classical_results[key]
-                if pred["label"] != classical_lbl:
+                if ai_lbl != classical_lbl:
                     logger.debug(
                         f"  [AI] Q{question_id} {key}: "
-                        f"{classical_lbl} → {pred['label']} "
+                        f"{classical_lbl} → {ai_lbl} "
                         f"({pred['confidence']:.0%})"
                     )
 
@@ -470,17 +481,25 @@ class OpenCVOMREngine(BaseEngine):
             marked_choice   = None
             bubble_state    = "ambiguous"
             final_confidence = 0.20
+        elif len(crossed_choices) == 1:
+            # إذا وضع الطالب إشارة/شطب على خيار وحيد (X أو شطب بالقلم كإجابة وحيدة)
+            marked_choice   = crossed_choices[0]
+            bubble_state    = "crossed"
+            final_confidence = min(question_confidence, 0.85)
+        elif len(crossed_choices) > 1:
+            # شطب متعدد على أكثر من خيار
+            marked_choice   = None
+            bubble_state    = "ambiguous"
+            final_confidence = 0.20
+        elif len(half_choices) == 1:
+            marked_choice   = half_choices[0]
+            bubble_state    = "half_filled"
+            final_confidence = min(question_confidence, 0.70)
         else:
             marked_choice = None
-            if crossed_choices:
-                bubble_state    = "crossed"
-                final_confidence = question_confidence
-            elif erased_choices:
+            if erased_choices:
                 bubble_state    = "erased"
                 final_confidence = question_confidence
-            elif half_choices:
-                bubble_state    = "half_filled"
-                final_confidence = min(question_confidence, 0.60)
             else:
                 bubble_state    = "empty"
                 final_confidence = 1.0

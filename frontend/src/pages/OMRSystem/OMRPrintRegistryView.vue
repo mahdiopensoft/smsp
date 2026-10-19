@@ -42,6 +42,164 @@
     <!-- ── OMR Workflow Stepper (المرحلة 2: طباعة أوراق الإجابة) ── -->
     <omr-workflow-bar :active-step="2" />
 
+    <!-- Unified Filter Fields (Standard Tripartite Institution Filters: Schools, Universities, Institutes) -->
+    <filter-fields label="خيارات تصفية وتحديد الاختبارات للطباعة" class="main-card border-0 pa-5 rounded-2xl mb-4">
+      <v-row dense class="align-center">
+        <!-- Institution Type Selector (مدارس / جامعات / معاهد / الكل) موحد كـ auto-list -->
+        <auto-list
+          v-model="filterInstitutionType"
+          name="InstitutionType"
+          placeholder="نوع المؤسسة التعليمية"
+          cols="3"
+          :add="false"
+          @update:model-value="onInstitutionTypeChange"
+        />
+
+        <!-- 🏫 School Filters -->
+        <template v-if="filterInstitutionType === 'school'">
+          <auto-list
+            v-model="filterStage"
+            name="Stage"
+            placeholder="المرحلة الدراسية"
+            cols="3"
+            :add="false"
+            @update:model-value="onStageChange"
+          />
+          <auto-list
+            v-model="filterClassTrack"
+            name="ClassTrackByStage"
+            :param="filterStage"
+            placeholder="الصف والمسار"
+            cols="3"
+            :add="false"
+            :disabled="!filterStage"
+            @update:model-value="fetchExamsList"
+          />
+          <auto-list
+            v-model="filterSubject"
+            name="Subject"
+            :param="subjectFilterParam"
+            placeholder="المادة الدراسية"
+            cols="3"
+            :add="false"
+            @update:model-value="fetchExamsList"
+          />
+        </template>
+
+        <!-- 🎓 University Filters -->
+        <template v-if="filterInstitutionType === 'university'">
+          <auto-list
+            v-model="filterCollege"
+            name="College"
+            placeholder="الكلية الجامعية"
+            cols="3"
+            :add="false"
+            @update:model-value="onCollegeChange"
+          />
+          <auto-list
+            v-model="filterDepartment"
+            name="DepartmentByCollege"
+            :param="filterCollege"
+            placeholder="القسم الأكاديمي"
+            cols="3"
+            :add="false"
+            :disabled="!filterCollege"
+            @update:model-value="onDepartmentChange"
+          />
+          <auto-list
+            v-model="filterSpecialization"
+            name="Specialization"
+            :param="filterDepartment"
+            placeholder="التخصص والبرنامج"
+            cols="3"
+            :add="false"
+            :disabled="!filterDepartment"
+            @update:model-value="fetchExamsList"
+          />
+          <auto-list
+            v-model="filterSemesterSubject"
+            name="SemesterSubject"
+            :param="filterSpecialization"
+            placeholder="مقرر الفصل الجامعي"
+            cols="3"
+            :add="false"
+            @update:model-value="fetchExamsList"
+          />
+        </template>
+
+        <!-- 🏢 Institute Filters -->
+        <template v-if="filterInstitutionType === 'institute'">
+          <auto-list
+            v-model="filterInstituteField"
+            name="InstituteField"
+            placeholder="المجال المهني / التقني"
+            cols="3"
+            :add="false"
+            @update:model-value="onInstituteFieldChange"
+          />
+          <auto-list
+            v-model="filterInstituteEducationSystem"
+            name="InstituteEducationSystem"
+            :param="filterInstituteField"
+            placeholder="نظام التعليم والتدريب"
+            cols="3"
+            :add="false"
+            :disabled="!filterInstituteField"
+            @update:model-value="onInstituteEducationSystemChange"
+          />
+          <auto-list
+            v-model="filterInstituteSpecialization"
+            name="InstituteSpecialization"
+            :param="instituteSpecParam"
+            placeholder="التخصص المهني"
+            cols="3"
+            :add="false"
+            :disabled="!filterInstituteEducationSystem"
+            @update:model-value="fetchExamsList"
+          />
+          <auto-list
+            v-model="filterInstituteSubject"
+            name="InstituteSubject"
+            :param="instituteSubjectParam"
+            placeholder="المادة الدراسية للمعهد"
+            cols="3"
+            :add="false"
+            @update:model-value="fetchExamsList"
+          />
+        </template>
+
+        <!-- Common Subject Filter (All / Fallback) -->
+        <auto-list
+          v-if="!filterInstitutionType || filterInstitutionType === 'all'"
+          v-model="filterSubject"
+          name="Subject"
+          placeholder="المادة الدراسية (عام)"
+          cols="3"
+          :add="false"
+          @update:model-value="fetchExamsList"
+        />
+
+        <!-- Actions -->
+        <v-col cols="12" sm="6" md="3" class="d-flex align-center gap-2">
+          <custom-btn
+            type="show"
+            label="تحديث الاختبارات"
+            color="primary"
+            class="font-weight-bold flex-grow-1 mb-6"
+            :click="fetchExamsList"
+          />
+          <custom-btn
+            type="cancel_filter"
+            :click="resetInstitutionFilters"
+            variant="tonal"
+            color="error"
+            label="تفريغ"
+            class="font-weight-bold mb-6"
+          />
+        </v-col>
+      </v-row>
+    </filter-fields>
+
     <!-- Exam Selection & Quick Meta Card (دائماً في أعلى الصفحة لسهولة التنقل) -->
     <div class="main-card rounded-2xl pa-5 mb-4 border bg-white">
       <v-row dense class="align-center">
@@ -1087,6 +1245,111 @@ watch(selectedDocType, (newDoc) => {
 const loadingExams = ref(false)
 const examsList = ref([])
 const selectedExamId = ref(null)
+
+// Institutional Hierarchy Filters
+const filterInstitutionType = ref('all')
+const filterStage = ref(null)
+const filterClassTrack = ref(null)
+const filterSubject = ref(null)
+
+const filterCollege = ref(null)
+const filterDepartment = ref(null)
+const filterSpecialization = ref(null)
+const filterSemesterSubject = ref(null)
+
+const filterInstituteField = ref(null)
+const filterInstituteEducationSystem = ref(null)
+const filterInstituteSpecialization = ref(null)
+const filterInstituteSubject = ref(null)
+
+const institutionTypeOptions = [
+  { text: 'الكل (مدارس وجامعات ومعاهد)', value: 'all', icon: 'mdi-domain' },
+  { text: 'تعليم مدرسي', value: 'school', icon: 'mdi-school' },
+  { text: 'تعليم جامعي', value: 'university', icon: 'mdi-domain' },
+  { text: 'معاهد وتدريب مهني', value: 'institute', icon: 'mdi-tools' },
+]
+
+const subjectFilterParam = computed(() => {
+  const p = {}
+  if (filterClassTrack.value) p.class_track = filterClassTrack.value
+  if (filterStage.value) p.stage = filterStage.value
+  return Object.keys(p).length > 0 ? p : null
+})
+
+const instituteSpecParam = computed(() => {
+  const p = {}
+  if (filterInstituteField.value) p.field = filterInstituteField.value
+  if (filterInstituteEducationSystem.value) p.education_system = filterInstituteEducationSystem.value
+  return Object.keys(p).length ? p : null
+})
+
+const instituteSubjectParam = computed(() => {
+  if (filterInstituteField.value) return { field: filterInstituteField.value }
+  return null
+})
+
+const onInstitutionTypeChange = () => {
+  filterStage.value = null
+  filterClassTrack.value = null
+  filterSubject.value = null
+  filterCollege.value = null
+  filterDepartment.value = null
+  filterSpecialization.value = null
+  filterSemesterSubject.value = null
+  filterInstituteField.value = null
+  filterInstituteEducationSystem.value = null
+  filterInstituteSpecialization.value = null
+  filterInstituteSubject.value = null
+  fetchExamsList()
+}
+
+const onStageChange = () => {
+  filterClassTrack.value = null
+  filterSubject.value = null
+  fetchExamsList()
+}
+
+const onCollegeChange = () => {
+  filterDepartment.value = null
+  filterSpecialization.value = null
+  filterSemesterSubject.value = null
+  fetchExamsList()
+}
+
+const onDepartmentChange = () => {
+  filterSpecialization.value = null
+  filterSemesterSubject.value = null
+  fetchExamsList()
+}
+
+const onInstituteFieldChange = () => {
+  filterInstituteEducationSystem.value = null
+  filterInstituteSpecialization.value = null
+  filterInstituteSubject.value = null
+  fetchExamsList()
+}
+
+const onInstituteEducationSystemChange = () => {
+  filterInstituteSpecialization.value = null
+  fetchExamsList()
+}
+
+const resetInstitutionFilters = () => {
+  filterInstitutionType.value = 'all'
+  filterStage.value = null
+  filterClassTrack.value = null
+  filterSubject.value = null
+  filterCollege.value = null
+  filterDepartment.value = null
+  filterSpecialization.value = null
+  filterSemesterSubject.value = null
+  filterInstituteField.value = null
+  filterInstituteEducationSystem.value = null
+  filterInstituteSpecialization.value = null
+  filterInstituteSubject.value = null
+  fetchExamsList()
+}
+
 const selectedExam = computed(() => {
   const base = examsList.value.find(e => e.id === selectedExamId.value) || {}
   const detailed = examDetails.value?.exam || {}
@@ -1277,9 +1540,38 @@ const studentsTableItems = computed(() => ({
 const fetchExamsList = async () => {
   loadingExams.value = true
   try {
-    const resp = await api.get('/api/omr/exam-linking/')
+    const params = {}
+    if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
+      params.institution_type = filterInstitutionType.value
+    }
+    if (filterInstitutionType.value === 'school') {
+      if (filterStage.value) params.stage = filterStage.value
+      if (filterClassTrack.value) params.class_track = filterClassTrack.value
+      if (filterSubject.value) params.subject = filterSubject.value
+    } else if (filterInstitutionType.value === 'university') {
+      if (filterCollege.value) params.college = filterCollege.value
+      if (filterDepartment.value) params.department = filterDepartment.value
+      if (filterSpecialization.value) params.specialization = filterSpecialization.value
+      if (filterSemesterSubject.value) params.semester_subject = filterSemesterSubject.value
+    } else if (filterInstitutionType.value === 'institute') {
+      if (filterInstituteField.value) params.institute_field = filterInstituteField.value
+      if (filterInstituteEducationSystem.value) params.institute_education_system = filterInstituteEducationSystem.value
+      if (filterInstituteSpecialization.value) params.institute_specialization = filterInstituteSpecialization.value
+      if (filterInstituteSubject.value) params.institute_subject = filterInstituteSubject.value
+    } else {
+      if (filterSubject.value) params.subject = filterSubject.value
+    }
+
+    const resp = await api.get('/api/omr/exam-linking/', { params })
     if (resp.data && resp.data.results) {
       examsList.value = resp.data.results
+      if (examsList.value.length > 0 && (!selectedExamId.value || !examsList.value.some(e => e.id === selectedExamId.value))) {
+        selectedExamId.value = examsList.value[0].id
+        await loadExamDetails(selectedExamId.value)
+      } else if (examsList.value.length === 0) {
+        selectedExamId.value = null
+        examDetails.value = null
+      }
     }
   } catch (err) {
     console.error('Failed to load exams list:', err)

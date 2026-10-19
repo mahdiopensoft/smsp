@@ -52,27 +52,18 @@
     <!-- ── OMR Workflow Stepper (مسار مراحل التصحيح الآلي والكنترول خطوة بخطوة) ── -->
     <omr-workflow-bar :active-step="6" :exam-id="selectedExamId" />
 
-    <!-- ── Filter & Exam Selector Card (الفلاتر الموحدة المتطابقة مع نماذج الاختبار والمنظومة) ── -->
+    <!-- ── Filter & Exam Selector Card (الفلاتر الموحدة المتطابقة مع بنك الأسئلة والشاشات الموحدة) ── -->
     <filter-fields label="اختيار وتصفية الاختبار وكشوفات الرصد والكنترول" class="main-card border-0 pa-5 rounded-2xl mb-6">
-      <!-- الصف 1: الهيكلية التعليمية والأكاديمية (4 أعمدة متساوية cols="3") -->
-      <v-row dense class="align-center mb-1">
-        <!-- نوع المؤسسة -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterInstitutionType"
-            :items="institutionTypeOptions"
-            item-title="text"
-            item-value="value"
-            placeholder="نوع المؤسسة"
-            prepend-inner-icon="mdi-domain"
-            hide-details
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            class="mb-3"
-            @update:model-value="onInstitutionTypeChange"
-          />
-        </v-col>
+      <v-row dense class="align-center">
+        <!-- نوع المؤسسة التعليمية (مدارس / جامعات / معاهد) موحد كـ auto-list -->
+        <auto-list
+          v-model="filterInstitutionType"
+          name="InstitutionType"
+          placeholder="نوع المؤسسة التعليمية"
+          cols="3"
+          :add="false"
+          @update:model-value="onInstitutionTypeChange"
+        />
 
         <!-- فلاتر المدارس -->
         <template v-if="filterInstitutionType === 'school' || filterInstitutionType === 'all'">
@@ -136,6 +127,15 @@
             :add="false"
             :disabled="!filterDepartment"
           />
+          <auto-list
+            v-model="filterSemesterSubject"
+            name="SemesterSubject"
+            :param="filterSpecialization"
+            placeholder="مقرر الفصل الجامعي"
+            cols="3"
+            :add="false"
+            @update:model-value="selectedExamId = null"
+          />
         </template>
 
         <!-- فلاتر المعاهد -->
@@ -168,11 +168,18 @@
             :disabled="!filterInstituteEducationSystem"
             @update:model-value="() => { filterInstituteCurriculum = null; filterInstituteSubject = null; selectedExamId = null; }"
           />
+          <auto-list
+            v-model="filterInstituteSubject"
+            name="InstituteSubject"
+            :param="filterInstituteSpecialization"
+            placeholder="المادة التدريبية"
+            cols="3"
+            :add="false"
+            @update:model-value="selectedExamId = null"
+          />
         </template>
-      </v-row>
 
-      <!-- الصف 2: الهيكلية الجغرافية والمؤسسية + اختيار الاختبار (4 أعمدة متساوية cols="3") -->
-      <v-row dense class="align-center mb-1">
+        <!-- الهيكلية الجغرافية والمؤسسية + اختيار الاختبار (4 أعمدة متساوية cols="3") -->
         <!-- المحافظة -->
         <auto-list
           v-model="filterGovernorate"
@@ -216,22 +223,17 @@
           :add="false"
           @update:model-value="onExamChange"
         />
-      </v-row>
 
-      <!-- الصف 3: البحث الفوري + النموذج + التقدير + حالة التصحيح + أزرار التحديث والتفريغ -->
-      <v-row dense class="align-center">
         <!-- البحث الفوري -->
-        <v-col cols="12" sm="6" md="3">
+        <v-col cols="12" sm="6" md="3" class="py-2">
           <v-text-field
             v-model="searchQuery"
-            placeholder="بحث بالاسم أو رقم الجلوس أو السري..."
+            label="بحث بالاسم أو رقم الجلوس أو السري..."
             prepend-inner-icon="mdi-magnify"
             clearable
             density="compact"
             variant="outlined"
-            rounded="lg"
             hide-details
-            class="mb-3"
             @update:model-value="onSearchInput"
             @keydown.enter="applyFilters"
             @click:clear="onClearSearch"
@@ -239,69 +241,63 @@
         </v-col>
 
         <!-- النموذج -->
-        <v-col cols="6" sm="3" md="2">
+        <v-col cols="6" sm="3" md="2" class="py-2">
           <v-select
             v-model="filterVersion"
             :items="versionFilterOptions"
             item-title="text"
             item-value="value"
-            placeholder="النموذج"
+            label="النموذج"
             prepend-inner-icon="mdi-file-document-multiple-outline"
             clearable
             density="compact"
             variant="outlined"
-            rounded="lg"
-            class="mb-3"
             hide-details
             @update:model-value="applyFilters"
           />
         </v-col>
 
         <!-- التقدير الأكاديمي -->
-        <v-col cols="6" sm="3" md="2">
+        <v-col cols="6" sm="3" md="2" class="py-2">
           <v-select
             v-model="filterGrade"
             :items="gradeFilterOptions"
             item-title="text"
             item-value="value"
-            placeholder="التقدير الأكاديمي"
+            label="التقدير الأكاديمي"
             prepend-inner-icon="mdi-medal-outline"
             clearable
             density="compact"
             variant="outlined"
-            rounded="lg"
-            class="mb-3"
             hide-details
             @update:model-value="applyFilters"
           />
         </v-col>
 
         <!-- حالة التصحيح -->
-        <v-col cols="6" sm="3" md="2">
+        <v-col cols="6" sm="3" md="2" class="py-2">
           <v-select
             v-model="filterStatus"
             :items="statusFilterOptions"
             item-title="text"
             item-value="value"
-            placeholder="حالة التصحيح"
+            label="حالة التصحيح"
             prepend-inner-icon="mdi-clipboard-check-outline"
             clearable
             density="compact"
             variant="outlined"
-            rounded="lg"
-            class="mb-3"
             hide-details
             @update:model-value="applyFilters"
           />
         </v-col>
 
         <!-- أزرار الإجراءات الموحدة (تحديث وتفريغ) -->
-        <v-col cols="12" sm="9" md="3" class="d-flex align-center justify-end gap-2 mb-3">
+        <v-col cols="12" sm="12" md="3" class="d-flex align-center gap-2 py-2">
           <custom-btn
             type="show"
             label="تحديث الكشف"
             color="primary"
-            class="font-weight-bold px-4"
+            class="font-weight-bold flex-grow-1"
             :loading="loadingRecords"
             :click="applyFilters"
           />

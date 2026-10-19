@@ -44,22 +44,15 @@
     <!-- Filters Control Bar (Theme Compatible) -->
     <filter-fields label="خيارات تصفية أوراق الإجابة ونتائج التصحيح" class="main-card border-0 pa-5 rounded-2xl mb-6">
       <v-row dense class="align-center">
-        <!-- Institution Type Selector (مدارس / جامعات / الكل) -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterInstitutionType"
-            :items="institutionTypeOptions"
-            item-title="text"
-            item-value="value"
-            class="mb-6"
-            placeholder="نوع المؤسسة"
-            prepend-inner-icon="mdi-domain"
-            hide-details
-            density="compact"
-            variant="outlined"
-            @update:model-value="onInstitutionTypeChange"
-          />
-        </v-col>
+        <!-- Institution Type Selector (مدارس / جامعات / معاهد / الكل) موحد كـ auto-list -->
+        <auto-list
+          v-model="filterInstitutionType"
+          name="InstitutionType"
+          placeholder="نوع المؤسسة التعليمية"
+          cols="3"
+          :add="false"
+          @update:model-value="onInstitutionTypeChange"
+        />
 
         <!-- 🏫 School Filters -->
         <template v-if="filterInstitutionType === 'school' || filterInstitutionType === 'all'">
@@ -123,9 +116,49 @@
           />
         </template>
 
-        <!-- Common Subject Filter (School only) -->
+        <!-- 🏢 Institute Filters -->
+        <template v-if="filterInstitutionType === 'institute'">
+          <auto-list
+            v-model="filterInstituteField"
+            name="InstituteField"
+            placeholder="المجال المهني / التقني"
+            cols="3"
+            :add="false"
+            @update:model-value="onInstituteFieldChange"
+          />
+          <auto-list
+            v-model="filterInstituteEducationSystem"
+            name="InstituteEducationSystem"
+            :param="filterInstituteField"
+            placeholder="نظام التعليم والتدريب"
+            cols="3"
+            :add="false"
+            :disabled="!filterInstituteField"
+            @update:model-value="onInstituteEducationSystemChange"
+          />
+          <auto-list
+            v-model="filterInstituteSpecialization"
+            name="InstituteSpecialization"
+            :param="instituteSpecParam"
+            placeholder="التخصص المهني"
+            cols="3"
+            :add="false"
+            :disabled="!filterInstituteEducationSystem"
+          />
+          <auto-list
+            v-model="filterInstituteSubject"
+            name="InstituteSubject"
+            :param="instituteSubjectParam"
+            placeholder="المادة الدراسية للمعهد"
+            cols="3"
+            :add="false"
+            @update:model-value="onSubjectChange"
+          />
+        </template>
+
+        <!-- Common Subject Filter (School or All) -->
         <auto-list
-          v-if="filterInstitutionType !== 'university'"
+          v-if="filterInstitutionType === 'school' || filterInstitutionType === 'all'"
           v-model="filterSubject"
           name="Subject"
           placeholder="المادة الدراسية"
@@ -143,6 +176,7 @@
           placeholder="الاختبار"
           cols="3"
           :add="false"
+          @update:model-value="loadData"
         />
 
         <!-- Status Filter -->
@@ -159,6 +193,7 @@
             variant="outlined"
             class="mb-6"
             hide-details
+            @update:model-value="loadData"
           />
         </v-col>
 
@@ -173,6 +208,7 @@
             variant="outlined"
             class="mb-6"
             hide-details
+            @keyup.enter="loadData"
           />
         </v-col>
 
@@ -204,10 +240,10 @@
         :items="tableItems"
         :getData="getData"
         :customLoading="loading"
-        class="bg-transparent"
         :hasFilter="false"
         :log="false"
         :restore="false"
+        class="bg-transparent"
       >
         <template v-slot:item-slot="{ item, key }">
           <!-- Seat Number -->
@@ -403,14 +439,19 @@ export default {
       // Filters
       filterInstitutionType: 'all',
       institutionTypeOptions: [
-        { text: "الكل (مدارس وجامعات)", value: "all" },
+        { text: "الكل (مدارس وجامعات ومعاهد)", value: "all" },
         { text: "🏫 مدارس فقط", value: "school" },
         { text: "🎓 جامعات فقط", value: "university" },
+        { text: "🏢 معاهد وتدريب مهني", value: "institute" },
       ],
       filterCollege: null,
       filterDepartment: null,
       filterSpecialization: null,
       filterSemesterSubject: null,
+      filterInstituteField: null,
+      filterInstituteEducationSystem: null,
+      filterInstituteSpecialization: null,
+      filterInstituteSubject: null,
       filterStage: null,
       filterClassTrack: null,
       filterSubject: null,
@@ -441,6 +482,18 @@ export default {
   },
 
   computed: {
+    instituteSpecParam() {
+      const p = {}
+      if (this.filterInstituteField) p.field = this.filterInstituteField
+      if (this.filterInstituteEducationSystem) p.education_system = this.filterInstituteEducationSystem
+      return Object.keys(p).length ? p : null
+    },
+
+    instituteSubjectParam() {
+      if (this.filterInstituteField) return { field: this.filterInstituteField }
+      return null
+    },
+
     examFilterParam() {
       if (this.filterInstitutionType === 'university') {
         const p = { institution_type: 'university' }
@@ -454,6 +507,13 @@ export default {
         if (this.filterStage) p.stage = this.filterStage
         if (this.filterClassTrack) p.class_track = this.filterClassTrack
         if (this.filterSubject) p.subject = this.filterSubject
+        return p
+      } else if (this.filterInstitutionType === 'institute') {
+        const p = { institution_type: 'institute' }
+        if (this.filterInstituteField) p.institute_field = this.filterInstituteField
+        if (this.filterInstituteEducationSystem) p.institute_education_system = this.filterInstituteEducationSystem
+        if (this.filterInstituteSpecialization) p.institute_specialization = this.filterInstituteSpecialization
+        if (this.filterInstituteSubject) p.institute_subject = this.filterInstituteSubject
         return p
       }
       return this.filterSubject ? this.filterSubject : null
@@ -482,6 +542,10 @@ export default {
           department: this.filterDepartment || undefined,
           specialization: this.filterSpecialization || undefined,
           semester_subject: this.filterSemesterSubject || undefined,
+          institute_field: this.filterInstituteField || undefined,
+          institute_education_system: this.filterInstituteEducationSystem || undefined,
+          institute_specialization: this.filterInstituteSpecialization || undefined,
+          institute_subject: this.filterInstituteSubject || undefined,
           stage: this.filterStage || undefined,
           class_track: this.filterClassTrack || undefined,
           subject: this.filterSubject || undefined,
@@ -514,6 +578,10 @@ export default {
           department: this.filterDepartment || undefined,
           specialization: this.filterSpecialization || undefined,
           semester_subject: this.filterSemesterSubject || undefined,
+          institute_field: this.filterInstituteField || undefined,
+          institute_education_system: this.filterInstituteEducationSystem || undefined,
+          institute_specialization: this.filterInstituteSpecialization || undefined,
+          institute_subject: this.filterInstituteSubject || undefined,
           stage: this.filterStage || undefined,
           class_track: this.filterClassTrack || undefined,
           subject: this.filterSubject || undefined,
@@ -534,6 +602,10 @@ export default {
       this.filterDepartment = null
       this.filterSpecialization = null
       this.filterSemesterSubject = null
+      this.filterInstituteField = null
+      this.filterInstituteEducationSystem = null
+      this.filterInstituteSpecialization = null
+      this.filterInstituteSubject = null
       this.filterSubject = null
       this.filterExam = null
       this.loadData()
@@ -543,6 +615,18 @@ export default {
       this.filterDepartment = null
       this.filterSpecialization = null
       this.filterSemesterSubject = null
+      this.filterExam = null
+    },
+
+    onInstituteFieldChange() {
+      this.filterInstituteEducationSystem = null
+      this.filterInstituteSpecialization = null
+      this.filterInstituteSubject = null
+      this.filterExam = null
+    },
+
+    onInstituteEducationSystemChange() {
+      this.filterInstituteSpecialization = null
       this.filterExam = null
     },
 
@@ -561,6 +645,10 @@ export default {
       this.filterDepartment = null
       this.filterSpecialization = null
       this.filterSemesterSubject = null
+      this.filterInstituteField = null
+      this.filterInstituteEducationSystem = null
+      this.filterInstituteSpecialization = null
+      this.filterInstituteSubject = null
       this.filterStage = null
       this.filterClassTrack = null
       this.filterSubject = null

@@ -67,20 +67,119 @@
         </v-chip>
       </div>
 
-      <!-- الصف 1: الفلاتر المعتمدة بالمنظومة (الاختبار، المحافظة، المديرية، المركز الامتحاني) -->
+      <!-- الصف 1: الهيكلية التعليمية والأكاديمية الموحدة (المدارس / الجامعات / المعاهد) -->
       <v-row dense class="align-center mb-1">
-        <!-- 1. الاختبار والمادة الدراسية -->
+        <!-- 0. نوع المؤسسة التعليمية (مدارس / جامعات / معاهد) موحد كـ auto-list -->
         <auto-list
-          v-model="selectedExamId"
-          name="Exam"
-          :param="examFilterParam"
-          placeholder="الاختبار والمادة الدراسية *"
+          v-model="filterInstitutionType"
+          name="InstitutionType"
+          placeholder="نوع المؤسسة التعليمية"
           cols="3"
           :add="false"
-          @update:model-value="onExamChange"
+          @update:model-value="onInstitutionTypeChange"
         />
 
-        <!-- 2. المحافظة -->
+        <!-- فلاتر المدارس -->
+        <template v-if="filterInstitutionType === 'school' || filterInstitutionType === 'all'">
+          <auto-list
+            v-if="filterInstitutionType === 'school'"
+            v-model="filterStage"
+            name="Stage"
+            placeholder="المرحلة الدراسية"
+            cols="3"
+            :add="false"
+            @update:model-value="onStageChange"
+          />
+          <auto-list
+            v-if="filterInstitutionType === 'school'"
+            v-model="filterClassTrack"
+            name="ClassTrackByStage"
+            :param="filterStage"
+            placeholder="الصف والمسار"
+            cols="3"
+            :add="false"
+            :disabled="!filterStage"
+            @update:model-value="onClassTrackChange"
+          />
+          <auto-list
+            v-model="filterSubject"
+            name="Subject"
+            :param="subjectFilterParam"
+            placeholder="المادة الدراسية"
+            :cols="filterInstitutionType === 'school' ? '3' : '9'"
+            :add="false"
+            @update:model-value="onSubjectChange"
+          />
+        </template>
+
+        <!-- فلاتر الجامعات -->
+        <template v-if="filterInstitutionType === 'university'">
+          <auto-list
+            v-model="filterCollege"
+            name="College"
+            placeholder="الكلية الجامعية"
+            cols="3"
+            :add="false"
+            @update:model-value="onCollegeChange"
+          />
+          <auto-list
+            v-model="filterDepartment"
+            name="DepartmentByCollege"
+            :param="filterCollege"
+            placeholder="القسم الأكاديمي"
+            cols="3"
+            :add="false"
+            :disabled="!filterCollege"
+            @update:model-value="onDepartmentChange"
+          />
+          <auto-list
+            v-model="filterSpecialization"
+            name="Specialization"
+            :param="filterDepartment"
+            placeholder="التخصص والبرنامج"
+            cols="3"
+            :add="false"
+            :disabled="!filterDepartment"
+            @update:model-value="onSpecializationChange"
+          />
+        </template>
+
+        <!-- فلاتر المعاهد -->
+        <template v-if="filterInstitutionType === 'institute'">
+          <auto-list
+            v-model="filterInstituteField"
+            name="InstituteField"
+            placeholder="المجال المهني"
+            cols="3"
+            :add="false"
+            @update:model-value="onInstituteFieldChange"
+          />
+          <auto-list
+            v-model="filterInstituteEducationSystem"
+            name="InstituteEducationSystem"
+            :param="filterInstituteField"
+            placeholder="نظام التعليم"
+            cols="3"
+            :add="false"
+            :disabled="!filterInstituteField"
+            @update:model-value="onInstituteEducationSystemChange"
+          />
+          <auto-list
+            v-model="filterInstituteSpecialization"
+            name="InstituteSpecialization"
+            :param="instituteSpecParam"
+            placeholder="التخصص المهني"
+            cols="3"
+            :add="false"
+            :disabled="!filterInstituteEducationSystem"
+            @update:model-value="onInstituteSpecializationChange"
+          />
+        </template>
+      </v-row>
+
+      <!-- الصف 2: الهيكلية الجغرافية والمؤسسية + اختيار الاختبار المعتمد (4 أعمدة متساوية cols="3") -->
+      <v-row dense class="align-center mb-1 mt-1">
+        <!-- 1. المحافظة -->
         <auto-list
           v-model="filterGovernorate"
           name="Governorate"
@@ -90,7 +189,7 @@
           @update:model-value="onGovernorateChange"
         />
 
-        <!-- 3. المديرية -->
+        <!-- 2. المديرية -->
         <auto-list
           v-model="filterDirectorate"
           name="Directorate"
@@ -102,15 +201,26 @@
           @update:model-value="onDirectorateChange"
         />
 
-        <!-- 4. المركز الامتحاني (المدرسة) -->
+        <!-- 3. المركز الامتحاني (المدرسة / الكلية / المعهد) -->
         <auto-list
           v-model="filterOrganization"
           name="Organization"
           :param="orgParam"
-          :placeholder="filterDirectorate ? 'المركز الامتحاني (المدرسة) *' : (filterGovernorate ? 'اختر المديرية أولاً' : 'المركز الامتحاني (المدرسة) *')"
+          :placeholder="orgPlaceholder"
           cols="3"
           :add="false"
           @update:model-value="onOrganizationChange"
+        />
+
+        <!-- 4. الاختبار والمادة الدراسية -->
+        <auto-list
+          v-model="selectedExamId"
+          name="Exam"
+          :param="examFilterParam"
+          placeholder="الاختبار والمادة الدراسية *"
+          cols="3"
+          :add="false"
+          @update:model-value="onExamChange"
         />
       </v-row>
 
@@ -123,7 +233,6 @@
             label="رقم القاعة *"
             variant="outlined"
             density="compact"
-            rounded="lg"
             prepend-inner-icon="mdi-door-open"
             hide-details
             placeholder="مثال: قاعة 03"
@@ -138,7 +247,6 @@
             label="باركود / كود المظروف الامتحاني *"
             variant="outlined"
             density="compact"
-            rounded="lg"
             prepend-inner-icon="mdi-barcode-scan"
             hide-details
             append-inner-icon="mdi-refresh"
@@ -156,7 +264,6 @@
             label="سعة القاعة المقيدة (الطلاب المقيدون) *"
             variant="outlined"
             density="compact"
-            rounded="lg"
             prepend-inner-icon="mdi-counter"
             hide-details
           />
@@ -172,7 +279,6 @@
             label="عدد الغائبين (وفق حافظة الكشف) *"
             variant="outlined"
             density="compact"
-            rounded="lg"
             prepend-inner-icon="mdi-account-cancel-outline"
             color="warning"
             hide-details
@@ -777,10 +883,125 @@ export default {
     const availableExams = ref([])
     const selectedExamId = ref(route.query.exam ? Number(route.query.exam) : 7)
 
-    // Standard Filter State (Matching system database)
+    // Standard Filter State (Matching system database) - Unified Tripartite Hierarchy
+    const filterInstitutionType = ref('all')
+    const institutionTypeOptions = [
+      { text: 'الكل (مدارس وجامعات ومعاهد)', value: 'all' },
+      { text: '🏫 تعليم مدرسي', value: 'school' },
+      { text: '🎓 تعليم جامعي', value: 'university' },
+      { text: '🏢 معاهد وتدريب مهني', value: 'institute' },
+    ]
+
+    // School Filters
+    const filterStage = ref(null)
+    const filterClassTrack = ref(null)
+    const filterSubject = ref(null)
+
+    // University Filters
+    const filterCollege = ref(null)
+    const filterDepartment = ref(null)
+    const filterSpecialization = ref(null)
+    const filterSemesterSubject = ref(null)
+
+    // Institute Filters
+    const filterInstituteField = ref(null)
+    const filterInstituteEducationSystem = ref(null)
+    const filterInstituteSpecialization = ref(null)
+    const filterInstituteSubject = ref(null)
+
+    // Geographic & Institutional
     const filterGovernorate = ref(null)
     const filterDirectorate = ref(null)
     const filterOrganization = ref(null)
+
+    // Cascade Param Helpers
+    const subjectFilterParam = computed(() => {
+      if (filterClassTrack.value) return { class_track: filterClassTrack.value }
+      if (filterStage.value) return { stage: filterStage.value }
+      return null
+    })
+
+    const instituteSpecParam = computed(() => {
+      const p = {}
+      if (filterInstituteField.value) p.field = filterInstituteField.value
+      if (filterInstituteEducationSystem.value) p.education_system = filterInstituteEducationSystem.value
+      return Object.keys(p).length > 0 ? p : undefined
+    })
+
+    const orgPlaceholder = computed(() => {
+      const lbl = filterInstitutionType.value === 'university'
+        ? 'المركز الامتحاني (الكلية / الجامعة)'
+        : (filterInstitutionType.value === 'institute' ? 'المركز الامتحاني (المعهد / المركز)' : 'المركز الامتحاني (المدرسة)')
+      return filterDirectorate.value ? `${lbl} (التابعة للمديرية)` : (filterGovernorate.value ? `${lbl} (التابعة للمحافظة)` : lbl)
+    })
+
+    const onInstitutionTypeChange = () => {
+      filterStage.value = null
+      filterClassTrack.value = null
+      filterSubject.value = null
+      filterCollege.value = null
+      filterDepartment.value = null
+      filterSpecialization.value = null
+      filterSemesterSubject.value = null
+      filterInstituteField.value = null
+      filterInstituteEducationSystem.value = null
+      filterInstituteSpecialization.value = null
+      filterInstituteSubject.value = null
+      filterOrganization.value = null
+      selectedExamId.value = null
+      generateEnvelopeBarcode()
+    }
+
+    const onStageChange = () => {
+      filterClassTrack.value = null
+      filterSubject.value = null
+      selectedExamId.value = null
+    }
+
+    const onClassTrackChange = () => {
+      filterSubject.value = null
+      selectedExamId.value = null
+    }
+
+    const onSubjectChange = () => {
+      selectedExamId.value = null
+    }
+
+    const onCollegeChange = () => {
+      filterDepartment.value = null
+      filterSpecialization.value = null
+      filterSemesterSubject.value = null
+      selectedExamId.value = null
+    }
+
+    const onDepartmentChange = () => {
+      filterSpecialization.value = null
+      filterSemesterSubject.value = null
+      selectedExamId.value = null
+    }
+
+    const onSpecializationChange = () => {
+      filterSemesterSubject.value = null
+      selectedExamId.value = null
+    }
+
+    const onInstituteFieldChange = () => {
+      filterInstituteEducationSystem.value = null
+      filterInstituteSpecialization.value = null
+      filterInstituteSubject.value = null
+      selectedExamId.value = null
+    }
+
+    const onInstituteEducationSystemChange = () => {
+      filterInstituteSpecialization.value = null
+      filterInstituteSubject.value = null
+      selectedExamId.value = null
+    }
+
+    const onInstituteSpecializationChange = () => {
+      filterInstituteSubject.value = null
+      selectedExamId.value = null
+    }
 
     // Real Registered Students Manifest from Database
     const registeredStudents = ref([])
@@ -789,6 +1010,9 @@ export default {
     // Dynamic Filter Parameters for Cascading
     const orgParam = computed(() => {
       const p = {}
+      if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
+        p.institution_type = filterInstitutionType.value
+      }
       if (filterGovernorate.value) p.governorate = filterGovernorate.value
       if (filterDirectorate.value) p.directorate = filterDirectorate.value
       return Object.keys(p).length > 0 ? p : undefined
@@ -796,6 +1020,26 @@ export default {
 
     const examFilterParam = computed(() => {
       const p = {}
+      if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
+        p.institution_type = filterInstitutionType.value
+      }
+      if (filterInstitutionType.value === 'school') {
+        if (filterStage.value) p.stage = filterStage.value
+        if (filterClassTrack.value) p.class_track = filterClassTrack.value
+        if (filterSubject.value) p.subject = filterSubject.value
+      } else if (filterInstitutionType.value === 'university') {
+        if (filterCollege.value) p.college = filterCollege.value
+        if (filterDepartment.value) p.department = filterDepartment.value
+        if (filterSpecialization.value) p.specialization = filterSpecialization.value
+        if (filterSemesterSubject.value) p.semester_subject = filterSemesterSubject.value
+      } else if (filterInstitutionType.value === 'institute') {
+        if (filterInstituteField.value) p.field = filterInstituteField.value
+        if (filterInstituteEducationSystem.value) p.education_system = filterInstituteEducationSystem.value
+        if (filterInstituteSpecialization.value) p.specialization = filterInstituteSpecialization.value
+        if (filterInstituteSubject.value) p.subject = filterInstituteSubject.value
+      } else {
+        if (filterSubject.value) p.subject = filterSubject.value
+      }
       if (filterOrganization.value) p.organization = filterOrganization.value
       return Object.keys(p).length > 0 ? p : undefined
     })
@@ -1153,6 +1397,32 @@ export default {
       selectedExamId,
       onExamChange,
       // Standard Filters & Hierarchy
+      filterInstitutionType,
+      institutionTypeOptions,
+      filterStage,
+      filterClassTrack,
+      filterSubject,
+      filterCollege,
+      filterDepartment,
+      filterSpecialization,
+      filterSemesterSubject,
+      filterInstituteField,
+      filterInstituteEducationSystem,
+      filterInstituteSpecialization,
+      filterInstituteSubject,
+      subjectFilterParam,
+      instituteSpecParam,
+      orgPlaceholder,
+      onInstitutionTypeChange,
+      onStageChange,
+      onClassTrackChange,
+      onSubjectChange,
+      onCollegeChange,
+      onDepartmentChange,
+      onSpecializationChange,
+      onInstituteFieldChange,
+      onInstituteEducationSystemChange,
+      onInstituteSpecializationChange,
       filterGovernorate,
       filterDirectorate,
       filterOrganization,

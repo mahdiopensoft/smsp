@@ -111,6 +111,35 @@ class SubmissionMVS(AllMVS):
                 Q(exam__subject__semester_subjects__id=sem_sub_id)
             )
 
+        # Institute Filters
+        inst_field_id = self.request.query_params.get('institute_field')
+        if inst_field_id:
+            qs = qs.filter(
+                Q(exam__versions__question_orders__question__lesson__unit__institute_subject__field_id=inst_field_id) |
+                Q(exam__subject__institute_subjects__field_id=inst_field_id)
+            )
+
+        inst_system_id = self.request.query_params.get('institute_education_system')
+        if inst_system_id:
+            qs = qs.filter(
+                Q(exam__versions__question_orders__question__lesson__unit__institute_subject__specialization__education_system_id=inst_system_id) |
+                Q(exam__subject__institute_subjects__specialization__education_system_id=inst_system_id)
+            )
+
+        inst_spec_id = self.request.query_params.get('institute_specialization')
+        if inst_spec_id:
+            qs = qs.filter(
+                Q(exam__versions__question_orders__question__lesson__unit__institute_subject__specialization_id=inst_spec_id) |
+                Q(exam__subject__institute_subjects__specialization_id=inst_spec_id)
+            )
+
+        inst_sub_id = self.request.query_params.get('institute_subject')
+        if inst_sub_id:
+            qs = qs.filter(
+                Q(exam__versions__question_orders__question__lesson__unit__institute_subject_id=inst_sub_id) |
+                Q(exam__subject__institute_subjects__id=inst_sub_id)
+            )
+
         submission_status = self.request.query_params.get('status')
         if submission_status:
             qs = qs.filter(status=submission_status)

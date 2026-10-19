@@ -52,6 +52,9 @@ class MasterYOLOVerifier:
             self.model = YOLO(self.model_path)
             logger.info(f"Loaded Master Unified OMR YOLO model from {self.model_path}")
             print(f"✅ [MasterYOLO] Loaded model: {self.model_path}")
+            import torch
+            dev_str = f"GPU ({torch.cuda.get_device_name(0)})" if torch.cuda.is_available() else "CPU (معالج السيرفر العادي)"
+            print(f"🚀 [AI Acceleration] وحدة المعالجة النشطة للذكاء الاصطناعي: {dev_str}")
         except Exception as e:
             logger.error(f"Failed to load YOLO model: {e}")
             self.model = None

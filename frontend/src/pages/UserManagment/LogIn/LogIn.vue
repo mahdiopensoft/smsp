@@ -43,7 +43,7 @@ const afterLogin = async () => {
 
     if (redirectPath) router.push({ path: redirectPath });
     else {
-      router.push({ name: "Index" });
+      router.push({ name: "home" });
     }
   } catch (error) {
     loading.value = false;
