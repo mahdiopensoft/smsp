@@ -10,7 +10,8 @@ import sys
 import django
 
 # إعداد بيئة عمل جانغو
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, BACKEND_DIR)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
@@ -130,6 +131,17 @@ def setup_omr_screens():
             "icon": "flask-outline",
             "order": 11,
             "component": "OMRScannerLabView"
+        },
+        # شاشات العمليات والربط الفرعية (screen_type: 2 - ديناميكية بدون ظهور في القائمة الرئيسية)
+        {
+            "route": "omr-full-extraction",
+            "path": "omr-full-extraction",
+            "name_ar": "محرك الاستخراج والتكامل المباشر",
+            "name_en": "OMR Full Extraction",
+            "icon": "api",
+            "order": 12,
+            "component": "OMRFullExtractionView",
+            "screen_type": 2
         }
     ]
 
@@ -145,8 +157,9 @@ def setup_omr_screens():
         screen.name_en = cfg["name_en"]
         screen.component = cfg["component"]
         screen.icon = cfg["icon"]
-        screen.screen_type = 1  # Standard screen
-        screen.fk_parent_screen = None  # Direct root item in sidebar
+        screen.path = cfg.get("path", cfg["route"])
+        screen.screen_type = cfg.get("screen_type", 1)  # 1: Standard screen, 2: Operation/Detail screen
+        screen.fk_parent_screen = None  # Direct root item
         screen.is_active = True
         screen.is_deleted = False
         screen.is_report = False
@@ -162,7 +175,7 @@ def setup_omr_screens():
 
         print(f"  ✓ [{cfg['order']:02d}] تم تثبيت شاشة التصحيح: {screen.name_ar} (Route: {cfg['route']}) تحت النظام 4")
 
-    print("\n🎉 تم تحديث كافة شاشات التصحيح الضوئي (11 شاشة) بنجاح وفق تسلسل المراحل وبدون ترقيم تحت نظام «التصحيح الالي»!")
+    print("\n🎉 تم تحديث كافة شاشات التصحيح الضوئي (13 شاشة) بنجاح وفق تسلسل المراحل والشاشات الديناميكية تحت نظام «التصحيح الالي»!")
 
 if __name__ == "__main__":
     setup_omr_screens()

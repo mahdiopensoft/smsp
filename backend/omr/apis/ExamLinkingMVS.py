@@ -39,81 +39,68 @@ class ExamLinkingMVS(ViewSet):
         if institution_type and institution_type != 'all':
             qs = qs.filter(institution_type=institution_type)
         if subject_id:
-            qs = qs.filter(subject_id=subject_id)
+            try:
+                from academic.models.schools.SchoolSubject import SchoolSubject
+                school_subj_names = list(SchoolSubject.objects.filter(id=subject_id).values_list('name_ar', flat=True))
+            except Exception:
+                school_subj_names = []
+
+            qs = qs.filter(
+                Q(subject_id=subject_id) |
+                Q(subject__class_subjects__school_subject_id=subject_id) |
+                (Q(subject__name_ar__in=school_subj_names) if school_subj_names else Q())
+            )
 
         # School Filters
         stage_id = request.query_params.get('stage')
         if stage_id:
             qs = qs.filter(
-                Q(versions__question_orders__question__lesson__unit__class_subject__class_track__level__stage_id=stage_id) |
+                Q(class_track__level__stage_id=stage_id) |
                 Q(subject__class_subjects__class_track__level__stage_id=stage_id)
             )
 
         class_track_id = request.query_params.get('class_track')
         if class_track_id:
             qs = qs.filter(
-                Q(versions__question_orders__question__lesson__unit__class_subject__class_track_id=class_track_id) |
-                Q(subject__class_subjects__class_track_id=class_track_id) |
-                Q(class_track_id=class_track_id)
+                Q(class_track_id=class_track_id) |
+                Q(subject__class_subjects__class_track_id=class_track_id)
             )
 
         # University Filters
         college_id = request.query_params.get('college')
         if college_id:
-            qs = qs.filter(
-                Q(versions__question_orders__question__lesson__unit__semester_subject__fk_specialization__fk_college_id=college_id) |
-                Q(subject__semester_subjects__fk_specialization__fk_college_id=college_id)
-            )
+            qs = qs.filter(subject__semester_subjects__fk_specialization__fk_college_id=college_id)
 
         dept_id = request.query_params.get('department')
         if dept_id:
-            qs = qs.filter(
-                Q(versions__question_orders__question__lesson__unit__semester_subject__fk_specialization__fk_section_id=dept_id) |
-                Q(subject__semester_subjects__fk_specialization__fk_section_id=dept_id)
-            )
+            qs = qs.filter(subject__semester_subjects__fk_specialization__fk_section_id=dept_id)
 
         spec_id = request.query_params.get('specialization')
         if spec_id:
-            qs = qs.filter(
-                Q(versions__question_orders__question__lesson__unit__semester_subject__fk_specialization_id=spec_id) |
-                Q(subject__semester_subjects__fk_specialization_id=spec_id)
-            )
+            qs = qs.filter(subject__semester_subjects__fk_specialization_id=spec_id)
 
         sem_sub_id = request.query_params.get('semester_subject')
         if sem_sub_id:
-            qs = qs.filter(
-                Q(versions__question_orders__question__lesson__unit__semester_subject_id=sem_sub_id) |
-                Q(subject__semester_subjects__id=sem_sub_id)
-            )
+            qs = qs.filter(subject__semester_subjects__id=sem_sub_id)
 
         # Institute Filters
         inst_field_id = request.query_params.get('institute_field')
         if inst_field_id:
-            qs = qs.filter(
-                Q(versions__question_orders__question__lesson__unit__institute_subject__field_id=inst_field_id) |
-                Q(subject__institute_subjects__field_id=inst_field_id)
-            )
+            qs = qs.filter(subject__institute_subjects__field_id=inst_field_id)
 
         inst_system_id = request.query_params.get('institute_education_system')
         if inst_system_id:
-            qs = qs.filter(
-                Q(versions__question_orders__question__lesson__unit__institute_subject__specialization__education_system_id=inst_system_id) |
-                Q(subject__institute_subjects__specialization__education_system_id=inst_system_id)
-            )
+            qs = qs.filter(subject__institute_subjects__specialization__education_system_id=inst_system_id)
 
         inst_spec_id = request.query_params.get('institute_specialization')
         if inst_spec_id:
-            qs = qs.filter(
-                Q(versions__question_orders__question__lesson__unit__institute_subject__specialization_id=inst_spec_id) |
-                Q(subject__institute_subjects__specialization_id=inst_spec_id)
-            )
+            qs = qs.filter(subject__institute_subjects__specialization_id=inst_spec_id)
 
         inst_sub_id = request.query_params.get('institute_subject')
         if inst_sub_id:
-            qs = qs.filter(
-                Q(versions__question_orders__question__lesson__unit__institute_subject_id=inst_sub_id) |
-                Q(subject__institute_subjects__id=inst_sub_id)
-            )
+            qs = qs.filter(subject__institute_subjects__id=inst_sub_id)
+
+        qs = qs.distinct()
 
         results = []
         for exam in qs[:100]:

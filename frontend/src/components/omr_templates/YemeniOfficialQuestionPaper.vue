@@ -936,13 +936,14 @@ const isEnglish = computed(() => {
   const qs = props.questions || []
   if (qs.length > 0) {
     let latinCount = 0
-    let totalCount = 0
-    for (const q of qs.slice(0, 10)) {
-      const text = (q.content || '') + ' ' + (q.options || []).map(o => o.text).join(' ')
+    let arabicCount = 0
+    for (const q of qs) {
+      const text = (q.content || '') + ' ' + (q.options || []).map((o: any) => (typeof o === 'object' ? (o?.text || '') : String(o || ''))).join(' ')
       latinCount += (text.match(/[a-zA-Z]/g) || []).length
-      totalCount += text.replace(/\s+/g, '').length
+      arabicCount += (text.match(/[\u0600-\u06FF]/g) || []).length
     }
-    if (totalCount > 0 && latinCount / totalCount > 0.4) {
+    // Only genuine English exam if Latin letters dominate and Arabic is virtually absent
+    if (latinCount > 50 && arabicCount < 15) {
       return true
     }
   }

@@ -93,7 +93,7 @@
 
         <div class="d-flex justify-space-between align-center">
           <custom-btn type="add" label="إعادة ضبط" variant="tonal" class="font-weight-bold" :click="reset" />
-          <custom-btn type="add" label="عرض تحليل الثقة والتفاصيل الكاملة ←" color="primary" class="font-weight-bold px-6" :click="() => $router.push(`/omr/submissions/${submission.id}`)" />
+          <custom-btn type="add" label="عرض تحليل الثقة والتفاصيل الكاملة ←" color="primary" class="font-weight-bold px-6" :click="() => $router.push(`/omr-submissions/${submission.id}`)" />
         </div>
       </div>
     </div>

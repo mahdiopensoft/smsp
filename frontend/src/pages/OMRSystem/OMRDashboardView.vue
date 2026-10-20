@@ -15,13 +15,13 @@
       <div class="d-flex align-center gap-2 flex-wrap">
         <custom-btn
           type="add"
-          :click="() => $router.push('/omr/scanner')"
+          :click="() => $router.push('/omr-scanner')"
           label="بدء مسح ضوئي جديد"
           class="font-weight-bold"
         />
         <custom-btn
           type="imports"
-          :click="() => $router.push('/omr/templates')"
+          :click="() => $router.push('/omr-templates')"
           label="مصمم القوالب"
           color="secondary"
           variant="tonal"
@@ -29,7 +29,7 @@
         />
         <custom-btn
           type="restore"
-          :click="() => $router.push('/omr/submissions')"
+          :click="() => $router.push('/omr-submissions')"
           label="سجل الأوراق"
           color="secondary"
           variant="tonal"
@@ -37,7 +37,7 @@
         />
         <custom-btn
           type="show"
-          :click="() => $router.push('/omr/gradebook')"
+          :click="() => $router.push('/omr-gradebook')"
           label="سجل الدرجات والكنترول"
           color="primary"
           variant="tonal"
@@ -108,7 +108,7 @@
     <!-- OMR Workflow Banner Card -->
     <div
       class="main-card pa-5 rounded-2xl mb-6 border-subtle hover-lift cursor-pointer"
-      @click="$router.push('/omr/scanner-lab')"
+      @click="$router.push('/omr-scanner-lab')"
     >
       <div class="d-flex align-center justify-space-between flex-wrap gap-4">
         <div class="d-flex align-center gap-4">
@@ -192,7 +192,7 @@
           variant="tonal"
           size="small"
           class="font-weight-bold"
-          :click="() => $router.push('/omr/submissions')"
+          :click="() => $router.push('/omr-submissions')"
         />
       </div>
 
@@ -265,7 +265,7 @@
                 type="show"
                 is-icon
                 label="عرض وتدقيق الورقة"
-                :click="() => $router.push(`/omr/submissions?id=${item.id}`)"
+                :click="() => $router.push(`/omr-submissions/${item.id}`)"
               />
             </div>
           </template>

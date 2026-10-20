@@ -191,11 +191,16 @@ class ExamCreateMVS(AllMVS):
 
         if not year_id:
             from academic.models.common.AcademicYear import AcademicYear
-            curr_year = AcademicYear.objects.filter(is_current=True, is_deleted=False).first()
+            curr_year = (
+                AcademicYear.objects.filter(is_current=True, is_deleted=False).first() or
+                AcademicYear.objects.filter(is_active=True, is_deleted=False).first() or
+                AcademicYear.objects.filter(is_deleted=False).first()
+            )
             if not curr_year:
-                curr_year = AcademicYear.objects.filter(is_active=True, is_deleted=False).first()
-            if not curr_year:
-                curr_year = AcademicYear.objects.first()
+                curr_year, _ = AcademicYear.objects.get_or_create(
+                    gregorian_year="2025-2026",
+                    defaults={"hijri_year": "1447", "is_active": True, "is_current": True}
+                )
             if curr_year:
                 year_id = curr_year.id
 

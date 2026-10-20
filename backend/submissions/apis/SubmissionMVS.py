@@ -258,11 +258,15 @@ class SubmissionMVS(AllMVS):
         template_id = request.data.get('template_id', 'AUTO')
         batch_name = request.data.get('title') or request.data.get('name') or f"دفعة مسح ضوئي {timezone.now().strftime('%Y-%m-%d %H:%M')}"
 
+        from exams.models.Exam import Exam
         exam_obj = None
         if exam_id:
-            exam_obj = Exam.objects.filter(id=exam_id, is_deleted=False).first()
+            try:
+                exam_obj = Exam.objects.filter(id=int(exam_id), is_deleted=False).first()
+            except (ValueError, TypeError):
+                pass
         if not exam_obj:
-            exam_obj = Exam.objects.filter(is_deleted=False).order_by('-created_at').first()
+            return Response({"success": False, "message": "يرجى تحديد الاختبار المطلوب قبل بدء معالجة الدفعة"}, status=status.HTTP_400_BAD_REQUEST)
 
         # إنشاء سجل الدفعة
         batch_record = SubmissionBatch.objects.create(
