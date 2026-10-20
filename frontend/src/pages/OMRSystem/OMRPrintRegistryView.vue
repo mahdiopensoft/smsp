@@ -776,32 +776,17 @@
             </div>
 
             <template v-else>
-              <!-- Top Pagination Controls (التحكم بالصفحات بالأعلى للأداء العالي وسرعة الاستجابة) -->
-              <div v-if="filteredStreamStudents.length > streamPageSize" class="d-flex align-center justify-space-between flex-wrap gap-3 mb-4 px-2 w-100" style="max-width: 220mm;">
-                <div class="d-flex align-center gap-2">
-                  <span class="text-caption font-weight-bold text-medium-emphasis">أوراق في الصفحة:</span>
-                  <v-select
-                    v-model="streamPageSize"
-                    :items="pageSizeOptions"
-                    item-title="text"
-                    item-value="value"
-                    density="compact"
-                    variant="outlined"
-                    hide-details
-                    rounded="lg"
-                    style="width: 180px;"
-                  />
-                  <span class="text-caption text-medium-emphasis">
-                    (الصفحة {{ streamCurrentPage }} من {{ totalStreamPages }})
-                  </span>
-                </div>
-
+              <!-- Clean Compact Pagination Bar (بسيط وخفيف جداً وسريع) -->
+              <div v-if="filteredStreamStudents.length > streamPageSize" class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3 px-1 w-100" style="max-width: 218mm;">
+                <span class="text-caption font-weight-bold text-medium-emphasis">
+                  عرض الأوراق: <strong>{{ (streamCurrentPage - 1) * streamPageSize + 1 }}</strong> إلى <strong>{{ Math.min(streamCurrentPage * streamPageSize, filteredStreamStudents.length) }}</strong> (من إجمالي {{ filteredStreamStudents.length }} ورقة)
+                </span>
                 <v-pagination
                   v-model="streamCurrentPage"
                   :length="totalStreamPages"
                   :total-visible="5"
-                  density="comfortable"
-                  rounded="circle"
+                  density="compact"
+                  rounded="lg"
                   active-color="primary"
                 />
               </div>
@@ -810,44 +795,34 @@
               <div
                 v-for="(st, sIndex) in paginatedStreamStudents"
                 :key="`reg-stream-sheet-${st.id}-${selectedSheetLayout}`"
-                class="sheet-page-card elevation-3 bg-white rounded-2xl position-relative d-inline-block text-start mb-6 overflow-hidden border"
+                class="sheet-page-card elevation-2 bg-white rounded-xl position-relative d-inline-block text-start mb-5 overflow-hidden border"
                 :style="sheetArtboardStyle"
               >
-                <!-- Sleek Page Indicator Banner (Hidden on Print) -->
-                <div class="d-print-none sheet-page-header px-4 py-2.5 border-b d-flex align-center justify-space-between flex-wrap gap-2" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
-                  <div class="d-flex align-center gap-2 flex-wrap">
-                    <v-chip size="small" color="primary" variant="flat" class="font-weight-black font-mono">
-                      <v-icon start size="14">mdi-file-document-outline</v-icon>
-                      ورقة {{ (streamCurrentPage - 1) * streamPageSize + sIndex + 1 }} من {{ filteredStreamStudents.length }}
-                    </v-chip>
-                    <v-chip size="small" color="indigo" variant="tonal" class="font-weight-black">
-                      <v-icon start size="14">mdi-account</v-icon>
-                      {{ st.student_name }}
-                    </v-chip>
-                    <v-chip size="small" variant="outlined" color="blue-grey" class="font-mono font-weight-bold">
-                      جلوس: {{ st.seat_number }}
-                    </v-chip>
-                    <v-chip size="small" :color="getModelBadgeColor(st.model_code)" variant="flat" class="font-weight-black font-mono">
-                      نموذج {{ st.model_code || 'A' }}
-                    </v-chip>
-                    <v-chip v-if="st.is_printed" size="x-small" color="success" variant="tonal" class="font-weight-bold">
-                      <v-icon start size="13">mdi-check-circle</v-icon>
+                <!-- Clean Minimal Header (موجز وأنيق وبدون ألوان متضاربة) -->
+                <div class="d-print-none sheet-page-header px-4 py-2 border-b d-flex align-center justify-space-between bg-grey-lighten-4">
+                  <div class="d-flex align-center gap-2 text-caption flex-wrap">
+                    <span class="font-weight-black text-primary font-mono">ورقة {{ (streamCurrentPage - 1) * streamPageSize + sIndex + 1 }} من {{ filteredStreamStudents.length }}</span>
+                    <span class="text-medium-emphasis">•</span>
+                    <span class="font-weight-bold text-on-surface">{{ st.student_name }}</span>
+                    <span class="text-medium-emphasis">•</span>
+                    <span class="text-medium-emphasis">رقم الجلوس: <strong class="text-on-surface font-mono">{{ st.seat_number }}</strong></span>
+                    <span class="text-medium-emphasis">•</span>
+                    <span class="text-medium-emphasis">النموذج: <strong class="text-primary font-weight-black">{{ st.model_code || 'A' }}</strong></span>
+                    <v-chip v-if="st.is_printed" size="x-small" color="success" variant="flat" class="font-weight-bold ms-2">
                       تمت الطباعة
                     </v-chip>
                   </div>
-                  <div class="d-flex align-center gap-2">
-                    <v-btn
-                      size="small"
-                      color="primary"
-                      variant="tonal"
-                      rounded="lg"
-                      class="font-weight-bold px-3"
-                      prepend-icon="mdi-printer"
-                      @click="printSingleStudentCard((streamCurrentPage - 1) * streamPageSize + sIndex)"
-                    >
-                      طباعة هذه الورقة
-                    </v-btn>
-                  </div>
+                  <v-btn
+                    size="small"
+                    variant="tonal"
+                    color="primary"
+                    rounded="lg"
+                    class="font-weight-bold px-3"
+                    prepend-icon="mdi-printer"
+                    @click="printSingleStudentCard((streamCurrentPage - 1) * streamPageSize + sIndex)"
+                  >
+                    طباعة هذه الورقة
+                  </v-btn>
                 </div>
 
                 <!-- Sheet Content Wrapper -->
@@ -895,18 +870,6 @@
                   />
                 </div>
               </div>
-
-              <!-- Bottom Pagination Controls -->
-              <div v-if="filteredStreamStudents.length > streamPageSize" class="d-flex align-center justify-center my-4 w-100">
-                <v-pagination
-                  v-model="streamCurrentPage"
-                  :length="totalStreamPages"
-                  :total-visible="7"
-                  density="comfortable"
-                  rounded="circle"
-                  active-color="primary"
-                />
-              </div>
             </template>
           </div>
 
@@ -914,39 +877,34 @@
           <div
             v-else
             ref="sheetArtboardRef"
-            class="sheet-artboard-container d-inline-block rounded-2xl elevation-3 bg-white position-relative overflow-hidden border"
+            class="sheet-artboard-container d-inline-block rounded-xl elevation-2 bg-white position-relative overflow-hidden border"
             :style="sheetArtboardStyle"
           >
-            <!-- Single Sheet Header Banner -->
-            <div class="d-print-none sheet-page-header px-4 py-2.5 border-b d-flex align-center justify-space-between flex-wrap gap-2" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
-              <div class="d-flex align-center gap-2 flex-wrap">
-                <v-chip v-if="sheetGenerationMode === 'student'" size="small" color="indigo" variant="tonal" class="font-weight-black">
-                  <v-icon start size="14">mdi-account</v-icon>
-                  {{ activeSheetStudent?.student_name }}
-                </v-chip>
-                <v-chip v-if="sheetGenerationMode === 'student'" size="small" variant="outlined" color="blue-grey" class="font-mono font-weight-bold">
-                  جلوس: {{ activeSheetStudent?.seat_number }}
-                </v-chip>
-                <v-chip size="small" :color="getModelBadgeColor(activeSheetModelCode)" variant="flat" class="font-weight-black font-mono">
-                  نموذج {{ activeSheetModelCode }}
-                </v-chip>
-                <v-chip v-if="sheetGenerationMode === 'blank'" size="small" color="primary" variant="tonal" class="font-weight-bold">
-                  ورقة نموذج عامة فارغة
-                </v-chip>
+            <!-- Single Sheet Clean Header Banner -->
+            <div class="d-print-none sheet-page-header px-4 py-2 border-b d-flex align-center justify-space-between bg-grey-lighten-4">
+              <div class="d-flex align-center gap-2 text-caption flex-wrap">
+                <template v-if="sheetGenerationMode === 'student'">
+                  <span class="font-weight-bold text-on-surface">{{ activeSheetStudent?.student_name }}</span>
+                  <span class="text-medium-emphasis">•</span>
+                  <span class="text-medium-emphasis">رقم الجلوس: <strong class="text-on-surface font-mono">{{ activeSheetStudent?.seat_number }}</strong></span>
+                  <span class="text-medium-emphasis">•</span>
+                  <span class="text-medium-emphasis">النموذج: <strong class="text-primary font-weight-black">{{ activeSheetModelCode }}</strong></span>
+                </template>
+                <template v-else>
+                  <span class="font-weight-bold text-on-surface">ورقة نموذج عامة فارغة — النموذج {{ selectedBlankVersionCode }}</span>
+                </template>
               </div>
-              <div class="d-flex align-center gap-2">
-                <v-btn
-                  size="small"
-                  color="primary"
-                  variant="tonal"
-                  rounded="lg"
-                  class="font-weight-bold px-3"
-                  prepend-icon="mdi-printer"
-                  @click="printSingleSheet"
-                >
-                  طباعة هذه الورقة
-                </v-btn>
-              </div>
+              <v-btn
+                size="small"
+                variant="tonal"
+                color="primary"
+                rounded="lg"
+                class="font-weight-bold px-3"
+                prepend-icon="mdi-printer"
+                @click="printSingleSheet"
+              >
+                طباعة هذه الورقة
+              </v-btn>
             </div>
 
             <!-- Paper Wrapper -->
@@ -1176,8 +1134,8 @@
       </v-card>
     </v-dialog>
 
-    <!-- Hidden Staging Container for Print Batches -->
-    <div id="omr-registry-batch-staging" class="d-none">
+    <!-- Hidden Staging Container for Print Batches (Only rendered during print execution for zero DOM overhead) -->
+    <div v-if="printingBatch" id="omr-registry-batch-staging" class="d-none">
       <div
         v-for="st in filteredStreamStudents"
         :key="`staging-reg-${st.id}-${selectedSheetLayout}`"
@@ -1461,12 +1419,6 @@ const filteredStreamStudents = computed(() => {
 // Pagination State for Stream Preview (تحكم الصفحات وسرعة الأداء العالية)
 const streamCurrentPage = ref(1)
 const streamPageSize = ref(6)
-const pageSizeOptions = [
-  { text: '6 أوراق (سريع جداً)', value: 6 },
-  { text: '12 ورقة في الصفحة', value: 12 },
-  { text: '24 ورقة في الصفحة', value: 24 },
-  { text: 'عرض كافة الأوراق', value: 1000 },
-]
 
 const totalStreamPages = computed(() => {
   if (!filteredStreamStudents.value?.length) return 1
@@ -1475,20 +1427,11 @@ const totalStreamPages = computed(() => {
 
 const paginatedStreamStudents = computed(() => {
   if (!filteredStreamStudents.value) return []
-  if (streamPageSize.value >= 1000) return filteredStreamStudents.value
   const start = (streamCurrentPage.value - 1) * streamPageSize.value
   return filteredStreamStudents.value.slice(start, start + streamPageSize.value)
 })
 
-const getModelBadgeColor = (code) => {
-  if (code === 'A') return 'primary'
-  if (code === 'B') return 'secondary'
-  if (code === 'C') return 'amber-darken-2'
-  if (code === 'D') return 'deep-purple-accent-3'
-  return 'primary'
-}
-
-watch([filterStreamModelCode, streamPageSize], () => {
+watch(filterStreamModelCode, () => {
   streamCurrentPage.value = 1
 })
 
