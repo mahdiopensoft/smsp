@@ -1,6 +1,6 @@
 <template>
   <div class="qb-omr-print-registry pa-4 pa-md-6">
-    <!-- ── Page Header (Institutional OpenSoftCore Style) ─────────────── -->
+    <!-- ── Page Header ─────────────────────────────────────────── -->
     <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-6">
       <div class="d-flex align-center">
         <v-avatar size="48" color="secondary" variant="tonal" class="me-3 rounded-xl elevation-1">
@@ -42,61 +42,136 @@
     <!-- ── OMR Workflow Stepper (المرحلة 2: طباعة أوراق الإجابة) ── -->
     <omr-workflow-bar :active-step="2" />
 
-    <!-- ── 1. بطاقة مصدر الاختبار والتكامل مع بنك الأسئلة والأرشيف ── -->
-    <div class="main-card rounded-2xl pa-4 mb-4 border bg-white">
-      <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-3">
-        <div class="d-flex align-center gap-3">
-          <v-avatar color="indigo-lighten-5" size="48" rounded="xl" class="border">
-            <v-icon color="indigo-darken-2" size="26">mdi-database-sync-outline</v-icon>
-          </v-avatar>
-          <div>
-            <div class="d-flex align-center gap-2 flex-wrap">
-              <span class="text-subtitle-2 font-weight-black text-indigo-darken-3">
-                مصدر بيانات الاختبار:
-              </span>
-              <v-chip size="x-small" color="indigo" variant="flat" class="font-weight-black text-white" prepend-icon="mdi-archive-check-outline">
-                معتمد من بنك الأسئلة وأرشيف الاختبارات
-              </v-chip>
-            </div>
-            <p class="text-caption text-medium-emphasis mb-0 mt-1">
-              جميع الاختبارات والنماذج (A, B, C, D) والأسئلة والطلاب المشمولين هنا تأتي مؤتمتة من أرشيف الاختبارات المعتمدة، ويمكنك التبديل بين أي اختبار لعرض وطباعة وثائقه.
-            </p>
-          </div>
-        </div>
-
-        <div class="d-flex align-center gap-2 flex-wrap">
-          <v-btn
-            size="small"
-            variant="tonal"
-            color="indigo-darken-2"
-            class="font-weight-bold rounded-lg"
-            prepend-icon="mdi-archive-eye-outline"
-            to="/exams-archive"
-            target="_blank"
-            title="الانتقال المباشر لأرشيف الاختبارات للاطلاع على أصل الاختبار وتفاصيله"
-          >
-            فتح أرشيف الاختبارات (Exams Archive)
-          </v-btn>
-          <v-btn
-            size="small"
-            variant="tonal"
-            color="primary"
-            class="font-weight-bold rounded-lg"
-            prepend-icon="mdi-format-list-checks"
-            to="/omr-exams"
-            title="استعراض جدول الاختبارات المكتملة وجاهزيتها للتصحيح"
-          >
-            مركز استلام الاختبارات (Exam Hub)
-          </v-btn>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── 2. شريط اختيار وتصفية الاختبار الموحد (Unified Exam Selector & Filters) ── -->
-    <filter-fields label="اختيار وتصفية الاختبار المطلوب طباعة وثائقه" class="main-card border-0 pa-5 rounded-2xl mb-4">
+    <!-- ── شريط اختيار وتصفية الاختبار الموحد (Unified Exam Selector & Filters) ── -->
+    <filter-fields label="تصفية واختيار الاختبار المطلوب طباعة وثائقه" class="main-card border-0 pa-5 rounded-2xl mb-4">
       <v-row dense class="align-center">
-        <!-- منسدلة اختيار الاختبار المعتمد الرئيسية -->
-        <v-col cols="12" md="6">
+        <!-- 1. نوع المؤسسة التعليمية -->
+        <auto-list
+          v-model="filterInstitutionType"
+          name="InstitutionType"
+          placeholder="نوع المؤسسة التعليمية"
+          cols="3"
+          :add="false"
+          @update:model-value="onInstitutionTypeChange"
+        />
+
+        <!-- فلاتر المدارس -->
+        <template v-if="filterInstitutionType === 'school' || filterInstitutionType === 'all'">
+          <auto-list
+            v-if="filterInstitutionType === 'school'"
+            v-model="filterStage"
+            name="Stage"
+            placeholder="المرحلة الدراسية"
+            cols="3"
+            :add="false"
+            @update:model-value="onStageChange"
+          />
+          <auto-list
+            v-if="filterInstitutionType === 'school'"
+            v-model="filterClassTrack"
+            name="ClassTrackByStage"
+            :param="filterStage"
+            placeholder="الصف والمسار"
+            cols="3"
+            :add="false"
+            :disabled="!filterStage"
+            @update:model-value="fetchExamsList"
+          />
+          <auto-list
+            v-model="filterSubject"
+            name="Subject"
+            :param="subjectFilterParam"
+            placeholder="المادة الدراسية"
+            :cols="filterInstitutionType === 'school' ? '3' : '3'"
+            :add="false"
+            @update:model-value="fetchExamsList"
+          />
+        </template>
+
+        <!-- فلاتر الجامعات -->
+        <template v-if="filterInstitutionType === 'university'">
+          <auto-list
+            v-model="filterCollege"
+            name="College"
+            placeholder="الكلية الجامعية"
+            cols="3"
+            :add="false"
+            @update:model-value="onCollegeChange"
+          />
+          <auto-list
+            v-model="filterDepartment"
+            name="DepartmentByCollege"
+            :param="filterCollege"
+            placeholder="القسم الأكاديمي"
+            cols="3"
+            :add="false"
+            :disabled="!filterCollege"
+            @update:model-value="onDepartmentChange"
+          />
+          <auto-list
+            v-model="filterSpecialization"
+            name="Specialization"
+            :param="filterDepartment"
+            placeholder="التخصص والبرنامج"
+            cols="3"
+            :add="false"
+            :disabled="!filterDepartment"
+            @update:model-value="fetchExamsList"
+          />
+          <auto-list
+            v-model="filterSemesterSubject"
+            name="SemesterSubject"
+            :param="filterSpecialization"
+            placeholder="مقرر الفصل الجامعي"
+            cols="3"
+            :add="false"
+            @update:model-value="fetchExamsList"
+          />
+        </template>
+
+        <!-- فلاتر المعاهد -->
+        <template v-if="filterInstitutionType === 'institute'">
+          <auto-list
+            v-model="filterInstituteField"
+            name="InstituteField"
+            placeholder="المجال المهني"
+            cols="3"
+            :add="false"
+            @update:model-value="onInstituteFieldChange"
+          />
+          <auto-list
+            v-model="filterInstituteEducationSystem"
+            name="InstituteEducationSystem"
+            :param="filterInstituteField"
+            placeholder="نظام التعليم"
+            cols="3"
+            :add="false"
+            :disabled="!filterInstituteField"
+            @update:model-value="onInstituteEducationSystemChange"
+          />
+          <auto-list
+            v-model="filterInstituteSpecialization"
+            name="InstituteSpecialization"
+            :param="instituteSpecParam"
+            placeholder="التخصص المهني"
+            cols="3"
+            :add="false"
+            :disabled="!filterInstituteEducationSystem"
+            @update:model-value="fetchExamsList"
+          />
+          <auto-list
+            v-model="filterInstituteSubject"
+            name="InstituteSubject"
+            :param="filterInstituteSpecialization"
+            placeholder="المادة التدريبية"
+            cols="3"
+            :add="false"
+            @update:model-value="fetchExamsList"
+          />
+        </template>
+
+        <!-- منسدلة اختيار الاختبار المعتمد (في الأخير بعد الفلترة!) -->
+        <v-col cols="12" :md="filterInstitutionType === 'all' ? 4 : 6" class="py-2">
           <v-autocomplete
             v-model="selectedExamId"
             :items="examsList"
@@ -109,6 +184,7 @@
             density="compact"
             rounded="lg"
             hide-details
+            clearable
             :loading="loadingExams"
             @update:model-value="onExamSelected"
           >
@@ -122,22 +198,11 @@
           </v-autocomplete>
         </v-col>
 
-        <!-- تصفية نوع المؤسسة التعليمية (مدارس / جامعات / معاهد) -->
-        <v-col cols="12" sm="6" md="3">
-          <auto-list
-            v-model="filterInstitutionType"
-            name="InstitutionType"
-            placeholder="نوع المؤسسة التعليمية"
-            :add="false"
-            @update:model-value="onInstitutionTypeChange"
-          />
-        </v-col>
-
         <!-- أزرار الإجراءات السريعة (تحديث وتفريغ) -->
-        <v-col cols="12" sm="6" md="3" class="d-flex align-center gap-2">
+        <v-col cols="12" sm="6" :md="filterInstitutionType === 'all' ? 2 : 3" class="d-flex align-center gap-2 py-2">
           <custom-btn
             type="show"
-            label="تحديث الاختبارات"
+            label="تحديث"
             color="primary"
             class="font-weight-bold flex-grow-1"
             :click="fetchExamsList"
@@ -154,56 +219,24 @@
       </v-row>
     </filter-fields>
 
-    <!-- ── 3. بطاقة هوية الاختبار النشط (Active Exam Identity Strip) ── -->
-    <div v-if="selectedExam" class="main-card rounded-2xl pa-4 mb-4 border bg-white elevation-1">
-      <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-3">
-        <div class="d-flex align-center gap-3">
-          <v-avatar color="primary" variant="tonal" size="44" rounded="lg">
-            <v-icon size="24">mdi-file-document-check-outline</v-icon>
-          </v-avatar>
-          <div>
-            <div class="d-flex align-center gap-2 flex-wrap">
-              <h2 class="text-subtitle-1 font-weight-black mb-0 text-on-surface">
-                {{ selectedExam.title }}
-              </h2>
-              <v-chip size="x-small" color="primary" variant="flat" class="font-weight-black font-mono">
-                {{ selectedExam.uniqueCode }}
-              </v-chip>
-            </div>
-            <div class="d-flex align-center gap-2 flex-wrap mt-1 text-caption text-medium-emphasis">
-              <span>المادة: <strong class="text-on-surface">{{ selectedExam.subject_name || 'عام' }}</strong></span>
-              <span>•</span>
-              <span>العام: <strong class="text-on-surface">{{ selectedExam.year_name || '2026' }}</strong></span>
-              <span>•</span>
-              <span>النماذج: <strong class="text-primary">{{ selectedExam.versions_count || examDetails?.versions?.length || 1 }} نماذج</strong></span>
-              <span>•</span>
-              <span>الطلاب المسجلون: <strong class="text-primary">{{ examDetails?.registered_students?.length || selectedExam.registered_students_count || 0 }} طالب</strong></span>
-            </div>
-          </div>
-        </div>
-
-        <div class="d-flex align-center gap-2 flex-wrap">
-          <v-btn
-            size="small"
-            variant="outlined"
-            color="primary"
-            class="font-weight-bold rounded-lg"
-            prepend-icon="mdi-printer-outline"
-            @click="activeTab = 'sheets'"
-          >
-            أوراق التظليل ({{ examDetails?.registered_students?.length || 0 }})
-          </v-btn>
-          <v-btn
-            size="small"
-            variant="outlined"
-            color="secondary"
-            class="font-weight-bold rounded-lg"
-            prepend-icon="mdi-file-document-outline"
-            @click="activeTab = 'questions'"
-          >
-            كراسة الأسئلة الرسمية
-          </v-btn>
-        </div>
+    <!-- ── بطاقة معلومات الاختبار المحدد (موجزة وأنيقة دون تكرار للتبويبات) ── -->
+    <div v-if="selectedExam" class="d-flex align-center justify-space-between flex-wrap gap-2 px-4 py-3 mb-4 bg-white border rounded-xl elevation-1">
+      <div class="d-flex align-center gap-2 flex-wrap">
+        <v-avatar color="primary" variant="tonal" size="32" rounded="lg">
+          <v-icon size="18">mdi-file-document-check-outline</v-icon>
+        </v-avatar>
+        <span class="text-subtitle-2 font-weight-black text-on-surface">{{ selectedExam.title }}</span>
+        <v-chip size="x-small" color="primary" variant="flat" class="font-weight-black font-mono">
+          {{ selectedExam.uniqueCode }}
+        </v-chip>
+        <span class="text-caption text-medium-emphasis">المادة: <strong class="text-on-surface">{{ selectedExam.subject_name || 'عام' }}</strong></span>
+        <span class="text-caption text-medium-emphasis">•</span>
+        <span class="text-caption text-medium-emphasis">النماذج: <strong class="text-primary">{{ selectedExam.versions_count || examDetails?.versions?.length || 1 }}</strong></span>
+        <span class="text-caption text-medium-emphasis">•</span>
+        <span class="text-caption text-medium-emphasis">الطلاب: <strong class="text-primary">{{ examDetails?.registered_students?.length || selectedExam.registered_students_count || 0 }} طالب</strong></span>
+      </div>
+      <div class="text-caption text-medium-emphasis">
+        العام الدراسي: <strong class="text-on-surface">{{ selectedExam.year_name || '2026' }}</strong>
       </div>
     </div>
 
@@ -290,71 +323,6 @@
         >
           {{ batchPrintNotification.message }}
         </v-alert>
-
-        <!-- ── صندوق ملخص أمر الطباعة الذكي (Smart Print Job Manifest) ── -->
-        <div class="print-manifest-card pa-4 mb-4 rounded-2xl border bg-white" style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);">
-          <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-3">
-            <div class="d-flex align-center gap-3">
-              <v-avatar color="primary" variant="flat" size="44" rounded="lg" class="shadow-sm">
-                <v-icon color="white" size="24">mdi-printer-eye</v-icon>
-              </v-avatar>
-              <div>
-                <div class="d-flex align-center gap-2 flex-wrap">
-                  <span class="text-subtitle-2 font-weight-black text-on-surface">
-                    أمر الطباعة النشط:
-                  </span>
-                  <v-chip size="small" color="primary" variant="flat" class="font-weight-black">
-                    {{ activeTabTitle }}
-                  </v-chip>
-                  <v-chip size="small" color="info" variant="tonal" class="font-weight-bold">
-                    {{ printJobScopeText }}
-                  </v-chip>
-                </div>
-                <div class="text-caption text-medium-emphasis mt-1">
-                  {{ printJobDescriptionText }}
-                </div>
-              </div>
-            </div>
-
-            <!-- زر الطباعة المباشر الرئيسي -->
-            <div class="d-flex align-center gap-2">
-              <v-btn
-                v-if="activeTab === 'sheets'"
-                color="success"
-                variant="flat"
-                size="large"
-                class="font-weight-black px-6 rounded-xl shadow-success"
-                prepend-icon="mdi-printer"
-                :loading="printingBatch"
-                @click="executeBatchPrint"
-              >
-                {{ printButtonLabel }}
-              </v-btn>
-              <v-btn
-                v-else-if="activeTab === 'questions'"
-                color="primary"
-                variant="flat"
-                size="large"
-                class="font-weight-black px-6 rounded-xl shadow-sm"
-                prepend-icon="mdi-printer"
-                @click="printCurrentQuestionPaper"
-              >
-                طباعة كراسة الأسئلة (النموذج {{ selectedQuestionsModelCode }})
-              </v-btn>
-              <v-btn
-                v-else-if="activeTab === 'package'"
-                color="primary"
-                variant="flat"
-                size="large"
-                class="font-weight-black px-6 rounded-xl shadow-sm"
-                prepend-icon="mdi-package-variant-closed"
-                @click="printCurrentExamPackage"
-              >
-                طباعة الحزمة المتكاملة ({{ examDetails.registered_students?.length || 0 }} طالب)
-              </v-btn>
-            </div>
-          </div>
-        </div>
 
         <!-- Controls Toolbar (خيارات وضوابط العرض والطباعة) -->
         <div class="main-card rounded-2xl pa-4 mb-4 border">
@@ -1202,47 +1170,6 @@ const activeTabTitle = computed(() => {
   return 'سجل الدفعات المطبوعة'
 })
 
-const printJobScopeText = computed(() => {
-  if (activeTab.value === 'sheets') {
-    if (sheetGenerationMode.value === 'all_students') {
-      const cnt = filteredStreamStudents.value?.length || examDetails.value?.registered_students?.length || 0
-      return `إجمالي ${cnt} ورقة تظليل (${selectedSheetLayout.value === 'compact_a5' ? 'مقاس A5 الوزاري المعتمد' : 'مقاس A4 الشامل'})`
-    } else if (sheetGenerationMode.value === 'student') {
-      return `ورقة مخصصة للطالب: ${activeSheetStudent.value?.student_name || 'طالب محدد'}`
-    } else {
-      return `ورقة نموذج عامة فارغة (النموذج ${selectedBlankVersionCode.value})`
-    }
-  } else if (activeTab.value === 'questions') {
-    const qCount = selectedQuestionsVersionObj.value?.questions?.length || selectedQuestionsVersionObj.value?.questionsCount || 10
-    return `النموذج ${selectedQuestionsModelCode.value} (${qCount} سؤال) • مقاس ${selectedQuestionPaperLayout.value.toUpperCase()}`
-  } else if (activeTab.value === 'package') {
-    return `حزمة كاملة لـ ${examDetails.value?.registered_students?.length || 0} طالب (أسئلة + تظليل متتالية)`
-  }
-  return ''
-})
-
-const printJobDescriptionText = computed(() => {
-  if (activeTab.value === 'sheets') {
-    return 'تتضمن كل ورقة تظليل باركود و QR ورقم جلوس وبيانات الطالب المخصصة جاهزة للمسح الآلي والتصحيح.'
-  } else if (activeTab.value === 'questions') {
-    return 'كراسة أسئلة رسمية معتمدة وفق النمط الوزاري وترويسة اللجنة العليا للاختبارات والمطبعة السرية.'
-  } else if (activeTab.value === 'package') {
-    return 'تدمج كراسة الأسئلة وورقة التظليل لكل طالب بالترتيب داخل ملف ومستند واحد لتجهيز مظاريف القاعات بسهولة.'
-  }
-  return ''
-})
-
-const printButtonLabel = computed(() => {
-  if (sheetGenerationMode.value === 'all_students') {
-    const cnt = filteredStreamStudents.value?.length || examDetails.value?.registered_students?.length || 0
-    return `إرسال أمر الطباعة الآن (${cnt} ورقة تظليل)`
-  } else if (sheetGenerationMode.value === 'student') {
-    return `طباعة ورقة الطالب: ${activeSheetStudent.value?.student_name?.split(' ')[0] || ''}`
-  } else {
-    return `طباعة النموذج الفارغ (${selectedBlankVersionCode.value})`
-  }
-})
-
 watch(activeTab, (newTab) => {
   if (['sheets', 'questions', 'package'].includes(newTab)) {
     selectedDocType.value = newTab
@@ -1361,6 +1288,8 @@ const resetInstitutionFilters = () => {
   filterInstituteEducationSystem.value = null
   filterInstituteSpecialization.value = null
   filterInstituteSubject.value = null
+  selectedExamId.value = null
+  examDetails.value = null
   fetchExamsList()
 }
 
@@ -1579,10 +1508,7 @@ const fetchExamsList = async () => {
     const resp = await api.get('/api/omr/exam-linking/', { params })
     if (resp.data && resp.data.results) {
       examsList.value = resp.data.results
-      if (examsList.value.length > 0 && (!selectedExamId.value || !examsList.value.some(e => e.id === selectedExamId.value))) {
-        selectedExamId.value = examsList.value[0].id
-        await loadExamDetails(selectedExamId.value)
-      } else if (examsList.value.length === 0) {
+      if (selectedExamId.value && !examsList.value.some(e => e.id === selectedExamId.value)) {
         selectedExamId.value = null
         examDetails.value = null
       }
@@ -1879,9 +1805,6 @@ onMounted(async () => {
     selectedExamId.value = Number(qExam)
     await loadExamDetails(selectedExamId.value)
     activeTab.value = 'sheets'
-  } else if (examsList.value.length > 0) {
-    selectedExamId.value = examsList.value[0].id
-    await loadExamDetails(selectedExamId.value)
   }
 })
 </script>
