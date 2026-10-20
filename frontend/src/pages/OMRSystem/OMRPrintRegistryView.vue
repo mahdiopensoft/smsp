@@ -776,79 +776,135 @@
             </div>
 
             <template v-else>
+              <!-- Top Pagination Controls (التحكم بالصفحات بالأعلى للأداء العالي وسرعة الاستجابة) -->
+              <div v-if="filteredStreamStudents.length > streamPageSize" class="d-flex align-center justify-space-between flex-wrap gap-3 mb-4 px-2 w-100" style="max-width: 220mm;">
+                <div class="d-flex align-center gap-2">
+                  <span class="text-caption font-weight-bold text-medium-emphasis">أوراق في الصفحة:</span>
+                  <v-select
+                    v-model="streamPageSize"
+                    :items="pageSizeOptions"
+                    item-title="text"
+                    item-value="value"
+                    density="compact"
+                    variant="outlined"
+                    hide-details
+                    rounded="lg"
+                    style="width: 180px;"
+                  />
+                  <span class="text-caption text-medium-emphasis">
+                    (الصفحة {{ streamCurrentPage }} من {{ totalStreamPages }})
+                  </span>
+                </div>
+
+                <v-pagination
+                  v-model="streamCurrentPage"
+                  :length="totalStreamPages"
+                  :total-visible="5"
+                  density="comfortable"
+                  rounded="circle"
+                  active-color="primary"
+                />
+              </div>
+
+              <!-- Paginated Student Sheets List -->
               <div
-                v-for="(st, sIndex) in filteredStreamStudents"
+                v-for="(st, sIndex) in paginatedStreamStudents"
                 :key="`reg-stream-sheet-${st.id}-${selectedSheetLayout}`"
-                class="sheet-page-card elevation-4 bg-white rounded-lg position-relative d-inline-block text-start mb-6"
+                class="sheet-page-card elevation-3 bg-white rounded-2xl position-relative d-inline-block text-start mb-6 overflow-hidden border"
                 :style="sheetArtboardStyle"
               >
-                <!-- Page Indicator Banner (Hidden on Print) -->
-                <div class="d-print-none sheet-page-header px-4 py-2 bg-grey-lighten-4 border-b d-flex align-center justify-space-between text-caption font-weight-bold">
-                  <div class="d-flex align-center gap-2">
-                    <span class="text-primary font-mono font-weight-black">
-                      ورقة رقم {{ sIndex + 1 }} من {{ filteredStreamStudents.length }}
-                    </span>
+                <!-- Sleek Page Indicator Banner (Hidden on Print) -->
+                <div class="d-print-none sheet-page-header px-4 py-2.5 border-b d-flex align-center justify-space-between flex-wrap gap-2" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
+                  <div class="d-flex align-center gap-2 flex-wrap">
+                    <v-chip size="small" color="primary" variant="flat" class="font-weight-black font-mono">
+                      <v-icon start size="14">mdi-file-document-outline</v-icon>
+                      ورقة {{ (streamCurrentPage - 1) * streamPageSize + sIndex + 1 }} من {{ filteredStreamStudents.length }}
+                    </v-chip>
+                    <v-chip size="small" color="indigo" variant="tonal" class="font-weight-black">
+                      <v-icon start size="14">mdi-account</v-icon>
+                      {{ st.student_name }}
+                    </v-chip>
+                    <v-chip size="small" variant="outlined" color="blue-grey" class="font-mono font-weight-bold">
+                      جلوس: {{ st.seat_number }}
+                    </v-chip>
+                    <v-chip size="small" :color="getModelBadgeColor(st.model_code)" variant="flat" class="font-weight-black font-mono">
+                      نموذج {{ st.model_code || 'A' }}
+                    </v-chip>
                     <v-chip v-if="st.is_printed" size="x-small" color="success" variant="tonal" class="font-weight-bold">
+                      <v-icon start size="13">mdi-check-circle</v-icon>
                       تمت الطباعة
                     </v-chip>
                   </div>
-                  <div class="d-flex align-center gap-3">
-                    <span class="text-medium-emphasis font-weight-bold">
-                      الطالب: <strong>{{ st.student_name }}</strong> | رقم الجلوس: <strong>{{ st.seat_number }}</strong> | النموذج: <strong>{{ st.model_code || 'A' }}</strong>
-                    </span>
+                  <div class="d-flex align-center gap-2">
                     <v-btn
-                      size="x-small"
+                      size="small"
                       color="primary"
                       variant="tonal"
                       rounded="lg"
-                      class="font-weight-bold px-2"
+                      class="font-weight-bold px-3"
                       prepend-icon="mdi-printer"
-                      @click="printSingleStudentCard(sIndex)"
+                      @click="printSingleStudentCard((streamCurrentPage - 1) * streamPageSize + sIndex)"
                     >
-                      طباعة هذه الورقة فقط
+                      طباعة هذه الورقة
                     </v-btn>
                   </div>
                 </div>
 
-                <!-- Sheet Content -->
-                <YemeniAuditReportSheet
-                  v-if="selectedSheetLayout === 'full_a4'"
-                  :student-name="st.student_name"
-                  :seat-number="st.seat_number"
-                  :serial-number="st.secret_number || st.model_code"
-                  :model-code="st.model_code || 'A'"
-                  :form-number="st.model_code || 'A'"
-                  :exam-subject="selectedExam?.subject_name || 'الرياضيات'"
-                  :exam-stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || 'اختبار الشهادة الثانوية العامة'))"
-                  :exam-year="customExamYear || selectedExam?.year_name || '2026'"
-                  :center-name="customCenterName || st.school_name || selectedExam?.directorate || 'المركز الاختباري الرئيسي'"
-                  :center-code="st.school_id || selectedExam?.id || '101'"
-                  :governorate="customGovernorate || st.governorate || selectedExam?.governorate || 'أمانة العاصمة'"
-                  :directorate="customDirectorate || st.directorate || selectedExam?.directorate || 'السبعين'"
-                  :barcode-value="st.barcode_value || `EXAM_${selectedExam?.id}_VER_${st.model_code || 'A'}_SEAT_${st.seat_number}`"
-                  :qr-value="st.qr_value || `${selectedExam?.uniqueCode}|${st.model_code || 'A'}|${st.seat_number}`"
-                  :total-questions="getQuestionsCountForVersion(st.model_code)"
-                  :sections="getSectionsForVersion(st.model_code)"
-                />
+                <!-- Sheet Content Wrapper -->
+                <div class="sheet-paper-wrapper pa-3 pa-md-4 d-flex justify-center bg-white">
+                  <!-- Mode 1: Full A4 Official Audit Sheet (الورقة الشاملة A4) -->
+                  <YemeniAuditReportSheet
+                    v-if="selectedSheetLayout === 'full_a4'"
+                    :student-name="st.student_name"
+                    :seat-number="st.seat_number"
+                    :serial-number="st.secret_number || st.model_code"
+                    :model-code="st.model_code || 'A'"
+                    :form-number="st.model_code || 'A'"
+                    :exam-subject="selectedExam?.subject_name || 'الرياضيات'"
+                    :exam-stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || 'اختبار الشهادة الثانوية العامة'))"
+                    :exam-year="customExamYear || selectedExam?.year_name || '2026'"
+                    :center-name="customCenterName || st.school_name || selectedExam?.directorate || 'المركز الاختباري الرئيسي'"
+                    :center-code="st.school_id || selectedExam?.id || '101'"
+                    :governorate="customGovernorate || st.governorate || selectedExam?.governorate || 'أمانة العاصمة'"
+                    :directorate="customDirectorate || st.directorate || selectedExam?.directorate || 'السبعين'"
+                    :barcode-value="st.barcode_value || `EXAM_${selectedExam?.id}_VER_${st.model_code || 'A'}_SEAT_${st.seat_number}`"
+                    :qr-value="st.qr_value || `${selectedExam?.uniqueCode}|${st.model_code || 'A'}|${st.seat_number}`"
+                    :total-questions="getQuestionsCountForVersion(st.model_code)"
+                    :sections="getSectionsForVersion(st.model_code)"
+                  />
 
-                <YemeniMinistrySheet
-                  v-else
-                  layout-mode="compact_a5"
-                  :student-name="st.student_name"
-                  :seat-number="st.seat_number"
-                  :serial-number="st.secret_number || st.model_code"
-                  :model-code="st.model_code || 'A'"
-                  :exam-subject="selectedExam?.subject_name || 'الرياضيات'"
-                  :exam-stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || 'اختبار الشهادة الثانوية العامة'))"
-                  :exam-year="customExamYear || selectedExam?.year_name || '2026'"
-                  :center-name="customCenterName || st.school_name || selectedExam?.directorate || 'المركز الامتحاني الرئيسي'"
-                  :governorate="customGovernorate || selectedExam?.governorate || 'أمانة العاصمة'"
-                  :directorate="customDirectorate || st.directorate || selectedExam?.directorate || 'السبعين'"
-                  :barcode-value="st.barcode_value || `EXAM_${selectedExam?.id}_VER_${st.model_code || 'A'}_SEAT_${st.seat_number}`"
-                  :qr-value="st.qr_value || `${selectedExam?.uniqueCode}|${st.model_code || 'A'}|${st.seat_number}`"
-                  :total-questions="getQuestionsCountForVersion(st.model_code)"
-                  :sections="getSectionsForVersion(st.model_code)"
-                  :interactive="false"
+                  <!-- Mode 2: Compact A5 Ministry Sheet (ورقة التظليل الوزارية المعتمدة A5) -->
+                  <YemeniMinistrySheet
+                    v-else
+                    layout-mode="compact_a5"
+                    :student-name="st.student_name"
+                    :seat-number="st.seat_number"
+                    :serial-number="st.secret_number || st.model_code"
+                    :model-code="st.model_code || 'A'"
+                    :exam-subject="selectedExam?.subject_name || 'الرياضيات'"
+                    :exam-stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || 'اختبار الشهادة الثانوية العامة'))"
+                    :exam-year="customExamYear || selectedExam?.year_name || '2026'"
+                    :center-name="customCenterName || st.school_name || selectedExam?.directorate || 'المركز الامتحاني الرئيسي'"
+                    :governorate="customGovernorate || selectedExam?.governorate || 'أمانة العاصمة'"
+                    :directorate="customDirectorate || st.directorate || selectedExam?.directorate || 'السبعين'"
+                    :barcode-value="st.barcode_value || `EXAM_${selectedExam?.id}_VER_${st.model_code || 'A'}_SEAT_${st.seat_number}`"
+                    :qr-value="st.qr_value || `${selectedExam?.uniqueCode}|${st.model_code || 'A'}|${st.seat_number}`"
+                    :total-questions="getQuestionsCountForVersion(st.model_code)"
+                    :sections="getSectionsForVersion(st.model_code)"
+                    :interactive="false"
+                  />
+                </div>
+              </div>
+
+              <!-- Bottom Pagination Controls -->
+              <div v-if="filteredStreamStudents.length > streamPageSize" class="d-flex align-center justify-center my-4 w-100">
+                <v-pagination
+                  v-model="streamCurrentPage"
+                  :length="totalStreamPages"
+                  :total-visible="7"
+                  density="comfortable"
+                  rounded="circle"
+                  active-color="primary"
                 />
               </div>
             </template>
@@ -858,52 +914,87 @@
           <div
             v-else
             ref="sheetArtboardRef"
-            class="sheet-artboard-container d-inline-block rounded-lg elevation-4 bg-white position-relative"
+            class="sheet-artboard-container d-inline-block rounded-2xl elevation-3 bg-white position-relative overflow-hidden border"
             :style="sheetArtboardStyle"
           >
-            <!-- Mode 1: Full A4 Official Audit Sheet (الورقة الشاملة A4) -->
-            <YemeniAuditReportSheet
-              v-if="selectedSheetLayout === 'full_a4'"
-              :key="`reg-audit-sheet-${activeSheetStudent?.id || selectedBlankVersionCode}`"
-              :student-name="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_name || '................................') : '................................'"
-              :seat-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.seat_number || '.....') : '.....'"
-              :serial-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.secret_number || activeSheetModelCode) : activeSheetModelCode"
-              :model-code="activeSheetModelCode"
-              :form-number="activeSheetModelCode"
-              :exam-subject="selectedExam?.subject_name || 'الرياضيات'"
-              :exam-stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || 'اختبار الشهادة الثانوية العامة'))"
-              :exam-year="customExamYear || selectedExam?.year_name || '2026'"
-              :center-name="customCenterName || activeSheetStudent?.school_name || selectedExam?.directorate || 'المركز الاختباري الرئيسي'"
-              :center-code="activeSheetStudent?.school_id || selectedExam?.id || '101'"
-              :governorate="customGovernorate || activeSheetStudent?.governorate || selectedExam?.governorate || 'أمانة العاصمة'"
-              :directorate="customDirectorate || activeSheetStudent?.directorate || selectedExam?.directorate || 'السبعين'"
-              :barcode-value="sheetGenerationMode === 'student' ? (activeSheetStudent?.barcode_value || `EXAM_${selectedExam?.id}_VER_${activeSheetModelCode}_SEAT_${activeSheetStudent?.seat_number}`) : `EXAM_${selectedExam?.id}_VER_${selectedBlankVersionCode}_BLANK`"
-              :qr-value="sheetGenerationMode === 'student' ? (activeSheetStudent?.qr_value || `${selectedExam?.uniqueCode}|${activeSheetModelCode}|${activeSheetStudent?.seat_number}`) : `${selectedExam?.uniqueCode}|${selectedBlankVersionCode}|BLANK`"
-              :total-questions="getQuestionsCountForVersion(activeSheetModelCode)"
-              :sections="getSectionsForVersion(activeSheetModelCode)"
-            />
+            <!-- Single Sheet Header Banner -->
+            <div class="d-print-none sheet-page-header px-4 py-2.5 border-b d-flex align-center justify-space-between flex-wrap gap-2" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
+              <div class="d-flex align-center gap-2 flex-wrap">
+                <v-chip v-if="sheetGenerationMode === 'student'" size="small" color="indigo" variant="tonal" class="font-weight-black">
+                  <v-icon start size="14">mdi-account</v-icon>
+                  {{ activeSheetStudent?.student_name }}
+                </v-chip>
+                <v-chip v-if="sheetGenerationMode === 'student'" size="small" variant="outlined" color="blue-grey" class="font-mono font-weight-bold">
+                  جلوس: {{ activeSheetStudent?.seat_number }}
+                </v-chip>
+                <v-chip size="small" :color="getModelBadgeColor(activeSheetModelCode)" variant="flat" class="font-weight-black font-mono">
+                  نموذج {{ activeSheetModelCode }}
+                </v-chip>
+                <v-chip v-if="sheetGenerationMode === 'blank'" size="small" color="primary" variant="tonal" class="font-weight-bold">
+                  ورقة نموذج عامة فارغة
+                </v-chip>
+              </div>
+              <div class="d-flex align-center gap-2">
+                <v-btn
+                  size="small"
+                  color="primary"
+                  variant="tonal"
+                  rounded="lg"
+                  class="font-weight-bold px-3"
+                  prepend-icon="mdi-printer"
+                  @click="printSingleSheet"
+                >
+                  طباعة هذه الورقة
+                </v-btn>
+              </div>
+            </div>
 
-            <!-- Mode 2: Compact Ministry A5 Sheet (ورقة الطالب الوزارية A5) -->
-            <YemeniMinistrySheet
-              v-else
-              :key="`reg-ministry-sheet-${activeSheetStudent?.id || selectedBlankVersionCode}`"
-              layout-mode="compact_a5"
-              :student-name="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_name || '................................') : '................................'"
-              :seat-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.seat_number || '.....') : '.....'"
-              :serial-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.secret_number || activeSheetModelCode) : activeSheetModelCode"
-              :model-code="activeSheetModelCode"
-              :exam-subject="selectedExam?.subject_name || 'الرياضيات'"
-              :exam-stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || 'اختبار الشهادة الثانوية العامة'))"
-              :exam-year="customExamYear || selectedExam?.year_name || '2026'"
-              :center-name="customCenterName || activeSheetStudent?.school_name || selectedExam?.directorate || 'المركز الامتحاني الرئيسي'"
-              :governorate="customGovernorate || selectedExam?.governorate || 'أمانة العاصمة'"
-              :directorate="customDirectorate || activeSheetStudent?.directorate || selectedExam?.directorate || 'السبعين'"
-              :barcode-value="sheetGenerationMode === 'student' ? (activeSheetStudent?.barcode_value || `EXAM_${selectedExam?.id}_VER_${activeSheetModelCode}_SEAT_${activeSheetStudent?.seat_number}`) : `EXAM_${selectedExam?.id}_VER_${selectedBlankVersionCode}_BLANK`"
-              :qr-value="sheetGenerationMode === 'student' ? (activeSheetStudent?.qr_value || `${selectedExam?.uniqueCode}|${activeSheetModelCode}|${activeSheetStudent?.seat_number}`) : `${selectedExam?.uniqueCode}|${selectedBlankVersionCode}|BLANK`"
-              :total-questions="getQuestionsCountForVersion(activeSheetModelCode)"
-              :sections="getSectionsForVersion(activeSheetModelCode)"
-              :interactive="false"
-            />
+            <!-- Paper Wrapper -->
+            <div class="sheet-paper-wrapper pa-3 pa-md-4 d-flex justify-center bg-white">
+              <!-- Mode 1: Full A4 Official Audit Sheet (الورقة الشاملة A4) -->
+              <YemeniAuditReportSheet
+                v-if="selectedSheetLayout === 'full_a4'"
+                :key="`reg-audit-sheet-${activeSheetStudent?.id || selectedBlankVersionCode}`"
+                :student-name="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_name || '................................') : '................................'"
+                :seat-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.seat_number || '.....') : '.....'"
+                :serial-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.secret_number || activeSheetModelCode) : activeSheetModelCode"
+                :model-code="activeSheetModelCode"
+                :form-number="activeSheetModelCode"
+                :exam-subject="selectedExam?.subject_name || 'الرياضيات'"
+                :exam-stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || 'اختبار الشهادة الثانوية العامة'))"
+                :exam-year="customExamYear || selectedExam?.year_name || '2026'"
+                :center-name="customCenterName || activeSheetStudent?.school_name || selectedExam?.directorate || 'المركز الاختباري الرئيسي'"
+                :center-code="activeSheetStudent?.school_id || selectedExam?.id || '101'"
+                :governorate="customGovernorate || activeSheetStudent?.governorate || selectedExam?.governorate || 'أمانة العاصمة'"
+                :directorate="customDirectorate || activeSheetStudent?.directorate || selectedExam?.directorate || 'السبعين'"
+                :barcode-value="sheetGenerationMode === 'student' ? (activeSheetStudent?.barcode_value || `EXAM_${selectedExam?.id}_VER_${activeSheetModelCode}_SEAT_${activeSheetStudent?.seat_number}`) : `EXAM_${selectedExam?.id}_VER_${selectedBlankVersionCode}_BLANK`"
+                :qr-value="sheetGenerationMode === 'student' ? (activeSheetStudent?.qr_value || `${selectedExam?.uniqueCode}|${activeSheetModelCode}|${activeSheetStudent?.seat_number}`) : `${selectedExam?.uniqueCode}|${selectedBlankVersionCode}|BLANK`"
+                :total-questions="getQuestionsCountForVersion(activeSheetModelCode)"
+                :sections="getSectionsForVersion(activeSheetModelCode)"
+              />
+
+              <!-- Mode 2: Compact Ministry A5 Sheet (ورقة الطالب الوزارية A5) -->
+              <YemeniMinistrySheet
+                v-else
+                :key="`reg-ministry-sheet-${activeSheetStudent?.id || selectedBlankVersionCode}`"
+                layout-mode="compact_a5"
+                :student-name="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_name || '................................') : '................................'"
+                :seat-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.seat_number || '.....') : '.....'"
+                :serial-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.secret_number || activeSheetModelCode) : activeSheetModelCode"
+                :model-code="activeSheetModelCode"
+                :exam-subject="selectedExam?.subject_name || 'الرياضيات'"
+                :exam-stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || 'اختبار الشهادة الثانوية العامة'))"
+                :exam-year="customExamYear || selectedExam?.year_name || '2026'"
+                :center-name="customCenterName || activeSheetStudent?.school_name || selectedExam?.directorate || 'المركز الامتحاني الرئيسي'"
+                :governorate="customGovernorate || selectedExam?.governorate || 'أمانة العاصمة'"
+                :directorate="customDirectorate || activeSheetStudent?.directorate || selectedExam?.directorate || 'السبعين'"
+                :barcode-value="sheetGenerationMode === 'student' ? (activeSheetStudent?.barcode_value || `EXAM_${selectedExam?.id}_VER_${activeSheetModelCode}_SEAT_${activeSheetStudent?.seat_number}`) : `EXAM_${selectedExam?.id}_VER_${selectedBlankVersionCode}_BLANK`"
+                :qr-value="sheetGenerationMode === 'student' ? (activeSheetStudent?.qr_value || `${selectedExam?.uniqueCode}|${activeSheetModelCode}|${activeSheetStudent?.seat_number}`) : `${selectedExam?.uniqueCode}|${selectedBlankVersionCode}|BLANK`"
+                :total-questions="getQuestionsCountForVersion(activeSheetModelCode)"
+                :sections="getSectionsForVersion(activeSheetModelCode)"
+                :interactive="false"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -1367,6 +1458,40 @@ const filteredStreamStudents = computed(() => {
   return list
 })
 
+// Pagination State for Stream Preview (تحكم الصفحات وسرعة الأداء العالية)
+const streamCurrentPage = ref(1)
+const streamPageSize = ref(6)
+const pageSizeOptions = [
+  { text: '6 أوراق (سريع جداً)', value: 6 },
+  { text: '12 ورقة في الصفحة', value: 12 },
+  { text: '24 ورقة في الصفحة', value: 24 },
+  { text: 'عرض كافة الأوراق', value: 1000 },
+]
+
+const totalStreamPages = computed(() => {
+  if (!filteredStreamStudents.value?.length) return 1
+  return Math.ceil(filteredStreamStudents.value.length / streamPageSize.value)
+})
+
+const paginatedStreamStudents = computed(() => {
+  if (!filteredStreamStudents.value) return []
+  if (streamPageSize.value >= 1000) return filteredStreamStudents.value
+  const start = (streamCurrentPage.value - 1) * streamPageSize.value
+  return filteredStreamStudents.value.slice(start, start + streamPageSize.value)
+})
+
+const getModelBadgeColor = (code) => {
+  if (code === 'A') return 'primary'
+  if (code === 'B') return 'secondary'
+  if (code === 'C') return 'amber-darken-2'
+  if (code === 'D') return 'deep-purple-accent-3'
+  return 'primary'
+}
+
+watch([filterStreamModelCode, streamPageSize], () => {
+  streamCurrentPage.value = 1
+})
+
 const resetHeaderOverrides = () => {
   customCenterName.value = ''
   customDirectorate.value = ''
@@ -1376,11 +1501,9 @@ const resetHeaderOverrides = () => {
 }
 
 const sheetArtboardStyle = computed(() => {
-  const isA4 = selectedSheetLayout.value === 'full_a4'
   return {
-    width: '210mm',
-    minWidth: '210mm',
-    minHeight: isA4 ? '297mm' : '148.5mm',
+    width: '218mm',
+    maxWidth: '100%',
     zoom: sheetZoomLevel.value,
     transition: 'zoom 0.15s ease'
   }
@@ -1599,21 +1722,43 @@ const seedSampleStudents = async () => {
   }
 }
 
-const printSingleStudentCard = async (index) => {
-  if (!batchStreamRef.value) return
+const printSingleStudentCard = async (globalIndex) => {
   const isAudit = selectedSheetLayout.value === 'full_a4'
-  const cards = batchStreamRef.value.querySelectorAll('.sheet-page-card')
-  if (cards && cards[index]) {
-    const printableEl = isAudit
-      ? cards[index].querySelector('.yemeni-audit-report-sheet')
-      : (cards[index].querySelector('svg.yemeni-ministry-sheet-svg') || cards[index].querySelector('svg'))
-    if (printableEl) {
-      const st = filteredStreamStudents.value[index]
-      await printOmrElement(printableEl, {
-        title: `${selectedExam.value?.uniqueCode || 'OMR'}_${st?.seat_number || st?.model_code || index + 1}`,
-        isA5: selectedSheetLayout.value === 'compact_a5'
-      })
+  let printableEl = null
+
+  // 1. Check if the element is currently visible in the paginated stream
+  if (batchStreamRef.value) {
+    const localIndex = globalIndex % streamPageSize.value
+    const pageOfIndex = Math.floor(globalIndex / streamPageSize.value) + 1
+    if (pageOfIndex === streamCurrentPage.value) {
+      const cards = batchStreamRef.value.querySelectorAll('.sheet-page-card')
+      if (cards && cards[localIndex]) {
+        printableEl = isAudit
+          ? cards[localIndex].querySelector('.yemeni-audit-report-sheet')
+          : (cards[localIndex].querySelector('svg.yemeni-ministry-sheet-svg') || cards[localIndex].querySelector('svg'))
+      }
     }
+  }
+
+  // 2. Fallback to hidden staging container
+  if (!printableEl) {
+    const stagingEl = document.getElementById('omr-registry-batch-staging')
+    if (stagingEl) {
+      const slots = stagingEl.querySelectorAll('.batch-sheet-slot')
+      if (slots && slots[globalIndex]) {
+        printableEl = isAudit
+          ? slots[globalIndex].querySelector('.yemeni-audit-report-sheet')
+          : (slots[globalIndex].querySelector('svg.yemeni-ministry-sheet-svg') || slots[globalIndex].querySelector('svg'))
+      }
+    }
+  }
+
+  if (printableEl) {
+    const st = filteredStreamStudents.value[globalIndex]
+    await printOmrElement(printableEl, {
+      title: `${selectedExam.value?.uniqueCode || 'OMR'}_${st?.seat_number || st?.model_code || globalIndex + 1}`,
+      isA5: selectedSheetLayout.value === 'compact_a5'
+    })
   }
 }
 
@@ -1712,8 +1857,24 @@ const batchPrintAllStudents = async () => {
     const isAudit = selectedSheetLayout.value === 'full_a4'
     let elements = []
 
-    // 1. Pick elements from visible stream if mounted
-    if (batchStreamRef.value) {
+    // 1. Pick all elements from hidden staging container to guarantee full batch print
+    const stagingEl = document.getElementById('omr-registry-batch-staging')
+    if (stagingEl) {
+      stagingEl.classList.remove('d-none')
+      await nextTick()
+      if (isAudit) {
+        elements = Array.from(stagingEl.querySelectorAll('.yemeni-audit-report-sheet'))
+      } else {
+        elements = Array.from(stagingEl.querySelectorAll('svg.yemeni-ministry-sheet-svg'))
+        if (!elements.length) {
+          elements = Array.from(stagingEl.querySelectorAll('svg'))
+        }
+      }
+      stagingEl.classList.add('d-none')
+    }
+
+    // 2. Fallback to visible stream if staging wasn't found
+    if (!elements.length && batchStreamRef.value) {
       if (isAudit) {
         elements = Array.from(batchStreamRef.value.querySelectorAll('.yemeni-audit-report-sheet'))
       } else {
@@ -1721,24 +1882,6 @@ const batchPrintAllStudents = async () => {
         if (!elements.length) {
           elements = Array.from(batchStreamRef.value.querySelectorAll('svg'))
         }
-      }
-    }
-
-    // 2. Fallback to hidden staging container
-    if (!elements.length) {
-      const stagingEl = document.getElementById('omr-registry-batch-staging')
-      if (stagingEl) {
-        stagingEl.classList.remove('d-none')
-        await nextTick()
-        if (isAudit) {
-          elements = Array.from(stagingEl.querySelectorAll('.yemeni-audit-report-sheet'))
-        } else {
-          elements = Array.from(stagingEl.querySelectorAll('svg.yemeni-ministry-sheet-svg'))
-          if (!elements.length) {
-            elements = Array.from(stagingEl.querySelectorAll('svg'))
-          }
-        }
-        stagingEl.classList.add('d-none')
       }
     }
 
@@ -1825,9 +1968,18 @@ onMounted(async () => {
   width: 100%;
 }
 .sheet-page-card {
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  border: 1px solid #cbd5e1;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8f0;
   background-color: #ffffff;
+  border-radius: 16px !important;
+}
+
+.sheet-paper-wrapper {
+  background-color: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: visible;
 }
 
 /* ── Lightweight Navigation Bar ── */
