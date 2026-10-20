@@ -162,22 +162,8 @@
             :add="false"
           />
 
-          <!-- Search Query -->
-          <v-col cols="12" sm="6" md="3">
-            <v-text-field
-              v-model="searchQuery"
-              placeholder="بحث بالرمز أو عنوان الاختبار..."
-              prepend-inner-icon="mdi-magnify"
-              clearable
-              density="compact"
-              variant="outlined"
-              class="mb-6"
-              hide-details
-            />
-          </v-col>
-
           <!-- Filter Actions -->
-          <v-col cols="12" sm="12" md="6" class="d-flex align-center justify-end gap-2">
+          <v-col cols="12" sm="12" md="auto" class="d-flex align-center justify-end gap-2 ms-auto">
             <custom-btn
               type="show"
               label="تصفية الأرشيف"
@@ -205,25 +191,37 @@
 
             <template v-if="key === 'title'">
               <div class="d-flex align-center gap-3 py-1 cursor-pointer" @click="openDashboard(item)">
-                <v-avatar color="primary" variant="tonal" size="36" class="rounded-lg">
-                  <v-icon size="18">mdi-file-document-outline</v-icon>
+                <v-avatar :color="item.institutionTypeColor" variant="tonal" size="36" class="rounded-lg">
+                  <v-icon size="18">{{ item.institutionTypeIcon }}</v-icon>
                 </v-avatar>
                 <div>
                   <div class="d-flex align-center gap-2">
                     <span class="font-weight-black text-subtitle-2 text-primary">{{ item.title }}</span>
                     <v-chip
-                      v-if="filterInstitutionType === 'all' && item.institution_type"
                       size="x-small"
-                      :color="item.institution_type === 'university' ? 'purple' : 'primary'"
+                      :color="item.institutionTypeColor"
                       variant="tonal"
                       class="font-weight-bold"
                     >
-                      {{ item.institution_type === 'university' ? '🎓 جامعي' : '🏫 مدرسي' }}
+                      <v-icon start size="12">{{ item.institutionTypeIcon }}</v-icon>
+                      {{ item.institutionTypeShortLabel }}
                     </v-chip>
                   </div>
                   <div class="text-caption text-medium-emphasis">{{ item.subjectName }}</div>
                 </div>
               </div>
+            </template>
+
+            <template v-else-if="key === 'institutionType'">
+              <v-chip
+                size="small"
+                :color="item.institutionTypeColor"
+                variant="tonal"
+                class="font-weight-bold"
+              >
+                <v-icon start size="15">{{ item.institutionTypeIcon }}</v-icon>
+                {{ item.institutionTypeFullLabel }}
+              </v-chip>
             </template>
 
             <template v-else-if="key === 'versionCode'">
@@ -250,21 +248,54 @@
             </template>
 
             <template v-else-if="key === 'actions'">
-              <div class="d-flex align-center justify-center gap-2">
-                <custom-btn label="لوحة التحكم" icon="monitor-dashboard" variant="tonal" color="primary"
-                  class="font-weight-bold px-3" :click="() => openDashboard(item)" />
-                <v-btn
-                  size="small"
-                  variant="tonal"
-                  color="purple-darken-1"
-                  rounded="lg"
-                  class="font-weight-bold px-3"
-                  prepend-icon="mdi-scanner"
-                  :to="`/omr-exams?open_exam_id=${item.id}`"
-                  title="الانتقال المباشر لشاشة ربط الاختبار والتصحيح الضوئي"
-                >
-                  التصحيح (OMR)
-                </v-btn>
+              <div class="d-flex align-center justify-center">
+                <v-menu location="bottom end" transition="slide-y-transition">
+                  <template v-slot:activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      icon="mdi-dots-vertical"
+                      variant="tonal"
+                      color="primary"
+                      size="small"
+                      rounded="lg"
+                      title="قائمة الإجراءات"
+                    />
+                  </template>
+
+                  <v-list density="compact" class="rounded-xl border elevation-4 py-2" min-width="230">
+                    <!-- عرض تفاصيل الاختبار والمناطق (زر العين) -->
+                    <v-list-item
+                      prepend-icon="mdi-eye-outline"
+                      class="font-weight-bold text-info"
+                      @click="openExamDetailsModal(item)"
+                    >
+                      <v-list-item-title class="font-weight-bold">تفاصيل الاختبار والمناطق</v-list-item-title>
+                      <v-list-item-subtitle class="text-caption">المحافظة، المديرية والمعلومات</v-list-item-subtitle>
+                    </v-list-item>
+
+                    <v-divider class="my-1" />
+
+                    <!-- لوحة التحكم -->
+                    <v-list-item
+                      prepend-icon="mdi-monitor-dashboard"
+                      class="font-weight-bold text-primary"
+                      @click="openDashboard(item)"
+                    >
+                      <v-list-item-title class="font-weight-bold">لوحة التحكم</v-list-item-title>
+                      <v-list-item-subtitle class="text-caption">النماذج، الطلاب والطباعة</v-list-item-subtitle>
+                    </v-list-item>
+
+                    <!-- التصحيح الضوئي OMR -->
+                    <v-list-item
+                      prepend-icon="mdi-scanner"
+                      class="font-weight-bold text-purple-darken-1"
+                      :to="`/omr-exams?open_exam_id=${item.id}`"
+                    >
+                      <v-list-item-title class="font-weight-bold">التصحيح الضوئي (OMR)</v-list-item-title>
+                      <v-list-item-subtitle class="text-caption">ربط وتصحيح الأوراق آلياً</v-list-item-subtitle>
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
               </div>
             </template>
 
@@ -968,6 +999,337 @@
         </v-card-text>
       </v-card>
     </v-dialog>
+
+    <!-- MODAL: EXAM DETAILS & GEOGRAPHIC SCOPE (زر العين) -->
+    <v-dialog v-model="detailsDialog" max-width="750" scrollable>
+      <v-card class="rounded-2xl overflow-hidden shadow-2xl">
+        <!-- Header -->
+        <div class="pa-5 bg-surface border-b d-flex align-center justify-space-between">
+          <div class="d-flex align-center gap-3">
+            <v-avatar :color="inspectingExam?.institutionTypeColor || 'info'" variant="tonal" size="44" class="rounded-xl">
+              <v-icon size="24">{{ inspectingExam?.institutionTypeIcon || 'mdi-text-box-search-outline' }}</v-icon>
+            </v-avatar>
+            <div>
+              <div class="d-flex align-center gap-2 flex-wrap">
+                <h3 class="text-h6 font-weight-black mb-0 text-slate-800">{{ inspectingExam?.title }}</h3>
+                <v-chip
+                  size="small"
+                  :color="inspectingExam?.institutionTypeColor"
+                  variant="flat"
+                  class="font-weight-bold"
+                >
+                  <v-icon start size="15">{{ inspectingExam?.institutionTypeIcon }}</v-icon>
+                  {{ inspectingExam?.institutionTypeFullLabel }}
+                </v-chip>
+              </div>
+              <div class="text-caption text-medium-emphasis mt-1">
+                رمز الاختبار: <span class="font-weight-bold font-mono">{{ inspectingExam?.uniqueCode || '—' }}</span>
+                <span class="mx-2">•</span>
+                المادة: <span class="font-weight-bold text-slate-700">{{ inspectingExam?.subjectName }}</span>
+                <span class="mx-2">•</span>
+                الجهة: <span class="font-weight-bold" :class="`text-${inspectingExam?.institutionTypeColor}`">{{ inspectingExam?.institutionTypeMinistry }}</span>
+              </div>
+            </div>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" @click="detailsDialog = false" />
+        </div>
+
+        <!-- Content -->
+        <v-card-text class="pa-5 overflow-y-auto" style="max-height: 70vh;">
+          <v-row dense>
+            <!-- 1. النطاق الجغرافي والمناطق المستهدفة -->
+            <v-col cols="12">
+              <v-card variant="outlined" class="rounded-xl pa-4 mb-4 border-slate-200 bg-slate-50">
+                <div class="d-flex align-center gap-2 mb-3">
+                  <v-icon color="primary" size="20">mdi-map-marker-radius</v-icon>
+                  <h4 class="text-subtitle-1 font-weight-black text-slate-800">النطاق الجغرافي والمناطق المستهدفة</h4>
+                </div>
+
+                <v-row dense>
+                  <v-col cols="12" sm="6" md="4">
+                    <div class="detail-box pa-2 bg-white rounded-lg border">
+                      <div class="text-caption text-medium-emphasis mb-1 font-weight-medium">المحافظة</div>
+                      <div class="font-weight-bold text-body-2 text-primary d-flex align-center gap-1">
+                        <v-icon size="16">mdi-city-variant-outline</v-icon>
+                        {{ inspectingExam?.governorateName || '—' }}
+                      </div>
+                    </div>
+                  </v-col>
+
+                  <v-col cols="12" sm="6" md="4">
+                    <div class="detail-box pa-2 bg-white rounded-lg border">
+                      <div class="text-caption text-medium-emphasis mb-1 font-weight-medium">المديرية</div>
+                      <div class="font-weight-bold text-body-2 text-teal d-flex align-center gap-1">
+                        <v-icon size="16">mdi-map-marker-outline</v-icon>
+                        {{ inspectingExam?.directorateName || '—' }}
+                      </div>
+                    </div>
+                  </v-col>
+
+                  <v-col cols="12" sm="6" md="4">
+                    <div class="detail-box pa-2 bg-white rounded-lg border">
+                      <div class="text-caption text-medium-emphasis mb-1 font-weight-medium">المنطقة / العزلة</div>
+                      <div class="font-weight-bold text-body-2 text-slate-700 d-flex align-center gap-1">
+                        <v-icon size="16">mdi-compass-outline</v-icon>
+                        {{ inspectingExam?.regionName || '—' }}
+                      </div>
+                    </div>
+                  </v-col>
+
+                  <v-col cols="12" sm="6" md="6" class="mt-2">
+                    <div class="detail-box pa-2 bg-white rounded-lg border">
+                      <div class="text-caption text-medium-emphasis mb-1 font-weight-medium">مستوى الاستهداف</div>
+                      <div class="font-weight-bold text-body-2 text-indigo">
+                        {{ inspectingExam?.targetScopeDisplay || 'شامل لكافة المدارس' }}
+                      </div>
+                    </div>
+                  </v-col>
+
+                  <v-col cols="12" sm="6" md="6" class="mt-2">
+                    <div class="detail-box pa-2 bg-white rounded-lg border">
+                      <div class="text-caption text-medium-emphasis mb-1 font-weight-medium">الدولة</div>
+                      <div class="font-weight-bold text-body-2 text-slate-700">
+                        {{ inspectingExam?.countryName || 'الجمهورية اليمنية' }}
+                      </div>
+                    </div>
+                  </v-col>
+                </v-row>
+
+                <!-- تفاصيل النطاقات المستهدفة (إذا كانت مدارس أو جهات محددة) -->
+                <div v-if="inspectingExam?.targetedScopesSummary?.targets?.length" class="mt-4 pt-3 border-t">
+                  <div class="text-caption font-weight-bold text-slate-700 mb-2">
+                    الجهات والمدارس المحددة المستهدفة:
+                  </div>
+                  <div class="d-flex flex-wrap gap-2">
+                    <v-chip
+                      v-for="(target, idx) in inspectingExam.targetedScopesSummary.targets"
+                      :key="idx"
+                      size="small"
+                      color="indigo"
+                      variant="tonal"
+                      class="font-weight-bold"
+                    >
+                      <v-icon start size="14">
+                        {{ target.scope_level === 'school' ? 'mdi-school' : 'mdi-domain' }}
+                      </v-icon>
+                      {{ target.name }}
+                      <span class="text-caption ms-1 opacity-75">({{ target.scope_level_display }})</span>
+                    </v-chip>
+                  </div>
+                </div>
+              </v-card>
+            </v-col>
+
+            <!-- 2. البيانات الأكاديمية والتعليمية -->
+            <v-col cols="12">
+              <v-card variant="outlined" class="rounded-xl pa-4 mb-4 border-slate-200">
+                <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3">
+                  <div class="d-flex align-center gap-2">
+                    <v-icon :color="inspectingExam?.institutionTypeColor || 'success'" size="20">
+                      {{ inspectingExam?.institutionTypeIcon || 'mdi-school-outline' }}
+                    </v-icon>
+                    <h4 class="text-subtitle-1 font-weight-black text-slate-800">البيانات الأكاديمية والتعليمية</h4>
+                  </div>
+                  <v-chip
+                    size="small"
+                    :color="inspectingExam?.institutionTypeColor"
+                    variant="tonal"
+                    class="font-weight-bold"
+                  >
+                    <v-icon start size="14">{{ inspectingExam?.institutionTypeIcon }}</v-icon>
+                    {{ inspectingExam?.institutionTypeFullLabel }}
+                  </v-chip>
+                </div>
+
+                <!-- بطاقة مميزة لتحديد تصنيف المؤسسة والوزارة -->
+                <div
+                  class="pa-3 rounded-lg border mb-3 d-flex align-center justify-space-between flex-wrap gap-2"
+                  :style="`background-color: ${inspectingExam?.institutionTypeBg || '#f8fafc'}; border-color: ${inspectingExam?.institutionTypeBorder || '#e2e8f0'} !important;`"
+                >
+                  <div class="d-flex align-center gap-3">
+                    <v-avatar size="36" :color="inspectingExam?.institutionTypeColor" variant="tonal" class="rounded-lg">
+                      <v-icon size="20">{{ inspectingExam?.institutionTypeIcon }}</v-icon>
+                    </v-avatar>
+                    <div>
+                      <div class="text-caption text-medium-emphasis">تصنيف المؤسسة التعليمية</div>
+                      <div class="font-weight-black text-body-2" :class="`text-${inspectingExam?.institutionTypeColor}`">
+                        {{ inspectingExam?.institutionTypeFullLabel }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="text-caption font-weight-bold text-medium-emphasis">
+                    {{ inspectingExam?.institutionTypeMinistry }}
+                  </div>
+                </div>
+
+                <v-row dense>
+                  <v-col cols="12" sm="6" md="4">
+                    <div class="detail-box pa-2 bg-slate-50 rounded-lg">
+                      <div class="text-caption text-medium-emphasis mb-1 font-weight-medium">المادة الدراسية</div>
+                      <div class="font-weight-bold text-body-2">{{ inspectingExam?.subjectName || '—' }}</div>
+                    </div>
+                  </v-col>
+
+                  <!-- الحقول المدرسية إذا كان مدرسي -->
+                  <template v-if="inspectingExam?.institutionType === 'school' || !inspectingExam?.institutionType">
+                    <v-col cols="12" sm="6" md="4">
+                      <div class="detail-box pa-2 bg-slate-50 rounded-lg">
+                        <div class="text-caption text-medium-emphasis mb-1 font-weight-medium">المرحلة الدراسية</div>
+                        <div class="font-weight-bold text-body-2">{{ inspectingExam?.stageName || '—' }}</div>
+                      </div>
+                    </v-col>
+
+                    <v-col cols="12" sm="6" md="4">
+                      <div class="detail-box pa-2 bg-slate-50 rounded-lg">
+                        <div class="text-caption text-medium-emphasis mb-1 font-weight-medium">الصف / الشعبة</div>
+                        <div class="font-weight-bold text-body-2">{{ inspectingExam?.classTrackName || '—' }}</div>
+                      </div>
+                    </v-col>
+                  </template>
+
+                  <!-- الحقول الجامعية إذا كان جامعي -->
+                  <template v-else-if="inspectingExam?.institutionType === 'university'">
+                    <v-col cols="12" sm="6" md="4">
+                      <div class="detail-box pa-2 bg-slate-50 rounded-lg">
+                        <div class="text-caption text-medium-emphasis mb-1 font-weight-medium">تصنيف التعليم</div>
+                        <div class="font-weight-bold text-body-2 text-purple-darken-1">تعليم جامعي (أكاديمي)</div>
+                      </div>
+                    </v-col>
+
+                    <v-col cols="12" sm="6" md="4">
+                      <div class="detail-box pa-2 bg-slate-50 rounded-lg">
+                        <div class="text-caption text-medium-emphasis mb-1 font-weight-medium">المقرر الجامعي</div>
+                        <div class="font-weight-bold text-body-2">{{ inspectingExam?.subjectName || '—' }}</div>
+                      </div>
+                    </v-col>
+                  </template>
+
+                  <!-- الحقول المهنية إذا كان معهد -->
+                  <template v-else-if="inspectingExam?.institutionType === 'institute'">
+                    <v-col cols="12" sm="6" md="4">
+                      <div class="detail-box pa-2 bg-slate-50 rounded-lg">
+                        <div class="text-caption text-medium-emphasis mb-1 font-weight-medium">تصنيف التعليم</div>
+                        <div class="font-weight-bold text-body-2 text-teal-darken-1">معاهد وتدريب مهني وتقني</div>
+                      </div>
+                    </v-col>
+
+                    <v-col cols="12" sm="6" md="4">
+                      <div class="detail-box pa-2 bg-slate-50 rounded-lg">
+                        <div class="text-caption text-medium-emphasis mb-1 font-weight-medium">المادة / المسار التدريبي</div>
+                        <div class="font-weight-bold text-body-2">{{ inspectingExam?.subjectName || '—' }}</div>
+                      </div>
+                    </v-col>
+                  </template>
+
+                  <v-col cols="12" sm="6" md="6" class="mt-2">
+                    <div class="detail-box pa-2 bg-slate-50 rounded-lg">
+                      <div class="text-caption text-medium-emphasis mb-1 font-weight-medium">العام الدراسي</div>
+                      <div class="font-weight-bold text-body-2">{{ inspectingExam?.yearName || inspectingExam?.year_name || '—' }}</div>
+                    </div>
+                  </v-col>
+
+                  <v-col cols="12" sm="6" md="6" class="mt-2">
+                    <div class="detail-box pa-2 bg-slate-50 rounded-lg">
+                      <div class="text-caption text-medium-emphasis mb-1 font-weight-medium">الفترة / الفصل الدراسي</div>
+                      <div class="font-weight-bold text-body-2">{{ inspectingExam?.period || inspectingExam?.period_name || '—' }}</div>
+                    </div>
+                  </v-col>
+                </v-row>
+              </v-card>
+            </v-col>
+
+            <!-- 3. الجدولة وإعدادات النماذج -->
+            <v-col cols="12">
+              <v-card variant="outlined" class="rounded-xl pa-4 border-slate-200">
+                <div class="d-flex align-center gap-2 mb-3">
+                  <v-icon color="warning" size="20">mdi-clock-outline</v-icon>
+                  <h4 class="text-subtitle-1 font-weight-black text-slate-800">بيانات الجدولة وتكوين الاختبار</h4>
+                </div>
+
+                <v-row dense>
+                  <v-col cols="12" sm="6" md="4">
+                    <div class="detail-box pa-2 bg-slate-50 rounded-lg">
+                      <div class="text-caption text-medium-emphasis mb-1 font-weight-medium">تاريخ الاختبار</div>
+                      <div class="font-weight-bold text-body-2">{{ inspectingExam?.scheduleDate || 'غير محدد' }}</div>
+                    </div>
+                  </v-col>
+
+                  <v-col cols="12" sm="6" md="4">
+                    <div class="detail-box pa-2 bg-slate-50 rounded-lg">
+                      <div class="text-caption text-medium-emphasis mb-1 font-weight-medium">مدة الاختبار</div>
+                      <div class="font-weight-bold text-body-2">{{ inspectingExam?.scheduleDuration || 'غير محدد' }}</div>
+                    </div>
+                  </v-col>
+
+                  <v-col cols="12" sm="6" md="4">
+                    <div class="detail-box pa-2 bg-slate-50 rounded-lg">
+                      <div class="text-caption text-medium-emphasis mb-1 font-weight-medium">نمط توزيع النماذج</div>
+                      <div class="font-weight-bold text-body-2">{{ inspectingExam?.models_mode_display || 'افتراضي' }}</div>
+                    </div>
+                  </v-col>
+
+                  <v-col cols="12" class="mt-2">
+                    <div class="detail-box pa-3 bg-slate-50 rounded-lg d-flex align-center justify-space-between flex-wrap gap-2">
+                      <div class="d-flex align-center gap-2">
+                        <span class="text-caption text-medium-emphasis font-weight-medium">النماذج المتوفرة:</span>
+                        <div class="d-flex gap-1">
+                          <v-chip
+                            v-for="ver in (inspectingExam?.versionsList || [])"
+                            :key="ver.id || ver.versionCode"
+                            size="x-small"
+                            color="primary"
+                            variant="flat"
+                            class="font-weight-bold"
+                          >
+                            نموذج {{ ver.versionCode }}
+                          </v-chip>
+                        </div>
+                      </div>
+                      <div class="d-flex align-center gap-3">
+                        <span class="text-caption font-weight-bold text-slate-700">
+                          <v-icon size="14" color="indigo" class="me-1">mdi-help-circle-outline</v-icon>
+                          {{ inspectingExam?.questionsCount || 0 }} سؤال
+                        </span>
+                        <span class="text-caption font-weight-bold text-slate-700">
+                          <v-icon size="14" color="success" class="me-1">mdi-account-group</v-icon>
+                          {{ inspectingExam?.studentsCount || 0 }} طالب
+                        </span>
+                      </div>
+                    </div>
+                  </v-col>
+                </v-row>
+              </v-card>
+            </v-col>
+          </v-row>
+        </v-card-text>
+
+        <!-- Dialog Footer Actions -->
+        <div class="pa-4 bg-slate-50 border-t d-flex align-center justify-space-between">
+          <v-btn variant="text" color="grey-darken-1" class="font-weight-bold" @click="detailsDialog = false">
+            إغلاق
+          </v-btn>
+          <div class="d-flex align-center gap-2">
+            <v-btn
+              variant="tonal"
+              color="purple-darken-1"
+              rounded="lg"
+              class="font-weight-bold"
+              prepend-icon="mdi-scanner"
+              :to="`/omr-exams?open_exam_id=${inspectingExam?.id}`"
+            >
+              شاشة التصحيح (OMR)
+            </v-btn>
+            <custom-btn
+              label="فتح لوحة التحكم"
+              icon="monitor-dashboard"
+              color="primary"
+              class="font-weight-bold"
+              :click="() => viewExamFromModal(inspectingExam)"
+            />
+          </div>
+        </div>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -1116,6 +1478,8 @@ export default {
       loading: false,
       items: { results: [], pagination: {} },
       examDetails: null,
+      detailsDialog: false,
+      inspectingExam: null,
       // Filters
       filterInstitutionType: null,
       institutionTypeOptions: [
@@ -1139,6 +1503,7 @@ export default {
       searchQuery: '',
       headers: [
         { title: 'عنوان الاختبار', key: 'title', sortable: true },
+        { title: 'نوع المؤسسة', key: 'institutionType', sortable: false, align: 'center' },
         { title: 'النماذج', key: 'versionCode', sortable: false },
         { title: 'عدد الأسئلة', key: 'questionsCount', sortable: false, align: 'center' },
         { title: 'الطلاب المسجلون', key: 'studentsCount', sortable: false, align: 'center' },
@@ -1205,13 +1570,69 @@ export default {
         const raw = response.data || {}
         const results = raw.results || (raw.data && raw.data.results) || []
 
-        const enriched = results.map(exam => ({
-          ...exam,
-          subjectName: exam.subject_name || 'عام',
-          versionsList: exam.versions_list || [],
-          questionsCount: exam.questions_count || 0,
-          studentsCount: exam.students_count ?? exam.studentsCount ?? 0,
-        }))
+        const getInstitutionTypeMeta = (type) => {
+          if (type === 'university') {
+            return {
+              shortLabel: 'جامعة',
+              fullLabel: 'تعليم جامعي (جامعة)',
+              icon: 'mdi-domain',
+              color: 'purple-darken-1',
+              ministry: 'وزارة التعليم العالي والبحث العلمي',
+              bg: '#faf5ff',
+              border: '#e9d5ff',
+            }
+          }
+          if (type === 'institute') {
+            return {
+              shortLabel: 'معهد مهني',
+              fullLabel: 'معاهد وتدريب مهني (معهد)',
+              icon: 'mdi-tools',
+              color: 'teal-darken-1',
+              ministry: 'وزارة التعليم الفني والتدريب المهني',
+              bg: '#f0fdfa',
+              border: '#ccfbf1',
+            }
+          }
+          return {
+            shortLabel: 'مدرسة',
+            fullLabel: 'تعليم مدرسي (مدرسة)',
+            icon: 'mdi-school',
+            color: 'primary',
+            ministry: 'وزارة التربية والتعليم والبحث العلمي',
+            bg: '#eff6ff',
+            border: '#dbeafe',
+          }
+        }
+
+        const enriched = results.map(exam => {
+          const instMeta = getInstitutionTypeMeta(exam.institution_type)
+          return {
+            ...exam,
+            subjectName: exam.subject_name || 'عام',
+            yearName: exam.year_name || (exam.year && exam.year.name_ar) || '-',
+            versionsList: exam.versions_list || [],
+            questionsCount: exam.questions_count || 0,
+            studentsCount: exam.students_count ?? exam.studentsCount ?? 0,
+            institutionType: exam.institution_type || 'school',
+            institutionTypeShortLabel: instMeta.shortLabel,
+            institutionTypeFullLabel: instMeta.fullLabel,
+            institutionTypeIcon: instMeta.icon,
+            institutionTypeColor: instMeta.color,
+            institutionTypeMinistry: instMeta.ministry,
+            institutionTypeBg: instMeta.bg,
+            institutionTypeBorder: instMeta.border,
+            governorateName: exam.governorate_name || '—',
+            directorateName: exam.directorate_name || '—',
+            regionName: exam.region_name || '—',
+            countryName: exam.country_name || 'الجمهورية اليمنية',
+            stageName: exam.stage_name || '—',
+            classTrackName: exam.class_track_name || '—',
+            scheduleDate: exam.schedule_date || '—',
+            scheduleDuration: exam.schedule_duration ? `${exam.schedule_duration} دقيقة` : '—',
+            targetScopeDisplay: exam.target_scope_level_display || '—',
+            targetedScopesSummary: exam.targeted_scopes_summary || null,
+          }
+        })
 
         this.items = Object.assign({}, raw, { results: enriched })
       } catch (err) {
@@ -1266,6 +1687,18 @@ export default {
       this.filterPeriod = null
       this.searchQuery = ''
       this.getData()
+    },
+
+    openExamDetailsModal(exam) {
+      this.inspectingExam = exam
+      this.detailsDialog = true
+    },
+
+    viewExamFromModal(exam) {
+      this.detailsDialog = false
+      if (exam) {
+        this.openDashboard(exam)
+      }
     },
 
     async openDashboard(exam) {
