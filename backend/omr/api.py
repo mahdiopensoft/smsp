@@ -632,6 +632,8 @@ def grade_sheet(request):
 
     except PermissionError as perm_err:
         return Response({"error": str(perm_err)}, status=status.HTTP_403_FORBIDDEN)
+    except ValueError as val_err:
+        return Response({"error": str(val_err)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         logger.exception("خطأ في التصحيح")
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -896,20 +898,7 @@ def _detect_template_from_sheet(image_path: str, requested_template_id: str = ""
         .order_by("-id")
     )
 
-    # ── 2. مطابقة مباشرة بالاسم من اسم الملف المرفوع ──────────────────
-    for tpl in active_templates:
-        clean_name = tpl.name.strip() if tpl.name else ""
-        if len(clean_name) >= 3 and clean_name in fname:
-            td = tpl.template_data or {}
-            q_cnt = (
-                td.get("questions", {}).get("metadata", {}).get("num_questions") or
-                len(td.get("mcq_questions", [])) or
-                tpl.total_mcq or 40
-            )
-            logger.info("Direct template match by filename '%s': %s (id=%s, qs=%d)", fname, tpl.name, tpl.id, q_cnt)
-            return tpl, None, q_cnt
-
-    # ── 3. كشف الباركود والـ QR ─────────────────────────────────────
+    # ── 2. كشف الباركود والـ QR ─────────────────────────────────────
     detected_code = None
     try:
         import zxingcpp
@@ -957,17 +946,115 @@ def _detect_template_from_sheet(image_path: str, requested_template_id: str = ""
         except Exception as ocr_err:
             logger.debug("OCR barcode fallback error: %s", ocr_err)
 
+    # ── 3. التحقق الصارم (Strict Verification) ─────────────────────────
+    # رفض أي ورقة لا تحتوي على باركود أو رمز QR معتمد ومسجل رسمياً بالنظام
+    if not detected_code:
+        logger.warning("التحقق الصارم: لم يتم العثور على أي باركود أو رمز QR في الورقة. تم رفض الورقة.")
+        return None, None, 0
+
     # ── 3.1 مطابقة باركود جلسات الاختبار EXAM_{id}_VER_{code}...
-    if detected_code:
-        exam_bar_m = re.search(r"EXAM_(\d+)_VER_([A-Za-z0-9]+)", detected_code)
-        if exam_bar_m:
+    exam_bar_m = re.search(r"EXAM_(\d+)_VER_([A-Za-z0-9]+)", detected_code)
+    if exam_bar_m:
+        try:
+            ex_id = int(exam_bar_m.group(1))
+            v_code = exam_bar_m.group(2)
+            from exams.models.ExamVersion import ExamVersion
+            from exams.models.Exam import Exam
+            ex_obj = Exam.objects.filter(id=ex_id, is_deleted=False).first()
+            if not ex_obj:
+                logger.warning("التحقق الصارم: الاختبار رقم %s غير مسجل في هذا النظام (قد يكون صادراً من نظام خارجي). تم رفض الورقة.", ex_id)
+                return None, detected_code, 0
+
+            v_match = ExamVersion.objects.filter(exam_id=ex_id, versionCode=v_code, is_deleted=False).prefetch_related('question_orders').first()
+            if not v_match:
+                v_match = ExamVersion.objects.filter(exam_id=ex_id, is_deleted=False).prefetch_related('question_orders').first()
+            if v_match:
+                v_q_cnt = v_match.question_orders.filter(is_deleted=False).count()
+                if v_q_cnt > 0:
+                    tpl_match = None
+                    for tpl in active_templates:
+                        t_td = tpl.template_data or {}
+                        t_qs = (
+                            t_td.get("questions", {}).get("metadata", {}).get("num_questions") or
+                            len(t_td.get("mcq_questions", [])) or
+                            getattr(tpl, "total_mcq", None)
+                        )
+                        if t_qs == v_q_cnt or f"({v_q_cnt} سؤال)" in tpl.name or f"({v_q_cnt}سؤال)" in tpl.name:
+                            tpl_match = tpl
+                            break
+                    if not tpl_match:
+                        try:
+                            from templates_engine.builder import TemplateBuilderService
+                            builder = TemplateBuilderService()
+                            tf_orders = [qo for qo in v_match.question_orders.filter(is_deleted=False).order_by('orderIndex') if (qo.question.questionType in ['True/False', 'true_false', 'صح وخطأ']) or (qo.question.isTrue is not None)]
+                            mcq_orders = [qo for qo in v_match.question_orders.filter(is_deleted=False).order_by('orderIndex') if qo not in tf_orders]
+                            sections = []
+                            if tf_orders:
+                                sections.append({
+                                    "id": "sec_tf",
+                                    "title": "صح وخطأ",
+                                    "from_q": tf_orders[0].orderIndex,
+                                    "to_q": tf_orders[-1].orderIndex,
+                                    "type": "true_false",
+                                    "choices": ["صح", "خطأ"]
+                                })
+                            if mcq_orders:
+                                sections.append({
+                                    "id": "sec_mcq",
+                                    "title": "اختيار من متعدد",
+                                    "from_q": mcq_orders[0].orderIndex,
+                                    "to_q": mcq_orders[-1].orderIndex,
+                                    "type": "mcq",
+                                    "choices": ["1", "2", "3", "4"]
+                                })
+                            dyn_cfg = {
+                                "template_id": f"EXAM_{ex_id}_AUTO",
+                                "template_name": f"{ex_obj.title} ({v_q_cnt} سؤال)",
+                                "name": f"{ex_obj.title} ({v_q_cnt} سؤال)",
+                                "paper": {"size": "A5", "dpi": 300},
+                                "paper_size": "A5",
+                                "total_mcq": v_q_cnt,
+                                "questions": {
+                                    "metadata": {"num_questions": v_q_cnt},
+                                    "layout": {"columns_count": 4},
+                                    "sections": sections
+                                }
+                            }
+                            dyn_contract = builder.build_from_designer_config(dyn_cfg)
+                            dyn_cfg["mcq_questions"] = [q.model_dump() for q in dyn_contract.mcq_questions]
+                            tpl_match, _ = ExamTemplate.objects.get_or_create(
+                                name=f"{ex_obj.title} ({v_q_cnt} سؤال)",
+                                defaults={"template_data": dyn_cfg, "is_active": True}
+                            )
+                        except Exception as dyn_err:
+                            logger.warning("Could not auto-generate dynamic template: %s", dyn_err)
+                    if not tpl_match and active_templates:
+                        tpl_match = active_templates[0]
+                    if tpl_match:
+                        logger.info("Auto-bound sheet via exam barcode %s to template: %s (%d Qs)", detected_code, tpl_match.name, v_q_cnt)
+                        return tpl_match, detected_code, v_q_cnt
+            logger.warning("التحقق الصارم: نموذج الاختبار %s غير صالح أو لا يحتوي على أسئلة. تم رفض الورقة.", detected_code)
+            return None, detected_code, 0
+        except Exception as ex_err:
+            logger.debug("Error resolving exam barcode: %s", ex_err)
+            return None, detected_code, 0
+
+    # ── 3.2 مطابقة رمز QR المشفر بصيغة {uniqueCode}|{versionCode}|{seatNumber}
+    if "|" in detected_code:
+        parts = [p.strip() for p in detected_code.split("|")]
+        if len(parts) >= 2:
+            u_code, v_code = parts[0], parts[1]
             try:
-                ex_id = int(exam_bar_m.group(1))
-                v_code = exam_bar_m.group(2)
+                from exams.models.Exam import Exam
                 from exams.models.ExamVersion import ExamVersion
-                v_match = ExamVersion.objects.filter(exam_id=ex_id, versionCode=v_code, is_deleted=False).prefetch_related('question_orders').first()
+                ex_match = Exam.objects.filter(uniqueCode=u_code, is_deleted=False).first()
+                if not ex_match:
+                    logger.warning("التحقق الصارم: الكود الفريد %s غير مسجل في هذا النظام (قد يكون صادراً من نظام آخر). تم رفض الورقة.", u_code)
+                    return None, detected_code, 0
+
+                v_match = ExamVersion.objects.filter(exam=ex_match, versionCode=v_code, is_deleted=False).prefetch_related('question_orders').first()
                 if not v_match:
-                    v_match = ExamVersion.objects.filter(exam_id=ex_id, is_deleted=False).prefetch_related('question_orders').first()
+                    v_match = ExamVersion.objects.filter(exam=ex_match, is_deleted=False).prefetch_related('question_orders').first()
                 if v_match:
                     v_q_cnt = v_match.question_orders.filter(is_deleted=False).count()
                     if v_q_cnt > 0:
@@ -982,102 +1069,24 @@ def _detect_template_from_sheet(image_path: str, requested_template_id: str = ""
                             if t_qs == v_q_cnt or f"({v_q_cnt} سؤال)" in tpl.name or f"({v_q_cnt}سؤال)" in tpl.name:
                                 tpl_match = tpl
                                 break
-                        if not tpl_match:
-                            try:
-                                from templates_engine.builder import TemplateBuilderService
-                                builder = TemplateBuilderService()
-                                tf_orders = [qo for qo in v_match.question_orders.filter(is_deleted=False).order_by('orderIndex') if (qo.question.questionType in ['True/False', 'true_false', 'صح وخطأ']) or (qo.question.isTrue is not None)]
-                                mcq_orders = [qo for qo in v_match.question_orders.filter(is_deleted=False).order_by('orderIndex') if qo not in tf_orders]
-                                sections = []
-                                if tf_orders:
-                                    sections.append({
-                                        "id": "sec_tf",
-                                        "title": "صح وخطأ",
-                                        "from_q": tf_orders[0].orderIndex,
-                                        "to_q": tf_orders[-1].orderIndex,
-                                        "type": "true_false",
-                                        "choices": ["صح", "خطأ"]
-                                    })
-                                if mcq_orders:
-                                    sections.append({
-                                        "id": "sec_mcq",
-                                        "title": "اختيار من متعدد",
-                                        "from_q": mcq_orders[0].orderIndex,
-                                        "to_q": mcq_orders[-1].orderIndex,
-                                        "type": "mcq",
-                                        "choices": ["1", "2", "3", "4"]
-                                    })
-                                dyn_cfg = {
-                                    "template_id": f"EXAM_{ex_id}_AUTO",
-                                    "template_name": f"{v_match.exam.title} ({v_q_cnt} سؤال)",
-                                    "name": f"{v_match.exam.title} ({v_q_cnt} سؤال)",
-                                    "paper": {"size": "A5", "dpi": 300},
-                                    "paper_size": "A5",
-                                    "total_mcq": v_q_cnt,
-                                    "questions": {
-                                        "metadata": {"num_questions": v_q_cnt},
-                                        "layout": {"columns_count": 4},
-                                        "sections": sections
-                                    }
-                                }
-                                dyn_contract = builder.build_from_designer_config(dyn_cfg)
-                                dyn_cfg["mcq_questions"] = [q.model_dump() for q in dyn_contract.mcq_questions]
-                                tpl_match, _ = ExamTemplate.objects.get_or_create(
-                                    name=f"{v_match.exam.title} ({v_q_cnt} سؤال)",
-                                    defaults={"template_data": dyn_cfg, "is_active": True}
-                                )
-                            except Exception as dyn_err:
-                                logger.warning("Could not auto-generate dynamic template: %s", dyn_err)
                         if not tpl_match and active_templates:
                             tpl_match = active_templates[0]
                         if tpl_match:
-                            logger.info("Auto-bound sheet via exam barcode %s to template: %s (%d Qs)", detected_code, tpl_match.name, v_q_cnt)
+                            logger.info("Auto-bound sheet via QR %s to template: %s (%d Qs)", detected_code, tpl_match.name, v_q_cnt)
                             return tpl_match, detected_code, v_q_cnt
-            except Exception as ex_err:
-                logger.debug("Error resolving exam barcode: %s", ex_err)
+                logger.warning("التحقق الصارم: نموذج الاختبار عبر QR %s غير صالح أو لا يحتوي على أسئلة. تم رفض الورقة.", detected_code)
+                return None, detected_code, 0
+            except Exception as qr_err:
+                logger.debug("Error resolving exam QR: %s", qr_err)
+                return None, detected_code, 0
 
-        # ── 3.2 مطابقة رمز QR المشفر بصيغة {uniqueCode}|{versionCode}|{seatNumber}
-        if "|" in detected_code:
-            parts = [p.strip() for p in detected_code.split("|")]
-            if len(parts) >= 2:
-                u_code, v_code = parts[0], parts[1]
-                try:
-                    from exams.models.Exam import Exam
-                    from exams.models.ExamVersion import ExamVersion
-                    ex_match = Exam.objects.filter(uniqueCode=u_code, is_deleted=False).first()
-                    if ex_match:
-                        v_match = ExamVersion.objects.filter(exam=ex_match, versionCode=v_code, is_deleted=False).prefetch_related('question_orders').first()
-                        if not v_match:
-                            v_match = ExamVersion.objects.filter(exam=ex_match, is_deleted=False).prefetch_related('question_orders').first()
-                        if v_match:
-                            v_q_cnt = v_match.question_orders.filter(is_deleted=False).count()
-                            if v_q_cnt > 0:
-                                tpl_match = None
-                                for tpl in active_templates:
-                                    t_td = tpl.template_data or {}
-                                    t_qs = (
-                                        t_td.get("questions", {}).get("metadata", {}).get("num_questions") or
-                                        len(t_td.get("mcq_questions", [])) or
-                                        getattr(tpl, "total_mcq", None)
-                                    )
-                                    if t_qs == v_q_cnt or f"({v_q_cnt} سؤال)" in tpl.name or f"({v_q_cnt}سؤال)" in tpl.name:
-                                        tpl_match = tpl
-                                        break
-                                if not tpl_match and active_templates:
-                                    tpl_match = active_templates[0]
-                                if tpl_match:
-                                    logger.info("Auto-bound sheet via QR %s to template: %s (%d Qs)", detected_code, tpl_match.name, v_q_cnt)
-                                    return tpl_match, detected_code, v_q_cnt
-                except Exception as qr_err:
-                    logger.debug("Error resolving exam QR: %s", qr_err)
-
-    # التحقق مما إذا كان الباركود يطابق قالباً فريداً غير باركود الوزارة العام
+    # ── 3.3 التحقق مما إذا كان الباركود يطابق قالباً مسجلاً في النظام ──
     is_generic_ministry_code = (
         detected_code in ("41848501164148", "YE-MOE-1444-418485-SUB1") or
-        (detected_code and ("YE-MOE" in detected_code or "418485" in detected_code))
+        ("YE-MOE" in detected_code or "418485" in detected_code)
     )
 
-    if detected_code and not is_generic_ministry_code:
+    if not is_generic_ministry_code:
         match_obj = ExamTemplate.objects.filter(
             Q(template_data__barcode__value=detected_code) |
             Q(template_data__qr__value=detected_code) |
@@ -1092,6 +1101,10 @@ def _detect_template_from_sheet(image_path: str, requested_template_id: str = ""
             )
             logger.info("Auto-detected custom template by unique barcode: %s (%d Qs)", match_obj.name, q_cnt)
             return match_obj, detected_code, q_cnt
+        else:
+            # الباركود موجود لكنه غير مسجل في أي قالب أو اختبار معتمد في هذا النظام!
+            logger.warning("التحقق الصارم: الباركود '%s' غير مسجل في أي قالب أو اختبار في هذا النظام. تم رفض الورقة.", detected_code)
+            return None, detected_code, 0
 
     # ── 4. فحص هيئة وأبعاد الورقة وتصحيح التدوير (A4 طولي مقابل A5 عرضي) ───────────
     is_portrait = h > w * 1.15
@@ -1402,11 +1415,15 @@ def _detect_template_from_sheet(image_path: str, requested_template_id: str = ""
         db_obj = matching_templates[0]
 
     if not db_obj:
-        db_obj = active_templates[0] if active_templates else None
+        logger.warning(
+            "التحقق الصارم: لم يتم العثور على قالب وزاري مطابق لعدد الأسئلة (%d). تم رفض الورقة.",
+            detected_qs
+        )
+        return None, detected_code, 0
 
     logger.info(
         "Fallback geometric detection: %d questions (TF=%d) -> Bound Template: %s (id=%s)",
-        detected_qs, detected_tf_count, db_obj.name if db_obj else "None", db_obj.id if db_obj else "None"
+        detected_qs, detected_tf_count, db_obj.name, db_obj.id
     )
 
     return db_obj, detected_code, detected_qs
@@ -1447,6 +1464,8 @@ def _grade_with_template(image_path: str, template_id: str, answer_key: dict, dp
 
         if is_auto:
             db_obj = detected_db_obj
+            if not db_obj:
+                raise ValueError("ورقة إجابة غير معتمدة: لا تحتوي الورقة على باركود أو رمز QR معتمد ومسجل رسمياً في النظام.")
         else:
             # تم تمرير معرّف صريح من المستخدم - نلتزم باختيار المستخدم تماماً دون تبديل!
             if str(template_id).isdigit():
@@ -1466,6 +1485,8 @@ def _grade_with_template(image_path: str, template_id: str, answer_key: dict, dp
             # إذا لم يُعثر عليه بالمعرف الصريح فقط، نلجأ للتعرف التلقائي
             if not db_obj:
                 db_obj = detected_db_obj
+                if not db_obj:
+                    raise ValueError("ورقة إجابة غير معتمدة: القالب المحدد غير موجود، ولم يتم العثور على باركود معتمد في الورقة.")
 
         if db_obj and db_obj.template_data:
             logger.info("Loading template from DB: %s (id=%s)", db_obj.name, db_obj.id)
@@ -1478,11 +1499,15 @@ def _grade_with_template(image_path: str, template_id: str, answer_key: dict, dp
                 if isinstance(db_obj.template_data, dict) and "fiducial_marks" in db_obj.template_data:
                     template = TemplateContract(**db_obj.template_data)
 
+    except ValueError:
+        raise
     except Exception as e:
         logger.warning("DB template lookup/detection failed (%s) — trying fallback", e)
 
     # ── 2. Fallback: built-in ministry builder (based on detected question count) ─
     if template is None:
+        if is_auto or not db_obj:
+            raise ValueError("ورقة إجابة غير معتمدة: لا تحتوي الورقة على باركود أو رمز QR معتمد ومسجل رسمياً في النظام.")
         from templates_engine.builder import TemplateBuilderService
         builder = TemplateBuilderService()
 

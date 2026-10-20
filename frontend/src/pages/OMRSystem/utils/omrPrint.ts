@@ -1291,11 +1291,23 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
     console.warn('Could not inline eagle logo:', e)
   }
 
-  // Detect if exam is English
-  const isEnglish = (options.subjectName || '').toLowerCase().includes('english') ||
-                    (options.subjectName || '').includes('إنجليز') ||
-                    (options.subjectName || '').includes('انجليز') ||
-                    (options.questions || []).some(q => (q.content || '').match(/[a-zA-Z]{5,}/))
+  // Detect if exam is truly an English exam (Subject is English OR almost exclusively Latin without Arabic)
+  const isEnglishSubject = (options.subjectName || '').toLowerCase().includes('english') ||
+                           (options.subjectName || '').includes('إنجليز') ||
+                           (options.subjectName || '').includes('انجليز')
+
+  let totalArabicLetters = 0
+  let totalLatinLetters = 0
+  for (const q of (options.questions || [])) {
+    const text = (q.content || '') + ' ' + (q.options || []).map((o: any) => (typeof o === 'object' ? (o?.text || '') : String(o || ''))).join(' ')
+    const arMatches = text.match(/[\u0600-\u06FF]/g)
+    const enMatches = text.match(/[a-zA-Z]/g)
+    if (arMatches) totalArabicLetters += arMatches.length
+    if (enMatches) totalLatinLetters += enMatches.length
+  }
+
+  // Only consider it English if the subject is explicitly English, or if it has virtually no Arabic and mostly English
+  const isEnglish = isEnglishSubject || (totalLatinLetters > 50 && totalArabicLetters < 15)
 
   // Filter True/False vs MCQ Questions
   const tfQuestions = (options.questions || []).filter(q => {

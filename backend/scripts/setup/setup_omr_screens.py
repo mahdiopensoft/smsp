@@ -134,22 +134,12 @@ def setup_omr_screens():
         },
         # شاشات العمليات والربط الفرعية (screen_type: 2 - ديناميكية بدون ظهور في القائمة الرئيسية)
         {
-            "route": "omr-submissions/:id",
-            "path": "omr-submissions/:id",
-            "name_ar": "تفاصيل ورقة الإجابة والتصحيح",
-            "name_en": "OMR Submission Detail",
-            "icon": "file-document-outline",
-            "order": 12,
-            "component": "OMRSubmissionDetailView",
-            "screen_type": 2
-        },
-        {
             "route": "omr-full-extraction",
             "path": "omr-full-extraction",
             "name_ar": "محرك الاستخراج والتكامل المباشر",
             "name_en": "OMR Full Extraction",
             "icon": "api",
-            "order": 13,
+            "order": 12,
             "component": "OMRFullExtractionView",
             "screen_type": 2
         }
