@@ -1929,6 +1929,12 @@ onMounted(async () => {
     selectedExamId.value = Number(qExam)
     await loadExamDetails(selectedExamId.value)
     activeTab.value = 'sheets'
+    const title = selectedExam.value?.title || examDetails.value?.exam?.title || 'الاختبار'
+    batchPrintNotification.value = {
+      show: true,
+      color: 'success',
+      message: `تم نقل واستلام "${title}" بنجاح! كافة وثائق الاختبار وأوراق التظليل جاهزة للمعاينة والطباعة الفورية.`
+    }
   }
 })
 </script>
