@@ -219,24 +219,62 @@
       </v-row>
     </filter-fields>
 
-    <!-- ── بطاقة معلومات الاختبار المحدد (موجزة وأنيقة دون تكرار للتبويبات) ── -->
-    <div v-if="selectedExam" class="d-flex align-center justify-space-between flex-wrap gap-2 px-4 py-3 mb-4 bg-white border rounded-xl elevation-1">
-      <div class="d-flex align-center gap-2 flex-wrap">
-        <v-avatar color="primary" variant="tonal" size="32" rounded="lg">
-          <v-icon size="18">mdi-file-document-check-outline</v-icon>
-        </v-avatar>
-        <span class="text-subtitle-2 font-weight-black text-on-surface">{{ selectedExam.title }}</span>
-        <v-chip size="x-small" color="primary" variant="flat" class="font-weight-black font-mono">
-          {{ selectedExam.uniqueCode }}
-        </v-chip>
-        <span class="text-caption text-medium-emphasis">المادة: <strong class="text-on-surface">{{ selectedExam.subject_name || 'عام' }}</strong></span>
-        <span class="text-caption text-medium-emphasis">•</span>
-        <span class="text-caption text-medium-emphasis">النماذج: <strong class="text-primary">{{ selectedExam.versions_count || examDetails?.versions?.length || 1 }}</strong></span>
-        <span class="text-caption text-medium-emphasis">•</span>
-        <span class="text-caption text-medium-emphasis">الطلاب: <strong class="text-primary">{{ examDetails?.registered_students?.length || selectedExam.registered_students_count || 0 }} طالب</strong></span>
+    <!-- ── بطاقة معلومات الاختبار المحدد (تصميم مؤسسي متوازن وأنيق) ── -->
+    <div v-if="selectedExam" class="active-exam-banner mb-4 pa-4 bg-white border rounded-xl elevation-1">
+      <!-- السطر الأول: العنوان والهوية والاعتماد -->
+      <div class="d-flex align-center justify-space-between flex-wrap gap-3 pb-3 border-b">
+        <div class="d-flex align-center gap-3">
+          <div class="exam-icon-badge rounded-lg d-flex align-center justify-center border" style="width: 40px; height: 40px; flex-shrink: 0;">
+            <v-icon size="22" color="primary">mdi-file-document-check-outline</v-icon>
+          </div>
+          <div>
+            <h2 class="text-subtitle-1 font-weight-black text-on-surface mb-0" style="font-size: 0.98rem !important;">
+              {{ selectedExam.title }}
+            </h2>
+          </div>
+        </div>
+
+        <div class="d-flex align-center gap-2">
+          <span class="exam-code-tag font-mono font-weight-bold text-caption px-2.5 py-1 rounded-lg border">
+            {{ selectedExam.uniqueCode }}
+          </span>
+          <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold" prepend-icon="mdi-check-decagram-outline">
+            معتمد للطباعة
+          </v-chip>
+        </div>
       </div>
-      <div class="text-caption text-medium-emphasis">
-        العام الدراسي: <strong class="text-on-surface">{{ selectedExam.year_name || '2026' }}</strong>
+
+      <!-- السطر الثاني: التفاصيل والمقاييس التشغيلية -->
+      <div class="d-flex align-center justify-space-between flex-wrap gap-3 pt-3">
+        <div class="d-flex align-center gap-3 text-caption text-medium-emphasis flex-wrap">
+          <span v-if="selectedExam.subject_name" class="d-flex align-center gap-1">
+            <v-icon size="15" color="primary">mdi-book-open-page-variant-outline</v-icon>
+            المادة: <strong class="text-on-surface font-weight-bold">{{ selectedExam.subject_name }}</strong>
+          </span>
+          <span class="text-disabled">•</span>
+          <span class="d-flex align-center gap-1">
+            <v-icon size="15" color="primary">mdi-calendar-range-outline</v-icon>
+            العام الدراسي: <strong class="text-on-surface font-weight-bold">{{ selectedExam.year_name || '2025-2026' }}</strong>
+          </span>
+        </div>
+
+        <div class="d-flex align-center gap-2 flex-wrap">
+          <div class="exam-stat-chip px-3 py-1.5 rounded-lg border d-flex align-center gap-2">
+            <v-icon size="16" color="primary">mdi-layers-outline</v-icon>
+            <span class="text-caption text-medium-emphasis">النماذج:</span>
+            <span class="text-caption font-weight-black text-primary">
+              {{ selectedExam.versions_count || examDetails?.versions?.length || 1 }} نماذج (A, B, C, D)
+            </span>
+          </div>
+
+          <div class="exam-stat-chip px-3 py-1.5 rounded-lg border d-flex align-center gap-2">
+            <v-icon size="16" color="success">mdi-account-group-outline</v-icon>
+            <span class="text-caption text-medium-emphasis">الطلاب المشمولين:</span>
+            <span class="text-caption font-weight-black text-success">
+              {{ examDetails?.registered_students?.length || selectedExam.registered_students_count || 0 }} طالب
+            </span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1926,6 +1964,32 @@ onMounted(async () => {
 }
 
 /* ── Lightweight Navigation Bar ── */
+/* Active Exam Banner Styling */
+.active-exam-banner {
+  border-color: #e2e8f0 !important;
+  background-color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.exam-icon-badge {
+  background-color: #f0f7ff !important;
+  border-color: #dbeafe !important;
+}
+
+.exam-code-tag {
+  letter-spacing: 0.5px;
+  font-size: 0.72rem !important;
+  border-color: #e2e8f0 !important;
+  background-color: #f8fafc !important;
+  color: #334155 !important;
+}
+
+.exam-stat-chip {
+  border-color: #e2e8f0 !important;
+  background-color: #f8fafc !important;
+  min-width: 110px;
+}
+
 .registry-nav-bar {
   direction: rtl;
 }
