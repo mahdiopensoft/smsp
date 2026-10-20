@@ -425,8 +425,8 @@
     <!-- ════════════════════════════════════════════════════════════════ -->
     <!-- DIALOG: النافذة الشاملة لإدارة الاختبار، الطلاب، وتوليد القوالب  -->
     <!-- ════════════════════════════════════════════════════════════════ -->
-    <v-dialog v-model="detailsDialog" max-width="1280px" scrollable>
-      <v-card class="rounded-2xl" elevation="4">
+    <v-dialog v-model="detailsDialog" max-width="1360px" scrollable>
+      <v-card class="rounded-2xl" elevation="4" style="height: 94vh; max-height: 94vh; display: flex; flex-direction: column;">
         <!-- Dialog Header -->
         <v-card-title class="pa-4 pa-md-5 border-b d-flex align-center justify-space-between bg-surface flex-wrap gap-2">
           <div class="d-flex align-center">
@@ -554,7 +554,7 @@
           </div>
         </div>
 
-        <v-card-text class="pa-4 pa-md-6 bg-grey-lighten-5">
+        <v-card-text class="pa-3 pa-md-4 bg-grey-lighten-5 flex-grow-1 overflow-y-auto">
           <div v-if="loadingDetails" class="text-center py-12">
             <v-progress-circular indeterminate color="primary" size="44" class="mb-3" />
             <p class="text-body-2 font-weight-bold">جاري جلب تفاصيل الاختبار والطلاب ونماذج الأسئلة...</p>
@@ -570,6 +570,8 @@
               v-model:active-version-tab="activeVersionTab"
               :selected-sheet-layout="bubbleSheetTabRef?.selectedSheetLayout || 'compact_a5'"
               :get-omr-element="() => bubbleSheetTabRef?.getPrintableElement()"
+              @switch-tab="(tab) => hubActiveTab = tab"
+              @seed-students="seedSampleStudents"
             />
 
             <!-- TAB 2: توليد ومعاينة ورقة التظليل -->
@@ -635,12 +637,12 @@
               :click="() => detailsDialog = false"
             />
             <custom-btn
-              icon="scanner"
-              label="الانتقال لمختبر التصحيح"
+              icon="tune"
+              label="مختبر المعايرة والتجربة"
               color="primary"
               variant="tonal"
               class="font-weight-bold"
-              :click="() => startGradingExam(activeExam)"
+              :click="() => openScannerLab(activeExam)"
             />
           </div>
         </v-card-actions>
@@ -912,7 +914,7 @@ const updateStats = (data) => {
   }
 }
 
-const openExamHub = async (exam, tab = 'template') => {
+const openExamHub = async (exam, tab = 'questions') => {
   activeExam.value = exam
   detailsDialog.value = true
   loadingDetails.value = true
@@ -980,6 +982,18 @@ const seedSampleStudents = async () => {
 
 const startGradingExam = (exam, versionCode = 'A') => {
   router.push({
+    path: '/omr-scanner',
+    query: {
+      exam_id: exam.id,
+      exam_code: exam.uniqueCode,
+      exam_title: exam.title,
+      version: versionCode,
+    }
+  })
+}
+
+const openScannerLab = (exam, versionCode = 'A') => {
+  router.push({
     path: '/omr-scanner-lab',
     query: {
       exam_id: exam.id,
@@ -1024,7 +1038,8 @@ onMounted(async () => {
   if (targetId) {
     const targetExam = exams.value.find(e => String(e.id) === String(targetId))
     if (targetExam) {
-      openExamHub(targetExam)
+      const targetTab = route.query.tab || 'questions'
+      openExamHub(targetExam, targetTab)
     }
   }
 })

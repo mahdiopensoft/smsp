@@ -13,7 +13,7 @@
     </v-alert>
 
     <!-- Sheet Controls Bar -->
-    <div class="main-card rounded-2xl pa-4 mb-4">
+    <div class="main-card rounded-2xl pa-3 mb-2">
       <!-- Row 1: Setup Configuration -->
       <div class="d-flex align-center justify-space-between flex-wrap gap-3 pb-3 border-b">
         <div class="d-flex align-center gap-3 flex-grow-1 flex-wrap">
@@ -59,14 +59,32 @@
             </v-btn>
           </v-btn-toggle>
 
+          <!-- School/Institute/College Filter Dropdown (Active in all_students and student modes) -->
+          <div v-if="sheetGenerationMode !== 'blank'" style="min-width: 220px; max-width: 320px;" class="flex-grow-1">
+            <v-select
+              v-model="filterSchoolName"
+              :items="schoolFilterOptions"
+              item-title="title"
+              item-value="value"
+              :placeholder="institutionLabels.entityAll"
+              :label="institutionLabels.entityFilter"
+              density="compact"
+              variant="outlined"
+              rounded="lg"
+              hide-details
+              clearable
+              :prepend-inner-icon="institutionLabels.icon"
+            />
+          </div>
+
           <!-- Student or Version Picker -->
           <div v-if="sheetGenerationMode === 'student'" style="min-width: 260px; max-width: 380px;" class="flex-grow-1">
             <v-autocomplete
               v-model="selectedStudentId"
-              :items="examDetails?.registered_students || []"
+              :items="filteredStreamStudents"
               item-title="student_name"
               item-value="id"
-              placeholder="ابحث عن الطالب بالاسم أو رقم الجلوس..."
+              :placeholder="filteredStreamStudents.length ? 'ابحث عن الطالب بالاسم أو رقم الجلوس...' : 'لا يوجد طلاب ضمن المدرسة المختارة'"
               density="compact"
               variant="outlined"
               rounded="lg"
@@ -226,9 +244,9 @@
               size="x-small"
               variant="text"
               class="font-weight-bold px-2"
-              :color="sheetZoomLevel <= 0.86 ? 'primary' : 'medium-emphasis'"
+              :color="sheetZoomLevel <= 0.85 ? 'primary' : 'medium-emphasis'"
               title="ملاءمة كاملة للشاشة (عرض كامل الورقة بدون تمرير)"
-              @click="sheetZoomLevel = 0.85"
+              @click="sheetZoomLevel = 0.78"
             >
               ملاءمة
             </v-btn>
@@ -436,7 +454,7 @@
     </div>
 
     <!-- Live OMR Sheet Artboard Canvas -->
-    <div class="omr-preview-viewport pa-4 pa-md-6 rounded-2xl border text-center overflow-auto">
+    <div class="omr-preview-viewport pa-2 pa-md-3 rounded-2xl border text-center">
       <!-- ALL STUDENTS BATCH STREAM -->
       <div
         v-if="sheetGenerationMode === 'all_students'"
@@ -592,16 +610,16 @@
       </div>
     </div>
 
-    <!-- Bottom Pagination (when in all_students mode) -->
+    <!-- Bottom Pagination (Only when showing multiple sheets per page) -->
     <div
-      v-if="sheetGenerationMode === 'all_students' && totalPages > 1 && perPage !== -1"
-      class="d-flex align-center justify-center gap-2 mt-4"
+      v-if="sheetGenerationMode === 'all_students' && totalPages > 1 && perPage > 1"
+      class="d-flex align-center justify-center gap-2 mt-3"
     >
       <v-pagination
         v-model="currentPage"
         :length="totalPages"
         total-visible="7"
-        density="comfortable"
+        density="compact"
         rounded="lg"
         active-color="primary"
       />
@@ -704,7 +722,7 @@ const customStageTitle = ref('')
 const showAdjustmentsPanel = ref(false)
 const batchPrintNotification = ref({ show: false, message: '', color: 'info' })
 
-const sheetZoomLevel = ref(0.85)
+const sheetZoomLevel = ref(0.78)
 
 const isA4 = computed(() => selectedSheetLayout.value === 'full_a4')
 const sheetArtboardStyle = computed(() => {
@@ -722,10 +740,59 @@ const sheetArtboardStyle = computed(() => {
   }
 })
 
+const institutionType = computed(() => {
+  return props.activeExam?.institution_type || props.examDetails?.institution_type || props.examDetails?.exam?.institution_type || 'school'
+})
+
+const institutionLabels = computed(() => {
+  const type = institutionType.value
+  if (type === 'university') {
+    return {
+      entityFilter: 'تصفية بالكلية / القسم',
+      entityAll: 'كافة الكليات المشمولة',
+      icon: 'mdi-domain'
+    }
+  } else if (type === 'institute') {
+    return {
+      entityFilter: 'تصفية بالمعهد / المركز التدريبي',
+      entityAll: 'كافة المعاهد المشمولة',
+      icon: 'mdi-wrench-clock'
+    }
+  }
+  return {
+    entityFilter: 'تصفية بالمدرسة / المركز الامتحاني',
+    entityAll: 'كافة المدارس المشمولة',
+    icon: 'mdi-school-outline'
+  }
+})
+
+const filterSchoolName = ref(null)
+
+const schoolFilterOptions = computed(() => {
+  const map = new Map()
+  const students = props.examDetails?.registered_students || []
+  students.forEach(s => {
+    if (s.school_name) {
+      if (!map.has(s.school_name)) {
+        map.set(s.school_name, { title: s.school_name, value: s.school_name, count: 1 })
+      } else {
+        map.get(s.school_name).count++
+      }
+    }
+  })
+  return Array.from(map.values()).map(s => ({
+    title: `${s.title} (${s.count} طالب)`,
+    value: s.value
+  }))
+})
+
 const filteredStreamStudents = computed(() => {
   let list = props.examDetails?.registered_students || []
   if (filterStreamModelCode.value && filterStreamModelCode.value !== 'all') {
     list = list.filter(st => (st.model_code || 'A') === filterStreamModelCode.value)
+  }
+  if (filterSchoolName.value) {
+    list = list.filter(st => st.school_name === filterSchoolName.value)
   }
   return list
 })
@@ -764,7 +831,7 @@ const onJumpToStudent = (targetPage) => {
   }
 }
 
-watch([filterStreamModelCode, perPage], () => {
+watch([filterStreamModelCode, filterSchoolName, perPage], () => {
   currentPage.value = 1
   jumpToStudentIndex.value = null
 })
@@ -1021,8 +1088,7 @@ defineExpose({
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
 }
 .omr-preview-viewport {
-  min-height: 480px;
-  max-height: calc(100vh - 280px);
+  min-height: 520px;
   background: #f1f5f9;
   border-color: #e2e8f0 !important;
   display: flex;

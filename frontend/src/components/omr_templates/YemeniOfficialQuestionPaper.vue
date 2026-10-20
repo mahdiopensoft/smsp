@@ -6,7 +6,7 @@
     dir="rtl"
   >
     <!-- ── Print Action Toolbar (Hidden during printing) ────────── -->
-    <div class="d-print-none action-bar px-4 py-2 mb-3 rounded-lg border bg-grey-lighten-4 d-flex align-center justify-space-between flex-wrap gap-2">
+    <div v-if="!hideToolbar" class="d-print-none action-bar px-4 py-2 mb-3 rounded-lg border bg-grey-lighten-4 d-flex align-center justify-space-between flex-wrap gap-2">
       <div class="d-flex align-center gap-2">
         <v-avatar color="primary" variant="tonal" size="32" rounded="lg">
           <v-icon size="18">mdi-newspaper-variant-outline</v-icon>
@@ -52,7 +52,7 @@
     <!-- ════════════════════════════════════════════════════════════ -->
     <!-- ── DEVELOPER DIAGNOSTICS & EXAM READINESS CHECKLIST BAR ── -->
     <!-- ════════════════════════════════════════════════════════════ -->
-    <div class="developer-diagnostics-card d-print-none mb-3 pa-3 rounded-lg border bg-white elevation-1">
+    <div v-if="showDiagnostics" class="developer-diagnostics-card d-print-none mb-3 pa-3 rounded-lg border bg-white elevation-1">
       <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-2">
         <div class="d-flex align-center gap-2">
           <v-icon :color="missingFieldsCount === 0 ? 'success' : 'warning'" size="22">
@@ -115,12 +115,8 @@
                 <td rowspan="5" class="student-photo-cell">
                   <div class="student-photo-frame">
                     <img v-if="displayStudentPhoto" :src="displayStudentPhoto" alt="صورة الطالب" class="student-photo-img" />
-                    <div v-else-if="isBlankMode" class="photo-placeholder" style="font-size: 0.55rem; line-height: 1.2;">
+                    <div v-else class="photo-placeholder" style="font-size: 0.55rem; line-height: 1.2;">
                       موضع ختم وتوقيع المركز
-                    </div>
-                    <div v-else class="photo-placeholder">
-                      <span>صورة شخصية</span>
-                      <span class="missing-field-val" style="font-size: 7px; margin-top: 2px;">[غير متوفرة]</span>
                     </div>
                   </div>
                 </td>
@@ -128,13 +124,11 @@
                 <!-- Governorate & Directorate -->
                 <td class="font-weight-bold" style="font-size: 0.68rem;">المحافظة</td>
                 <td class="font-weight-bold" style="font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                  <span v-if="displayGovernorate">{{ displayGovernorate }}</span>
-                  <span v-else class="missing-field-val">[المحافظة: غير محدد]</span>
+                  {{ displayGovernorate || '................' }}
                 </td>
                 <td class="font-weight-bold" style="font-size: 0.68rem;">المديرية</td>
                 <td class="font-weight-bold" style="font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                  <span v-if="displayDirectorate">{{ displayDirectorate }}</span>
-                  <span v-else class="missing-field-val">[المديرية: غير محدد]</span>
+                  {{ displayDirectorate || '................' }}
                 </td>
 
                 <!-- Far Left: Republic Emblem Logo & Text (spans rows 1 to 5) -->
@@ -159,13 +153,11 @@
               <tr>
                 <td class="font-weight-bold" style="font-size: 0.68rem;">المركز</td>
                 <td class="font-weight-bold" style="font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                  <span v-if="displayCenterName">{{ displayCenterName }}</span>
-                  <span v-else class="missing-field-val">[المركز: غير محدد]</span>
+                  {{ displayCenterName || '................................................' }}
                 </td>
                 <td class="font-weight-bold" style="font-size: 0.68rem;">رقمه</td>
                 <td class="font-weight-bold font-mono" style="font-size: 0.74rem;">
-                  <span v-if="displayCenterCode">{{ displayCenterCode }}</span>
-                  <span v-else class="missing-field-val">[رقمه: غير محدد]</span>
+                  {{ displayCenterCode || '----' }}
                 </td>
               </tr>
 
@@ -173,20 +165,13 @@
               <tr>
                 <td class="font-weight-bold" style="font-size: 0.68rem;">الزمن</td>
                 <td class="font-weight-bold time-cell" style="padding: 1px 2px; line-height: 1.2;">
-                  <template v-if="displayTimeLine1 || displayTimeLine2">
-                    <div v-if="displayTimeLine1" style="font-size: 0.58rem; white-space: nowrap;">{{ displayTimeLine1 }}</div>
-                    <div v-else class="missing-field-val">[الزمن: غير محدد]</div>
-                    <div v-if="displayTimeLine2" style="font-size: 0.54rem; margin-top: 1px; white-space: nowrap;">{{ displayTimeLine2 }}</div>
-                    <div v-else class="missing-field-val" style="margin-top: 1px;">[التاريخ: غير محدد]</div>
-                  </template>
-                  <template v-else>
-                    <span class="missing-field-val">[الزمن والتاريخ: غير محدد]</span>
-                  </template>
+                  <div v-if="displayTimeLine1" style="font-size: 0.58rem; white-space: nowrap;">{{ displayTimeLine1 }}</div>
+                  <div v-else style="font-size: 0.58rem; white-space: nowrap;">ساعتان</div>
+                  <div v-if="displayTimeLine2" style="font-size: 0.54rem; margin-top: 1px; white-space: nowrap;">{{ displayTimeLine2 }}</div>
                 </td>
                 <td class="font-weight-bold" style="font-size: 0.68rem;">اليوم</td>
                 <td class="font-weight-bold" style="font-size: 0.68rem; white-space: nowrap;">
-                  <span v-if="displayDayName">{{ displayDayName }}</span>
-                  <span v-else class="missing-field-val">[اليوم: غير محدد]</span>
+                  {{ displayDayName || '................' }}
                 </td>
               </tr>
 
@@ -194,9 +179,8 @@
               <tr>
                 <td colspan="4" class="font-weight-black stage-year-cell" style="padding: 2px 2px; text-align: center; overflow: hidden; line-height: 1.25;">
                   <div v-if="displayStageLine1" style="font-size: 0.60rem; white-space: nowrap; letter-spacing: -0.2px;">{{ displayStageLine1 }}</div>
-                  <div v-else class="missing-field-val mb-1">[عنوان المرحلة والاختبار: غير محدد]</div>
+                  <div v-else style="font-size: 0.60rem; white-space: nowrap;">اختبار الشهادة العامة</div>
                   <div v-if="displayStageLine2" style="font-size: 0.58rem; margin-top: 1px;">{{ displayStageLine2 }}</div>
-                  <div v-else-if="!displayStageLine1" class="missing-field-val">[العام الدراسي: غير محدد]</div>
                 </td>
               </tr>
 
@@ -204,13 +188,11 @@
               <tr>
                 <td class="font-weight-bold" style="font-size: 0.68rem;">اسم المادة</td>
                 <td class="font-weight-black" style="font-size: 0.84rem;">
-                  <span v-if="displaySubject">{{ isEnglish ? 'English' : displaySubject }}</span>
-                  <span v-else class="missing-field-val">[اسم المادة: غير محدد]</span>
+                  {{ (isEnglish ? 'English' : displaySubject) || '................' }}
                 </td>
                 <td class="font-weight-bold" style="font-size: 0.68rem;">رقم مظروف</td>
                 <td class="font-weight-bold font-mono" style="font-size: 0.74rem;">
-                  <span v-if="displayEnvelopeNo">{{ displayEnvelopeNo }}</span>
-                  <span v-else class="missing-field-val">[المظروف: غير محدد]</span>
+                  {{ displayEnvelopeNo || '1' }}
                 </td>
               </tr>
             </tbody>
@@ -230,18 +212,15 @@
               <tr>
                 <td class="font-weight-black" style="font-size: 0.78rem;">الاسم</td>
                 <td class="font-weight-black" style="font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                  <span v-if="displayStudentName">{{ displayStudentName }}</span>
-                  <span v-else class="missing-field-val">[اسم الطالب: غير مسجل في الكشف]</span>
+                  {{ displayStudentName || '....................................................................' }}
                 </td>
                 <td class="font-weight-black" style="font-size: 0.70rem;">رقم الجلوس</td>
                 <td class="font-weight-black font-mono" style="font-size: 0.85rem;">
-                  <span v-if="displaySeatNumber">{{ displaySeatNumber }}</span>
-                  <span v-else class="missing-field-val">[رقم الجلوس: غير محدد]</span>
+                  {{ displaySeatNumber || '........................' }}
                 </td>
                 <td class="font-weight-black" style="font-size: 0.70rem;">مسلسل</td>
                 <td class="font-weight-black font-mono" style="font-size: 0.85rem;">
-                  <span v-if="displaySecretNumber">{{ displaySecretNumber }}</span>
-                  <span v-else class="missing-field-val">[مسلسل: غير محدد]</span>
+                  {{ displaySecretNumber || '............' }}
                 </td>
               </tr>
             </tbody>
@@ -483,12 +462,8 @@
                   <td rowspan="5" class="student-photo-cell">
                     <div class="student-photo-frame">
                       <img v-if="displayStudentPhoto" :src="displayStudentPhoto" alt="صورة الطالب" class="student-photo-img" />
-                      <div v-else-if="isBlankMode" class="photo-placeholder" style="font-size: 0.55rem; line-height: 1.2;">
+                      <div v-else class="photo-placeholder" style="font-size: 0.55rem; line-height: 1.2;">
                         موضع ختم وتوقيع المركز
-                      </div>
-                      <div v-else class="photo-placeholder">
-                        <span>صورة شخصية</span>
-                        <span class="missing-field-val" style="font-size: 7px; margin-top: 2px;">[غير متوفرة]</span>
                       </div>
                     </div>
                   </td>
@@ -496,13 +471,11 @@
                   <!-- Governorate & Directorate -->
                   <td class="font-weight-bold" style="font-size: 0.68rem;">المحافظة</td>
                   <td class="font-weight-bold" style="font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    <span v-if="displayGovernorate">{{ displayGovernorate }}</span>
-                    <span v-else class="missing-field-val">[المحافظة: غير محدد]</span>
+                    {{ displayGovernorate || '................' }}
                   </td>
                   <td class="font-weight-bold" style="font-size: 0.68rem;">المديرية</td>
                   <td class="font-weight-bold" style="font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    <span v-if="displayDirectorate">{{ displayDirectorate }}</span>
-                    <span v-else class="missing-field-val">[المديرية: غير محدد]</span>
+                    {{ displayDirectorate || '................' }}
                   </td>
 
                   <!-- Far Left: Republic Emblem Logo & Text (spans rows 1 to 5) -->
@@ -527,13 +500,11 @@
                 <tr>
                   <td class="font-weight-bold" style="font-size: 0.68rem;">المركز</td>
                   <td class="font-weight-bold" style="font-size: 0.68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    <span v-if="displayCenterName">{{ displayCenterName }}</span>
-                    <span v-else class="missing-field-val">[المركز: غير محدد]</span>
+                    {{ displayCenterName || '................................................' }}
                   </td>
                   <td class="font-weight-bold" style="font-size: 0.68rem;">رقمه</td>
                   <td class="font-weight-bold font-mono" style="font-size: 0.74rem;">
-                    <span v-if="displayCenterCode">{{ displayCenterCode }}</span>
-                    <span v-else class="missing-field-val">[رقمه: غير محدد]</span>
+                    {{ displayCenterCode || '----' }}
                   </td>
                 </tr>
 
@@ -541,20 +512,13 @@
                 <tr>
                   <td class="font-weight-bold" style="font-size: 0.68rem;">الزمن</td>
                   <td class="font-weight-bold time-cell" style="padding: 1px 2px; line-height: 1.2;">
-                    <template v-if="displayTimeLine1 || displayTimeLine2">
-                      <div v-if="displayTimeLine1" style="font-size: 0.58rem; white-space: nowrap;">{{ displayTimeLine1 }}</div>
-                      <div v-else class="missing-field-val">[الزمن: غير محدد]</div>
-                      <div v-if="displayTimeLine2" style="font-size: 0.54rem; margin-top: 1px; white-space: nowrap;">{{ displayTimeLine2 }}</div>
-                      <div v-else class="missing-field-val" style="margin-top: 1px;">[التاريخ: غير محدد]</div>
-                    </template>
-                    <template v-else>
-                      <span class="missing-field-val">[الزمن والتاريخ: غير محدد]</span>
-                    </template>
+                    <div v-if="displayTimeLine1" style="font-size: 0.58rem; white-space: nowrap;">{{ displayTimeLine1 }}</div>
+                    <div v-else style="font-size: 0.58rem; white-space: nowrap;">ساعتان</div>
+                    <div v-if="displayTimeLine2" style="font-size: 0.54rem; margin-top: 1px; white-space: nowrap;">{{ displayTimeLine2 }}</div>
                   </td>
                   <td class="font-weight-bold" style="font-size: 0.68rem;">اليوم</td>
                   <td class="font-weight-bold" style="font-size: 0.68rem; white-space: nowrap;">
-                    <span v-if="displayDayName">{{ displayDayName }}</span>
-                    <span v-else class="missing-field-val">[اليوم: غير محدد]</span>
+                    {{ displayDayName || '................' }}
                   </td>
                 </tr>
 
@@ -562,9 +526,8 @@
                 <tr>
                   <td colspan="4" class="font-weight-black stage-year-cell" style="padding: 2px 2px; text-align: center; overflow: hidden; line-height: 1.25;">
                     <div v-if="displayStageLine1" style="font-size: 0.60rem; white-space: nowrap; letter-spacing: -0.2px;">{{ displayStageLine1 }}</div>
-                    <div v-else class="missing-field-val mb-1">[عنوان المرحلة والاختبار: غير محدد]</div>
+                    <div v-else style="font-size: 0.60rem; white-space: nowrap;">اختبار الشهادة العامة</div>
                     <div v-if="displayStageLine2" style="font-size: 0.58rem; margin-top: 1px;">{{ displayStageLine2 }}</div>
-                    <div v-else-if="!displayStageLine1" class="missing-field-val">[العام الدراسي: غير محدد]</div>
                   </td>
                 </tr>
 
@@ -572,13 +535,11 @@
                 <tr>
                   <td class="font-weight-bold" style="font-size: 0.68rem;">اسم المادة</td>
                   <td class="font-weight-black" style="font-size: 0.84rem;">
-                    <span v-if="displaySubject">{{ isEnglish ? 'English' : displaySubject }}</span>
-                    <span v-else class="missing-field-val">[اسم المادة: غير محدد]</span>
+                    {{ (isEnglish ? 'English' : displaySubject) || '................' }}
                   </td>
                   <td class="font-weight-bold" style="font-size: 0.68rem;">رقم مظروف</td>
                   <td class="font-weight-bold font-mono" style="font-size: 0.74rem;">
-                    <span v-if="displayEnvelopeNo">{{ displayEnvelopeNo }}</span>
-                    <span v-else class="missing-field-val">[المظروف: غير محدد]</span>
+                    {{ displayEnvelopeNo || '1' }}
                   </td>
                 </tr>
               </tbody>
@@ -598,18 +559,15 @@
                 <tr>
                   <td class="font-weight-black" style="font-size: 0.78rem;">الاسم</td>
                   <td class="font-weight-black" style="font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    <span v-if="displayStudentName">{{ displayStudentName }}</span>
-                    <span v-else class="missing-field-val">[اسم الطالب: غير مسجل في الكشف]</span>
+                    {{ displayStudentName || '....................................................................' }}
                   </td>
                   <td class="font-weight-black" style="font-size: 0.70rem;">رقم الجلوس</td>
                   <td class="font-weight-black font-mono" style="font-size: 0.85rem;">
-                    <span v-if="displaySeatNumber">{{ displaySeatNumber }}</span>
-                    <span v-else class="missing-field-val">[رقم الجلوس: غير محدد]</span>
+                    {{ displaySeatNumber || '........................' }}
                   </td>
                   <td class="font-weight-black" style="font-size: 0.70rem;">مسلسل</td>
                   <td class="font-weight-black font-mono" style="font-size: 0.85rem;">
-                    <span v-if="displaySecretNumber">{{ displaySecretNumber }}</span>
-                    <span v-else class="missing-field-val">[مسلسل: غير محدد]</span>
+                    {{ displaySecretNumber || '............' }}
                   </td>
                 </tr>
               </tbody>
@@ -866,6 +824,8 @@ const props = withDefaults(
     totalScore?: number
     readingPassage?: string
     isBlankMode?: boolean
+    showDiagnostics?: boolean
+    hideToolbar?: boolean
     questions?: Array<{
       id?: string | number
       orderIndex: number
@@ -907,6 +867,8 @@ const props = withDefaults(
     totalScore: 80,
     readingPassage: '',
     isBlankMode: false,
+    showDiagnostics: false,
+    hideToolbar: false,
     questions: () => [],
     defaultLayout: 'auto',
   }
@@ -1008,21 +970,21 @@ const displayStageLine2 = computed(() => {
   return ''
 })
 
-const isBlankMode = computed(() => props.isBlankMode || props.studentName === '__BLANK__')
+const isBlankMode = computed(() => props.isBlankMode || props.studentName === '__BLANK__' || !props.studentName)
 
 const displayStudentName = computed(() => {
   if (isBlankMode.value) return '........................................................'
-  return props.studentName?.trim() || ''
+  return props.studentName?.trim() || '........................................................'
 })
 
 const displaySeatNumber = computed(() => {
   if (isBlankMode.value) return '..........'
-  return (props.seatNumber !== undefined && props.seatNumber !== null && String(props.seatNumber).trim() !== '') ? String(props.seatNumber).trim() : ''
+  return (props.seatNumber !== undefined && props.seatNumber !== null && String(props.seatNumber).trim() !== '') ? String(props.seatNumber).trim() : '..........'
 })
 
 const displaySecretNumber = computed(() => {
   if (isBlankMode.value) return '.....'
-  return (props.secretNumber !== undefined && props.secretNumber !== null && String(props.secretNumber).trim() !== '') ? String(props.secretNumber).trim() : ''
+  return (props.secretNumber !== undefined && props.secretNumber !== null && String(props.secretNumber).trim() !== '') ? String(props.secretNumber).trim() : '.....'
 })
 
 const displayStudentPhoto = computed(() => props.studentPhoto?.trim() || '')
