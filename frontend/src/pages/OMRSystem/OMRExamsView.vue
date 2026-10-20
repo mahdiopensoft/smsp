@@ -249,7 +249,7 @@
     </filter-fields>
 
     <!-- Unified Custom Data Table -->
-    <div class="main-card rounded-2xl overflow-hidden mb-6">
+    <div class="main-card rounded-2xl mb-6 overflow-x-auto">
       <custom-data-table
         v-bind="{
           items: tableItems,
@@ -273,7 +273,7 @@
                 <v-icon size="20">mdi-file-document-edit-outline</v-icon>
               </v-avatar>
               <div>
-                <div class="font-weight-black text-body-2 text-on-surface exam-clickable-title">{{ item.title }}</div>
+                <div class="font-weight-black text-body-2 text-on-surface exam-clickable-title text-truncate" style="max-width: 220px;" :title="item.title">{{ item.title }}</div>
                 <div class="text-caption text-medium-emphasis d-flex align-center gap-2 mt-1">
                   <span class="font-mono bg-grey-lighten-4 px-2 py-0.5 rounded border text-caption">{{ item.uniqueCode }}</span>
                   <span>{{ item.created_at }}</span>
@@ -365,57 +365,71 @@
 
           <!-- Actions -->
           <template v-else-if="key === 'actions'">
-            <div class="d-flex align-center justify-center gap-2 flex-wrap">
-              <!-- 1. طباعة وتوليد أوراق التظليل للطلاب مباشرة -->
+            <div class="d-flex align-center justify-center gap-2">
+              <!-- 1. نقل إلى مرحلة الطباعة (المرحلة 2) - الإجراء المباشر والواضح -->
               <v-btn
                 color="primary"
                 variant="flat"
                 rounded="lg"
                 size="small"
-                class="font-weight-bold px-3"
+                class="font-weight-bold px-2.5 shadow-sm"
                 prepend-icon="mdi-printer"
-                @click.stop.prevent="openExamHub(item, 'template')"
-                title="توليد ومعاينة وطباعة أوراق التظليل (البابل شيت) لجميع طلاب الاختبار"
+                @click.stop.prevent="goToPrintRegistry(item)"
+                title="الانتقال إلى المرحلة 2 لطباعة وتصدير أوراق التظليل والأسئلة"
               >
-                طباعة أوراق التظليل
+                نقل للطباعة
               </v-btn>
 
-              <!-- 2. كشف الطلاب ونماذج الأسئلة ومفاتيح الحل -->
-              <v-btn
-                color="info"
-                variant="tonal"
-                rounded="lg"
-                size="small"
-                class="font-weight-bold px-3"
-                prepend-icon="mdi-account-school-outline"
-                @click.stop.prevent="openExamHub(item, 'roster')"
-                title="استعراض كشف الطلاب ونماذج الأسئلة ومفاتيح الحل"
-              >
-                كشف الطلاب والحلول
-              </v-btn>
-
-              <!-- 3. تصميم مواصفات الورقة (أداة مساعدة) -->
+              <!-- 2. فحص وتجهيز الاختبار - معاينة الكشوفات والنماذج -->
               <v-btn
                 color="secondary"
                 variant="tonal"
                 rounded="lg"
                 size="small"
-                class="font-weight-bold px-2"
-                icon="mdi-draw-pen"
-                @click.stop.prevent="openInTemplateDesigner(item)"
-                title="فتح مواصفات الاختبار في مصمم قوالب التظليل OMR"
-              />
+                class="font-weight-bold px-2.5"
+                prepend-icon="mdi-clipboard-check-outline"
+                @click.stop.prevent="openExamHub(item, 'questions')"
+                title="فحص النماذج، كشوفات الطلاب، ومفاتيح الحل"
+              >
+                فحص وتجهيز
+              </v-btn>
 
-              <!-- 4. سجل الطباعة للدفعات -->
-              <v-btn
-                color="medium-emphasis"
-                variant="text"
-                rounded="lg"
-                size="small"
-                icon="mdi-history"
-                @click.stop.prevent="goToPrintRegistry(item)"
-                title="سجل دفعات الطباعة السابقة لهذا الاختبار"
-              />
+              <!-- 3. قائمة الإجراءات الفنية المتقدمة -->
+              <v-menu location="bottom end">
+                <template #activator="{ props: menuProps }">
+                  <v-btn
+                    v-bind="menuProps"
+                    variant="text"
+                    color="medium-emphasis"
+                    rounded="lg"
+                    size="small"
+                    icon="mdi-dots-vertical"
+                    title="خيارات إضافية"
+                  />
+                </template>
+                <v-list density="compact" rounded="lg" elevation="3" class="py-1">
+                  <v-list-item
+                    prepend-icon="mdi-draw-pen"
+                    title="مصمم قوالب التظليل (OMR Designer)"
+                    @click="openInTemplateDesigner(item)"
+                  />
+                  <v-list-item
+                    prepend-icon="mdi-scanner"
+                    title="بدء التصحيح الضوئي (المرحلة 3)"
+                    @click="startGradingExam(item, 'A')"
+                  />
+                  <v-list-item
+                    prepend-icon="mdi-history"
+                    title="أوراق الإجابة المصححة"
+                    @click="viewSubmissions(item)"
+                  />
+                  <v-list-item
+                    prepend-icon="mdi-chart-box-outline"
+                    title="سجل الدرجات والرصد (المرحلة 6)"
+                    @click="viewGradebook(item)"
+                  />
+                </v-list>
+              </v-menu>
             </div>
           </template>
         </template>
@@ -450,12 +464,22 @@
             <v-btn
               size="small"
               variant="flat"
+              color="primary"
+              class="font-weight-bold rounded-lg px-3 shadow-sm"
+              prepend-icon="mdi-printer"
+              @click="goToPrintRegistry(activeExam)"
+            >
+              الانتقال للطباعة (المرحلة 2)
+            </v-btn>
+            <v-btn
+              size="small"
+              variant="tonal"
               color="success"
-              class="font-weight-black rounded-lg px-3"
+              class="font-weight-bold rounded-lg px-3"
               prepend-icon="mdi-scanner"
               @click="startGradingExam(activeExam, currentVersionObj?.versionCode || 'A')"
             >
-              بدء التصحيح الضوئي
+              بدء التصحيح الضوئي (المرحلة 3)
             </v-btn>
             <v-btn
               icon="mdi-close"
@@ -798,12 +822,12 @@ const totalStudentsCount = computed(() => {
 })
 
 const headers = computed(() => [
-  { title: "رمز وعنوان الاختبار", key: "exam_info", sortable: true },
-  { title: "المادة والعام", key: "subject_info", sortable: true, align: "center", width: "180px" },
-  { title: "النماذج والأسئلة", key: "versions_info", sortable: false, align: "center", width: "160px" },
-  { title: "كشف الطلاب", key: "students_count", sortable: true, align: "center", width: "140px" },
-  { title: "حالة التصحيح", key: "progress", sortable: false, align: "center", width: "160px" },
-  { title: "الاجراءات", key: "actions", sortable: false, align: "center", width: "320px" },
+  { title: "رمز وعنوان الاختبار", key: "exam_info", sortable: true, width: "230px" },
+  { title: "المادة والعام", key: "subject_info", sortable: true, align: "center", width: "115px" },
+  { title: "النماذج والأسئلة", key: "versions_info", sortable: false, align: "center", width: "115px" },
+  { title: "كشف الطلاب", key: "students_count", sortable: true, align: "center", width: "95px" },
+  { title: "حالة التصحيح", key: "progress", sortable: false, align: "center", width: "95px" },
+  { title: "الاجراءات", key: "actions", sortable: false, align: "center", width: "200px" },
 ])
 
 const filteredExams = computed(() => {
@@ -1007,6 +1031,16 @@ const openScannerLab = (exam, versionCode = 'A') => {
 const viewSubmissions = (exam) => {
   router.push({
     path: '/omr-submissions',
+    query: {
+      exam_id: exam.id,
+    }
+  })
+}
+
+const viewGradebook = (exam) => {
+  if (!exam?.id) return
+  router.push({
+    path: '/omr-gradebook',
     query: {
       exam_id: exam.id,
     }
