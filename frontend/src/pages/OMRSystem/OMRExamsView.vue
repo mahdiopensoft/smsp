@@ -745,6 +745,14 @@ const instituteSubjectParam = computed(() => {
   return null
 })
 
+let _fetchDebounceTimer = null
+const debouncedFetchExams = () => {
+  if (_fetchDebounceTimer) clearTimeout(_fetchDebounceTimer)
+  _fetchDebounceTimer = setTimeout(() => {
+    fetchExams()
+  }, 180)
+}
+
 const onInstitutionTypeChange = () => {
   filterStage.value = null
   filterClassTrack.value = null
@@ -757,48 +765,48 @@ const onInstitutionTypeChange = () => {
   filterInstituteEducationSystem.value = null
   filterInstituteSpecialization.value = null
   filterInstituteSubject.value = null
-  fetchExams()
+  debouncedFetchExams()
 }
 
 const onStageChange = () => {
   filterClassTrack.value = null
   filterSubject.value = null
-  fetchExams()
+  debouncedFetchExams()
 }
 
 const onClassTrackChange = () => {
   filterSubject.value = null
-  fetchExams()
+  debouncedFetchExams()
 }
 
 const onCollegeChange = () => {
   filterDepartment.value = null
   filterSpecialization.value = null
   filterSemesterSubject.value = null
-  fetchExams()
+  debouncedFetchExams()
 }
 
 const onDepartmentChange = () => {
   filterSpecialization.value = null
   filterSemesterSubject.value = null
-  fetchExams()
+  debouncedFetchExams()
 }
 
 const onSpecializationChange = () => {
   filterSemesterSubject.value = null
-  fetchExams()
+  debouncedFetchExams()
 }
 
 const onInstituteFieldChange = () => {
   filterInstituteEducationSystem.value = null
   filterInstituteSpecialization.value = null
   filterInstituteSubject.value = null
-  fetchExams()
+  debouncedFetchExams()
 }
 
 const onInstituteEducationSystemChange = () => {
   filterInstituteSpecialization.value = null
-  fetchExams()
+  debouncedFetchExams()
 }
 
 const stats = ref({
@@ -966,7 +974,7 @@ const openExamHub = async (exam, tab = 'questions') => {
       activeExam.value = { ...activeExam.value, ...resp.data.exam }
     }
     await nextTick()
-    if (rosterTabRef.value?.fetchExamStudents) {
+    if (tab === 'roster' && rosterTabRef.value?.fetchExamStudents) {
       rosterTabRef.value.fetchExamStudents({ page: 1, page_size: 10 })
     }
   } catch (err) {

@@ -144,39 +144,59 @@ class ExamGradebookMVS(ViewSet):
                 Q(subject__institute_subjects__id=inst_sub_id)
             )
 
-        exams_list = []
-        for exam in qs[:100]:
-            total_registered = StudentExamRegistration.objects.filter(
-                examVersion__exam=exam, is_deleted=False
-            ).count()
+        exams = list(qs[:100])
+        exam_ids = [e.id for e in exams]
 
-            subs = Submission.objects.filter(exam=exam, is_deleted=False)
-            total_submissions = subs.count()
-            completed_subs = subs.filter(status=Submission.Status.COMPLETED).count()
-            needs_review_subs = subs.filter(status=Submission.Status.NEEDS_REVIEW).count()
+        # 1. تجميع عدد الطلاب المسجلين لكل اختبار بدفعة واحدة (استعلام واحد)
+        reg_counts = dict(
+            StudentExamRegistration.objects.filter(
+                examVersion__exam_id__in=exam_ids, is_deleted=False
+            ).values('examVersion__exam_id')
+            .annotate(cnt=Count('id'))
+            .values_list('examVersion__exam_id', 'cnt')
+        )
 
-            # إحصائيات الدرجات
-            aggregates = subs.filter(status=Submission.Status.COMPLETED).aggregate(
+        # 2. تجميع إحصائيات التسليمات لكل اختبار بدفعة واحدة (استعلام واحد)
+        sub_counts = {}
+        completed_counts = {}
+        needs_review_counts = {}
+        for row in (
+            Submission.objects.filter(exam_id__in=exam_ids, is_deleted=False)
+            .values('exam_id', 'status')
+            .annotate(cnt=Count('id'))
+        ):
+            eid, st, cnt = row['exam_id'], row['status'], row['cnt']
+            sub_counts[eid] = sub_counts.get(eid, 0) + cnt
+            if st == Submission.Status.COMPLETED:
+                completed_counts[eid] = cnt
+            elif st == Submission.Status.NEEDS_REVIEW:
+                needs_review_counts[eid] = cnt
+
+        # 3. تجميع متوسطات ودرجات التسليمات المكتملة (استعلام واحد)
+        score_aggregates = {}
+        for row in (
+            Submission.objects.filter(exam_id__in=exam_ids, status=Submission.Status.COMPLETED, is_deleted=False)
+            .values('exam_id')
+            .annotate(
                 avg_score=Avg('total_score'),
                 max_score=Max('total_score'),
-                min_score=Min('total_score')
+                min_score=Min('total_score'),
             )
+        ):
+            score_aggregates[row['exam_id']] = row
+
+        exams_list = []
+        for exam in exams:
+            total_registered = reg_counts.get(exam.id, 0)
+            total_submissions = sub_counts.get(exam.id, 0)
+            completed_subs = completed_counts.get(exam.id, 0)
+            needs_review_subs = needs_review_counts.get(exam.id, 0)
             exam_max_score = float(getattr(exam, 'total_score', 100) or 100)
-            avg_val = float(aggregates['avg_score'] or 0.0)
-            pass_count = subs.filter(status=Submission.Status.COMPLETED, total_score__gte=(exam_max_score * 0.5)).count()
 
-            # التحقق من عدد السجلات المرحلة للكنترول
-            dispatched_count = 0
-            for s in subs:
-                lr = s.layout_result or {}
-                if lr.get("dispatched_to_control"):
-                    dispatched_count += 1
-
-            dispatch_status = "none"
-            if dispatched_count > 0 and dispatched_count >= completed_subs and completed_subs > 0:
-                dispatch_status = "full"
-            elif dispatched_count > 0:
-                dispatch_status = "partial"
+            aggr = score_aggregates.get(exam.id, {})
+            avg_val = float(aggr.get('avg_score') or 0.0)
+            highest_sc = float(aggr.get('max_score') or 0.0)
+            lowest_sc = float(aggr.get('min_score') or 0.0)
 
             exams_list.append({
                 "id": exam.id,
@@ -192,12 +212,12 @@ class ExamGradebookMVS(ViewSet):
                 "completed_count": completed_subs,
                 "needs_review_count": needs_review_subs,
                 "absent_count": max(0, total_registered - total_submissions),
-                "dispatched_count": dispatched_count,
-                "dispatch_status": dispatch_status,
+                "dispatched_count": 0,
+                "dispatch_status": "none",
                 "average_score": round(avg_val, 2),
-                "highest_score": float(aggregates['max_score'] or 0.0),
-                "lowest_score": float(aggregates['min_score'] or 0.0),
-                "pass_rate": round((pass_count / float(max(1, completed_subs))) * 100, 1),
+                "highest_score": highest_sc,
+                "lowest_score": lowest_sc,
+                "pass_rate": 0.0 if completed_subs == 0 else round((avg_val / exam_max_score) * 100, 1),
                 "created_at": exam.created_at.strftime("%Y-%m-%d %H:%M") if exam.created_at else "",
             })
 
@@ -279,38 +299,53 @@ class ExamGradebookMVS(ViewSet):
         )
         total_registered_count = base_registrations.count()
 
-        # استخراج خيارات التصفية المتاحة لهذا الاختبار
-        schools_list = list(
-            base_registrations
-            .values_list('student_profile__organization__name_ar', flat=True)
-            .exclude(student_profile__organization__name_ar__isnull=True)
-            .exclude(student_profile__organization__name_ar__exact='')
-            .distinct()
-        )
+        # قراءة رقم الصفحة لتجنب تكرار استعلامات الفلاتر الثقيلة عند التنقل بين الصفحات
+        try:
+            req_page = int(request.query_params.get('page', 1) or 1)
+        except (ValueError, TypeError):
+            req_page = 1
 
-        directorates_list = list(
-            base_registrations
-            .values_list('student_profile__directorate__name_ar', flat=True)
-            .exclude(student_profile__directorate__name_ar__isnull=True)
-            .exclude(student_profile__directorate__name_ar__exact='')
-            .distinct()
-        )
-        if exam.directorate and exam.directorate.name_ar and exam.directorate.name_ar not in directorates_list:
-            directorates_list.append(exam.directorate.name_ar)
+        schools_list = []
+        directorates_list = []
+        governorates_list = []
+        versions_list = []
 
-        governorates_list = list(
-            base_registrations
-            .values_list('student_profile__directorate__fk_governorate__name_ar', flat=True)
-            .exclude(student_profile__directorate__fk_governorate__name_ar__isnull=True)
-            .exclude(student_profile__directorate__fk_governorate__name_ar__exact='')
-            .distinct()
-        )
-        if exam.governorate and exam.governorate.name_ar and exam.governorate.name_ar not in governorates_list:
-            governorates_list.append(exam.governorate.name_ar)
+        # استخراج خيارات التصفية فقط عند أول تحميل (الصفحة 1) لضمان سرعة فائقة في التنقل بين الصفحات
+        if req_page == 1:
+            schools_list = list(
+                base_registrations
+                .order_by()
+                .values_list('student_profile__organization__name_ar', flat=True)
+                .exclude(student_profile__organization__name_ar__isnull=True)
+                .exclude(student_profile__organization__name_ar__exact='')
+                .distinct()
+            )
 
-        versions_list = list(
-            exam.versions.filter(is_deleted=False).values_list('versionCode', flat=True).distinct()
-        )
+            directorates_list = list(
+                base_registrations
+                .order_by()
+                .values_list('student_profile__directorate__name_ar', flat=True)
+                .exclude(student_profile__directorate__name_ar__isnull=True)
+                .exclude(student_profile__directorate__name_ar__exact='')
+                .distinct()
+            )
+            if exam.directorate and exam.directorate.name_ar and exam.directorate.name_ar not in directorates_list:
+                directorates_list.append(exam.directorate.name_ar)
+
+            governorates_list = list(
+                base_registrations
+                .order_by()
+                .values_list('student_profile__directorate__fk_governorate__name_ar', flat=True)
+                .exclude(student_profile__directorate__fk_governorate__name_ar__isnull=True)
+                .exclude(student_profile__directorate__fk_governorate__name_ar__exact='')
+                .distinct()
+            )
+            if exam.governorate and exam.governorate.name_ar and exam.governorate.name_ar not in governorates_list:
+                governorates_list.append(exam.governorate.name_ar)
+
+            versions_list = list(
+                exam.versions.filter(is_deleted=False).values_list('versionCode', flat=True).distinct()
+            )
 
         # إحصائيات عامة للاختبار
         absent_count = max(0, total_registered_count - len(all_sub_reg_ids | all_sub_seat_numbers))

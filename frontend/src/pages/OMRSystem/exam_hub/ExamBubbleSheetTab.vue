@@ -410,6 +410,7 @@
           <div
             v-for="(st, sIndex) in paginatedStudents"
             :key="`stream-sheet-${st.id}-${selectedSheetLayout}`"
+            v-memo="[st.id, st.seat_number, st.model_code, selectedSheetLayout, sheetZoomLevel, customCenterName, customDirectorate, customGovernorate, customExamYear, customStageTitle]"
             class="sheet-page-card bg-white position-relative text-start mb-6"
             :style="sheetArtboardStyle"
           >
