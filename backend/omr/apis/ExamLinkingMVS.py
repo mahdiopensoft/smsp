@@ -368,7 +368,7 @@ class ExamLinkingMVS(ViewSet):
         ).only(
             'id', 'seatNumber', 'secretNumber', 'isPresent', 'is_printed', 'printed_at', 'print_batch',
             'student_profile__name_ar', 'student_profile__organization__name_ar', 'student_profile__organization__id',
-            'student_profile__directorate__name_ar', 'student_profile__photo',
+            'student_profile__directorate__name_ar',
             'student__username', 'student__first_name', 'student__last_name',
             'examVersion__versionCode',
         ).order_by('seatNumber')
@@ -386,11 +386,6 @@ class ExamLinkingMVS(ViewSet):
             inst_id = reg.student_profile.organization.id if (reg.student_profile and reg.student_profile.organization) else None
             st_dir = reg.student_profile.directorate.name_ar if (reg.student_profile and reg.student_profile.directorate) else dir_name
             st_photo = None
-            if reg.student_profile and getattr(reg.student_profile, 'photo', None) and getattr(reg.student_profile.photo, 'name', None):
-                try:
-                    st_photo = reg.student_profile.photo.url
-                except Exception:
-                    st_photo = None
 
             v_code = reg.examVersion.versionCode
             students_list.append({
@@ -468,7 +463,7 @@ class ExamLinkingMVS(ViewSet):
         ).only(
             'id', 'seatNumber', 'secretNumber', 'isPresent', 'is_printed', 'printed_at', 'print_batch',
             'student_profile__name_ar', 'student_profile__organization__name_ar', 'student_profile__organization__id',
-            'student_profile__directorate__name_ar', 'student_profile__photo',
+            'student_profile__directorate__name_ar',
             'student__username', 'student__first_name', 'student__last_name',
             'examVersion__versionCode',
         )
@@ -550,13 +545,7 @@ class ExamLinkingMVS(ViewSet):
             inst_id = profile.organization.id if (profile and profile.organization) else None
             dir_name = profile.directorate.name_ar if (profile and profile.directorate) else (exam.directorate.name_ar if exam.directorate else None)
             v_code = reg.examVersion.versionCode if reg.examVersion else "-"
-
             st_photo = None
-            if profile and getattr(profile, 'photo', None) and getattr(profile.photo, 'name', None):
-                try:
-                    st_photo = profile.photo.url
-                except Exception:
-                    st_photo = None
 
             students_data.append({
                 "id": reg.id,
