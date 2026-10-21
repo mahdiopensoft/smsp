@@ -14,30 +14,7 @@
         </div>
       </div>
 
-      <div class="d-flex align-center gap-2 flex-wrap">
-        <!-- الزر المباشر لشاشة سجل الأوراق المصححة -->
-        <v-btn
-          color="indigo-darken-1"
-          variant="flat"
-          class="font-weight-bold text-white px-4 rounded-xl shadow-indigo"
-          prepend-icon="mdi-file-document-check-outline"
-          @click="$router.push(`/omr-submissions${selectedExamId ? '?exam=' + selectedExamId : ''}`)"
-        >
-          سجل الأوراق المصححة (Submissions)
-          <v-chip size="x-small" color="white" variant="outlined" class="ms-2 font-weight-black" v-if="activeExamStats.completed_count">
-            {{ activeExamStats.completed_count }}
-          </v-chip>
-        </v-btn>
-
-        <custom-btn
-          type="add"
-          :click="() => $router.push('/omr-scanner-lab')"
-          label="معمل المسح الضوئي"
-          color="primary"
-          variant="tonal"
-          class="font-weight-bold"
-        />
-
+      <div class="d-flex align-center gap-2">
         <custom-btn
           type="restore"
           :click="() => $router.push('/omr-dashboard')"
@@ -353,63 +330,62 @@
             ترحيل الدرجات للكنترول
           </v-btn>
 
-          <!-- Rollback Dispatch Button -->
+          <!-- Rollback Dispatch Button (Only when dispatched) -->
           <v-btn
             v-if="activeExamStats.dispatched_count > 0"
             color="warning"
             variant="tonal"
             rounded="lg"
-            class="font-weight-bold px-4"
+            class="font-weight-bold px-3"
             prepend-icon="mdi-undo-variant"
             :loading="rollbackLoading"
             @click="confirmRollbackDispatch"
           >
-            إلغاء الترحيل للتدقيق
+            إلغاء الترحيل
           </v-btn>
 
-          <!-- Psychometrics Button -->
-          <v-btn
-            color="purple-darken-1"
-            variant="tonal"
-            rounded="lg"
-            class="font-weight-bold px-3"
-            prepend-icon="mdi-chart-bell-curve-cumulative"
-            :loading="psychometricsLoading"
-            :disabled="!selectedExamId"
-            @click="openPsychometricsDialog"
-          >
-            التحليل السيكومتري (Item Analysis)
-          </v-btn>
-
-          <!-- Export Excel / CSV -->
-          <v-btn
-            color="primary"
-            variant="tonal"
-            rounded="lg"
-            class="font-weight-bold"
-            prepend-icon="mdi-file-excel-outline"
-            @click="exportToExcel"
-          >
-            تصدير كشف الكنترول (Excel/CSV)
-          </v-btn>
-
-          <!-- Print Official Roster -->
-          <v-btn
-            color="secondary"
-            variant="tonal"
-            rounded="lg"
-            class="font-weight-bold"
-            prepend-icon="mdi-printer-outline"
-            @click="printRosterSheet"
-          >
-            طباعة كشف الكنترول
-          </v-btn>
+          <!-- Unified Menu for Reports, Export & Analysis -->
+          <v-menu transition="slide-y-transition" location="bottom end">
+            <template v-slot:activator="{ props }">
+              <v-btn
+                v-bind="props"
+                color="primary"
+                variant="tonal"
+                rounded="lg"
+                class="font-weight-bold px-3"
+                append-icon="mdi-chevron-down"
+                prepend-icon="mdi-printer-outline"
+              >
+                خيارات الكشف والتقارير
+              </v-btn>
+            </template>
+            <v-list density="compact" rounded="lg" elevation="6" class="py-1">
+              <v-list-item
+                prepend-icon="mdi-file-excel-outline"
+                title="تصدير كشف الكنترول (Excel/CSV)"
+                @click="exportToExcel"
+              />
+              <v-list-item
+                prepend-icon="mdi-printer-outline"
+                title="طباعة كشف الكنترول الرسمي"
+                @click="printRosterSheet"
+              />
+              <v-divider class="my-1" />
+              <v-list-item
+                prepend-icon="mdi-chart-bell-curve-cumulative"
+                title="التحليل السيكومتري (Item Analysis)"
+                :disabled="!selectedExamId"
+                @click="openPsychometricsDialog"
+              />
+            </v-list>
+          </v-menu>
 
           <!-- Reload / Refresh -->
           <v-btn
             icon="mdi-refresh"
             variant="text"
-            color="primary"
+            color="medium-emphasis"
+            title="إعادة تحميل الكشف"
             :loading="loadingRecords"
             @click="loadRoster(selectedExamId)"
           />

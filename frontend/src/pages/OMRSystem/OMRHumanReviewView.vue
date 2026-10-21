@@ -415,7 +415,8 @@
               density="compact"
               rounded="lg"
               color="primary"
-              variant="outlined"
+              variant="tonal"
+              class="border"
             >
               <v-btn value="all" size="small" class="font-weight-bold">
                 الكل ({{ dialogCounts.all }})
@@ -448,18 +449,19 @@
               <v-btn
                 value="empty"
                 size="small"
+                color="secondary"
                 class="font-weight-bold"
               >
                 الفارغة ({{ dialogCounts.empty }})
               </v-btn>
             </v-btn-toggle>
 
-            <div style="width: 200px;">
+            <div style="width: 220px;">
               <v-text-field
                 v-model="dialogSearchQuery"
                 density="compact"
                 variant="outlined"
-                placeholder="بحث برقم السؤال..."
+                placeholder="بحث برقم السؤال أو الخيار..."
                 prepend-inner-icon="mdi-magnify"
                 hide-details
                 clearable
@@ -479,12 +481,17 @@
               :hasFilter="false"
               :log="false"
               :restore="false"
+              :numbering="false"
+              :showSelect="false"
+              class="bg-transparent"
             >
               <template v-slot:item-slot="{ item, key }">
                 <!-- رقم السؤال -->
                 <template v-if="key === 'question_number'">
-                  <div class="py-1 font-weight-black text-body-2 text-center">
-                    #{{ item.question_number }}
+                  <div class="text-center py-1">
+                    <span class="font-weight-black text-body-2 text-primary bg-blue-lighten-5 px-3 py-1 rounded-pill border">
+                      #{{ item.question_number }}
+                    </span>
                   </div>
                 </template>
 
@@ -494,70 +501,99 @@
                     <v-chip
                       size="small"
                       variant="tonal"
-                      :color="isTrueFalse(item) ? 'cyan-darken-2' : 'indigo-darken-1'"
-                      class="font-weight-bold unified-table-chip"
+                      :color="isTrueFalse(item) ? 'teal' : 'indigo'"
+                      class="font-weight-bold unified-table-chip px-2.5"
                     >
-                      {{ isTrueFalse(item) ? 'صح وخطأ' : 'اختيارات' }}
+                      <v-icon start size="13">{{ isTrueFalse(item) ? 'mdi-check-all' : 'mdi-format-list-bulleted' }}</v-icon>
+                      {{ item.question_type }}
                     </v-chip>
                   </div>
                 </template>
 
                 <!-- الإجابة النموذجية -->
-                <template v-else-if="key === 'correct_choice'">
+                <template v-else-if="key === 'correct_choice_display'">
                   <div class="text-center">
                     <v-chip
-                      v-if="item.correct_choice"
+                      v-if="item.correct_choice && item.correct_choice !== 'لم تُحدد'"
                       size="small"
                       color="success"
-                      variant="flat"
-                      class="font-weight-black unified-table-chip px-3"
+                      variant="tonal"
+                      class="font-weight-black unified-table-chip px-3 border"
                     >
+                      <v-icon start size="13" color="success">mdi-check-circle-outline</v-icon>
                       {{ item.correct_choice }}
                     </v-chip>
-                    <span v-else class="text-medium-emphasis text-caption">-</span>
+                    <v-chip
+                      v-else
+                      size="x-small"
+                      variant="tonal"
+                      color="blue-grey"
+                      class="font-weight-medium px-2 text-caption"
+                    >
+                      لم تُحدد
+                    </v-chip>
                   </div>
                 </template>
 
                 <!-- تظليل الطالب المكتشف -->
-                <template v-else-if="key === 'marked_choice'">
+                <template v-else-if="key === 'marked_choice_display'">
                   <div class="text-center">
                     <v-chip
                       size="small"
                       :color="getStatusChipColor(item)"
-                      variant="flat"
+                      variant="tonal"
                       class="font-weight-bold unified-table-chip px-3"
                     >
                       <v-icon start size="13">{{ getStatusChipIcon(item) }}</v-icon>
-                      {{ item.marked_choice || 'فارغ' }}
+                      {{ (item.marked_choice && item.marked_choice !== 'لم يُجب (فارغ)') ? item.marked_choice : 'فارغ' }}
                     </v-chip>
                   </div>
                 </template>
 
                 <!-- التدقيق والتعديل السريع -->
                 <template v-else-if="key === 'override'">
-                  <div class="d-flex align-center justify-center gap-1.5 flex-wrap py-1">
+                  <div class="review-buttons-row">
                     <v-btn
                       v-for="opt in getQuestionOptions(item)"
                       :key="opt"
-                      size="x-small"
-                      :variant="String(item.marked_choice || '').trim() === String(opt).trim() ? 'flat' : 'outlined'"
-                      :color="String(item.marked_choice || '').trim() === String(opt).trim() ? (item.is_correct ? 'success' : 'error') : 'primary'"
-                      class="font-weight-bold px-2 rounded-lg"
+                      size="small"
+                      density="comfortable"
+                      :variant="isOptionSelected(item, opt) ? 'flat' : 'tonal'"
+                      :color="getOptionBtnColor(item, opt)"
+                      :class="[
+                        'rounded-lg review-choice-btn',
+                        isOptionSelected(item, opt) ? 'font-weight-black shadow-sm' : 'text-medium-emphasis border font-weight-medium'
+                      ]"
                       :loading="overridingLoading === `${item.question_number}_${opt}`"
                       @click="overrideQuestionChoice(item, opt)"
                     >
+                      <v-icon
+                        v-if="isOptionSelected(item, opt)"
+                        start
+                        size="13"
+                        class="me-1"
+                      >
+                        {{ item.is_correct ? 'mdi-check' : 'mdi-close' }}
+                      </v-icon>
                       {{ opt }}
                     </v-btn>
+
+                    <!-- فاصل عمودي ناعم -->
+                    <div class="review-btn-divider"></div>
+
+                    <!-- زر مسح التظليل -->
                     <v-btn
-                      size="x-small"
-                      variant="text"
-                      color="error"
-                      class="px-1"
+                      size="small"
+                      density="comfortable"
+                      variant="tonal"
+                      :color="item.marked_choice ? 'error' : 'secondary'"
+                      class="rounded-lg review-eraser-btn"
                       title="مسح إجابة هذا السؤال"
+                      :disabled="!item.marked_choice"
                       :loading="overridingLoading === `${item.question_number}_clear`"
                       @click="overrideQuestionChoice(item, '')"
                     >
-                      <v-icon size="16">mdi-eraser</v-icon>
+                      <v-icon size="15">mdi-eraser</v-icon>
                     </v-btn>
                   </div>
                 </template>
@@ -569,7 +605,7 @@
                       size="small"
                       :color="getStatusChipColor(item)"
                       variant="tonal"
-                      class="font-weight-bold unified-table-chip"
+                      class="font-weight-bold unified-table-chip px-3"
                     >
                       {{ getStatusChipText(item) }}
                     </v-chip>
@@ -578,8 +614,15 @@
 
                 <!-- الدرجة -->
                 <template v-else-if="key === 'score'">
-                  <div class="text-center font-weight-black text-body-2" :class="item.is_correct ? 'text-success' : 'text-medium-emphasis'">
-                    {{ item.is_correct ? (item.marks_awarded != null && Number(item.marks_awarded) > 0 ? Number(item.marks_awarded).toFixed(1).replace('.0', '') : '1') : '0' }}
+                  <div class="text-center">
+                    <v-chip
+                      size="x-small"
+                      :color="item.is_correct ? 'success' : 'grey'"
+                      variant="tonal"
+                      class="font-weight-black px-2.5"
+                    >
+                      {{ item.is_correct ? (item.marks_awarded != null && Number(item.marks_awarded) > 0 ? Number(item.marks_awarded).toFixed(1).replace('.0', '') : '1.0') : '0.0' }}
+                    </v-chip>
                   </div>
                 </template>
               </template>
@@ -632,7 +675,7 @@ const approvingLoading = ref(false)
 const dialogSearchQuery = ref('')
 const sheetImageError = ref(false)
 
-// Table headers (Clean & Professional, with actions column)
+// Table headers (Clean & Professional; CustomDataTable automatically appends header_actions)
 const headers = computed(() => [
   { title: "الطالب ورقم الجلوس / القيد", key: "student_info", sortable: true },
   { title: "الاختبار", key: "exam_title", sortable: true },
@@ -640,7 +683,6 @@ const headers = computed(() => [
   { title: "الأسئلة الملتبسة", key: "ambiguous_count", sortable: true, align: "center", width: "130px" },
   { title: "الدرجة المقدرة", key: "score", sortable: false, align: "center", width: "130px" },
   { title: "حالة المراجعة", key: "status", sortable: true, align: "center", width: "120px" },
-  { title: "الإجراءات والتدقيق", key: "actions", sortable: false, align: "center", width: "180px" },
 ])
 
 // Bound items for custom-data-table
@@ -655,13 +697,13 @@ const tableItems = computed(() => ({
 
 // Dialog Headers & Items (Matching unified custom-data-table)
 const dialogHeaders = computed(() => [
-  { title: "رقم السؤال", key: "question_number", sortable: true, align: "center", width: "110px" },
-  { title: "نوع السؤال", key: "question_type", sortable: false, align: "center", width: "130px" },
-  { title: "الإجابة النموذجية", key: "correct_choice", sortable: true, align: "center", width: "130px" },
-  { title: "تظليل الطالب", key: "marked_choice", sortable: true, align: "center", width: "140px" },
-  { title: "التدقيق والتعديل السريع", key: "override", sortable: false, align: "center", width: "240px" },
-  { title: "حالة السؤال", key: "status", sortable: true, align: "center", width: "130px" },
-  { title: "الدرجة", key: "score", sortable: true, align: "center", width: "90px" },
+  { title: "رقم السؤال", key: "question_number", sortable: true, align: "center", width: "95px" },
+  { title: "نوع السؤال", key: "question_type", sortable: false, align: "center", width: "120px" },
+  { title: "الإجابة النموذجية", key: "correct_choice_display", sortable: true, align: "center", width: "130px" },
+  { title: "تظليل الطالب", key: "marked_choice_display", sortable: true, align: "center", width: "140px" },
+  { title: "التدقيق والتعديل السريع", key: "override", sortable: false, align: "center", width: "270px" },
+  { title: "حالة السؤال", key: "status", sortable: true, align: "center", width: "125px" },
+  { title: "الدرجة", key: "score", sortable: true, align: "center", width: "85px" },
 ])
 
 const dialogTableItems = computed(() => ({
@@ -865,6 +907,31 @@ const isTrueFalse = (q) => {
   return opts.length === 2 && (opts.includes('صح') || opts.includes('خطأ') || opts.includes('T') || opts.includes('F'))
 }
 
+const enrichQuestion = (q) => {
+  if (!q) return q
+  const isTF = isTrueFalse(q)
+  q.question_type = isTF ? 'صح وخطأ' : 'اختيارات'
+  q.correct_choice_display = q.correct_choice || 'لم تُحدد'
+  q.marked_choice_display = (q.marked_choice && q.marked_choice !== 'لم يُجب (فارغ)') ? q.marked_choice : 'لم يُجب (فارغ)'
+  q.status = getStatusChipText(q)
+  q.score = q.is_correct ? (q.marks_awarded != null && Number(q.marks_awarded) > 0 ? Number(q.marks_awarded).toFixed(1).replace('.0', '') : '1.0') : '0.0'
+  q.override = q.marked_choice ? `تظليل حالي: ${q.marked_choice}` : 'متاح للتعديل السريع'
+  return q
+}
+
+const isOptionSelected = (item, opt) => {
+  return String(item?.marked_choice || '').trim() === String(opt || '').trim()
+}
+
+const getOptionBtnColor = (item, opt) => {
+  if (isOptionSelected(item, opt)) {
+    if (item.is_correct === true) return 'success'
+    if (item.is_correct === false && item.marked_choice && item.marked_choice !== 'لم يُجب (فارغ)') return 'error'
+    return 'primary'
+  }
+  return undefined
+}
+
 const filteredDialogQuestions = computed(() => {
   let qs = activeReviewSheet.value?.questions || []
   if (dialogQuestionFilter.value === 'ambiguous') {
@@ -874,7 +941,7 @@ const filteredDialogQuestions = computed(() => {
   } else if (dialogQuestionFilter.value === 'correct') {
     qs = qs.filter(q => q.is_correct === true)
   } else if (dialogQuestionFilter.value === 'empty') {
-    qs = qs.filter(q => !q.marked_choice)
+    qs = qs.filter(q => !q.marked_choice || q.marked_choice === 'لم يُجب (فارغ)')
   }
 
   if (dialogSearchQuery.value && dialogSearchQuery.value.trim()) {
@@ -885,7 +952,7 @@ const filteredDialogQuestions = computed(() => {
       String(q.correct_choice || '').toLowerCase().includes(qTerm)
     )
   }
-  return qs
+  return qs.map(enrichQuestion)
 })
 
 const dialogCounts = computed(() => {
@@ -893,9 +960,9 @@ const dialogCounts = computed(() => {
   return {
     all: qs.length,
     ambiguous: qs.filter(q => q.bubble_state === 'ambiguous' || (q.final_confidence && q.final_confidence < 0.7)).length,
-    wrong: qs.filter(q => q.is_correct === false && q.marked_choice).length,
+    wrong: qs.filter(q => q.is_correct === false && q.marked_choice && q.marked_choice !== 'لم يُجب (فارغ)').length,
     correct: qs.filter(q => q.is_correct === true).length,
-    empty: qs.filter(q => !q.marked_choice).length,
+    empty: qs.filter(q => !q.marked_choice || q.marked_choice === 'لم يُجب (فارغ)').length,
   }
 })
 
@@ -904,6 +971,9 @@ const openReviewModal = (sheet) => {
   dialogQuestionFilter.value = 'all'
   dialogSearchQuery.value = ''
   sheetImageError.value = false
+  if (Array.isArray(activeReviewSheet.value.questions)) {
+    activeReviewSheet.value.questions.forEach(enrichQuestion)
+  }
   reviewDialog.value = true
 }
 
@@ -1006,30 +1076,33 @@ const getCardStatusClass = (q) => {
   if (q.is_correct === true) {
     return 'card-correct'
   }
-  if (q.is_correct === false && q.marked_choice) {
+  if (q.is_correct === false && q.marked_choice && q.marked_choice !== 'لم يُجب (فارغ)') {
     return 'card-wrong'
   }
   return 'card-empty'
 }
 
 const getStatusChipColor = (q) => {
+  if (!q) return 'secondary'
   if (q.bubble_state === 'ambiguous') return 'warning'
   if (q.is_correct === true) return 'success'
-  if (q.is_correct === false && q.marked_choice) return 'error'
-  return 'grey-darken-1'
+  if (q.is_correct === false && q.marked_choice && q.marked_choice !== 'لم يُجب (فارغ)') return 'error'
+  return 'secondary'
 }
 
 const getStatusChipIcon = (q) => {
-  if (q.bubble_state === 'ambiguous') return 'mdi-alert'
-  if (q.is_correct === true) return 'mdi-check-circle'
-  if (q.is_correct === false && q.marked_choice) return 'mdi-close-circle'
+  if (!q) return 'mdi-circle-outline'
+  if (q.bubble_state === 'ambiguous') return 'mdi-alert-outline'
+  if (q.is_correct === true) return 'mdi-check-circle-outline'
+  if (q.is_correct === false && q.marked_choice && q.marked_choice !== 'لم يُجب (فارغ)') return 'mdi-close-circle-outline'
   return 'mdi-circle-outline'
 }
 
 const getStatusChipText = (q) => {
+  if (!q) return 'لم يُجب (فارغ)'
   if (q.bubble_state === 'ambiguous') return 'ملتبس'
   if (q.is_correct === true) return 'صحيحة'
-  if (q.is_correct === false && q.marked_choice) return 'خاطئة'
+  if (q.is_correct === false && q.marked_choice && q.marked_choice !== 'لم يُجب (فارغ)') return 'خاطئة'
   return 'لم يُجب (فارغ)'
 }
 
@@ -1045,6 +1118,7 @@ const overrideQuestionChoice = async (q, choice) => {
     q.marked_choice = choice
     q.is_correct = choice ? (normalizeChoiceValue(choice) === normalizeChoiceValue(q.correct_choice)) : false
     q.bubble_state = choice ? 'filled' : 'empty'
+    enrichQuestion(q)
 
     if (res.data?.mcq_score != null) {
       activeReviewSheet.value.mcq_score = res.data.mcq_score
@@ -1127,6 +1201,53 @@ onMounted(() => {
 .header-score-pill {
   background-color: #ecfdf5;
   border: 1px solid #a7f3d0;
+}
+
+/* ── Review Choice & Eraser Buttons Row ── */
+.review-buttons-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-wrap: nowrap !important;
+  gap: 6px !important;
+  padding: 2px 0 !important;
+}
+
+.review-choice-btn {
+  min-width: 36px !important;
+  height: 30px !important;
+  padding: 0 10px !important;
+  font-weight: 800 !important;
+  border-radius: 8px !important;
+  font-size: 0.85rem !important;
+  letter-spacing: 0.2px;
+  border: 1px solid rgba(var(--v-border-color), 0.25) !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+.review-choice-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(var(--v-theme-primary), 0.5) !important;
+}
+
+.review-btn-divider {
+  width: 1px;
+  height: 20px;
+  background-color: rgba(var(--v-border-color), 0.25);
+  margin: 0 2px;
+}
+
+.review-eraser-btn {
+  height: 30px !important;
+  min-width: 30px !important;
+  padding: 0 6px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(var(--v-border-color), 0.2) !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+.review-eraser-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
 }
 
 </style>

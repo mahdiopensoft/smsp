@@ -410,7 +410,6 @@
           <div
             v-for="(st, sIndex) in paginatedStudents"
             :key="`stream-sheet-${st.id}-${selectedSheetLayout}`"
-            v-memo="[st.id, st.seat_number, st.model_code, selectedSheetLayout, sheetZoomLevel, customCenterName, customDirectorate, customGovernorate, customExamYear, customStageTitle]"
             class="sheet-page-card bg-white position-relative text-start mb-6"
             :style="sheetArtboardStyle"
           >
@@ -515,7 +514,6 @@
           <YemeniMinistrySheet
             v-else
             :key="`compact-sheet-${activeSheetStudent?.id || selectedBlankVersionCode}`"
-            v-memo="[activeSheetStudent?.id, selectedBlankVersionCode, activeSheetModelCode, customCenterName, customGovernorate, customDirectorate, customStageTitle, customExamYear, activeModelQuestionsCount]"
             layout-mode="compact_a5"
             :student-name="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_name || '................................') : '................................'"
             :seat-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.seat_number || '................') : '................'"
