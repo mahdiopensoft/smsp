@@ -4,29 +4,21 @@
     <div class="main-card rounded-2xl pa-4 mb-4">
       <!-- Row 1: Model Selection & Core Model Actions -->
       <div class="d-flex align-center justify-space-between flex-wrap gap-3 pb-3 border-b">
-        <!-- Model Selector -->
-        <div class="d-flex align-center gap-2 flex-wrap">
-          <span class="text-caption font-weight-black text-medium-emphasis">النموذج:</span>
-          <v-btn-toggle
+        <!-- Model Selector Dropdown (يدعم أي عدد من النماذج للجامعات والمعاهد دون انكسار الواجهة) -->
+        <div style="min-width: 200px; max-width: 260px;">
+          <v-select
             :model-value="activeVersionTab"
-            mandatory
+            :items="versionSelectOptions"
+            item-title="title"
+            item-value="value"
             density="compact"
-            color="primary"
             variant="outlined"
             rounded="lg"
+            hide-details
+            prepend-inner-icon="mdi-format-list-bulleted-type"
+            label="النموذج المعروض"
             @update:model-value="(val) => $emit('update:activeVersionTab', val)"
-          >
-            <v-btn
-              v-for="(v, idx) in (examDetails?.versions || [])"
-              :key="v.id || idx"
-              :value="idx"
-              class="font-weight-bold px-3"
-            >
-              <v-icon start size="16">mdi-file-document-outline</v-icon>
-              النموذج {{ v.versionCode }}
-              <span class="ms-1 text-caption text-medium-emphasis">({{ v.questionsCount || v.questions?.length || 0 }} سؤال)</span>
-            </v-btn>
-          </v-btn-toggle>
+          />
         </div>
 
         <!-- Actions for this Model -->
@@ -150,7 +142,7 @@
               variant="tonal"
               color="error"
               label="تفريغ"
-              class="font-weight-bold mb-6 w-100"
+              class="font-weight-bold w-100"
             />
           </v-col>
         </v-row>
@@ -163,6 +155,7 @@
             items: questionsTableItems,
             headers: questionsHeaders,
           }"
+          :search="false"
           :hasFilter="false"
           :log="false"
           :restore="false"
@@ -251,6 +244,14 @@ const filterQuestionType = ref(null)
 const currentVersionObj = computed(() => {
   if (!props.examDetails?.versions?.length) return null
   return props.examDetails.versions[props.activeVersionTab] || props.examDetails.versions[0]
+})
+
+const versionSelectOptions = computed(() => {
+  if (!props.examDetails?.versions?.length) return []
+  return props.examDetails.versions.map((v, idx) => ({
+    title: `النموذج ${v.versionCode} (${v.questionsCount || v.questions?.length || 0} سؤال)`,
+    value: idx
+  }))
 })
 
 const bloomLevelOptions = computed(() => {

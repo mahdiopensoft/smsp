@@ -99,7 +99,6 @@
             :prepend-inner-icon="labels.level1Icon"
             density="compact"
             variant="outlined"
-            class="mb-6"
             hide-details
             clearable
             @update:model-value="() => { filterDirectorate = null; filterSchool = null; selectedStudentId = null; }"
@@ -118,7 +117,6 @@
             :prepend-inner-icon="labels.level2Icon"
             density="compact"
             variant="outlined"
-            class="mb-6"
             hide-details
             clearable
             @update:model-value="() => { filterSchool = null; selectedStudentId = null; }"
@@ -137,7 +135,6 @@
             :prepend-inner-icon="labels.level3Icon"
             density="compact"
             variant="outlined"
-            class="mb-6"
             hide-details
             clearable
             @update:model-value="() => { selectedStudentId = null; }"
@@ -160,17 +157,18 @@
             variant="tonal"
             color="error"
             label="تفريغ التصفية"
-            class="font-weight-bold mb-6 w-100"
+            class="font-weight-bold w-100"
             :disabled="!filterSchool && !filterDirectorate && !filterGovernorate"
           />
         </v-col>
       </v-row>
     </filter-fields>
 
-    <!-- Header Control Bar for Booklet -->
-    <div class="main-card rounded-2xl pa-4 mb-4 border bg-white">
-      <div class="d-flex align-center justify-space-between flex-wrap gap-3 pb-3 border-b">
-        <div class="d-flex align-center gap-3 flex-wrap flex-grow-1">
+    <!-- Header Control Bar for Booklet (تصميم موحد متناسق بسطرين واضحين بدون انكسار) -->
+    <div class="main-card rounded-2xl pa-3 mb-3 border bg-white">
+      <!-- Row 1: Target Mode & Print Actions -->
+      <div class="d-flex align-center justify-space-between flex-wrap gap-2 pb-2.5 border-b">
+        <div class="d-flex align-center gap-2 flex-wrap flex-grow-1">
           <!-- Target Mode Toggle: Official General vs Student Preview -->
           <v-btn-toggle
             v-model="paperTargetMode"
@@ -189,7 +187,7 @@
           </v-btn-toggle>
 
           <!-- Student Picker when student_specific is selected -->
-          <div v-if="paperTargetMode === 'student_specific'" style="min-width: 260px; max-width: 380px;" class="flex-grow-1">
+          <div v-if="paperTargetMode === 'student_specific'" style="min-width: 240px; max-width: 380px;" class="flex-grow-1">
             <v-autocomplete
               v-model="selectedStudentId"
               :items="filteredStudents"
@@ -211,9 +209,38 @@
               </template>
             </v-autocomplete>
           </div>
+        </div>
 
-          <!-- Version Dropdown Selector (يدعم من نموذج واحد حتى 50 نموذج بسلاسة فائقة وبدون ازدحام) -->
-          <div style="min-width: 200px; max-width: 250px;">
+        <!-- Print Actions -->
+        <div class="d-flex align-center gap-2">
+          <v-btn
+            color="primary"
+            variant="flat"
+            rounded="lg"
+            class="font-weight-black px-4"
+            prepend-icon="mdi-printer"
+            @click="() => printQuestionsAndSheets('questions_only')"
+          >
+            طباعة ورقة الأسئلة الرسمية
+          </v-btn>
+          <v-btn
+            color="secondary"
+            variant="tonal"
+            rounded="lg"
+            class="font-weight-bold px-3"
+            prepend-icon="mdi-package-variant-closed"
+            @click="() => printQuestionsAndSheets('package')"
+          >
+            طباعة الحزمة المتكاملة
+          </v-btn>
+        </div>
+      </div>
+
+      <!-- Row 2: Model Selector & Paper Size -->
+      <div class="d-flex align-center justify-space-between flex-wrap gap-2 pt-2">
+        <div class="d-flex align-center gap-3 flex-wrap">
+          <!-- Version Dropdown Selector (يدعم أي عدد من النماذج للجامعات والمعاهد بسلاسة) -->
+          <div style="min-width: 200px; max-width: 260px;">
             <v-select
               :model-value="activeVersionTab"
               :items="versionSelectItems"
@@ -247,27 +274,9 @@
           </v-btn-toggle>
         </div>
 
-        <div class="d-flex align-center gap-2">
-          <v-btn
-            color="primary"
-            variant="flat"
-            rounded="lg"
-            class="font-weight-black px-5"
-            prepend-icon="mdi-printer"
-            @click="() => printQuestionsAndSheets('questions_only')"
-          >
-            طباعة ورقة الأسئلة الرسمية
-          </v-btn>
-          <v-btn
-            color="secondary"
-            variant="tonal"
-            rounded="lg"
-            class="font-weight-bold px-4"
-            prepend-icon="mdi-package-variant-closed"
-            @click="() => printQuestionsAndSheets('package')"
-          >
-            طباعة الحزمة المتكاملة (أسئلة + تظليل)
-          </v-btn>
+        <div class="text-caption text-medium-emphasis font-weight-bold">
+          النموذج: <span class="text-primary font-weight-black">{{ currentVersionObj?.versionCode || 'A' }}</span> •
+          الأسئلة: <span class="text-primary font-weight-black">{{ currentVersionObj?.questions?.length || 0 }}</span> سؤال
         </div>
       </div>
     </div>

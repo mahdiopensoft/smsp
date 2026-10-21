@@ -12,11 +12,11 @@
       {{ batchPrintNotification.message }}
     </v-alert>
 
-    <!-- Sheet Controls Bar -->
-    <div class="main-card rounded-2xl pa-3 mb-2">
-      <!-- Row 1: Setup Configuration -->
-      <div class="d-flex align-center justify-space-between flex-wrap gap-3 pb-3 border-b">
-        <div class="d-flex align-center gap-3 flex-grow-1 flex-wrap">
+    <!-- Sheet Controls Bar (تصميم موحد، مدمج وهادئ بسطرين فقط يمنع التكدس والتشتت) -->
+    <div class="main-card rounded-2xl pa-3 mb-3 border bg-white">
+      <!-- Row 1: Setup Configuration & Primary Actions -->
+      <div class="d-flex align-center justify-space-between flex-wrap gap-2 pb-2.5 border-b">
+        <div class="d-flex align-center gap-2 flex-wrap flex-grow-1">
           <!-- Target Selection Mode -->
           <v-btn-toggle
             v-model="sheetGenerationMode"
@@ -26,19 +26,19 @@
             variant="outlined"
             rounded="lg"
           >
-            <v-btn value="all_students" class="font-weight-bold px-3" prepend-icon="mdi-account-group">
-              أوراق كافة الطلاب (الدفعة كاملة)
+            <v-btn value="all_students" class="font-weight-bold px-2.5" prepend-icon="mdi-account-group">
+              الدفعة كاملة
             </v-btn>
-            <v-btn value="student" class="font-weight-bold px-3" prepend-icon="mdi-account">
-              ورقة مخصصة لطالب
+            <v-btn value="student" class="font-weight-bold px-2.5" prepend-icon="mdi-account">
+              طالب محدد
             </v-btn>
-            <v-btn value="blank" class="font-weight-bold px-3" prepend-icon="mdi-file-outline">
-              ورقة نموذج عامة
+            <v-btn value="blank" class="font-weight-bold px-2.5" prepend-icon="mdi-file-outline">
+              نموذج عام
             </v-btn>
           </v-btn-toggle>
 
           <!-- Model Filter Dropdown when all_students is active (يدعم أي عدد من النماذج دون تشتت) -->
-          <div v-if="sheetGenerationMode === 'all_students'" style="min-width: 170px; max-width: 220px;">
+          <div v-if="sheetGenerationMode === 'all_students'" style="min-width: 150px; max-width: 190px;">
             <v-select
               v-model="filterStreamModelCode"
               :items="modelFilterSelectOptions"
@@ -54,7 +54,7 @@
           </div>
 
           <!-- School/Institute/College Filter Dropdown (Active in all_students and student modes) -->
-          <div v-if="sheetGenerationMode !== 'blank'" style="min-width: 220px; max-width: 320px;" class="flex-grow-1">
+          <div v-if="sheetGenerationMode !== 'blank' && schoolFilterOptions.length > 1" style="min-width: 170px; max-width: 220px;">
             <v-select
               v-model="filterSchoolName"
               :items="schoolFilterOptions"
@@ -71,8 +71,8 @@
             />
           </div>
 
-          <!-- Student or Version Picker -->
-          <div v-if="sheetGenerationMode === 'student'" style="min-width: 260px; max-width: 380px;" class="flex-grow-1">
+          <!-- Student Picker -->
+          <div v-if="sheetGenerationMode === 'student'" style="min-width: 220px; max-width: 320px;" class="flex-grow-1">
             <v-autocomplete
               v-model="selectedStudentId"
               :items="filteredStreamStudents"
@@ -91,11 +91,12 @@
             </v-autocomplete>
           </div>
 
-          <div v-else-if="sheetGenerationMode === 'blank'" style="min-width: 200px; max-width: 280px;" class="flex-grow-1">
+          <!-- Blank Model Picker -->
+          <div v-else-if="sheetGenerationMode === 'blank'" style="min-width: 160px; max-width: 200px;">
             <v-select
               v-model="selectedBlankVersionCode"
               :items="versionCodeOptions"
-              label="اختيار النموذج لورقة التظليل"
+              label="اختيار النموذج"
               density="compact"
               variant="outlined"
               rounded="lg"
@@ -109,36 +110,74 @@
             v-model="selectedSheetLayout"
             mandatory
             density="compact"
-            color="primary"
+            color="secondary"
             variant="outlined"
             rounded="lg"
           >
-            <v-btn value="compact_a5" class="font-weight-bold px-3" prepend-icon="mdi-card-outline">
-              ورقة الطالب A5 (الوزارية)
+            <v-btn value="compact_a5" class="font-weight-bold px-2.5" prepend-icon="mdi-card-outline">
+              A5 الوزارية
             </v-btn>
-            <v-btn value="full_a4" class="font-weight-bold px-3" prepend-icon="mdi-file-document-outline">
-              الورقة الشاملة A4
+            <v-btn value="full_a4" class="font-weight-bold px-2.5" prepend-icon="mdi-file-document-outline">
+              A4 الشاملة
             </v-btn>
           </v-btn-toggle>
+        </div>
 
-          <!-- Live Adjustments Button (Like Designer) -->
+        <!-- Actions Bar -->
+        <div class="d-flex align-center gap-2">
           <v-btn
-            variant="tonal"
-            :color="showAdjustmentsPanel ? 'primary' : 'secondary'"
-            size="small"
+            color="success"
+            variant="flat"
             rounded="lg"
-            prepend-icon="mdi-pencil-ruler"
-            class="font-weight-bold"
-            @click="showAdjustmentsPanel = !showAdjustmentsPanel"
+            size="default"
+            class="font-weight-black shadow-sm px-4"
+            prepend-icon="mdi-printer-check"
+            :loading="printingBatch"
+            :disabled="!filteredStreamStudents?.length && sheetGenerationMode === 'all_students'"
+            @click="batchPrintAllStudents"
           >
-            {{ showAdjustmentsPanel ? 'إخفاء التعديلات الحية' : 'تعديلات الترويسة والبيانات' }}
+            نقل للطباعة ({{ filteredStreamStudents.length || 1 }} ورقة)
           </v-btn>
+
+          <custom-btn
+            type="print"
+            label="طباعة الفردية"
+            color="primary"
+            variant="tonal"
+            class="font-weight-bold"
+            :click="printSingleSheet"
+          />
+
+          <!-- Quick Actions Menu -->
+          <v-menu location="bottom end">
+            <template #activator="{ props: mProps }">
+              <v-btn
+                v-bind="mProps"
+                variant="tonal"
+                color="secondary"
+                rounded="lg"
+                class="font-weight-bold px-2"
+                icon
+                size="small"
+                title="خيارات إضافية"
+              >
+                <v-icon size="18">mdi-dots-vertical</v-icon>
+              </v-btn>
+            </template>
+            <v-list density="compact" rounded="lg" class="elevation-3 py-1">
+              <v-list-item prepend-icon="mdi-clipboard-list-outline" title="طباعة كشف المناداة" @click="() => $emit('print-roster')" />
+              <v-list-item prepend-icon="mdi-book-open-page-variant-outline" title="طباعة حزمة الاختبار الكاملة" @click="() => $emit('print-package')" />
+              <v-list-item prepend-icon="mdi-pencil-ruler" title="تعديل بيانات الترويسة" @click="showAdjustmentsPanel = !showAdjustmentsPanel" />
+              <v-divider class="my-1" />
+              <v-list-item prepend-icon="mdi-tune-vertical" title="تعديل القالب في المصمم" @click="() => $emit('open-designer', activeExam)" />
+            </v-list>
+          </v-menu>
         </div>
       </div>
 
       <!-- Collapsible Live Adjustments Panel -->
       <v-expand-transition>
-        <div v-if="showAdjustmentsPanel" class="pa-4 mt-3 bg-grey-lighten-4 rounded-xl border">
+        <div v-if="showAdjustmentsPanel" class="pa-4 my-3 bg-grey-lighten-4 rounded-xl border">
           <div class="text-caption font-weight-black text-primary mb-3 d-flex align-center gap-1">
             <v-icon size="16">mdi-auto-fix</v-icon>
             تعديل بيانات الترويسة فورياً (تنعكس التعديلات لحظياً على كافة أوراق الطلاب قبل نقلها للطباعة)
@@ -215,234 +254,157 @@
         </div>
       </v-expand-transition>
 
-      <!-- Row 2: Status, Zoom & Print Actions -->
-      <div class="d-flex align-center justify-space-between flex-wrap gap-2 pt-3">
-        <!-- Status Chip & Zoom Controls -->
-        <div class="d-flex align-center gap-2 flex-wrap">
-          <v-chip v-if="sheetGenerationMode === 'all_students'" size="small" color="success" variant="tonal" class="font-weight-bold">
-            <v-icon start size="16">mdi-file-multiple</v-icon>
-            جاهز للمعاينة والطباعة: {{ filteredStreamStudents.length }} ورقة (من إجمالي {{ examDetails?.registered_students?.length || 0 }} طالب)
-          </v-chip>
-          <v-chip v-else-if="activeSheetStudent && sheetGenerationMode === 'student'" size="small" color="primary" variant="tonal" class="font-weight-bold">
-            <v-icon start size="16">mdi-account-check</v-icon>
-            {{ activeSheetStudent.student_name }} (جلوس: {{ activeSheetStudent.seat_number }} | نموذج: {{ activeSheetStudent.model_code }})
-          </v-chip>
-          <v-chip v-else size="small" color="primary" variant="tonal" class="font-weight-bold">
-            <v-icon start size="16">mdi-file-check</v-icon>
-            ورقة عامة فارغة — النموذج {{ selectedBlankVersionCode }}
-          </v-chip>
+      <!-- Row 2: Preview Navigation, Pagination & Zoom Controls -->
+      <div class="d-flex align-center justify-space-between flex-wrap gap-2 pt-2 text-caption">
+        <!-- Right side: Nav Controls & Quick Student Navigator -->
+        <div v-if="sheetGenerationMode === 'all_students' && filteredStreamStudents.length > 0" class="d-flex align-center gap-2 flex-wrap">
+          <div class="d-flex align-center gap-1">
+            <v-btn
+              icon
+              size="x-small"
+              variant="tonal"
+              color="primary"
+              :disabled="currentPage <= 1 || perPage === -1"
+              title="الورقة الأولى"
+              @click="currentPage = 1"
+            >
+              <v-icon size="16">mdi-page-first</v-icon>
+            </v-btn>
+            <v-btn
+              icon
+              size="x-small"
+              variant="tonal"
+              color="primary"
+              :disabled="currentPage <= 1 || perPage === -1"
+              title="الورقة السابقة"
+              @click="currentPage--"
+            >
+              <v-icon size="18">mdi-chevron-right</v-icon>
+            </v-btn>
+
+            <!-- Current Page Badge -->
+            <div class="px-2 py-0.5 bg-grey-lighten-4 border rounded font-mono font-weight-black d-flex align-center gap-1">
+              <span class="text-medium-emphasis">ورقة</span>
+              <span class="text-primary">{{ perPage === -1 ? '1 - ' + filteredStreamStudents.length : currentPage }}</span>
+              <span class="text-medium-emphasis">من</span>
+              <span>{{ totalPages }}</span>
+            </div>
+
+            <v-btn
+              icon
+              size="x-small"
+              variant="tonal"
+              color="primary"
+              :disabled="currentPage >= totalPages || perPage === -1"
+              title="الورقة التالية"
+              @click="currentPage++"
+            >
+              <v-icon size="18">mdi-chevron-left</v-icon>
+            </v-btn>
+            <v-btn
+              icon
+              size="x-small"
+              variant="tonal"
+              color="primary"
+              :disabled="currentPage >= totalPages || perPage === -1"
+              title="الورقة الأخيرة"
+              @click="currentPage = totalPages"
+            >
+              <v-icon size="16">mdi-page-last</v-icon>
+            </v-btn>
+          </div>
+
+          <!-- Jump to Student Direct Dropdown -->
+          <div style="min-width: 170px; max-width: 240px;">
+            <v-autocomplete
+              v-model="jumpToStudentIndex"
+              :items="studentJumpOptions"
+              item-title="title"
+              item-value="value"
+              placeholder="انتقال مباشر لطالب..."
+              density="compact"
+              variant="outlined"
+              rounded="lg"
+              hide-details
+              prepend-inner-icon="mdi-account-search"
+              :disabled="perPage === -1"
+              @update:model-value="onJumpToStudent"
+            />
+          </div>
+
+          <!-- Per-Page Display Selector -->
+          <div class="d-flex align-center gap-1 text-medium-emphasis">
+            <span class="font-weight-bold">العرض:</span>
+            <v-btn-toggle
+              v-model="perPage"
+              mandatory
+              density="compact"
+              color="primary"
+              variant="outlined"
+              rounded="lg"
+            >
+              <v-btn :value="1" class="font-weight-bold px-1.5" size="x-small" title="ورقة واحدة (فائقة السرعة والخفة)">
+                1
+              </v-btn>
+              <v-btn :value="2" class="font-weight-bold px-1.5" size="x-small">
+                2
+              </v-btn>
+              <v-btn :value="5" class="font-weight-bold px-1.5" size="x-small">
+                5
+              </v-btn>
+              <v-btn :value="-1" class="font-weight-bold px-1.5" size="x-small" title="عرض كافة الأوراق">
+                الكل
+              </v-btn>
+            </v-btn-toggle>
+          </div>
+        </div>
+        <div v-else class="text-caption font-weight-bold text-medium-emphasis">
+          {{ sheetGenerationMode === 'student' ? (activeSheetStudent?.student_name || 'طالب محدد') : `ورقة عامة — النموذج ${selectedBlankVersionCode}` }}
+        </div>
+
+        <!-- Left side: Status & Zoom Controls -->
+        <div class="d-flex align-center gap-2">
+          <span class="text-caption font-weight-bold text-success-darken-2 d-flex align-center gap-1">
+            <v-icon size="15" color="success">mdi-check-decagram-outline</v-icon>
+            {{ filteredStreamStudents.length }} ورقة جاهزة
+          </span>
 
           <!-- Zoom Controls with Quick Presets -->
-          <div class="d-flex align-center bg-grey-lighten-4 rounded-lg px-2 py-1 border ms-2 gap-1">
+          <div class="d-flex align-center bg-grey-lighten-4 rounded-lg px-1.5 py-0.5 border gap-1">
             <v-btn
               size="x-small"
               variant="text"
-              class="font-weight-bold px-2"
+              class="font-weight-bold px-1.5"
               :color="sheetZoomLevel <= 0.85 ? 'primary' : 'medium-emphasis'"
-              title="ملاءمة كاملة للشاشة (عرض كامل الورقة بدون تمرير)"
+              title="ملاءمة كاملة للشاشة"
               @click="sheetZoomLevel = 0.78"
             >
               ملاءمة
             </v-btn>
-            <v-btn
-              size="x-small"
-              variant="text"
-              class="font-weight-bold px-2"
-              :color="sheetZoomLevel >= 0.95 && sheetZoomLevel <= 1.05 ? 'primary' : 'medium-emphasis'"
-              title="الحجم القياسي 100%"
-              @click="sheetZoomLevel = 1.0"
-            >
-              100%
-            </v-btn>
-            <v-btn
-              size="x-small"
-              variant="text"
-              class="font-weight-bold px-2"
-              :color="sheetZoomLevel >= 1.15 ? 'primary' : 'medium-emphasis'"
-              title="عرض متسع للقراءة والتدقيق"
-              @click="sheetZoomLevel = 1.2"
-            >
-              متسع
-            </v-btn>
-            <v-divider vertical class="mx-1 my-1" />
+            <v-divider vertical class="my-1" />
             <v-btn icon size="x-small" variant="text" :disabled="sheetZoomLevel <= 0.5" @click="sheetZoomLevel = Math.max(0.5, Number((sheetZoomLevel - 0.1).toFixed(2)))">
-              <v-icon size="15">mdi-minus</v-icon>
+              <v-icon size="13">mdi-minus</v-icon>
             </v-btn>
-            <span class="text-caption font-weight-bold px-1 font-mono" style="min-width: 38px; text-align: center;">
+            <span class="text-caption font-weight-bold px-1 font-mono" style="min-width: 32px; text-align: center;">
               {{ Math.round(sheetZoomLevel * 100) }}%
             </span>
             <v-btn icon size="x-small" variant="text" :disabled="sheetZoomLevel >= 2.0" @click="sheetZoomLevel = Math.min(2.0, Number((sheetZoomLevel + 0.1).toFixed(2)))">
-              <v-icon size="15">mdi-plus</v-icon>
+              <v-icon size="13">mdi-plus</v-icon>
             </v-btn>
           </div>
-        </div>
 
-        <!-- Actions Bar -->
-        <div class="d-flex align-center gap-2 flex-wrap">
+          <!-- Live Adjustments Button -->
           <v-btn
-            color="success"
-            variant="flat"
+            variant="tonal"
+            :color="showAdjustmentsPanel ? 'primary' : 'secondary'"
+            size="x-small"
             rounded="lg"
-            size="default"
-            class="font-weight-black shadow-sm px-4"
-            prepend-icon="mdi-printer-check"
-            :loading="printingBatch"
-            :disabled="!filteredStreamStudents?.length && sheetGenerationMode === 'all_students'"
-            @click="batchPrintAllStudents"
-          >
-            نقل للطباعة ({{ filteredStreamStudents.length || 1 }} ورقة)
-          </v-btn>
-
-          <custom-btn
-            type="print"
-            label="طباعة الورقة الفردية"
-            color="primary"
-            variant="tonal"
+            prepend-icon="mdi-pencil-ruler"
             class="font-weight-bold"
-            :click="printSingleSheet"
-          />
-          <custom-btn
-            icon="clipboard-list-outline"
-            label="طباعة كشف المناداة"
-            color="secondary"
-            variant="tonal"
-            class="font-weight-bold"
-            :click="() => $emit('print-roster')"
-          />
-          <custom-btn
-            icon="book-open-page-variant-outline"
-            label="حزمة الاختبار"
-            color="secondary"
-            variant="tonal"
-            class="font-weight-bold"
-            :click="() => $emit('print-package')"
-          />
-          <custom-btn
-            is-icon
-            icon="tune-vertical"
-            color="secondary"
-            label="تعديل القالب في المصمم"
-            :click="() => $emit('open-designer', activeExam)"
-          />
-        </div>
-      </div>
-
-      <!-- Row 3: Pagination & Quick Student Navigator (Active in all_students mode) -->
-      <div
-        v-if="sheetGenerationMode === 'all_students' && filteredStreamStudents.length > 0"
-        class="d-flex align-center justify-space-between flex-wrap gap-2 pt-3 mt-3 border-t bg-grey-lighten-5 pa-2 rounded-xl"
-      >
-        <!-- Nav Controls -->
-        <div class="d-flex align-center gap-1">
-          <v-btn
-            icon
-            size="small"
-            variant="tonal"
-            color="primary"
-            :disabled="currentPage <= 1 || perPage === -1"
-            title="الورقة الأولى"
-            @click="currentPage = 1"
+            @click="showAdjustmentsPanel = !showAdjustmentsPanel"
           >
-            <v-icon size="18">mdi-page-first</v-icon>
+            {{ showAdjustmentsPanel ? 'إخفاء التعديل' : 'تعديل الترويسة' }}
           </v-btn>
-          <v-btn
-            icon
-            size="small"
-            variant="tonal"
-            color="primary"
-            :disabled="currentPage <= 1 || perPage === -1"
-            title="الورقة السابقة"
-            @click="currentPage--"
-          >
-            <v-icon size="20">mdi-chevron-right</v-icon>
-          </v-btn>
-
-          <!-- Current Page Badge -->
-          <div class="px-3 py-1 bg-white border rounded-lg text-caption font-weight-bold d-flex align-center gap-1 shadow-sm">
-            <span class="text-medium-emphasis">ورقة</span>
-            <span class="text-primary font-weight-black font-mono text-body-2">{{ perPage === -1 ? '1 - ' + filteredStreamStudents.length : currentPage }}</span>
-            <span class="text-medium-emphasis">من</span>
-            <span class="font-weight-black font-mono text-body-2">{{ totalPages }}</span>
-          </div>
-
-          <v-btn
-            icon
-            size="small"
-            variant="tonal"
-            color="primary"
-            :disabled="currentPage >= totalPages || perPage === -1"
-            title="الورقة التالية"
-            @click="currentPage++"
-          >
-            <v-icon size="20">mdi-chevron-left</v-icon>
-          </v-btn>
-          <v-btn
-            icon
-            size="small"
-            variant="tonal"
-            color="primary"
-            :disabled="currentPage >= totalPages || perPage === -1"
-            title="الورقة الأخيرة"
-            @click="currentPage = totalPages"
-          >
-            <v-icon size="18">mdi-page-last</v-icon>
-          </v-btn>
-
-          <!-- Compact Vuetify Pagination for Direct Page Clicking -->
-          <v-pagination
-            v-if="totalPages > 1 && totalPages <= 7 && perPage !== -1"
-            v-model="currentPage"
-            :length="totalPages"
-            density="compact"
-            size="small"
-            rounded="circle"
-            class="d-none d-md-inline-flex ms-1"
-          />
-        </div>
-
-        <!-- Jump to Student Direct Dropdown -->
-        <div class="d-flex align-center gap-2 flex-grow-1" style="max-width: 400px;">
-          <v-autocomplete
-            v-model="jumpToStudentIndex"
-            :items="studentJumpOptions"
-            item-title="title"
-            item-value="value"
-            placeholder="انتقال مباشر لطالب بالاسم أو رقم الجلوس..."
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            hide-details
-            prepend-inner-icon="mdi-account-search"
-            class="bg-white flex-grow-1"
-            :disabled="perPage === -1"
-            @update:model-value="onJumpToStudent"
-          />
-        </div>
-
-        <!-- Per-Page Display Selector -->
-        <div class="d-flex align-center gap-2">
-          <span class="text-caption font-weight-bold text-medium-emphasis">عرض بالمعاينة:</span>
-          <v-btn-toggle
-            v-model="perPage"
-            mandatory
-            density="compact"
-            color="primary"
-            variant="outlined"
-            rounded="lg"
-          >
-            <v-btn :value="1" class="font-weight-bold px-2" title="ورقة واحدة (فائقة السرعة والخفة)">
-              1 ورقة
-            </v-btn>
-            <v-btn :value="2" class="font-weight-bold px-2">
-              2
-            </v-btn>
-            <v-btn :value="5" class="font-weight-bold px-2">
-              5
-            </v-btn>
-            <v-btn :value="-1" class="font-weight-bold px-2" title="عرض كافة الأوراق متتالية">
-              الكل
-            </v-btn>
-          </v-btn-toggle>
         </div>
       </div>
     </div>
