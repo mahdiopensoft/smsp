@@ -611,8 +611,9 @@
               @refresh-details="() => fetchExamHubDetails(activeExam)"
             />
 
-            <!-- TAB 3: كشف الطلاب والبيانات الامتحانية -->
+            <!-- TAB 3: كشف الطلاب والبيانات الامتحانية (lazy: يُنشأ عند أول فتح فقط) -->
             <ExamStudentsRosterTab
+              v-if="hubActiveTab === 'roster' || rosterTabRef"
               v-show="hubActiveTab === 'roster'"
               ref="rosterTabRef"
               :active-exam="activeExam"
@@ -624,8 +625,9 @@
               @seed-students="seedSampleStudents"
             />
 
-            <!-- TAB 4: النماذج ومفاتيح الحل -->
+            <!-- TAB 4: النماذج ومفاتيح الحل (lazy: يُنشأ عند أول فتح فقط) -->
             <ExamAnswerKeysTab
+              v-if="hubActiveTab === 'keys' || answerKeysTabRef"
               v-show="hubActiveTab === 'keys'"
               ref="answerKeysTabRef"
               :active-exam="activeExam"
@@ -637,8 +639,9 @@
               @start-grading="(code) => startGradingExam(activeExam, code)"
             />
 
-            <!-- TAB 5: أوراق الإجابة المصححة -->
+            <!-- TAB 5: أوراق الإجابة المصححة (lazy: يُنشأ عند أول فتح فقط) -->
             <ExamSubmissionsTab
+              v-if="hubActiveTab === 'submissions' || submissionsTabRef"
               v-show="hubActiveTab === 'submissions'"
               ref="submissionsTabRef"
               :active-exam="activeExam"

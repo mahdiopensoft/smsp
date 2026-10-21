@@ -139,15 +139,6 @@
             نقل للطباعة ({{ filteredStreamStudents.length || 1 }} ورقة)
           </v-btn>
 
-          <custom-btn
-            type="print"
-            label="طباعة الفردية"
-            color="primary"
-            variant="tonal"
-            class="font-weight-bold"
-            :click="printSingleSheet"
-          />
-
           <!-- Quick Actions Menu -->
           <v-menu location="bottom end">
             <template #activator="{ props: mProps }">
@@ -438,19 +429,9 @@
                   | سري: <strong class="font-mono">{{ st.secret_number }}</strong>
                 </span>
               </div>
-              <div class="d-flex align-center gap-2">
-                <v-chip size="small" color="primary" variant="tonal" class="font-weight-black font-mono">
-                  ورقة {{ getRealStudentIndex(sIndex) }} من {{ filteredStreamStudents.length }}
-                </v-chip>
-                <v-btn
-                  icon="mdi-printer"
-                  size="x-small"
-                  variant="text"
-                  color="primary"
-                  title="طباعة هذه الورقة مباشرة"
-                  @click.stop="printSingleSheet"
-                />
-              </div>
+              <v-chip size="small" color="primary" variant="tonal" class="font-weight-black font-mono">
+                ورقة {{ getRealStudentIndex(sIndex) }} من {{ filteredStreamStudents.length }}
+              </v-chip>
             </div>
 
             <!-- Sheet Content Wrapper with Even Paper Margins -->
