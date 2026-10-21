@@ -58,7 +58,8 @@
         <!-- Search Query Input -->
         <v-col cols="12" sm="6" md="3">
           <v-text-field
-            v-model="searchQuery"
+            v-model="_searchInput"
+            @update:model-value="onSearchInput"
             label="اسم الاختبار أو الرمز"
             placeholder="بحث باسم الاختبار أو رمزه (Code)..."
             prepend-inner-icon="mdi-magnify"
@@ -499,7 +500,7 @@
               <div
                 class="exam-hub-nav-item"
                 :class="{ 'is-active': hubActiveTab === 'questions' }"
-                @click="hubActiveTab = 'questions'"
+                @click="hubActiveTab = 'questions'; visitedTabs.add('questions')"
                 role="button"
                 tabindex="0"
               >
@@ -516,7 +517,7 @@
               <div
                 class="exam-hub-nav-item"
                 :class="{ 'is-active': hubActiveTab === 'template' }"
-                @click="hubActiveTab = 'template'"
+                @click="hubActiveTab = 'template'; visitedTabs.add('template')"
                 role="button"
                 tabindex="0"
               >
@@ -527,7 +528,7 @@
               <div
                 class="exam-hub-nav-item"
                 :class="{ 'is-active': hubActiveTab === 'roster' }"
-                @click="hubActiveTab = 'roster'"
+                @click="hubActiveTab = 'roster'; visitedTabs.add('roster')"
                 role="button"
                 tabindex="0"
               >
@@ -544,7 +545,7 @@
               <div
                 class="exam-hub-nav-item"
                 :class="{ 'is-active': hubActiveTab === 'keys' }"
-                @click="hubActiveTab = 'keys'"
+                @click="hubActiveTab = 'keys'; visitedTabs.add('keys')"
                 role="button"
                 tabindex="0"
               >
@@ -561,7 +562,7 @@
               <div
                 class="exam-hub-nav-item"
                 :class="{ 'is-active': hubActiveTab === 'submissions' }"
-                @click="hubActiveTab = 'submissions'"
+                @click="hubActiveTab = 'submissions'; visitedTabs.add('submissions')"
                 role="button"
                 tabindex="0"
               >
@@ -594,7 +595,7 @@
               v-model:active-version-tab="activeVersionTab"
               :selected-sheet-layout="bubbleSheetTabRef?.selectedSheetLayout || 'compact_a5'"
               :get-omr-element="() => bubbleSheetTabRef?.getPrintableElement()"
-              @switch-tab="(tab) => hubActiveTab = tab"
+              @switch-tab="(tab) => { hubActiveTab = tab; visitedTabs.add(tab) }"
               @seed-students="seedSampleStudents"
             />
 
@@ -611,9 +612,9 @@
               @refresh-details="() => fetchExamHubDetails(activeExam)"
             />
 
-            <!-- TAB 3: كشف الطلاب والبيانات الامتحانية (lazy: يُنشأ عند أول فتح فقط) -->
+            <!-- TAB 3: كشف الطلاب (lazy mount — only when first visited) -->
             <ExamStudentsRosterTab
-              v-if="hubActiveTab === 'roster' || rosterTabRef"
+              v-if="visitedTabs.has('roster')"
               v-show="hubActiveTab === 'roster'"
               ref="rosterTabRef"
               :active-exam="activeExam"
@@ -625,9 +626,9 @@
               @seed-students="seedSampleStudents"
             />
 
-            <!-- TAB 4: النماذج ومفاتيح الحل (lazy: يُنشأ عند أول فتح فقط) -->
+            <!-- TAB 4: مفاتيح الحل (lazy mount — only when first visited) -->
             <ExamAnswerKeysTab
-              v-if="hubActiveTab === 'keys' || answerKeysTabRef"
+              v-if="visitedTabs.has('keys')"
               v-show="hubActiveTab === 'keys'"
               ref="answerKeysTabRef"
               :active-exam="activeExam"
@@ -639,9 +640,9 @@
               @start-grading="(code) => startGradingExam(activeExam, code)"
             />
 
-            <!-- TAB 5: أوراق الإجابة المصححة (lazy: يُنشأ عند أول فتح فقط) -->
+            <!-- TAB 5: أوراق الإجابة المصححة (lazy mount — only when first visited) -->
             <ExamSubmissionsTab
-              v-if="hubActiveTab === 'submissions' || submissionsTabRef"
+              v-if="visitedTabs.has('submissions')"
               v-show="hubActiveTab === 'submissions'"
               ref="submissionsTabRef"
               :active-exam="activeExam"
@@ -692,8 +693,17 @@ const router = useRouter()
 const route = useRoute()
 
 const loading = ref(false)
+// Track visited tabs for lazy mounting — tabs only mount when first visited
+const visitedTabs = ref(new Set(['questions', 'template']))
 const exams = ref([])
 const searchQuery = ref('')
+const _searchInput = ref('')
+let _searchDebounceTimer = null
+const onSearchInput = (val) => {
+  _searchInput.value = val
+  if (_searchDebounceTimer) clearTimeout(_searchDebounceTimer)
+  _searchDebounceTimer = setTimeout(() => { searchQuery.value = val }, 300)
+}
 const filterInstitutionType = ref('all')
 const filterStage = ref(null)
 const filterClassTrack = ref(null)
@@ -946,6 +956,7 @@ const openExamHub = async (exam, tab = 'questions') => {
   detailsDialog.value = true
   loadingDetails.value = true
   hubActiveTab.value = tab
+  visitedTabs.value.add(tab)
   activeVersionTab.value = 0
 
   try {

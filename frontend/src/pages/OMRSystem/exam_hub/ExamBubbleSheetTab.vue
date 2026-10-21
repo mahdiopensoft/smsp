@@ -514,6 +514,7 @@
           <YemeniMinistrySheet
             v-else
             :key="`compact-sheet-${activeSheetStudent?.id || selectedBlankVersionCode}`"
+            v-memo="[activeSheetStudent?.id, selectedBlankVersionCode, activeSheetModelCode, customCenterName, customGovernorate, customDirectorate, customStageTitle, customExamYear, activeModelQuestionsCount]"
             layout-mode="compact_a5"
             :student-name="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_name || '................................') : '................................'"
             :seat-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.seat_number || '................') : '................'"
@@ -605,7 +606,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, shallowRef } from 'vue'
 import api from '@/services/omr/client.js'
 import YemeniMinistrySheet from '@/components/omr_templates/YemeniMinistrySheet.vue'
 import YemeniAuditReportSheet from '@/components/omr_templates/YemeniAuditReportSheet.vue'
@@ -657,7 +658,7 @@ const customStageTitle = ref('')
 const showAdjustmentsPanel = ref(false)
 const batchPrintNotification = ref({ show: false, message: '', color: 'info' })
 
-const sheetZoomLevel = ref(0.78)
+const sheetZoomLevel = ref(0.72) // Slightly smaller default = faster render on slow devices
 
 const isA4 = computed(() => selectedSheetLayout.value === 'full_a4')
 const sheetArtboardStyle = computed(() => {

@@ -241,6 +241,18 @@
           <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold" prepend-icon="mdi-check-decagram-outline">
             معتمد للطباعة
           </v-chip>
+          <v-btn
+            size="small"
+            variant="tonal"
+            color="primary"
+            rounded="lg"
+            class="font-weight-bold"
+            prepend-icon="mdi-tune-vertical"
+            :to="`/omr-template-builder?examId=${selectedExam.id}&mode=designer`"
+            title="تخصيص وضبط القالب الهندسي في المصمم"
+          >
+            تخصيص القالب
+          </v-btn>
         </div>
       </div>
 

@@ -42,6 +42,17 @@
 
         <template v-if="pageMode === 'designer'">
           <v-btn
+            variant="tonal"
+            color="primary"
+            rounded="lg"
+            class="font-weight-bold"
+            prepend-icon="mdi-database-import-outline"
+            @click="openImportExamModal"
+          >
+            استيراد من اختبار
+          </v-btn>
+
+          <v-btn
             variant="outlined"
             rounded="lg"
             class="font-weight-bold"
@@ -419,6 +430,68 @@
       @save="confirmSaveTemplate"
     />
 
+    <!-- ── Import Exam Modal ─────────────────────────────────────── -->
+    <v-dialog v-model="showImportExamModal" max-width="600">
+      <v-card class="pa-6 rounded-2xl">
+        <div class="d-flex align-center justify-space-between mb-4 pb-2 border-b">
+          <div class="d-flex align-center gap-2">
+            <v-avatar color="primary" variant="tonal" size="36" rounded="lg">
+              <v-icon color="primary" size="20">mdi-database-import-outline</v-icon>
+            </v-avatar>
+            <h3 class="text-h6 font-weight-black mb-0">استيراد مواصفات اختبار وبناء القالب آلياً</h3>
+          </div>
+          <v-btn icon size="small" variant="text" @click="showImportExamModal = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </div>
+
+        <p class="text-caption text-medium-emphasis mb-4">
+          اختر أحد الاختبارات المعتمدة من بنك الأسئلة ليتم استيراد ترويسته، عدد أسئلته، أقسامه، ونماذجه تلقائياً في المصمم.
+        </p>
+
+        <v-autocomplete
+          v-model="selectedExamToImport"
+          :items="availableExamsList"
+          item-title="title"
+          item-value="id"
+          label="اختر الاختبار المراد استيراد مواصفاته *"
+          placeholder="ابحث باسم الاختبار أو رمزه أو المادة..."
+          variant="outlined"
+          density="comfortable"
+          rounded="lg"
+          clearable
+          :loading="loadingExamsList"
+          class="mb-3"
+        >
+          <template #item="{ props, item }">
+            <v-list-item
+              v-bind="props"
+              :subtitle="`${item.raw.subject_name || ''} • ${item.raw.uniqueCode || ''} • ${item.raw.total_questions || 50} سؤال`"
+            >
+              <template #prepend>
+                <v-icon color="primary" size="20">mdi-file-document-outline</v-icon>
+              </template>
+            </v-list-item>
+          </template>
+        </v-autocomplete>
+
+        <div class="d-flex justify-end gap-2 mt-4">
+          <v-btn variant="text" rounded="lg" class="font-weight-bold" @click="showImportExamModal = false">
+            إلغاء
+          </v-btn>
+          <v-btn
+            color="primary"
+            rounded="lg"
+            class="font-weight-bold px-6"
+            :disabled="!selectedExamToImport"
+            @click="confirmImportExam"
+          >
+            استيراد وتوليد القالب
+          </v-btn>
+        </div>
+      </v-card>
+    </v-dialog>
+
     <!-- ── Notification Snackbar ─────────────────────────────────── -->
     <v-snackbar
       v-model="showToast"
@@ -542,6 +615,36 @@ function notify(msg: string, type: 'success' | 'error' = 'success') {
   toastMsg.value = msg
   toastType.value = type
   showToast.value = true
+}
+
+// ── Import Exam Modal State & Actions ───────────────────────────
+const showImportExamModal = ref(false)
+const availableExamsList = ref<any[]>([])
+const loadingExamsList = ref(false)
+const selectedExamToImport = ref<number | null>(null)
+
+async function openImportExamModal() {
+  showImportExamModal.value = true
+  if (availableExamsList.value.length === 0) {
+    loadingExamsList.value = true
+    try {
+      const resp = await api.get('/api/omr/exam-linking/')
+      if (resp.data?.results) {
+        availableExamsList.value = resp.data.results
+      }
+    } catch (err) {
+      console.error('Failed to load exams for import:', err)
+    } finally {
+      loadingExamsList.value = false
+    }
+  }
+}
+
+function confirmImportExam() {
+  if (!selectedExamToImport.value) return
+  const examId = selectedExamToImport.value
+  showImportExamModal.value = false
+  loadExamIntoDesigner(examId)
 }
 
 // ── Default Yemeni Ministry Configuration (50 questions hybrid) ─
@@ -731,7 +834,7 @@ function openPreviewModal(t: any) {
 
 function goToScannerWithTemplate(id: number | string) {
   showPreviewModal.value = false
-  router.push({ path: '/omr-scanner', query: { templateId: id } })
+  router.push({ path: '/omr-scanner-lab', query: { templateId: id } })
 }
 
 function duplicateTemplate(t: any) {
