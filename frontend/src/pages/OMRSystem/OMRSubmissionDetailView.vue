@@ -370,107 +370,142 @@
               </v-btn-toggle>
             </div>
 
-            <v-table class="border rounded-xl questions-table overflow-hidden">
-              <thead>
-                <tr class="bg-slate-50">
-                  <th class="pa-3 font-weight-black text-center" style="width: 75px;">السؤال</th>
-                  <th class="pa-3 font-weight-black text-center">إجابة الطالب</th>
-                  <th class="pa-3 font-weight-black text-center">الإجابة النموذجية</th>
-                  <th class="pa-3 font-weight-black text-center" style="width: 85px;">الدرجة</th>
-                  <th class="pa-3 font-weight-black text-center">مقتطفات الذكاء الاصطناعي (AI Crops)</th>
-                  <th class="pa-3 font-weight-black text-center" style="width: 75px;">الثقة</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="q in filteredQuestions"
-                  :key="'detail-q-' + q.question_id"
-                  :class="{ 'table-row-hovered': hoveredQ === q.question_id }"
-                  class="question-row"
-                  @mouseenter="hoveredQ = q.question_id"
-                  @mouseleave="hoveredQ = null"
-                >
-                  <td class="pa-3 text-center">
-                    <div class="font-weight-black text-body-2 text-slate-800">سـ {{ q.question_id }}</div>
-                    <div class="text-caption text-medium-emphasis" style="font-size: 10px;">
-                      {{ isTrueFalseQ(q) ? 'صح/خطأ' : 'خيارات' }}
-                    </div>
-                  </td>
-                  <td class="pa-3 text-center">
-                    <v-chip
-                      size="small"
-                      rounded="md"
-                      :color="!q.marked_choice ? 'grey-lighten-4' : q.is_correct ? 'success' : 'error'"
-                      :variant="!q.marked_choice ? 'flat' : 'tonal'"
-                      class="font-weight-bold"
+            <div class="main-card rounded-2xl overflow-hidden">
+              <custom-data-table
+                v-bind="{
+                  items: questionsTableItems,
+                  getData: getQuestionsData,
+                  headers: questionHeaders,
+                }"
+                :customLoading="loading"
+                :hasFilter="false"
+                :log="false"
+                :restore="false"
+                :numbering="false"
+                :showSelect="false"
+                :actions="false"
+                class="bg-transparent"
+              >
+                <template v-slot:item-slot="{ item, key }">
+                  <!-- رقم السؤال -->
+                  <template v-if="key === 'question_id'">
+                    <div
+                      class="text-center py-1 cursor-pointer"
+                      @mouseenter="hoveredQ = item.question_id"
+                      @mouseleave="hoveredQ = null"
                     >
-                      <v-icon start size="13" :color="!q.marked_choice ? 'grey-darken-1' : ''">
-                        {{ !q.marked_choice ? 'mdi-circle-outline' : q.is_correct ? 'mdi-check' : 'mdi-close' }}
-                      </v-icon>
-                      <span :class="!q.marked_choice ? 'text-grey-darken-2' : ''">
-                        {{ q.marked_choice ? formatChoiceLabel(q.marked_choice, q) : 'بدون إجابة (فارغ)' }}
+                      <span class="font-weight-black text-body-2 text-primary bg-blue-lighten-5 px-3 py-1 rounded-pill border">
+                        سـ {{ item.question_id }}
                       </span>
-                    </v-chip>
-                  </td>
-                  <td class="pa-3 text-center">
-                    <v-chip
-                      size="small"
-                      rounded="md"
-                      color="teal"
-                      variant="tonal"
-                      class="font-weight-bold"
-                    >
-                      <v-icon start size="13">mdi-check-decagram-outline</v-icon>
-                      {{ formatChoiceLabel(q.correct_choice, q) }}
-                    </v-chip>
-                  </td>
-                  <td class="pa-3 text-center">
-                    <div class="font-weight-black text-body-2" :class="Number(q.marks_awarded) > 0 ? 'text-success' : 'text-medium-emphasis'">
-                      {{ q.marks_awarded != null ? Number(q.marks_awarded).toFixed(1).replace('.0', '') : '0' }} / {{ q.max_mark || 1 }}
                     </div>
-                  </td>
-                  <!-- AI Crops: أين نظر الذكاء الاصطناعي ومقتطف الدوائر -->
-                  <td class="pa-3 text-center">
-                    <div v-if="q.choice_crops && Object.keys(q.choice_crops).length" class="d-flex align-center justify-center gap-2 flex-wrap">
+                  </template>
+
+                  <!-- نوع السؤال -->
+                  <template v-else-if="key === 'question_type'">
+                    <div class="text-center">
+                      <v-chip
+                        size="small"
+                        variant="tonal"
+                        :color="isTrueFalseQ(item) ? 'teal' : 'indigo'"
+                        class="font-weight-bold px-2.5"
+                      >
+                        <v-icon start size="13">{{ isTrueFalseQ(item) ? 'mdi-check-all' : 'mdi-format-list-bulleted' }}</v-icon>
+                        {{ isTrueFalseQ(item) ? 'صح/خطأ' : 'خيارات' }}
+                      </v-chip>
+                    </div>
+                  </template>
+
+                  <!-- إجابة الطالب (تظليل الطالب) -->
+                  <template v-else-if="key === 'student_answer'">
+                    <div class="text-center">
+                      <v-chip
+                        size="small"
+                        :color="!item.marked_choice ? 'grey-darken-1' : item.is_correct ? 'success' : 'error'"
+                        variant="tonal"
+                        class="font-weight-bold px-3"
+                      >
+                        <v-icon start size="13">
+                          {{ !item.marked_choice ? 'mdi-circle-outline' : item.is_correct ? 'mdi-check-circle' : 'mdi-close-circle' }}
+                        </v-icon>
+                        {{ item.marked_choice ? formatChoiceLabel(item.marked_choice, item) : 'بدون إجابة (فارغ)' }}
+                      </v-chip>
+                    </div>
+                  </template>
+
+                  <!-- الإجابة النموذجية -->
+                  <template v-else-if="key === 'correct_answer'">
+                    <div class="text-center">
+                      <v-chip
+                        size="small"
+                        color="teal"
+                        variant="tonal"
+                        class="font-weight-black px-3 border"
+                      >
+                        <v-icon start size="13" color="teal">mdi-check-decagram-outline</v-icon>
+                        {{ formatChoiceLabel(item.correct_choice, item) }}
+                      </v-chip>
+                    </div>
+                  </template>
+
+                  <!-- الدرجة -->
+                  <template v-else-if="key === 'score'">
+                    <div class="text-center font-weight-black text-body-2" :class="Number(item.marks_awarded) > 0 ? 'text-success' : 'text-medium-emphasis'">
+                      {{ item.marks_awarded != null ? Number(item.marks_awarded).toFixed(1).replace('.0', '') : '0' }} / {{ item.max_mark || 1 }}
+                    </div>
+                  </template>
+
+                  <!-- مقتطفات الذكاء الاصطناعي (AI Crops) -->
+                  <template v-else-if="key === 'ai_crops'">
+                    <div v-if="item.choice_crops && Object.keys(item.choice_crops).length" class="d-flex align-center justify-center gap-1.5 flex-wrap py-1">
                       <div
-                        v-for="(cropImg, choiceKey) in q.choice_crops"
+                        v-for="(cropImg, choiceKey) in item.choice_crops"
                         :key="choiceKey"
-                        class="ai-crop-card pa-1 text-center"
-                        :class="q.ai_results && q.ai_results[choiceKey] === 'filled' ? 'crop-filled' : 'crop-empty'"
+                        class="ai-crop-card pa-1 text-center cursor-pointer"
+                        :class="item.ai_results && item.ai_results[choiceKey] === 'filled' ? 'crop-filled' : 'crop-empty'"
                         title="انقر لتكبير مقتطف الدائرة وفحص قرار الذكاء الاصطناعي"
-                        @click="openCropDialog(q, choiceKey, cropImg)"
+                        @click.stop="openCropDialog(item, choiceKey, cropImg)"
                       >
                         <div class="crop-img-wrapper mb-1">
                           <img :src="cropImg" class="crop-thumbnail" />
                         </div>
                         <div class="crop-label font-weight-black">{{ choiceKey }}</div>
-                        <div class="crop-verdict" :class="q.ai_results && q.ai_results[choiceKey] === 'filled' ? 'verdict-filled' : 'verdict-empty'">
-                          {{ q.ai_results && q.ai_results[choiceKey] === 'filled' ? 'مظلل' : 'فارغ' }}
+                        <div class="crop-verdict" :class="item.ai_results && item.ai_results[choiceKey] === 'filled' ? 'verdict-filled' : 'verdict-empty'">
+                          {{ item.ai_results && item.ai_results[choiceKey] === 'filled' ? 'مظلل' : 'فارغ' }}
                         </div>
                       </div>
                     </div>
-                    <span v-else class="text-caption text-grey">غير متاح</span>
-                  </td>
-                  <td class="pa-3 text-center">
-                    <v-chip
-                      size="x-small"
-                      :color="(q.final_confidence || 1) >= 0.9 ? 'success' : 'warning'"
-                      variant="tonal"
-                      class="font-weight-bold"
-                    >
-                      <v-icon start size="11">mdi-brain</v-icon>
-                      {{ ((q.final_confidence || 1) * 100).toFixed(0) }}%
-                    </v-chip>
-                  </td>
-                </tr>
+                    <div v-else-if="item.choices && item.choices.length" class="d-flex align-center justify-center gap-1 flex-wrap py-1">
+                      <v-chip
+                        v-for="choice in item.choices"
+                        :key="choice"
+                        size="x-small"
+                        :color="item.marked_choice === choice ? (item.is_correct ? 'success' : 'error') : 'grey-lighten-2'"
+                        :variant="item.marked_choice === choice ? 'flat' : 'outlined'"
+                        class="font-weight-bold px-1.5"
+                      >
+                        {{ choice }}: {{ item.marked_choice === choice ? 'مظلل' : 'فارغ' }}
+                      </v-chip>
+                    </div>
+                    <span v-else class="text-caption text-medium-emphasis">غير متاح</span>
+                  </template>
 
-                <tr v-if="filteredQuestions.length === 0">
-                  <td colspan="6" class="text-center pa-6 text-medium-emphasis text-caption">
-                    لا توجد أسئلة تطابق الفلتر المحدد
-                  </td>
-                </tr>
-              </tbody>
-            </v-table>
+                  <!-- الثقة -->
+                  <template v-else-if="key === 'confidence'">
+                    <div class="text-center">
+                      <v-chip
+                        size="x-small"
+                        :color="(item.final_confidence || 1) >= 0.9 ? 'success' : 'warning'"
+                        variant="tonal"
+                        class="font-weight-bold"
+                      >
+                        <v-icon start size="11">mdi-brain</v-icon>
+                        {{ ((item.final_confidence || 1) * 100).toFixed(0) }}%
+                      </v-chip>
+                    </div>
+                  </template>
+                </template>
+              </custom-data-table>
+            </div>
           </v-card>
         </v-col>
       </v-row>
@@ -617,10 +652,35 @@ export default {
         essay_score: 0,
         status: 'completed',
       },
+
+      questionHeaders: [
+        { title: "رقم السؤال", key: "question_id", sortable: true, align: "center", width: "95px" },
+        { title: "نوع السؤال", key: "question_type", sortable: true, align: "center", width: "110px" },
+        { title: "تظليل الطالب", key: "student_answer", sortable: true, align: "center", width: "135px" },
+        { title: "الإجابة النموذجية", key: "correct_answer", sortable: true, align: "center", width: "135px" },
+        { title: "الدرجة", key: "score", sortable: true, align: "center", width: "85px" },
+        { title: "مقتطفات الذكاء الاصطناعي (AI Crops)", key: "ai_crops", sortable: false, align: "center", width: "210px" },
+        { title: "نسبة الثقة", key: "confidence", sortable: true, align: "center", width: "95px" },
+      ],
     }
   },
 
   computed: {
+    questionsTableItems() {
+      const qs = this.filteredQuestions.map(q => this.enrichQuestion(q))
+      return {
+        results: qs,
+        count: qs.length,
+        pagination: {
+          count: qs.length,
+          total: qs.length,
+          page_size: 10,
+          num_pages: Math.ceil(qs.length / 10) || 1,
+          current_page: 1,
+        },
+      }
+    },
+
     mcqQuestions() {
       if (Array.isArray(this.submission?.omr_result)) {
         return this.submission.omr_result
@@ -867,6 +927,21 @@ export default {
       } finally {
         this.reprocessing = false
       }
+    },
+
+    enrichQuestion(q) {
+      if (!q) return q
+      const isTF = this.isTrueFalseQ(q)
+      q.question_type = isTF ? 'صح وخطأ' : 'اختيار متعدد'
+      q.student_answer = q.marked_choice ? this.formatChoiceLabel(q.marked_choice, q) : 'بدون إجابة (فارغ)'
+      q.correct_answer = q.correct_choice ? this.formatChoiceLabel(q.correct_choice, q) : 'لم تُحدد'
+      q.score = `${q.marks_awarded != null ? Number(q.marks_awarded).toFixed(1).replace('.0', '') : '0'} / ${q.max_mark || 1}`
+      q.confidence = `${((q.final_confidence || 1) * 100).toFixed(0)}%`
+      return q
+    },
+
+    getQuestionsData() {
+      return this.questionsTableItems
     },
   },
 
