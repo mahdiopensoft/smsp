@@ -37,27 +37,21 @@
             </v-btn>
           </v-btn-toggle>
 
-          <!-- Model Filter when all_students is active -->
-          <v-btn-toggle
-            v-if="sheetGenerationMode === 'all_students'"
-            v-model="filterStreamModelCode"
-            density="compact"
-            color="primary"
-            variant="outlined"
-            rounded="lg"
-          >
-            <v-btn value="all" class="font-weight-bold px-3">
-              كل النماذج ({{ examDetails?.registered_students?.length || 0 }})
-            </v-btn>
-            <v-btn
-              v-for="v in (examDetails?.versions || [])"
-              :key="`stream-filter-v-${v.versionCode}`"
-              :value="v.versionCode"
-              class="font-weight-bold px-3"
-            >
-              النموذج {{ v.versionCode }}
-            </v-btn>
-          </v-btn-toggle>
+          <!-- Model Filter Dropdown when all_students is active (يدعم أي عدد من النماذج دون تشتت) -->
+          <div v-if="sheetGenerationMode === 'all_students'" style="min-width: 170px; max-width: 220px;">
+            <v-select
+              v-model="filterStreamModelCode"
+              :items="modelFilterSelectOptions"
+              item-title="title"
+              item-value="value"
+              density="compact"
+              variant="outlined"
+              rounded="lg"
+              hide-details
+              prepend-inner-icon="mdi-layers-outline"
+              label="تصفية النموذج"
+            />
+          </div>
 
           <!-- School/Institute/College Filter Dropdown (Active in all_students and student modes) -->
           <div v-if="sheetGenerationMode !== 'blank'" style="min-width: 220px; max-width: 320px;" class="flex-grow-1">
@@ -708,6 +702,17 @@ const sheetArtboardRef = ref(null)
 const batchStreamRef = ref(null)
 const printingBatch = ref(false)
 const filterStreamModelCode = ref('all')
+
+const modelFilterSelectOptions = computed(() => {
+  const total = props.examDetails?.registered_students?.length || 0
+  const list = [
+    { title: `كل النماذج (${total})`, value: 'all' }
+  ]
+  ;(props.examDetails?.versions || []).forEach(v => {
+    list.push({ title: `النموذج ${v.versionCode}`, value: v.versionCode })
+  })
+  return list
+})
 
 // ─── Pagination Controls for High Performance ───
 const currentPage = ref(1)

@@ -60,39 +60,25 @@
         </div>
       </v-alert>
 
-      <!-- VERIFIED & COMPLETE STATE: يظهر شريط أخضر يؤكد اكتمال كل العناصر والربط بالأرشيف -->
+      <!-- VERIFIED & COMPLETE STATE: شريط هادئ ورسمي بدون زحام أو ألوان متضاربة -->
       <div
         v-else
-        class="bg-green-lighten-5 border border-success rounded-2xl px-4 py-2 d-flex align-center justify-space-between flex-wrap gap-2"
+        class="bg-white border rounded-xl px-4 py-2.5 d-flex align-center justify-space-between flex-wrap gap-2 text-caption elevation-1"
       >
         <div class="d-flex align-center gap-2 flex-wrap">
-          <v-icon color="success" size="20">mdi-check-decagram</v-icon>
-          <span class="text-body-2 font-weight-black text-success-darken-3">
-            كافة بيانات الاختبار مكتملة 100% ومرتبطة بالأرشيف
+          <v-icon color="success" size="18">mdi-check-decagram-outline</v-icon>
+          <span class="font-weight-bold text-success-darken-2">بيانات الاختبار معتمدة ومكتملة:</span>
+          <span class="text-medium-emphasis">
+            {{ examDetails?.versions?.length || 1 }} نماذج •
+            {{ currentVersionObj?.questions?.length || 0 }} سؤالاً بالنموذج •
+            {{ totalRegisteredCount }} طالب مسجل
+            <template v-if="uniqueSchoolsCount"> • {{ uniqueSchoolsCount }} {{ labels.pluralEntities }}</template>
+            <template v-if="effectiveGovernorate"> • {{ effectiveGovernorate }}</template>
           </span>
-          <span class="text-caption text-medium-emphasis">|</span>
-          <div class="d-flex align-center gap-1 flex-wrap">
-            <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold" prepend-icon="mdi-layers-triple">
-              {{ examDetails?.versions?.length || 4 }} نماذج موزعة
-            </v-chip>
-            <v-chip size="x-small" color="indigo" variant="tonal" class="font-weight-bold" prepend-icon="mdi-help-circle-outline">
-              {{ currentVersionObj?.questions?.length || 50 }} سؤالاً بالنموذج
-            </v-chip>
-            <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold" prepend-icon="mdi-account-group">
-              {{ totalRegisteredCount }} طالب مسجل
-            </v-chip>
-            <v-chip size="x-small" color="teal" variant="tonal" class="font-weight-bold" prepend-icon="mdi-domain">
-              {{ uniqueSchoolsCount }} {{ labels.pluralEntities }}
-            </v-chip>
-            <v-chip v-if="effectiveGovernorate || effectiveDirectorate" size="x-small" color="purple" variant="tonal" class="font-weight-bold" prepend-icon="mdi-map-marker">
-              {{ effectiveGovernorate }}{{ effectiveDirectorate ? ' - ' + effectiveDirectorate : '' }}
-            </v-chip>
-          </div>
         </div>
-        <div class="text-caption font-weight-bold text-success-darken-2 d-flex align-center gap-1">
-          <v-icon size="14" color="success">mdi-shield-check</v-icon>
+        <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold" prepend-icon="mdi-shield-check">
           جاهز للطباعة والتصحيح
-        </div>
+        </v-chip>
       </div>
     </div>
 
@@ -226,30 +212,21 @@
             </v-autocomplete>
           </div>
 
-          <!-- Version Tab Toggle -->
-          <div class="d-flex align-center gap-1">
-            <div class="text-caption font-weight-black text-primary d-flex align-center gap-1">
-              <v-icon size="16">mdi-format-list-bulleted-type</v-icon>
-              النموذج:
-            </div>
-            <v-btn-toggle
+          <!-- Version Dropdown Selector (يدعم من نموذج واحد حتى 50 نموذج بسلاسة فائقة وبدون ازدحام) -->
+          <div style="min-width: 200px; max-width: 250px;">
+            <v-select
               :model-value="activeVersionTab"
-              mandatory
+              :items="versionSelectItems"
+              item-title="title"
+              item-value="value"
               density="compact"
-              color="primary"
               variant="outlined"
               rounded="lg"
+              hide-details
+              prepend-inner-icon="mdi-format-list-bulleted-type"
+              label="النموذج المعروض"
               @update:model-value="(val) => $emit('update:activeVersionTab', val)"
-            >
-              <v-btn
-                v-for="(v, idx) in (examDetails?.versions || [])"
-                :key="`tab-qp-${v.id || idx}`"
-                :value="idx"
-                class="font-weight-bold px-3"
-              >
-                النموذج {{ v.versionCode }} ({{ v.questions?.length || v.questionsCount || 0 }} سؤال)
-              </v-btn>
-            </v-btn-toggle>
+            />
           </div>
 
           <!-- Paper Layout Toggle (A4 vs A3) -->
@@ -341,7 +318,7 @@
           </v-btn>
         </div>
 
-        <div class="overflow-auto bg-grey-lighten-4 pa-4 rounded-xl d-flex justify-center" style="max-height: 80vh;">
+        <div v-if="showQuestionPaperDialog" class="overflow-auto bg-grey-lighten-4 pa-4 rounded-xl d-flex justify-center" style="max-height: 80vh;">
           <YemeniOfficialQuestionPaper
             :exam-title="activeExam?.title || ''"
             :exam-subject="activeExam?.subject_name || ''"
@@ -684,6 +661,14 @@ const effectiveEnvelopeNo = computed(() => {
 const currentVersionObj = computed(() => {
   if (!props.examDetails?.versions?.length) return null
   return props.examDetails.versions[props.activeVersionTab] || props.examDetails.versions[0]
+})
+
+const versionSelectItems = computed(() => {
+  if (!props.examDetails?.versions?.length) return []
+  return props.examDetails.versions.map((v, idx) => ({
+    title: `النموذج ${v.versionCode} (${v.questions?.length || v.questionsCount || 0} سؤال)`,
+    value: idx
+  }))
 })
 
 const printQuestionsAndSheets = async (mode = 'package') => {

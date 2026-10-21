@@ -388,27 +388,21 @@
                 </v-btn>
               </v-btn-toggle>
 
-              <!-- Model Filter when all_students is active -->
-              <v-btn-toggle
-                v-if="sheetGenerationMode === 'all_students'"
-                v-model="filterStreamModelCode"
-                density="compact"
-                color="primary"
-                variant="outlined"
-                rounded="lg"
-              >
-                <v-btn value="all" class="font-weight-bold px-3">
-                  كل النماذج ({{ examDetails.registered_students?.length || 0 }})
-                </v-btn>
-                <v-btn
-                  v-for="v in (examDetails.versions || [])"
-                  :key="`reg-filter-v-${v.versionCode}`"
-                  :value="v.versionCode"
-                  class="font-weight-bold px-3"
-                >
-                  النموذج {{ v.versionCode }}
-                </v-btn>
-              </v-btn-toggle>
+              <!-- Model Filter Dropdown when all_students is active (يدعم أي عدد من النماذج بسلاسة) -->
+              <div v-if="sheetGenerationMode === 'all_students'" style="min-width: 170px; max-width: 220px;">
+                <v-select
+                  v-model="filterStreamModelCode"
+                  :items="modelFilterSelectOptions"
+                  item-title="title"
+                  item-value="value"
+                  density="compact"
+                  variant="outlined"
+                  rounded="lg"
+                  hide-details
+                  prepend-inner-icon="mdi-layers-outline"
+                  label="تصفية النموذج"
+                />
+              </div>
 
               <!-- Student Picker if single student mode -->
               <div v-if="sheetGenerationMode === 'student'" style="min-width: 260px; max-width: 360px;" class="flex-grow-1">
@@ -640,23 +634,20 @@
                 <v-icon size="18">mdi-format-list-bulleted-type</v-icon>
                 اختيار النموذج:
               </div>
-              <v-btn-toggle
-                v-model="selectedQuestionsModelCode"
-                mandatory
-                density="compact"
-                color="primary"
-                variant="outlined"
-                rounded="lg"
-              >
-                <v-btn
-                  v-for="v in (examDetails.versions || [])"
-                  :key="`qp-ver-${v.versionCode}`"
-                  :value="v.versionCode"
-                  class="font-weight-bold px-3"
-                >
-                  النموذج {{ v.versionCode }} ({{ v.questions?.length || v.questionsCount || 0 }} سؤال)
-                </v-btn>
-              </v-btn-toggle>
+              <div style="min-width: 200px; max-width: 260px;">
+                <v-select
+                  v-model="selectedQuestionsModelCode"
+                  :items="questionsModelSelectOptions"
+                  item-title="title"
+                  item-value="value"
+                  density="compact"
+                  variant="outlined"
+                  rounded="lg"
+                  hide-details
+                  prepend-inner-icon="mdi-format-list-bulleted-type"
+                  label="النموذج المعروض"
+                />
+              </div>
 
               <v-btn-toggle
                 v-model="selectedQuestionPaperLayout"
@@ -1430,6 +1421,25 @@ const versionCodeOptions = computed(() => {
   return ['A', 'B', 'C', 'D']
 })
 
+const modelFilterSelectOptions = computed(() => {
+  const total = examDetails.value?.registered_students?.length || 0
+  const list = [
+    { title: `كل النماذج (${total})`, value: 'all' }
+  ]
+  ;(examDetails.value?.versions || []).forEach(v => {
+    list.push({ title: `النموذج ${v.versionCode}`, value: v.versionCode })
+  })
+  return list
+})
+
+const questionsModelSelectOptions = computed(() => {
+  if (!examDetails.value?.versions?.length) return []
+  return examDetails.value.versions.map(v => ({
+    title: `النموذج ${v.versionCode} (${v.questions?.length || v.questionsCount || 0} سؤال)`,
+    value: v.versionCode
+  }))
+})
+
 const activeSheetStudent = computed(() => {
   if (!examDetails.value?.registered_students) return null
   if (selectedStudentId.value) {
@@ -1928,7 +1938,11 @@ onMounted(async () => {
   if (qExam) {
     selectedExamId.value = Number(qExam)
     await loadExamDetails(selectedExamId.value)
-    activeTab.value = 'sheets'
+    if (route.query.tab && ['sheets', 'questions', 'package', 'history'].includes(route.query.tab)) {
+      activeTab.value = route.query.tab
+    } else {
+      activeTab.value = 'sheets'
+    }
     const title = selectedExam.value?.title || examDetails.value?.exam?.title || 'الاختبار'
     batchPrintNotification.value = {
       show: true,
