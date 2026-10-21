@@ -290,36 +290,70 @@
       </v-row>
     </filter-fields>
 
-    <!-- ── Selected Exam Banner & Actions Bar ──────────────────────── -->
-    <v-card v-if="selectedExamObj" class="main-card pa-4 rounded-2xl mb-6 elevation-1 border">
-      <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4">
-        <div class="d-flex align-center gap-3">
-          <v-avatar color="primary" variant="tonal" rounded="lg" size="48">
-            <v-icon size="28">mdi-school-outline</v-icon>
-          </v-avatar>
-          <div>
-            <div class="d-flex align-center gap-2 flex-wrap">
-              <h2 class="text-h6 font-weight-black mb-0">{{ selectedExamObj.title }}</h2>
-              <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
-                {{ selectedExamObj.uniqueCode || 'EXAM' }}
-              </v-chip>
-              <v-chip size="x-small" color="grey" variant="outlined" class="font-weight-bold">
-                الدرجة الكلية: {{ selectedExamObj.max_score }} درجة
-              </v-chip>
-            </div>
-            <p class="text-caption text-medium-emphasis mb-0 mt-1">
-              المادة: <span class="font-weight-bold text-on-surface">{{ selectedExamObj.subject_name || '—' }}</span>
-              • العام: <span class="font-weight-bold text-on-surface">{{ selectedExamObj.year_name || '—' }}</span>
-              • الطلاب: <span class="font-weight-bold text-primary">{{ activeExamStats.total_students || totalRecordsCount }}</span> طالب مسجل في الكشف
-            </p>
-          </div>
+    <!-- ── Student Gradebook Table (Component with Server-Side Pagination) ── -->
+    <div class="main-card rounded-2xl overflow-hidden mb-6 elevation-1">
+      <!-- ── شريط إدارة التحديد والتحكم والعمليات الموحد في الكشف ── -->
+      <div class="d-flex align-center justify-space-between flex-wrap gap-3 px-4 py-3 bg-surface border-b">
+        <!-- قسم التحديد والطلاب -->
+        <div class="d-flex align-center gap-3 flex-wrap">
+          <v-checkbox-btn
+            :model-value="isAllCurrentSelected"
+            :indeterminate="isSomeCurrentSelected"
+            color="primary"
+            density="compact"
+            hide-details
+            @update:model-value="toggleSelectAllCurrent"
+          />
+          <span class="text-caption font-weight-bold text-on-surface">
+            تحديد الكل
+          </span>
+
+          <v-chip
+            v-if="selectedStudentIds.length > 0"
+            size="small"
+            color="primary"
+            variant="flat"
+            class="font-weight-black"
+          >
+            {{ selectedStudentIds.length }} طالب محدد
+          </v-chip>
+
+          <v-btn
+            v-if="selectedStudentIds.length > 0"
+            size="x-small"
+            variant="text"
+            color="error"
+            class="font-weight-bold"
+            @click="selectedStudentIds = []"
+          >
+            إلغاء التحديد
+          </v-btn>
+
+          <!-- زر ترحيل درجات الطلاب المحددين فقط عند اختيارهم -->
+          <v-btn
+            v-if="selectedStudentIds.length > 0"
+            color="purple-darken-1"
+            variant="flat"
+            size="small"
+            class="font-weight-bold text-white rounded-lg px-3"
+            prepend-icon="mdi-bank-transfer"
+            :loading="dispatchingLoading"
+            @click="dispatchSelectedToControl"
+          >
+            ترحيل المحدد ({{ selectedStudentIds.length }})
+          </v-btn>
+
+          <span class="text-caption text-medium-emphasis">
+            ({{ tableItems.pagination?.total || tableItems.pagination?.count || totalRecordsCount }} طالب مسجل)
+          </span>
         </div>
 
-        <!-- Action Buttons Bar -->
-        <div class="d-flex align-center gap-2 flex-wrap">
-          <!-- Dispatch to Control Button (Main CTA) -->
+        <!-- قسم العمليات والترحيل والتقارير عند اختيار اختبار -->
+        <div class="d-flex align-center gap-2 flex-wrap" v-if="selectedExamObj">
+          <!-- زر الترحيل الشامل للاختبار (Primary CTA) -->
           <v-btn
             color="success"
+            size="small"
             rounded="lg"
             class="font-weight-bold px-4"
             prepend-icon="mdi-send-check"
@@ -330,11 +364,12 @@
             ترحيل الدرجات للكنترول
           </v-btn>
 
-          <!-- Rollback Dispatch Button (Only when dispatched) -->
+          <!-- زر إلغاء الترحيل (إذا تم ترحيله مسبقاً) -->
           <v-btn
             v-if="activeExamStats.dispatched_count > 0"
             color="warning"
             variant="tonal"
+            size="small"
             rounded="lg"
             class="font-weight-bold px-3"
             prepend-icon="mdi-undo-variant"
@@ -344,13 +379,14 @@
             إلغاء الترحيل
           </v-btn>
 
-          <!-- Unified Menu for Reports, Export & Analysis -->
+          <!-- قائمة خيارات الكشف والتقارير -->
           <v-menu transition="slide-y-transition" location="bottom end">
             <template v-slot:activator="{ props }">
               <v-btn
                 v-bind="props"
                 color="primary"
                 variant="tonal"
+                size="small"
                 rounded="lg"
                 class="font-weight-bold px-3"
                 append-icon="mdi-chevron-down"
@@ -380,107 +416,16 @@
             </v-list>
           </v-menu>
 
-          <!-- Reload / Refresh -->
+          <!-- إعادة تحميل الكشف -->
           <v-btn
             icon="mdi-refresh"
             variant="text"
+            size="small"
             color="medium-emphasis"
             title="إعادة تحميل الكشف"
             :loading="loadingRecords"
             @click="loadRoster(selectedExamId)"
           />
-        </div>
-      </div>
-    </v-card>
-
-    <!-- ── Selected Students Batch Bar (شريط عمليات الطلاب المحددين) ── -->
-    <v-card v-if="selectedStudentIds.length > 0" class="main-card pa-3 mb-4 rounded-xl border elevation-2" color="primary" variant="tonal">
-      <div class="d-flex align-center justify-space-between flex-wrap gap-3">
-        <div class="d-flex align-center gap-2">
-          <v-chip color="primary" variant="flat" class="font-weight-black">
-            {{ selectedStudentIds.length }}
-          </v-chip>
-          <span class="font-weight-bold text-subtitle-2">
-            طالب محدد في الكشف حالياً
-          </span>
-        </div>
-        <div class="d-flex align-center gap-2 flex-wrap">
-          <v-btn
-            size="small"
-            color="primary"
-            class="font-weight-bold px-4"
-            prepend-icon="mdi-bank-transfer-in"
-            :loading="dispatchingLoading"
-            @click="dispatchSelectedToControl"
-          >
-            ترحيل المحدد للكنترول ({{ selectedStudentIds.length }})
-          </v-btn>
-          <v-btn
-            size="small"
-            variant="text"
-            color="error"
-            prepend-icon="mdi-close"
-            @click="selectedStudentIds = []"
-          >
-            إلغاء التحديد
-          </v-btn>
-        </div>
-      </div>
-    </v-card>
-
-    <!-- ── Student Gradebook Table (Component with Server-Side Pagination) ── -->
-    <div class="main-card rounded-2xl overflow-hidden mb-6 elevation-1">
-      <!-- ── شريط إدارة التحديد والتحكم السريع في الكشف ── -->
-      <div class="d-flex align-center justify-space-between flex-wrap gap-2 px-4 py-3 bg-surface border-b">
-        <div class="d-flex align-center gap-3">
-          <v-checkbox-btn
-            :model-value="isAllCurrentSelected"
-            :indeterminate="isSomeCurrentSelected"
-            color="primary"
-            density="compact"
-            hide-details
-            @update:model-value="toggleSelectAllCurrent"
-          />
-          <span class="text-caption font-weight-bold text-on-surface">
-            تحديد الكل في هذه الصفحة
-          </span>
-          <v-chip
-            v-if="selectedStudentIds.length > 0"
-            size="small"
-            color="primary"
-            variant="flat"
-            class="font-weight-black"
-          >
-            {{ selectedStudentIds.length }} طالب محدد
-          </v-chip>
-          <v-btn
-            v-if="selectedStudentIds.length > 0"
-            size="x-small"
-            variant="text"
-            color="error"
-            class="font-weight-bold"
-            @click="selectedStudentIds = []"
-          >
-            إلغاء التحديد
-          </v-btn>
-        </div>
-
-        <div class="d-flex align-center gap-2">
-          <v-btn
-            v-if="selectedStudentIds.length > 0"
-            color="purple-darken-1"
-            variant="flat"
-            size="small"
-            class="font-weight-bold text-white rounded-lg px-4"
-            prepend-icon="mdi-bank-transfer"
-            :loading="dispatchingLoading"
-            @click="dispatchSelectedToControl"
-          >
-            ترحيل درجات المحدد ({{ selectedStudentIds.length }}) للكنترول
-          </v-btn>
-          <span class="text-caption text-medium-emphasis">
-            إجمالي السجلات: {{ tableItems.pagination?.total || tableItems.pagination?.count || totalRecordsCount }} طالب
-          </span>
         </div>
       </div>
 
