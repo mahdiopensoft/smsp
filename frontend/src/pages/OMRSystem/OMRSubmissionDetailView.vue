@@ -583,6 +583,12 @@ import { submissionsAPI } from '@/services/omr/endpoints'
 
 export default {
   name: 'OMRSubmissionDetailView',
+  props: {
+    id: {
+      type: [String, Number],
+      default: null,
+    },
+  },
 
   data() {
     return {
@@ -655,9 +661,21 @@ export default {
     },
   },
 
+  watch: {
+    '$route.params.id'(val) {
+      if (val) this.loadSubmission()
+    },
+    '$route.query.id'(val) {
+      if (val) this.loadSubmission()
+    },
+    id(val) {
+      if (val) this.loadSubmission()
+    },
+  },
+
   methods: {
     async loadSubmission() {
-      const id = this.$route.params.id
+      const id = this.id || this.$route?.params?.id || this.$route?.query?.id
       if (!id) return
       this.loading = true
       try {

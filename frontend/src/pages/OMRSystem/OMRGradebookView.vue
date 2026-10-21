@@ -590,26 +590,93 @@
             <div class="d-flex align-center justify-center gap-1">
               <v-btn
                 v-if="item.submission_id"
-                icon="mdi-file-eye-outline"
                 size="small"
-                variant="text"
                 color="primary"
-                title="معاينة وتدقيق ورقة الإجابة"
-                @click="$router.push(`/omr-submissions/${item.submission_id}`)"
-              />
+                variant="tonal"
+                class="font-weight-bold px-2 rounded-lg"
+                prepend-icon="mdi-file-eye-outline"
+                title="معاينة وتدقيق ورقة الإجابة والتفاصيل"
+                @click.stop="navigateToSubmission(item)"
+              >
+                معاينة الورقة
+              </v-btn>
               <v-btn
                 v-else
-                icon="mdi-pencil-off-outline"
                 size="small"
-                variant="text"
-                color="grey"
-                disabled
-              />
+                color="secondary"
+                variant="tonal"
+                class="font-weight-bold px-2 rounded-lg"
+                prepend-icon="mdi-card-account-details-outline"
+                title="عرض تفاصيل سجل قيد الطالب بالاختبار"
+                @click.stop="openStudentRecordModal(item)"
+              >
+                تفاصيل السجل
+              </v-btn>
             </div>
           </template>
         </template>
       </custom-data-table>
     </div>
+
+    <!-- ── نافذة تفاصيل سجل الطالب في الاختبار (عند عدم وجود ورقة مصححة) ── -->
+    <v-dialog v-model="studentRecordDialog" max-width="560">
+      <v-card class="rounded-2xl pa-5 main-card" v-if="selectedStudentRecord">
+        <div class="d-flex align-center justify-space-between mb-4">
+          <div class="d-flex align-center gap-3">
+            <v-avatar color="primary" variant="tonal" size="44" rounded="lg">
+              <v-icon size="24" color="primary">mdi-account-school-outline</v-icon>
+            </v-avatar>
+            <div>
+              <h3 class="text-h6 font-weight-black mb-0">{{ selectedStudentRecord.student_name }}</h3>
+              <p class="text-caption text-medium-emphasis mb-0">بيانات القيد والتسجيل في الاختبار</p>
+            </div>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" @click="studentRecordDialog = false" />
+        </div>
+
+        <v-list density="compact" class="bg-surface rounded-xl border pa-2 mb-4">
+          <v-list-item title="رقم الجلوس" :subtitle="selectedStudentRecord.seat_number || '—'">
+            <template #prepend><v-icon color="primary" class="me-2">mdi-numeric</v-icon></template>
+          </v-list-item>
+          <v-list-item title="الرقم السري" :subtitle="selectedStudentRecord.secret_number || '—'">
+            <template #prepend><v-icon color="secondary" class="me-2">mdi-shield-key-outline</v-icon></template>
+          </v-list-item>
+          <v-list-item title="النموذج المخصص" :subtitle="`النموذج (${selectedStudentRecord.version_code || 'A'})`">
+            <template #prepend><v-icon color="indigo" class="me-2">mdi-file-document-multiple-outline</v-icon></template>
+          </v-list-item>
+          <v-list-item title="المدرسة / المؤسسة" :subtitle="selectedStudentRecord.school_name || '—'">
+            <template #prepend><v-icon color="teal" class="me-2">mdi-domain</v-icon></template>
+          </v-list-item>
+          <v-list-item title="المديرية / المحافظة" :subtitle="`${selectedStudentRecord.directorate_name || ''} - ${selectedStudentRecord.governorate_name || ''}`">
+            <template #prepend><v-icon color="orange" class="me-2">mdi-map-marker-outline</v-icon></template>
+          </v-list-item>
+          <v-list-item title="حالة التصحيح" subtitle="لم يتم مسح وتصحيح ورقة إجابة لهذا الطالب بعد (حالة الطالب: غائب)">
+            <template #prepend><v-icon color="error" class="me-2">mdi-alert-circle-outline</v-icon></template>
+          </v-list-item>
+        </v-list>
+
+        <v-card-actions class="px-0 pt-2 d-flex justify-end gap-2">
+          <v-btn
+            color="primary"
+            variant="flat"
+            rounded="lg"
+            class="font-weight-bold px-4"
+            prepend-icon="mdi-scanner"
+            @click="goToScannerLabForStudent"
+          >
+            الانتقال لمعمل المسح الضوئي
+          </v-btn>
+          <v-btn
+            variant="tonal"
+            rounded="lg"
+            class="font-weight-bold"
+            @click="studentRecordDialog = false"
+          >
+            إغلاق
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- ── Dispatch Confirmation Modal ──────────────────────────────── -->
     <v-dialog v-model="dispatchDialog" max-width="580" persistent>
@@ -953,6 +1020,9 @@ export default {
       },
       printRecords: [],
 
+      studentRecordDialog: false,
+      selectedStudentRecord: null,
+
       headers: [
         { title: "تحديد", key: "select", sortable: false, align: "center", width: "60px" },
         { title: "رقم الجلوس", key: "seat_number", sortable: true, align: "center", width: "115px" },
@@ -967,7 +1037,7 @@ export default {
         { title: "دقة OMR", key: "confidence", sortable: true, align: "center", width: "95px" },
         { title: "حالة التصحيح", key: "status", sortable: true, align: "center", width: "115px" },
         { title: "الترحيل للكنترول", key: "is_dispatched", sortable: true, align: "center", width: "135px" },
-        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "90px" },
+        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "135px" },
       ],
 
       activeExamStats: {
@@ -1724,6 +1794,28 @@ export default {
         absent: 'غائب',
       }
       return map[st] || st
+    },
+
+    navigateToSubmission(item) {
+      if (item && item.submission_id) {
+        this.$router.push(`/omr-submissions/${item.submission_id}`)
+      } else {
+        this.openStudentRecordModal(item)
+      }
+    },
+
+    openStudentRecordModal(item) {
+      this.selectedStudentRecord = item
+      this.studentRecordDialog = true
+    },
+
+    goToScannerLabForStudent() {
+      this.studentRecordDialog = false
+      if (this.selectedExamId) {
+        this.$router.push(`/omr-scanner-lab?examId=${this.selectedExamId}`)
+      } else {
+        this.$router.push('/omr-scanner-lab')
+      }
     },
   },
 }
