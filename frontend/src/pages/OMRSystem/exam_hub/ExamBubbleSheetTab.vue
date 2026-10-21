@@ -264,7 +264,7 @@
               size="x-small"
               variant="tonal"
               color="primary"
-              :disabled="currentPage <= 1 || perPage === -1"
+              :disabled="currentPage <= 1"
               title="الورقة الأولى"
               @click="currentPage = 1"
             >
@@ -275,7 +275,7 @@
               size="x-small"
               variant="tonal"
               color="primary"
-              :disabled="currentPage <= 1 || perPage === -1"
+              :disabled="currentPage <= 1"
               title="الورقة السابقة"
               @click="currentPage--"
             >
@@ -285,7 +285,7 @@
             <!-- Current Page Badge -->
             <div class="px-2 py-0.5 bg-grey-lighten-4 border rounded font-mono font-weight-black d-flex align-center gap-1">
               <span class="text-medium-emphasis">ورقة</span>
-              <span class="text-primary">{{ perPage === -1 ? '1 - ' + filteredStreamStudents.length : currentPage }}</span>
+              <span class="text-primary">{{ currentPage }}</span>
               <span class="text-medium-emphasis">من</span>
               <span>{{ totalPages }}</span>
             </div>
@@ -295,7 +295,7 @@
               size="x-small"
               variant="tonal"
               color="primary"
-              :disabled="currentPage >= totalPages || perPage === -1"
+              :disabled="currentPage >= totalPages"
               title="الورقة التالية"
               @click="currentPage++"
             >
@@ -306,7 +306,7 @@
               size="x-small"
               variant="tonal"
               color="primary"
-              :disabled="currentPage >= totalPages || perPage === -1"
+              :disabled="currentPage >= totalPages"
               title="الورقة الأخيرة"
               @click="currentPage = totalPages"
             >
@@ -327,7 +327,6 @@
               rounded="lg"
               hide-details
               prepend-inner-icon="mdi-account-search"
-              :disabled="perPage === -1"
               @update:model-value="onJumpToStudent"
             />
           </div>
@@ -352,8 +351,8 @@
               <v-btn :value="5" class="font-weight-bold px-1.5" size="x-small">
                 5
               </v-btn>
-              <v-btn :value="-1" class="font-weight-bold px-1.5" size="x-small" title="عرض كافة الأوراق">
-                الكل
+              <v-btn :value="10" class="font-weight-bold px-1.5" size="x-small" title="عشر أوراق">
+                10
               </v-btn>
             </v-btn-toggle>
           </div>
@@ -393,18 +392,6 @@
             </v-btn>
           </div>
 
-          <!-- Live Adjustments Button -->
-          <v-btn
-            variant="tonal"
-            :color="showAdjustmentsPanel ? 'primary' : 'secondary'"
-            size="x-small"
-            rounded="lg"
-            prepend-icon="mdi-pencil-ruler"
-            class="font-weight-bold"
-            @click="showAdjustmentsPanel = !showAdjustmentsPanel"
-          >
-            {{ showAdjustmentsPanel ? 'إخفاء التعديل' : 'تعديل الترويسة' }}
-          </v-btn>
         </div>
       </div>
     </div>
@@ -766,25 +753,22 @@ const filteredStreamStudents = computed(() => {
 
 // Total pages computation
 const totalPages = computed(() => {
-  if (perPage.value === -1) return 1
   return Math.ceil(filteredStreamStudents.value.length / perPage.value) || 1
 })
 
-// Current slice of students for preview
+// Current slice of students for preview — max 10 per page for performance
 const paginatedStudents = computed(() => {
-  if (perPage.value === -1) return filteredStreamStudents.value
   const start = (currentPage.value - 1) * perPage.value
   return filteredStreamStudents.value.slice(start, start + perPage.value)
 })
 
 const getRealStudentIndex = (sIndex) => {
-  if (perPage.value === -1) return sIndex + 1
   return (currentPage.value - 1) * perPage.value + sIndex + 1
 }
 
 const studentJumpOptions = computed(() => {
   return filteredStreamStudents.value.map((st, idx) => {
-    const pageNum = perPage.value === -1 ? 1 : Math.floor(idx / perPage.value) + 1
+    const pageNum = Math.floor(idx / perPage.value) + 1
     return {
       title: `${idx + 1}. ${st.student_name} (جلوس: ${st.seat_number} | نموذج: ${st.model_code || 'A'})`,
       value: pageNum,

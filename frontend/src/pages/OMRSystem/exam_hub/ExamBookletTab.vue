@@ -82,10 +82,22 @@
       </div>
     </div>
 
-    <!-- ════════════════════════════════════════════════════════════════ -->
-    <!-- 2. شريط التصفية الموحد (Unified Filter Fields): متكيف للمدارس والجامعات والمعاهد -->
-    <!-- ════════════════════════════════════════════════════════════════ -->
-    <filter-fields :label="filterCardLabel" class="main-card border-0 pa-5 rounded-2xl mb-4">
+    <!-- 2. شريط التصفية الجغرافية (اختياري - مخفي افتراضياً) -->
+    <div class="mb-3">
+      <v-btn
+        variant="text"
+        size="small"
+        :color="showGeoFilter ? 'primary' : 'medium-emphasis'"
+        :prepend-icon="showGeoFilter ? 'mdi-filter-remove-outline' : 'mdi-filter-outline'"
+        class="font-weight-bold"
+        @click="showGeoFilter = !showGeoFilter"
+      >
+        {{ showGeoFilter ? 'إخفاء التصفية الجغرافية' : 'تصفية جغرافية / مدرسة' }}
+        <v-chip v-if="filterSchool || filterDirectorate || filterGovernorate" size="x-small" color="primary" class="ms-1">مفعّل</v-chip>
+      </v-btn>
+    </div>
+    <v-expand-transition>
+    <filter-fields v-if="showGeoFilter" :label="filterCardLabel" class="main-card border-0 pa-5 rounded-2xl mb-4">
       <v-row dense class="align-center">
         <!-- Level 1: المحافظة / النطاق الجغرافي أو الجامعي -->
         <v-col cols="12" sm="6" md="3">
@@ -163,6 +175,7 @@
         </v-col>
       </v-row>
     </filter-fields>
+    </v-expand-transition>
 
     <!-- Header Control Bar for Booklet (تصميم موحد متناسق بسطرين واضحين بدون انكسار) -->
     <div class="main-card rounded-2xl pa-3 mb-3 border bg-white">
@@ -274,10 +287,7 @@
           </v-btn-toggle>
         </div>
 
-        <div class="text-caption text-medium-emphasis font-weight-bold">
-          النموذج: <span class="text-primary font-weight-black">{{ currentVersionObj?.versionCode || 'A' }}</span> •
-          الأسئلة: <span class="text-primary font-weight-black">{{ currentVersionObj?.questions?.length || 0 }}</span> سؤال
-        </div>
+
       </div>
     </div>
 
@@ -381,6 +391,7 @@ const props = defineProps({
 const emit = defineEmits(['update:activeVersionTab', 'switch-tab', 'seed-students'])
 
 const paperTargetMode = ref('general_official')
+const showGeoFilter = ref(false)
 const selectedStudentId = ref(null)
 const selectedQuestionPaperLayout = ref('a4')
 const showQuestionPaperDialog = ref(false)

@@ -21,42 +21,46 @@
           />
         </div>
 
-        <!-- Actions for this Model -->
-        <div class="d-flex align-center gap-2 flex-wrap" v-if="currentVersionObj">
-          <custom-btn
-            icon="newspaper-variant-outline"
-            label="معاينة كراسة الأسئلة"
-            color="primary"
-            variant="tonal"
-            class="font-weight-bold"
-            :click="() => $emit('open-question-paper-modal')"
-          />
-          <custom-btn
-            type="print"
-            icon="file-document-outline"
-            :label="`طباعة أسئلة (${currentVersionObj.versionCode})`"
-            color="secondary"
-            variant="tonal"
-            class="font-weight-bold"
-            :click="() => $emit('print-questions-only')"
-          />
-          <custom-btn
-            icon="book-open-page-variant-outline"
-            label="طباعة الحزمة"
-            color="secondary"
-            variant="tonal"
-            class="font-weight-bold"
-            :click="() => $emit('print-package')"
-          />
-          <custom-btn
-            icon="scanner"
-            label="بدء التصحيح"
-            color="success"
-            variant="tonal"
-            class="font-weight-bold"
-            :click="() => $emit('start-grading', currentVersionObj.versionCode)"
-          />
-        </div>
+        <!-- Actions for this Model (collapsed into one menu) -->
+        <v-menu v-if="currentVersionObj" location="bottom end">
+          <template #activator="{ props: mProps }">
+            <v-btn
+              v-bind="mProps"
+              variant="tonal"
+              color="primary"
+              rounded="lg"
+              size="small"
+              class="font-weight-bold"
+              prepend-icon="mdi-cog-outline"
+            >
+              إجراءات النموذج
+              <v-icon end>mdi-chevron-down</v-icon>
+            </v-btn>
+          </template>
+          <v-list density="compact" rounded="lg" class="elevation-3 py-1" min-width="220">
+            <v-list-item
+              prepend-icon="mdi-newspaper-variant-outline"
+              title="معاينة كراسة الأسئلة"
+              @click="$emit('open-question-paper-modal')"
+            />
+            <v-list-item
+              prepend-icon="mdi-printer"
+              :title="`طباعة أسئلة (${currentVersionObj.versionCode})`"
+              @click="$emit('print-questions-only')"
+            />
+            <v-list-item
+              prepend-icon="mdi-book-open-page-variant-outline"
+              title="طباعة الحزمة الكاملة"
+              @click="$emit('print-package')"
+            />
+            <v-divider class="my-1" />
+            <v-list-item
+              prepend-icon="mdi-scanner"
+              title="بدء التصحيح الضوئي"
+              @click="$emit('start-grading', currentVersionObj.versionCode)"
+            />
+          </v-list>
+        </v-menu>
       </div>
 
       <!-- Row 2: Answer Key Strip (Inline & Sleek) -->
