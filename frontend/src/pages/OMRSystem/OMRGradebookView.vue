@@ -2,7 +2,7 @@
   <div class="qb-gradebook-view-v4">
 
     <!-- ── 1. Sector Switcher (فصل نوع المؤسسة التعليمية بشكل قاطع) ── -->
-    <div class="d-flex align-center justify-space-between flex-wrap gap-3 mb-4">
+    <div class="d-flex align-center justify-start flex-wrap gap-3 mb-4">
       <v-btn-toggle
         v-model="institutionType"
         mandatory
@@ -24,20 +24,7 @@
         </v-btn>
       </v-btn-toggle>
 
-      <div class="d-flex align-center gap-2">
-        <v-btn
-          variant="tonal"
-          color="primary"
-          size="small"
-          rounded="lg"
-          class="font-weight-bold"
-          prepend-icon="mdi-refresh"
-          :loading="loadingMaster || loadingRecords"
-          @click="refreshCurrentView"
-        >
-          تحديث البيانات
-        </v-btn>
-      </div>
+
     </div>
 
     <!-- ── 2. MASTER VIEW: عرض الهيكل الإداري والمكاتب والمديريات والمراكز والاختبارات ── -->
