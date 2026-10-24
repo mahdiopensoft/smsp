@@ -29,430 +29,63 @@
     <!-- ── OMR Workflow Stepper (مسار مراحل التصحيح الآلي والكنترول خطوة بخطوة) ── -->
     <omr-workflow-bar :active-step="6" :exam-id="selectedExamId" />
 
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <!-- ── LEVEL 1: MASTER VIEW (نظرة عامة على الكنترول والرصد) ───────────── -->
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <div v-if="currentView === 'master'" class="gradebook-master-view">
-      <!-- تبويبات التجميع والتصنيف -->
-      <div class="main-card rounded-2xl overflow-hidden mb-4">
-        <v-tabs v-model="masterTab" color="primary" align-tabs="start" class="border-b bg-surface px-4">
-          <v-tab value="exams" class="font-weight-black">
-            <v-icon start size="18">mdi-file-document-multiple-outline</v-icon>
-            حسب الاختبارات الأكاديمية
-            <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-black ms-2">
-              {{ examsList.length }}
-            </v-chip>
-          </v-tab>
-          <v-tab value="schools" class="font-weight-black">
-            <v-icon start size="18">mdi-school-outline</v-icon>
-            حسب المدارس والمراكز الامتحانية
-            <v-chip size="x-small" color="teal" variant="tonal" class="font-weight-black ms-2">
-              {{ schoolsList.length }}
-            </v-chip>
-          </v-tab>
-          <v-tab value="directorates" class="font-weight-black">
-            <v-icon start size="18">mdi-map-marker-radius</v-icon>
-            حسب المحافظة والمديرية
-            <v-chip size="x-small" color="indigo" variant="tonal" class="font-weight-black ms-2">
-              {{ directoratesList.length }}
-            </v-chip>
-          </v-tab>
-        </v-tabs>
-
-        <!-- شريط الفلترة والبحث السريع في العرض الرئيسي -->
-        <div class="pa-4 bg-slate-50 d-flex align-center justify-space-between flex-wrap gap-3 border-b">
-          <div class="d-flex align-center gap-3 flex-grow-1" style="max-width: 650px;">
-            <v-text-field
-              v-model="masterSearchQuery"
-              prepend-inner-icon="mdi-magnify"
-              placeholder="بحث بالاسم، رمز الاختبار، المدرسة، المديرية..."
-              density="compact"
-              variant="outlined"
-              hide-details
-              clearable
-              class="bg-white rounded-lg flex-grow-1"
-            />
-            <v-select
-              v-model="masterInstitutionType"
-              :items="institutionTypeOptions"
-              item-title="text"
-              item-value="value"
-              density="compact"
-              variant="outlined"
-              hide-details
-              style="max-width: 170px;"
-              class="bg-white rounded-lg"
-            />
-          </div>
-
-          <div class="d-flex align-center gap-2">
-            <v-btn
-              color="primary"
-              variant="tonal"
-              size="small"
-              class="font-weight-bold rounded-lg px-3"
-              prepend-icon="mdi-refresh"
-              :loading="loadingMaster"
-              @click="refreshMasterData"
-            >
-              تحديث
-            </v-btn>
-          </div>
+    <!-- ── بطاقة اختيار الاختبار الأكاديمي والتحكم بالكنترول (Executive Exam Selector) ── -->
+    <div class="main-card pa-4 rounded-2xl mb-4 bg-surface border elevation-1">
+      <div class="d-flex align-center justify-space-between flex-wrap gap-4">
+        <div class="d-flex align-center gap-3 flex-grow-1" style="max-width: 650px;">
+          <v-autocomplete
+            v-model="selectedExamId"
+            :items="examsList"
+            item-title="title"
+            item-value="id"
+            placeholder="اختر الاختبار الأكاديمي..."
+            label="الاختبار الأكاديمي النشط"
+            prepend-inner-icon="mdi-file-document-check-outline"
+            density="compact"
+            variant="outlined"
+            hide-details
+            class="bg-white rounded-lg font-weight-bold flex-grow-1"
+            :loading="loadingExams"
+            @update:model-value="onExamChange"
+          >
+            <template v-slot:item="{ props, item }">
+              <v-list-item
+                v-bind="props"
+                :title="item.raw.title"
+                :subtitle="`${item.raw.uniqueCode || ''} • ${item.raw.subject_name || ''} • (${item.raw.total_students || 0} طالب)`"
+              >
+                <template v-slot:prepend>
+                  <v-avatar color="primary" variant="tonal" size="32" class="rounded-lg me-2">
+                    <v-icon size="18" color="primary">mdi-file-document-outline</v-icon>
+                  </v-avatar>
+                </template>
+              </v-list-item>
+            </template>
+          </v-autocomplete>
         </div>
-      </div>
 
-      <!-- ── 1. جدول الاختبارات الأكاديمية (Exams Master Table) ── -->
-      <div v-if="masterTab === 'exams'" class="main-card rounded-2xl overflow-hidden mb-6 elevation-1">
-        <custom-data-table
-          :headers="examMasterHeaders"
-          :items="masterExamsTableItems"
-          :customLoading="loadingExams"
-          class="bg-transparent"
-          :hasFilter="false"
-          :log="false"
-          :restore="false"
-          :showSelect="false"
-          :actions="false"
-        >
-          <template v-slot:item-slot="{ item, key }">
-            <!-- رمز وعنوان الاختبار -->
-            <template v-if="key === 'exam_title'">
-              <div class="py-2 text-start">
-                <div class="d-flex align-center gap-2 mb-1">
-                  <span class="font-weight-black text-body-2 text-on-surface hover:text-primary cursor-pointer" @click="openExamRoster(item)">
-                    {{ item.title }}
-                  </span>
-                </div>
-                <div class="d-flex align-center gap-2 flex-wrap text-caption text-medium-emphasis">
-                  <span class="font-mono font-weight-bold text-primary">{{ item.uniqueCode }}</span>
-                  <span>•</span>
-                  <span class="font-weight-bold text-slate-700">{{ item.subject_name }}</span>
-                  <span>•</span>
-                  <span>العام: {{ item.year_name }}</span>
-                </div>
-              </div>
-            </template>
-
-            <!-- الجهة والنطاق -->
-            <template v-else-if="key === 'geo_info'">
-              <div class="text-center">
-                <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold mb-1">
-                  {{ item.institution_type_display }}
-                </v-chip>
-                <div class="text-caption text-medium-emphasis font-weight-medium">
-                  {{ item.governorate_name || '—' }} {{ item.directorate_name ? `• ${item.directorate_name}` : '' }}
-                </div>
-              </div>
-            </template>
-
-            <!-- المراكز والمدارس -->
-            <template v-else-if="key === 'schools_count'">
-              <div class="text-center">
-                <v-chip size="small" color="teal" variant="tonal" class="font-weight-black">
-                  <v-icon start size="14">mdi-school</v-icon>
-                  {{ item.schools_count || 1 }} مركز / مدرسة
-                </v-chip>
-              </div>
-            </template>
-
-            <!-- المقيدون -->
-            <template v-else-if="key === 'total_registered'">
-              <div class="text-center font-weight-black text-body-2">
-                {{ item.total_registered }} طالب
-              </div>
-            </template>
-
-            <!-- الممسوح ضوئياً -->
-            <template v-else-if="key === 'total_submissions'">
-              <div class="text-center font-weight-black text-body-2 text-primary">
-                {{ item.total_submissions }} ورقة
-              </div>
-            </template>
-
-            <!-- نسبة الإنجاز والتصحيح -->
-            <template v-else-if="key === 'completion_rate'">
-              <div style="min-width: 110px;" class="text-center">
-                <div class="d-flex align-center justify-center gap-1 mb-1">
-                  <span class="text-caption font-weight-black">{{ item.completion_rate }}%</span>
-                </div>
-                <v-progress-linear
-                  :model-value="item.completion_rate"
-                  :color="item.completion_rate >= 90 ? 'success' : (item.completion_rate > 0 ? 'primary' : 'grey')"
-                  height="6"
-                  rounded
-                />
-              </div>
-            </template>
-
-            <!-- حالة الأوراق -->
-            <template v-else-if="key === 'status_breakdown'">
-              <div class="d-flex align-center justify-center gap-1 flex-wrap">
-                <v-chip size="x-small" color="success" variant="flat" class="font-weight-black text-white" title="أوراق مصححة ومكتملة">
-                  {{ item.completed_count }} مكتمل
-                </v-chip>
-                <v-chip v-if="item.needs_review_count > 0" size="x-small" color="warning" variant="flat" class="font-weight-black text-white" title="أوراق تحت التدقيق">
-                  {{ item.needs_review_count }} مراجعة
-                </v-chip>
-                <v-chip v-if="item.absent_count > 0" size="x-small" color="grey-darken-1" variant="tonal" class="font-weight-bold" title="طلاب غائبون">
-                  {{ item.absent_count }} غياب
-                </v-chip>
-              </div>
-            </template>
-
-            <!-- نسبة النجاح -->
-            <template v-else-if="key === 'pass_rate'">
-              <div class="text-center font-weight-black text-body-2" :class="item.pass_rate >= 50 ? 'text-success' : 'text-error'">
-                {{ item.pass_rate }}%
-              </div>
-            </template>
-
-            <!-- حالة الترحيل للكنترول -->
-            <template v-else-if="key === 'dispatch_status'">
-              <div class="text-center">
-                <v-chip
-                  size="small"
-                  :color="item.dispatch_status === 'dispatched' ? 'success' : (item.dispatch_status === 'partial' ? 'warning' : 'grey-lighten-1')"
-                  :variant="item.dispatch_status === 'none' ? 'outlined' : 'flat'"
-                  class="font-weight-bold"
-                  :class="{ 'text-white': item.dispatch_status !== 'none' }"
-                >
-                  <v-icon start size="14">
-                    {{ item.dispatch_status === 'dispatched' ? 'mdi-check-decagram' : (item.dispatch_status === 'partial' ? 'mdi-clock-outline' : 'mdi-lock-open-variant') }}
-                  </v-icon>
-                  {{ item.dispatch_status === 'dispatched' ? 'معتمد ومرحل' : (item.dispatch_status === 'partial' ? 'مرحل جزئياً' : 'غير مرحل') }}
-                </v-chip>
-              </div>
-            </template>
-
-            <!-- الإجراءات -->
-            <template v-else-if="key === 'actions'">
-              <div class="d-flex align-center justify-center">
-                <v-btn
-                  size="small"
-                  color="primary"
-                  variant="flat"
-                  rounded="lg"
-                  class="font-weight-bold px-3 text-white"
-                  prepend-icon="mdi-table-account"
-                  @click.stop="openExamRoster(item)"
-                >
-                  كشف الرصد
-                </v-btn>
-              </div>
-            </template>
-          </template>
-        </custom-data-table>
-      </div>
-
-      <!-- ── 2. جدول المدارس والمراكز (Schools Master Table) ── -->
-      <div v-else-if="masterTab === 'schools'" class="main-card rounded-2xl overflow-hidden mb-6 elevation-1">
-        <custom-data-table
-          :headers="schoolMasterHeaders"
-          :items="masterSchoolsTableItems"
-          :customLoading="loadingMaster"
-          class="bg-transparent"
-          :hasFilter="false"
-          :log="false"
-          :restore="false"
-          :showSelect="false"
-          :actions="false"
-        >
-          <template v-slot:item-slot="{ item, key }">
-            <template v-if="key === 'school_name'">
-              <div class="py-2 text-start">
-                <div class="font-weight-black text-body-2 text-on-surface cursor-pointer hover:text-teal" @click="openSchoolRoster(item)">
-                  <v-icon size="16" color="teal" class="me-1">mdi-school</v-icon>
-                  {{ item.name }}
-                </div>
-              </div>
-            </template>
-
-            <template v-else-if="key === 'institution_type'">
-              <div class="text-center">
-                <v-chip size="x-small" color="teal" variant="tonal" class="font-weight-bold">
-                  {{ item.institution_type === 'university' ? 'جامعة' : (item.institution_type === 'institute' ? 'معهد' : 'مدرسة') }}
-                </v-chip>
-              </div>
-            </template>
-
-            <template v-else-if="key === 'geo_location'">
-              <div class="text-center text-caption font-weight-medium">
-                {{ item.governorate_name || '—' }} • {{ item.directorate_name || '—' }}
-              </div>
-            </template>
-
-            <template v-else-if="key === 'exams_count'">
-              <div class="text-center font-weight-black text-body-2">
-                {{ item.exams_count }} اختبار
-              </div>
-            </template>
-
-            <template v-else-if="key === 'total_students'">
-              <div class="text-center font-weight-black text-body-2 text-primary">
-                {{ item.total_students }} طالب
-              </div>
-            </template>
-
-            <template v-else-if="key === 'completed_count'">
-              <div class="text-center font-weight-black text-body-2 text-success">
-                {{ item.completed_count }} ورقة
-              </div>
-            </template>
-
-            <template v-else-if="key === 'completion_rate'">
-              <div style="min-width: 100px;" class="text-center">
-                <span class="text-caption font-weight-black">{{ item.completion_rate }}%</span>
-                <v-progress-linear
-                  :model-value="item.completion_rate"
-                  :color="item.completion_rate >= 90 ? 'success' : 'teal'"
-                  height="5"
-                  rounded
-                />
-              </div>
-            </template>
-
-            <template v-else-if="key === 'average_score'">
-              <div class="text-center font-weight-black text-body-2 text-indigo">
-                {{ item.average_score }}%
-              </div>
-            </template>
-
-            <template v-else-if="key === 'actions'">
-              <div class="d-flex align-center justify-center">
-                <v-btn
-                  size="small"
-                  color="teal"
-                  variant="tonal"
-                  rounded="lg"
-                  class="font-weight-bold px-3"
-                  prepend-icon="mdi-arrow-left"
-                  @click.stop="openSchoolRoster(item)"
-                >
-                  عرض كشف المركز
-                </v-btn>
-              </div>
-            </template>
-          </template>
-        </custom-data-table>
-      </div>
-
-      <!-- ── 3. جدول المديريات والمناطق (Directorates Master Table) ── -->
-      <div v-else-if="masterTab === 'directorates'" class="main-card rounded-2xl overflow-hidden mb-6 elevation-1">
-        <custom-data-table
-          :headers="directorateMasterHeaders"
-          :items="masterDirectoratesTableItems"
-          :customLoading="loadingMaster"
-          class="bg-transparent"
-          :hasFilter="false"
-          :log="false"
-          :restore="false"
-          :showSelect="false"
-          :actions="false"
-        >
-          <template v-slot:item-slot="{ item, key }">
-            <template v-if="key === 'directorate_name'">
-              <div class="py-2 text-start font-weight-black text-body-2 text-indigo cursor-pointer" @click="filterByDirectorate(item)">
-                <v-icon size="16" color="indigo" class="me-1">mdi-map-marker-outline</v-icon>
-                {{ item.name }}
-              </div>
-            </template>
-
-            <template v-else-if="key === 'governorate_name'">
-              <div class="text-center font-weight-bold text-caption">
-                {{ item.governorate_name || '—' }}
-              </div>
-            </template>
-
-            <template v-else-if="key === 'schools_count'">
-              <div class="text-center font-weight-black text-body-2">
-                {{ item.schools_count }} مدرسة
-              </div>
-            </template>
-
-            <template v-else-if="key === 'exams_count'">
-              <div class="text-center font-weight-black text-body-2">
-                {{ item.exams_count }} اختبار
-              </div>
-            </template>
-
-            <template v-else-if="key === 'total_students'">
-              <div class="text-center font-weight-black text-body-2 text-primary">
-                {{ item.total_students }} طالب
-              </div>
-            </template>
-
-            <template v-else-if="key === 'completed_count'">
-              <div class="text-center font-weight-black text-body-2 text-success">
-                {{ item.completed_count }} ورقة
-              </div>
-            </template>
-
-            <template v-else-if="key === 'completion_rate'">
-              <div style="min-width: 100px;" class="text-center">
-                <span class="text-caption font-weight-black">{{ item.completion_rate }}%</span>
-                <v-progress-linear
-                  :model-value="item.completion_rate"
-                  :color="item.completion_rate >= 90 ? 'success' : 'indigo'"
-                  height="5"
-                  rounded
-                />
-              </div>
-            </template>
-
-            <template v-else-if="key === 'actions'">
-              <div class="d-flex align-center justify-center">
-                <v-btn
-                  size="small"
-                  color="indigo"
-                  variant="tonal"
-                  rounded="lg"
-                  class="font-weight-bold px-3"
-                  prepend-icon="mdi-school"
-                  @click.stop="filterByDirectorate(item)"
-                >
-                  مدارس المديرية
-                </v-btn>
-              </div>
-            </template>
-          </template>
-        </custom-data-table>
+        <div class="d-flex align-center gap-2 flex-wrap">
+          <v-chip v-if="selectedExamObj?.uniqueCode" size="small" color="primary" variant="tonal" class="font-mono font-weight-black">
+            {{ selectedExamObj.uniqueCode }}
+          </v-chip>
+          <v-chip v-if="selectedExamObj?.subject_name" size="small" color="teal" variant="tonal" class="font-weight-black">
+            {{ selectedExamObj.subject_name }}
+          </v-chip>
+          <v-btn
+            icon="mdi-refresh"
+            variant="tonal"
+            color="primary"
+            size="small"
+            class="rounded-lg"
+            title="تحديث البيانات"
+            :loading="loadingRecords"
+            @click="fetchGradebookRoster({ params: { page: 1 } })"
+          />
+        </div>
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <!-- ── LEVEL 2: DETAIL VIEW (كشف رصد ودرجات الطلاب للاختبار المختار) ───── -->
-    <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <div v-else class="gradebook-detail-view">
-      <!-- شريط التنقل العلوي والرجوع -->
-      <div class="d-flex align-center justify-space-between flex-wrap gap-3 mb-4">
-        <div class="d-flex align-center gap-3 flex-wrap">
-          <v-btn
-            variant="tonal"
-            color="primary"
-            rounded="xl"
-            class="font-weight-black px-4 shadow-sm"
-            prepend-icon="mdi-arrow-right"
-            @click="returnToMaster"
-          >
-            الرجوع لكافة الاختبارات والمراكز
-          </v-btn>
-
-          <v-chip color="primary" variant="flat" size="small" class="font-weight-black">
-            {{ selectedExamObj?.subject_name }}
-          </v-chip>
-          <span class="text-subtitle-1 font-weight-black text-on-surface">
-            {{ selectedExamObj?.title }}
-          </span>
-        </div>
-
-        <div class="d-flex align-center gap-2">
-          <v-chip size="small" color="slate-700" variant="tonal" class="font-mono font-weight-black">
-            {{ selectedExamObj?.uniqueCode }}
-          </v-chip>
-        </div>
-      </div>
-
-      <!-- بطاقة ملخص مؤشرات الاختبار المختار (Active Exam Executive Header) -->
+    <!-- بطاقة ملخص مؤشرات الاختبار المختار (Active Exam Executive Header) -->
       <div class="main-card pa-4 rounded-2xl mb-4 bg-surface border">
         <div class="d-flex align-center justify-space-between flex-wrap gap-3">
           <div class="d-flex align-center gap-2 flex-wrap">
@@ -541,6 +174,21 @@
               @update:model-value="onSearchInput"
               @keydown.enter="applyFilters"
               @click:clear="onClearSearch"
+            />
+          </v-col>
+
+                    <!-- فلتر المديرية والمحافظة -->
+          <v-col cols="6" sm="3" md="2" v-if="availableDirectorates && availableDirectorates.length > 0">
+            <v-select
+              v-model="filterDirectorate"
+              :items="['الكل', ...availableDirectorates]"
+              placeholder="المديرية"
+              prepend-inner-icon="mdi-map-marker-radius"
+              density="compact"
+              variant="outlined"
+              hide-details
+              clearable
+              @update:model-value="applyFilters"
             />
           </v-col>
 
@@ -935,10 +583,7 @@
           </template>
         </template>
       </custom-data-table>
-    </div>
-  </div>
-
-    <!-- ── نافذة تفاصيل سجل الطالب في الاختبار (عند عدم وجود ورقة مصححة) ── -->
+    </div><!-- ── نافذة تفاصيل سجل الطالب في الاختبار (عند عدم وجود ورقة مصححة) ── -->
     <v-dialog v-model="studentRecordDialog" max-width="560">
       <v-card class="rounded-2xl pa-5 main-card" v-if="selectedStudentRecord">
         <div class="d-flex align-center justify-space-between mb-4">
@@ -1753,15 +1398,17 @@ export default {
   },
 
   async created() {
+    await this.fetchExamsList()
     const queryExam = this.$route.query.exam || this.$route.query.open_exam_id
     if (queryExam) {
       this.selectedExamId = parseInt(queryExam) || queryExam
-      this.currentView = 'detail'
-      await this.fetchExamsList()
+      this.selectedExamObj = this.examsList.find(e => e.id === this.selectedExamId) || null
+    } else if (this.examsList.length > 0) {
+      this.selectedExamId = this.examsList[0].id
+      this.selectedExamObj = this.examsList[0]
+    }
+    if (this.selectedExamId) {
       await this.fetchGradebookRoster({ params: { page: 1, page_size: 10 } })
-    } else {
-      this.currentView = 'master'
-      await this.refreshMasterData()
     }
   },
 

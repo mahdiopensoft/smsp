@@ -236,7 +236,7 @@
 
               <!-- Visualizer Wrapper -->
               <div class="visualizer-wrapper bg-slate-900 rounded-xl pa-2 text-center position-relative overflow-hidden">
-                <div class="image-relative-container">
+                <div v-if="activeImage" class="image-relative-container">
                   <img
                     ref="sheetImg"
                     :src="getMediaUrl(activeImage)"
@@ -262,6 +262,27 @@
                       </template>
                     </template>
                   </template>
+                </div>
+
+                <!-- رسالة توضيحية عندما لا تحتوي الورقة على ملف صورة ممسوح ضوئياً -->
+                <div v-else class="pa-10 text-center text-white">
+                  <v-icon size="64" color="blue-grey-lighten-3" class="mb-3">mdi-image-off-outline</v-icon>
+                  <h4 class="text-subtitle-1 font-weight-black mb-1">ورقة الإجابة لا تتضمن ملف صورة مرفوع</h4>
+                  <p class="text-caption text-blue-grey-lighten-3 mb-4 mx-auto" style="max-width: 380px;">
+                    تم إنشاء درجات وسجلات هذه الورقة ضمن بيانات المحاكاة التجريبية (Seeder) لاختبار مادة التاريخ دون رفع صورة ماسح ضوئي.
+                  </p>
+                  <div class="d-flex align-center justify-center gap-2">
+                    <v-btn
+                      color="primary"
+                      variant="elevated"
+                      size="small"
+                      prepend-icon="mdi-file-eye-outline"
+                      class="font-weight-bold"
+                      @click="$router.push('/omr-submissions/36')"
+                    >
+                      استعراض ورقة مصححة ومفحوصة بالذكاء الاصطناعي (رقم 36)
+                    </v-btn>
+                  </div>
                 </div>
               </div>
             </div>
