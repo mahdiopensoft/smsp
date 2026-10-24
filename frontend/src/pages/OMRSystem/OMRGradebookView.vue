@@ -106,7 +106,6 @@
         <custom-data-table
           :headers="examMasterHeaders"
           :items="masterExamsTableItems"
-          :getData="fetchMasterExamsTable"
           :customLoading="loadingExams"
           class="bg-transparent"
           :hasFilter="false"
@@ -250,7 +249,6 @@
         <custom-data-table
           :headers="schoolMasterHeaders"
           :items="masterSchoolsTableItems"
-          :getData="fetchMasterSchoolsTable"
           :customLoading="loadingMaster"
           class="bg-transparent"
           :hasFilter="false"
@@ -343,7 +341,6 @@
         <custom-data-table
           :headers="directorateMasterHeaders"
           :items="masterDirectoratesTableItems"
-          :getData="fetchMasterDirectoratesTable"
           :customLoading="loadingMaster"
           class="bg-transparent"
           :hasFilter="false"
@@ -1814,17 +1811,6 @@ export default {
       }
     },
 
-    async fetchMasterExamsTable() {
-      return await this.fetchExamsList()
-    },
-
-    async fetchMasterSchoolsTable() {
-      return await this.fetchSchoolsList()
-    },
-
-    async fetchMasterDirectoratesTable() {
-      return await this.fetchDirectoratesList()
-    },
 
     async openExamRoster(item) {
       if (!item || !item.id) return
@@ -2116,7 +2102,7 @@ export default {
     async fetchGradebookRoster(tableParams = null) {
       if (!this.selectedExamId) {
         this.tableItems = { results: [], pagination: { count: 0, num_pages: 1, current_page: 1, page_size: 10, total: 0 } }
-        return this.tableItems
+        return Promise.resolve(this.tableItems)
       }
       this.loadingRecords = true
       try {
@@ -2182,11 +2168,11 @@ export default {
             }
           }
         }
-        return this.tableItems
+        return Promise.resolve(this.tableItems)
       } catch (err) {
         console.error('Error loading gradebook roster from backend:', err)
         this.notify('تعذر تحميل كشف درجات الاختبار', 'error')
-        return this.tableItems
+        return Promise.resolve(this.tableItems)
       } finally {
         this.loadingRecords = false
       }
