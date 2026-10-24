@@ -257,7 +257,18 @@
                     prepend-icon="mdi-arrow-down-right"
                     @click="drillDownToOffice(item)"
                   >
-                    استعراض المديريات
+                    المديريات
+                  </v-btn>
+                  <v-btn
+                    size="small"
+                    color="primary"
+                    variant="flat"
+                    rounded="lg"
+                    class="font-weight-bold"
+                    prepend-icon="mdi-account-group-outline"
+                    @click="openOfficeRoster(item)"
+                  >
+                    كشف الطلاب
                   </v-btn>
                 </div>
               </template>
@@ -311,7 +322,18 @@
                     prepend-icon="mdi-school"
                     @click="drillDownToDirectorate(item)"
                   >
-                    استعراض المدارس
+                    المدارس
+                  </v-btn>
+                  <v-btn
+                    size="small"
+                    color="teal"
+                    variant="flat"
+                    rounded="lg"
+                    class="font-weight-bold"
+                    prepend-icon="mdi-account-group-outline"
+                    @click="openDirectorateRoster(item)"
+                  >
+                    كشف الطلاب
                   </v-btn>
                 </div>
               </template>
@@ -339,6 +361,30 @@
                     <div class="text-caption text-medium-emphasis">{{ item.directorate_name }} • {{ item.governorate_name }}</div>
                   </div>
                 </div>
+              </template>
+
+              <template #item.institution_type="{ item }">
+                <v-chip size="x-small" :color="item.institution_type === 'university' ? 'purple' : (item.institution_type === 'institute' ? 'amber' : 'primary')" variant="tonal" class="font-weight-bold">
+                  {{ item.institution_type === 'university' ? 'جامعي' : (item.institution_type === 'institute' ? 'مهني/معهد' : 'مدرسي') }}
+                </v-chip>
+              </template>
+
+              <template #item.exams_count="{ item }">
+                <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
+                  {{ item.exams_count }} اختبار
+                </v-chip>
+              </template>
+
+              <template #item.total_students="{ item }">
+                <span class="font-weight-bold text-subtitle-2">{{ item.total_students }} طالب</span>
+              </template>
+
+              <template #item.completed_count="{ item }">
+                <span class="font-weight-bold text-success">{{ item.completed_count }} ورقة</span>
+              </template>
+
+              <template #item.average_score="{ item }">
+                <span class="font-weight-bold">{{ item.average_score }}%</span>
               </template>
 
               <template #item.completion_rate="{ item }">
@@ -405,6 +451,27 @@
                   {{ item.governorate_name || 'كافة المناطق' }}
                   <span v-if="item.directorate_name" class="text-medium-emphasis"> • {{ item.directorate_name }}</span>
                 </div>
+              </template>
+
+              <template #item.schools_count="{ item }">
+                <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold">
+                  <v-icon start size="14">mdi-school-outline</v-icon>
+                  {{ item.schools_count }} {{ item.schools_count === 1 ? 'مدرسة/مركز' : 'مدارس/مراكز' }}
+                </v-chip>
+              </template>
+
+              <template #item.total_students="{ item }">
+                <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
+                  <v-icon start size="14">mdi-account-group</v-icon>
+                  {{ item.total_students }} طالب
+                </v-chip>
+              </template>
+
+              <template #item.completed_count="{ item }">
+                <v-chip size="small" color="teal" variant="tonal" class="font-weight-bold">
+                  <v-icon start size="14">mdi-check-decagram-outline</v-icon>
+                  {{ item.completed_count }} ورقة
+                </v-chip>
               </template>
 
               <template #item.completion_rate="{ item }">
@@ -476,10 +543,18 @@
               <span class="text-on-surface font-weight-black">
                 {{ institutionType === 'university' ? 'التعليم الجامعي' : (institutionType === 'institute' ? 'التعليم الفني' : 'التعليم العام') }}
               </span>
-              <v-icon size="14">mdi-chevron-left</v-icon>
-              <span v-if="selectedExamObj?.governorate_name">{{ selectedExamObj.governorate_name }}</span>
-              <v-icon v-if="selectedExamObj?.directorate_name" size="14">mdi-chevron-left</v-icon>
-              <span v-if="selectedExamObj?.directorate_name">{{ selectedExamObj.directorate_name }}</span>
+              <template v-if="selectedOfficeObj">
+                <v-icon size="14">mdi-chevron-left</v-icon>
+                <span class="text-primary">{{ selectedOfficeObj.office_name || selectedOfficeObj.name_ar }}</span>
+              </template>
+              <template v-if="selectedDirectorateObj">
+                <v-icon size="14">mdi-chevron-left</v-icon>
+                <span class="text-teal font-weight-bold">{{ selectedDirectorateObj.name || selectedDirectorateObj.name_ar }}</span>
+              </template>
+              <template v-if="filterOrganization">
+                <v-icon size="14">mdi-chevron-left</v-icon>
+                <span class="text-indigo font-weight-bold">{{ filterOrganization }}</span>
+              </template>
               <v-icon size="14">mdi-chevron-left</v-icon>
               <span class="text-primary font-weight-black">{{ selectedExamObj?.title }}</span>
             </div>
@@ -1361,7 +1436,7 @@ export default {
         { title: "إجمالي الطلاب", key: "total_students", sortable: true, align: "center", width: "120px" },
         { title: "أوراق مصححة", key: "completed_count", sortable: true, align: "center", width: "120px" },
         { title: "نسبة الإنجاز", key: "completion_rate", sortable: true, align: "center", width: "140px" },
-        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "160px" },
+        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "230px" },
       ],
 
       directorateMasterHeaders: [
@@ -1372,7 +1447,7 @@ export default {
         { title: "إجمالي الطلاب", key: "total_students", sortable: true, align: "center", width: "120px" },
         { title: "أوراق مصححة", key: "completed_count", sortable: true, align: "center", width: "120px" },
         { title: "نسبة الإنجاز", key: "completion_rate", sortable: true, align: "center", width: "140px" },
-        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "160px" },
+        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "230px" },
       ],
 
       schoolMasterHeaders: [
@@ -1541,6 +1616,16 @@ export default {
         return (this.educationalOrgs || []).filter(o => o.company_level === 50 && dirIds.includes(o.fk_parent_organization))
       }
       return (this.educationalOrgs || []).filter(o => o.company_level === 50)
+    },
+
+    selectedOfficeObj() {
+      if (!this.selectedOfficeId) return null
+      return (this.realOfficesList || []).find(o => o.id === this.selectedOfficeId) || (this.officesList || []).find(o => o.id === this.selectedOfficeId) || null
+    },
+
+    selectedDirectorateObj() {
+      if (!this.selectedDirectorateId) return null
+      return (this.realDirectoratesList || []).find(d => d.id === this.selectedDirectorateId) || (this.directoratesList || []).find(d => d.id === this.selectedDirectorateId) || null
     },
 
     filteredOfficesTable() {
@@ -1813,9 +1898,10 @@ export default {
         const params = { institution_type: this.institutionType }
         if (this.selectedOfficeId) params.office_id = this.selectedOfficeId
         if (this.selectedDirectorateId) params.directorate_id = this.selectedDirectorateId
+        if (this.selectedSchoolId) params.school_id = this.selectedSchoolId
 
         const promises = [
-          this.fetchExamsList(),
+          this.fetchExamsList(params),
           gradebookAPI.getBySchool(params).then(res => { this.schoolsList = res.data?.results || [] }),
         ]
         if (this.institutionType === 'school') {
@@ -1875,6 +1961,42 @@ export default {
       this.selectedDirectorateId = item.id
       this.masterTab = 'schools'
       this.refreshMasterData()
+    },
+
+    async openOfficeRoster(item) {
+      if (!item || !item.id) return
+      this.selectedOfficeId = item.id
+      this.selectedDirectorateId = null
+      this.selectedSchoolId = null
+      
+      const matchExam = this.examsList.find(e => e.institution_type === this.institutionType) || this.examsList[0]
+      if (matchExam) {
+        this.selectedExamId = matchExam.id
+        this.selectedExamObj = matchExam
+      }
+      this.currentView = 'detail'
+      this.resetFilterSelections()
+      this.selectedStudentIds = []
+      await this.fetchGradebookRoster({ params: { page: 1, page_size: 10, office_id: item.id } })
+    },
+
+    async openDirectorateRoster(item) {
+      if (!item || !item.id) return
+      this.selectedDirectorateId = item.id
+      this.selectedSchoolId = null
+      if (item.office_id) {
+        this.selectedOfficeId = item.office_id
+      }
+      
+      const matchExam = this.examsList.find(e => e.institution_type === this.institutionType) || this.examsList[0]
+      if (matchExam) {
+        this.selectedExamId = matchExam.id
+        this.selectedExamObj = matchExam
+      }
+      this.currentView = 'detail'
+      this.resetFilterSelections()
+      this.selectedStudentIds = []
+      await this.fetchGradebookRoster({ params: { page: 1, page_size: 10, directorate_id: item.id } })
     },
 
     async openExamRoster(item) {
@@ -2258,6 +2380,12 @@ export default {
       }
       if (this.filterStatus && this.filterStatus !== 'all') {
         queryParams.status = this.filterStatus
+      }
+      if (this.selectedOfficeId) {
+        queryParams.office_id = this.selectedOfficeId
+      }
+      if (this.selectedDirectorateId) {
+        queryParams.directorate_id = this.selectedDirectorateId
       }
       if (this.filterDispatch && this.filterDispatch !== 'all') {
         queryParams.dispatch = this.filterDispatch

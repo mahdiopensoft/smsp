@@ -68,8 +68,90 @@ class ExamGradebookMVS(ViewSet):
             qs = qs.filter(Q(title__icontains=search) | Q(uniqueCode__icontains=search))
         if institution_type and institution_type != 'all':
             qs = qs.filter(institution_type=institution_type)
-        if subject_id:
-            qs = qs.filter(subject_id=subject_id)
+        office_id = request.query_params.get('office_id') or request.query_params.get('office')
+        directorate_id = request.query_params.get('directorate_id') or request.query_params.get('directorate')
+        school_id = request.query_params.get('school_id') or request.query_params.get('school')
+
+        # فلترة الاختبارات حسب المدرسة / المركز المحدد
+        if school_id:
+            matched_school_names = []
+            if str(school_id).isdigit():
+                core_sch = CoreOrg.objects.filter(id=int(school_id), company_level=50).first()
+                if core_sch:
+                    matched_school_names.append(core_sch.name_ar)
+                try:
+                    from academic.models.common.Organization import Organization as AcademicOrg
+                    ac_sch = AcademicOrg.objects.filter(id=int(school_id)).first()
+                    if ac_sch and ac_sch.name_ar not in matched_school_names:
+                        matched_school_names.append(ac_sch.name_ar)
+                except Exception:
+                    pass
+            else:
+                matched_school_names.append(str(school_id).strip())
+
+            exam_ids_for_school = StudentExamRegistration.objects.filter(
+                is_deleted=False
+            ).filter(
+                Q(student_profile__organization_id=school_id) |
+                Q(student_profile__organization__name_ar__in=matched_school_names)
+            ).values_list('examVersion__exam_id', flat=True).distinct()
+
+            qs = qs.filter(id__in=exam_ids_for_school)
+
+        # فلترة الاختبارات حسب إدارة التربية بالمديرية
+        elif directorate_id:
+            dir_names = []
+            child_school_names = []
+            if str(directorate_id).isdigit():
+                core_dir = CoreOrg.objects.filter(id=int(directorate_id), company_level=40).first()
+                if core_dir:
+                    clean_name = core_dir.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip()
+                    dir_names.extend([core_dir.name_ar, clean_name])
+                    child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization=core_dir.id, is_deleted=False)
+                    child_school_names = list(child_schools.values_list('name_ar', flat=True))
+            else:
+                dir_names.append(str(directorate_id).strip())
+
+            dir_exam_ids = StudentExamRegistration.objects.filter(is_deleted=False).filter(
+                Q(student_profile__directorate__name_ar__in=dir_names) |
+                Q(student_profile__organization__name_ar__in=child_school_names)
+            ).values_list('examVersion__exam_id', flat=True).distinct()
+
+            dir_q = Q(id__in=dir_exam_ids)
+            if str(directorate_id).isdigit():
+                dir_q |= Q(directorate_id=int(directorate_id))
+            for d_name in dir_names:
+                dir_q |= Q(directorate__name_ar__icontains=d_name)
+
+            qs = qs.filter(dir_q)
+
+        # فلترة الاختبارات حسب مكتب التربية والتعليم بالمحافظة
+        elif office_id:
+            gov_names = []
+            child_school_names = []
+            if str(office_id).isdigit():
+                core_off = CoreOrg.objects.filter(id=int(office_id), company_level=30).first()
+                if core_off:
+                    clean_gov = core_off.name_ar.replace('مكتب التربية والتعليم - ', '').strip()
+                    gov_names.extend([core_off.name_ar, clean_gov])
+                    child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization=core_off.id, is_deleted=False)
+                    child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=child_dirs.values_list('id', flat=True), is_deleted=False)
+                    child_school_names = list(child_schools.values_list('name_ar', flat=True))
+            else:
+                gov_names.append(str(office_id).strip())
+
+            off_exam_ids = StudentExamRegistration.objects.filter(is_deleted=False).filter(
+                Q(student_profile__directorate__fk_governorate__name_ar__in=gov_names) |
+                Q(student_profile__organization__name_ar__in=child_school_names)
+            ).values_list('examVersion__exam_id', flat=True).distinct()
+
+            off_q = Q(id__in=off_exam_ids)
+            if str(office_id).isdigit():
+                off_q |= Q(governorate_id=int(office_id))
+            for g_name in gov_names:
+                off_q |= Q(governorate__name_ar__icontains=g_name)
+
+            qs = qs.filter(off_q)
 
         # School Filters
         stage_id = request.query_params.get('stage')
@@ -262,9 +344,13 @@ class ExamGradebookMVS(ViewSet):
             child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization=off.id, is_deleted=False)
             child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=child_dirs.values_list('id', flat=True), is_deleted=False)
             school_names = list(child_schools.values_list('name_ar', flat=True))
+            dir_names = list(child_dirs.values_list('name_ar', flat=True))
+            clean_dir_names = [d.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip() for d in dir_names]
 
             regs = StudentExamRegistration.objects.filter(is_deleted=False).filter(
-                student_profile__organization__name_ar__in=school_names
+                Q(student_profile__organization__name_ar__in=school_names) |
+                Q(student_profile__directorate__name_ar__in=clean_dir_names) |
+                Q(student_profile__directorate__name_ar__in=dir_names)
             )
             tot = regs.count()
             exams_cnt = regs.values('examVersion__exam_id').distinct().count()
@@ -311,9 +397,12 @@ class ExamGradebookMVS(ViewSet):
         for d in dirs_qs.order_by('branch_no', 'id'):
             child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization=d.id, is_deleted=False)
             school_names = list(child_schools.values_list('name_ar', flat=True))
+            clean_dir_name = d.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip()
 
             regs = StudentExamRegistration.objects.filter(is_deleted=False).filter(
-                student_profile__organization__name_ar__in=school_names
+                Q(student_profile__organization__name_ar__in=school_names) |
+                Q(student_profile__directorate__name_ar__icontains=clean_dir_name) |
+                Q(student_profile__directorate__name_ar__icontains=d.name_ar)
             )
             tot = regs.count()
             exams_cnt = regs.values('examVersion__exam_id').distinct().count()
@@ -370,7 +459,11 @@ class ExamGradebookMVS(ViewSet):
             if core_dir:
                 child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization=core_dir.id, is_deleted=False)
                 school_names = list(child_schools.values_list('name_ar', flat=True))
-                regs_qs = regs_qs.filter(student_profile__organization__name_ar__in=school_names)
+                clean_name = core_dir.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip()
+                regs_qs = regs_qs.filter(
+                    Q(student_profile__organization__name_ar__in=school_names) |
+                    Q(student_profile__directorate__name_ar__icontains=clean_name)
+                )
             else:
                 regs_qs = regs_qs.filter(student_profile__directorate_id=directorate_id)
         elif office_id:
@@ -384,12 +477,34 @@ class ExamGradebookMVS(ViewSet):
         if institution_type and institution_type != 'all':
             regs_qs = regs_qs.filter(student_profile__organization__institution_type=institution_type)
 
+        # خريطة إدارات ومحافظات المدارس من الهيكل المؤسسي المعتمد CoreOrg (المستوى 50)
+        core_schools = CoreOrg.objects.filter(company_level=50, is_deleted=False).select_related(
+            'fk_parent_organization', 'fk_parent_organization__fk_parent_organization'
+        )
+        core_map = {}
+        for cs in core_schools:
+            dir_name = cs.fk_parent_organization.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip() if cs.fk_parent_organization else "—"
+            gov_name = cs.fk_parent_organization.fk_parent_organization.name_ar.replace('مكتب التربية والتعليم - ', '').strip() if (cs.fk_parent_organization and cs.fk_parent_organization.fk_parent_organization) else "—"
+            core_map[cs.name_ar] = (dir_name, gov_name)
+
+        student_geo_map = {}
+        for row in regs_qs.values(
+            'student_profile__organization_id',
+            'student_profile__directorate__name_ar',
+            'student_profile__directorate__fk_governorate__name_ar'
+        ).exclude(student_profile__directorate__name_ar__isnull=True):
+            oid = row['student_profile__organization_id']
+            if oid not in student_geo_map:
+                student_geo_map[oid] = (
+                    row['student_profile__directorate__name_ar'] or "—",
+                    row['student_profile__directorate__fk_governorate__name_ar'] or "—"
+                )
+
+        # تجميع المدارس والمؤسسات التعليمية بشكل وحيد ومطلق دون أي تكرار
         schools_agg = regs_qs.values(
             'student_profile__organization_id',
             'student_profile__organization__name_ar',
             'student_profile__organization__institution_type',
-            'student_profile__directorate__name_ar',
-            'student_profile__directorate__fk_governorate__name_ar'
         ).annotate(
             total_students=Count('id', distinct=True),
             exams_count=Count('examVersion__exam_id', distinct=True)
@@ -418,15 +533,21 @@ class ExamGradebookMVS(ViewSet):
         results = []
         for s in schools_agg:
             org_id = s['student_profile__organization_id']
+            name = s['student_profile__organization__name_ar'] or "مؤسسة تعليمية غير محددة"
             tot = s['total_students']
             comp = subs_completed.get(org_id, 0)
             avg_sc = subs_scores.get(org_id, 0.0) or 0.0
+
+            dir_name, gov_name = core_map.get(name, (None, None))
+            if not dir_name:
+                dir_name, gov_name = student_geo_map.get(org_id, ("—", "—"))
+
             results.append({
                 "id": org_id,
-                "name": s['student_profile__organization__name_ar'] or "مؤسسة تعليمية غير محددة",
+                "name": name,
                 "institution_type": s['student_profile__organization__institution_type'] or "school",
-                "directorate_name": s['student_profile__directorate__name_ar'] or "—",
-                "governorate_name": s['student_profile__directorate__fk_governorate__name_ar'] or "—",
+                "directorate_name": dir_name or "—",
+                "governorate_name": gov_name or "—",
                 "total_students": tot,
                 "exams_count": s['exams_count'],
                 "completed_count": comp,
@@ -587,6 +708,36 @@ class ExamGradebookMVS(ViewSet):
             'student_profile__directorate__fk_governorate',
             'examVersion'
         )
+
+        # 3.0 فلتر مكتب التربية والتعليم بالمحافظة (المستوى 30)
+        office_id = request.query_params.get('office_id')
+        if office_id and str(office_id).isdigit():
+            child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization=int(office_id), is_deleted=False)
+            child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=child_dirs.values_list('id', flat=True), is_deleted=False)
+            school_names = list(child_schools.values_list('name_ar', flat=True))
+            dir_names = list(child_dirs.values_list('name_ar', flat=True))
+            clean_dir_names = [d.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip() for d in dir_names]
+            registrations = registrations.filter(
+                Q(student_profile__organization__name_ar__in=school_names) |
+                Q(student_profile__directorate__name_ar__in=clean_dir_names) |
+                Q(student_profile__directorate__name_ar__in=dir_names)
+            )
+
+        # 3.0.1 فلتر إدارة التربية والتعليم بالمديرية (المستوى 40)
+        dir_id = request.query_params.get('directorate_id')
+        if dir_id and str(dir_id).isdigit():
+            try:
+                dir_org = CoreOrg.objects.get(id=int(dir_id), is_deleted=False)
+                clean_name = dir_org.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip()
+                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization=int(dir_id), is_deleted=False)
+                school_names = list(child_schools.values_list('name_ar', flat=True))
+                registrations = registrations.filter(
+                    Q(student_profile__directorate__name_ar__icontains=clean_name) |
+                    Q(student_profile__directorate__name_ar__icontains=dir_org.name_ar) |
+                    Q(student_profile__organization__name_ar__in=school_names)
+                )
+            except CoreOrg.DoesNotExist:
+                pass
 
         # 3.1 فلتر المحافظة (يدعم تحديد مفرد أو متعدد عبر المعرفات الرقمية والأسماء)
         gov_raw = request.query_params.getlist('governorate') or [request.query_params.get('governorate') or request.query_params.get('governorate_name') or '']
