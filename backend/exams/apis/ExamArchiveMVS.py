@@ -19,9 +19,20 @@ class ExamArchiveMVS(AllMVS):
         'subject', 
         'year', 
         'examSchedule',
-        'examGenerationSetting'
+        'examGenerationSetting',
+        'governorate',
+        'directorate',
+        'region',
+        'country',
+        'class_track',
+        'class_track__level',
+        'class_track__level__stage'
     ).prefetch_related(
-        'versions__question_orders'
+        'versions__question_orders',
+        'target_scopes__governorate',
+        'target_scopes__directorate',
+        'target_scopes__region',
+        'target_scopes__organization'
     ).annotate(
         annotated_students_count=Count('versions__registered_students', filter=Q(versions__registered_students__is_deleted=False), distinct=True),
         annotated_versions_count=Count('versions', filter=Q(versions__is_deleted=False), distinct=True)

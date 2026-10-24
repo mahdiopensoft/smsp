@@ -1,4 +1,4 @@
-$VenvPath = "C:\Users\ibrahim\Desktop\question_bank\smsp\backend\work_core_venv"
+$VenvPath = "C:\Users\ibrahim\Desktop\question_bank\work_core_venv"
 # $VenvPath = "D:\UEP Systems Production Version\backends full securty all\work_core_venv"
 $ProjectPath = Get-Location
 Set-Location -Path "$VenvPath\Scripts"
