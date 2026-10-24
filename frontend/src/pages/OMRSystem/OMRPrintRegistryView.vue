@@ -16,14 +16,26 @@
 
       <div class="d-flex align-center gap-2 flex-wrap">
         <v-btn
+          v-if="currentView === 'detail'"
+          color="secondary"
+          variant="tonal"
+          rounded="lg"
+          class="font-weight-bold"
+          prepend-icon="mdi-view-dashboard-outline"
+          @click="returnToMaster"
+        >
+          عرض الهيكل وسجل الطباعة
+        </v-btn>
+        <v-btn
+          v-else
           color="primary"
           variant="flat"
           rounded="lg"
           class="font-weight-bold shadow-sm"
-          prepend-icon="mdi-format-list-checks"
-          to="/omr-exams"
+          prepend-icon="mdi-printer-outline"
+          @click="currentView = 'detail'"
         >
-          استعراض وإدارة الاختبارات
+          استوديو المعاينة والطباعة المباشر
         </v-btn>
         <v-btn
           color="secondary"
@@ -31,7 +43,7 @@
           rounded="lg"
           class="font-weight-bold"
           prepend-icon="mdi-refresh"
-          :loading="loadingBatches || loadingExams"
+          :loading="loadingMaster || loadingBatches || loadingExams"
           @click="refreshData"
         >
           تحديث البيانات
@@ -42,12 +54,656 @@
     <!-- ── OMR Workflow Stepper (المرحلة 2: طباعة أوراق الإجابة) ── -->
     <omr-workflow-bar :active-step="2" />
 
-    <!-- ── شريط اختيار وتصفية الاختبار الموحد (Unified Exam Selector & Filters) ── -->
-    <filter-fields label="تصفية واختيار الاختبار المطلوب طباعة وثائقه" class="main-card border-0 pa-5 rounded-2xl mb-4">
-      <v-row dense class="align-center">
-        <!-- 1. نوع المؤسسة التعليمية -->
-        <auto-list
-          v-model="filterInstitutionType"
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- 1. MASTER VIEW: الهيكل الإداري وسجل الطباعة المركزي             -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <div v-if="currentView === 'master'" class="master-view-container">
+      <!-- 1. Sector Switcher (فصل نوع المؤسسة التعليمية بشكل قاطع) -->
+      <div class="d-flex align-center justify-space-between flex-wrap gap-3 mb-4">
+        <v-btn-toggle
+          v-model="institutionType"
+          mandatory
+          color="primary"
+          variant="outlined"
+          density="comfortable"
+          rounded="xl"
+          class="bg-surface border"
+          @update:model-value="onSectorChange"
+        >
+          <v-btn value="school" class="px-4 font-weight-bold" prepend-icon="mdi-school">
+            التعليم العام (المدرسي)
+          </v-btn>
+          <v-btn value="university" class="px-4 font-weight-bold" prepend-icon="mdi-domain">
+            التعليم الجامعي (كليات وجامعات)
+          </v-btn>
+          <v-btn value="institute" class="px-4 font-weight-bold" prepend-icon="mdi-tools">
+            التعليم الفني والمهني (معاهد)
+          </v-btn>
+        </v-btn-toggle>
+
+        <div class="d-flex align-center gap-2">
+          <v-btn
+            color="primary"
+            variant="flat"
+            size="small"
+            rounded="lg"
+            class="font-weight-bold"
+            prepend-icon="mdi-printer-eye"
+            @click="currentView = 'detail'"
+          >
+            استوديو الطباعة المباشر
+          </v-btn>
+          <v-btn
+            variant="tonal"
+            color="secondary"
+            size="small"
+            rounded="lg"
+            class="font-weight-bold"
+            prepend-icon="mdi-refresh"
+            :loading="loadingMaster"
+            @click="loadMasterData"
+          >
+            تحديث السجل
+          </v-btn>
+        </div>
+      </div>
+
+      <!-- 2. بطاقات المؤشرات القياسية العامة للطباعة والكنترول -->
+      <v-row dense class="mb-4">
+        <v-col cols="12" sm="6" md="3">
+          <v-card class="pa-4 rounded-2xl bg-surface border elevation-1">
+            <div class="d-flex align-center justify-space-between">
+              <div>
+                <div class="text-caption text-medium-emphasis font-weight-bold mb-1">إجمالي أوراق التظليل المطبوعة</div>
+                <div class="text-h5 font-weight-black text-primary">{{ kpiTotalPrinted }} ورقة</div>
+                <div class="text-caption text-success font-weight-bold mt-1">
+                  نسبة إنجاز الطباعة: {{ kpiPrintRate }}%
+                </div>
+              </div>
+              <v-avatar size="48" color="primary" variant="tonal" class="rounded-xl">
+                <v-icon size="26">mdi-printer-check</v-icon>
+              </v-avatar>
+            </div>
+          </v-card>
+        </v-col>
+
+        <v-col cols="12" sm="6" md="3">
+          <v-card class="pa-4 rounded-2xl bg-surface border elevation-1">
+            <div class="d-flex align-center justify-space-between">
+              <div>
+                <div class="text-caption text-medium-emphasis font-weight-bold mb-1">المراكز والمدارس الجاهزة</div>
+                <div class="text-h5 font-weight-black text-indigo">{{ kpiSchoolsCount }} مركز / مدرسة</div>
+                <div class="text-caption text-medium-emphasis mt-1">سحب مباشر لأوراق الطلاب</div>
+              </div>
+              <v-avatar size="48" color="indigo" variant="tonal" class="rounded-xl">
+                <v-icon size="26">mdi-school-outline</v-icon>
+              </v-avatar>
+            </div>
+          </v-card>
+        </v-col>
+
+        <v-col cols="12" sm="6" md="3">
+          <v-card class="pa-4 rounded-2xl bg-surface border elevation-1">
+            <div class="d-flex align-center justify-space-between">
+              <div>
+                <div class="text-caption text-medium-emphasis font-weight-bold mb-1">الاختبارات الأكاديمية</div>
+                <div class="text-h5 font-weight-black text-teal">{{ kpiExamsCount }} اختبار معتمد</div>
+                <div class="text-caption text-medium-emphasis mt-1">نماذج متعددة A, B, C, D</div>
+              </div>
+              <v-avatar size="48" color="teal" variant="tonal" class="rounded-xl">
+                <v-icon size="26">mdi-file-document-check-outline</v-icon>
+              </v-avatar>
+            </div>
+          </v-card>
+        </v-col>
+
+        <v-col cols="12" sm="6" md="3">
+          <v-card class="pa-4 rounded-2xl bg-surface border elevation-1">
+            <div class="d-flex align-center justify-space-between">
+              <div>
+                <div class="text-caption text-medium-emphasis font-weight-bold mb-1">إجمالي الطلاب المقيدين</div>
+                <div class="text-h5 font-weight-black text-purple">{{ kpiTotalRegistered }} طالب</div>
+                <div class="text-caption text-medium-emphasis mt-1">أرقام جلوس وتشفير باركود</div>
+              </div>
+              <v-avatar size="48" color="purple" variant="tonal" class="rounded-xl">
+                <v-icon size="26">mdi-account-group-outline</v-icon>
+              </v-avatar>
+            </div>
+          </v-card>
+        </v-col>
+      </v-row>
+
+      <!-- 3. شريط التصفية الهيكلي الموحد (مرتب وبدون تكرار) -->
+      <div class="main-card pa-4 rounded-2xl mb-4 bg-surface border elevation-1">
+        <v-row dense class="align-center">
+          <!-- التعليم العام (مدرسي) -->
+          <template v-if="institutionType === 'school'">
+            <v-col cols="12" md="4">
+              <v-autocomplete
+                v-model="selectedOfficeId"
+                :items="officesList"
+                item-title="office_name"
+                item-value="id"
+                label="مكتب التربية والتعليم (المحافظة)"
+                placeholder="اختر مكتب التربية بالمحافظة..."
+                clearable
+                density="compact"
+                variant="outlined"
+                hide-details
+                prepend-inner-icon="mdi-office-building-outline"
+                @update:model-value="onOfficeFilterChange"
+              />
+            </v-col>
+
+            <v-col cols="12" md="4">
+              <v-autocomplete
+                v-model="selectedDirectorateId"
+                :items="directoratesOptions"
+                item-title="name"
+                item-value="id"
+                label="إدارة التربية والتعليم (المديرية)"
+                placeholder="اختر إدارة التربية بالمديرية..."
+                clearable
+                density="compact"
+                variant="outlined"
+                hide-details
+                prepend-inner-icon="mdi-map-marker-radius-outline"
+                @update:model-value="onDirectorateFilterChange"
+              />
+            </v-col>
+
+            <v-col cols="12" md="4">
+              <v-autocomplete
+                v-model="selectedSchoolId"
+                :items="schoolsOptions"
+                item-title="name"
+                item-value="id"
+                label="المدرسة / المركز الامتحاني"
+                placeholder="اختر المركز أو المدرسة..."
+                clearable
+                density="compact"
+                variant="outlined"
+                hide-details
+                prepend-inner-icon="mdi-school-outline"
+                @update:model-value="onSchoolFilterChange"
+              />
+            </v-col>
+          </template>
+
+          <!-- التعليم الجامعي -->
+          <template v-else-if="institutionType === 'university'">
+            <v-col cols="12" md="6">
+              <v-autocomplete
+                v-model="selectedSchoolId"
+                :items="schoolsOptions"
+                item-title="name"
+                item-value="id"
+                label="الجامعة / الكلية"
+                placeholder="اختر الجامعة أو الكلية..."
+                clearable
+                density="compact"
+                variant="outlined"
+                hide-details
+                prepend-inner-icon="mdi-domain"
+                @update:model-value="onSchoolFilterChange"
+              />
+            </v-col>
+          </template>
+
+          <!-- التعليم الفني والمهني (معاهد) -->
+          <template v-else-if="institutionType === 'institute'">
+            <v-col cols="12" md="6">
+              <v-autocomplete
+                v-model="selectedSchoolId"
+                :items="schoolsOptions"
+                item-title="name"
+                item-value="id"
+                label="المعهد التقني / المهني"
+                placeholder="اختر المعهد..."
+                clearable
+                density="compact"
+                variant="outlined"
+                hide-details
+                prepend-inner-icon="mdi-tools"
+                @update:model-value="onSchoolFilterChange"
+              />
+            </v-col>
+          </template>
+        </v-row>
+      </div>
+
+      <!-- 4. تبويبات الاستعراض الهيكلي وسجل الطباعة المركزي (Master Tabs) -->
+      <div class="main-card rounded-2xl overflow-hidden mb-6 elevation-1 bg-surface border">
+        <div class="d-flex align-center justify-space-between flex-wrap gap-2 px-4 pt-3 border-b">
+          <v-tabs v-model="masterTab" color="primary" density="compact">
+            <v-tab v-if="institutionType === 'school'" value="offices" class="font-weight-bold">
+              <v-icon start size="18">mdi-office-building-outline</v-icon>
+              مكاتب التربية والتعليم ({{ filteredOfficesTable.length }})
+            </v-tab>
+            <v-tab v-if="institutionType === 'school'" value="directorates" class="font-weight-bold">
+              <v-icon start size="18">mdi-map-marker-radius-outline</v-icon>
+              إدارات التربية بالمديريات ({{ filteredDirectoratesTable.length }})
+            </v-tab>
+            <v-tab value="schools" class="font-weight-bold">
+              <v-icon start size="18">{{ institutionType === 'university' ? 'mdi-domain' : (institutionType === 'institute' ? 'mdi-tools' : 'mdi-school-outline') }}</v-icon>
+              {{ institutionType === 'university' ? 'الجامعات والكليات' : (institutionType === 'institute' ? 'المعاهد والمراكز' : 'المراكز الامتحانية والمدارس') }} ({{ filteredSchoolsTable.length }})
+            </v-tab>
+            <v-tab value="exams" class="font-weight-bold">
+              <v-icon start size="18">mdi-file-document-check-outline</v-icon>
+              الاختبارات المعتمدة للطباعة ({{ filteredMasterExamsTable.length }})
+            </v-tab>
+            <v-tab value="registry" class="font-weight-bold">
+              <v-icon start size="18">mdi-history</v-icon>
+              سجل الدفعات المطبوعة ({{ filteredBatchesTable.length }})
+            </v-tab>
+          </v-tabs>
+
+          <!-- شريط بحث الجدول السريع -->
+          <div style="max-width: 280px;" class="pb-2">
+            <v-text-field
+              v-model="masterSearchQuery"
+              placeholder="بحث سريع في الجدول..."
+              prepend-inner-icon="mdi-magnify"
+              density="compact"
+              variant="outlined"
+              hide-details
+              clearable
+              class="bg-white rounded-lg"
+            />
+          </div>
+        </div>
+
+        <v-window v-model="masterTab">
+          <!-- 1. تبويب مكاتب التربية بالمحافظات -->
+          <v-window-item value="offices" v-if="institutionType === 'school'">
+            <v-data-table
+              :headers="officeMasterHeaders"
+              :items="filteredOfficesTable"
+              :loading="loadingMaster"
+              density="comfortable"
+              hover
+              class="elevation-0"
+              no-data-text="لا توجد مكاتب تربية مسجلة"
+            >
+              <template #item.office_name="{ item }">
+                <div class="d-flex align-center py-2">
+                  <v-avatar color="primary" variant="tonal" size="36" class="me-3 rounded-lg">
+                    <v-icon color="primary" size="20">mdi-office-building-outline</v-icon>
+                  </v-avatar>
+                  <div>
+                    <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.office_name }}</div>
+                    <div class="text-caption text-medium-emphasis">المحافظة: {{ item.governorate_name }}</div>
+                  </div>
+                </div>
+              </template>
+
+              <template #item.printed_count="{ item }">
+                <span class="font-weight-bold text-primary">{{ item.printed_count || 0 }} ورقة</span>
+              </template>
+
+              <template #item.printed_rate="{ item }">
+                <div class="d-flex align-center gap-2">
+                  <v-progress-linear
+                    :model-value="item.printed_rate || 0"
+                    :color="(item.printed_rate >= 100) ? 'success' : (item.printed_rate > 0 ? 'warning' : 'primary')"
+                    height="8"
+                    rounded
+                    class="flex-grow-1"
+                  />
+                  <span class="text-caption font-weight-bold">{{ item.printed_rate || 0 }}%</span>
+                </div>
+              </template>
+
+              <template #item.print_status="{ item }">
+                <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
+                  {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
+                </v-chip>
+              </template>
+
+              <template #item.actions="{ item }">
+                <div class="d-flex align-center justify-center gap-2">
+                  <v-btn
+                    size="small"
+                    color="primary"
+                    variant="tonal"
+                    rounded="lg"
+                    class="font-weight-bold"
+                    prepend-icon="mdi-arrow-down-right"
+                    @click="drillDownToOffice(item)"
+                  >
+                    المديريات
+                  </v-btn>
+                  <v-btn
+                    size="small"
+                    color="primary"
+                    variant="flat"
+                    rounded="lg"
+                    class="font-weight-bold"
+                    prepend-icon="mdi-printer-outline"
+                    @click="openOfficeStudio(item)"
+                  >
+                    استوديو الطباعة
+                  </v-btn>
+                </div>
+              </template>
+            </v-data-table>
+          </v-window-item>
+
+          <!-- 2. تبويب إدارات التربية بالمديريات -->
+          <v-window-item value="directorates" v-if="institutionType === 'school'">
+            <v-data-table
+              :headers="directorateMasterHeaders"
+              :items="filteredDirectoratesTable"
+              :loading="loadingMaster"
+              density="comfortable"
+              hover
+              class="elevation-0"
+              no-data-text="لا توجد إدارات تربية مسجلة"
+            >
+              <template #item.name="{ item }">
+                <div class="d-flex align-center py-2">
+                  <v-avatar color="teal" variant="tonal" size="36" class="me-3 rounded-lg">
+                    <v-icon color="teal" size="20">mdi-map-marker-radius-outline</v-icon>
+                  </v-avatar>
+                  <div>
+                    <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ item.office_name }}</div>
+                  </div>
+                </div>
+              </template>
+
+              <template #item.printed_count="{ item }">
+                <span class="font-weight-bold text-teal">{{ item.printed_count || 0 }} ورقة</span>
+              </template>
+
+              <template #item.printed_rate="{ item }">
+                <div class="d-flex align-center gap-2">
+                  <v-progress-linear
+                    :model-value="item.printed_rate || 0"
+                    :color="(item.printed_rate >= 100) ? 'success' : (item.printed_rate > 0 ? 'warning' : 'teal')"
+                    height="8"
+                    rounded
+                    class="flex-grow-1"
+                  />
+                  <span class="text-caption font-weight-bold">{{ item.printed_rate || 0 }}%</span>
+                </div>
+              </template>
+
+              <template #item.print_status="{ item }">
+                <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
+                  {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
+                </v-chip>
+              </template>
+
+              <template #item.actions="{ item }">
+                <div class="d-flex align-center justify-center gap-2">
+                  <v-btn
+                    size="small"
+                    color="teal"
+                    variant="tonal"
+                    rounded="lg"
+                    class="font-weight-bold"
+                    prepend-icon="mdi-school"
+                    @click="drillDownToDirectorate(item)"
+                  >
+                    المراكز والمدارس
+                  </v-btn>
+                  <v-btn
+                    size="small"
+                    color="teal"
+                    variant="flat"
+                    rounded="lg"
+                    class="font-weight-bold"
+                    prepend-icon="mdi-printer-outline"
+                    @click="openDirectorateStudio(item)"
+                  >
+                    استوديو الطباعة
+                  </v-btn>
+                </div>
+              </template>
+            </v-data-table>
+          </v-window-item>
+
+          <!-- 3. تبويب المراكز الامتحانية والمدارس / الجامعات / المعاهد -->
+          <v-window-item value="schools">
+            <v-data-table
+              :headers="schoolMasterHeaders"
+              :items="filteredSchoolsTable"
+              :loading="loadingMaster"
+              density="comfortable"
+              hover
+              class="elevation-0"
+              no-data-text="لا توجد مدارس أو مراكز امتحانية مسجلة"
+            >
+              <template #item.name="{ item }">
+                <div class="d-flex align-center py-2">
+                  <v-avatar color="indigo" variant="tonal" size="36" class="me-3 rounded-lg">
+                    <v-icon color="indigo" size="20">mdi-school-outline</v-icon>
+                  </v-avatar>
+                  <div>
+                    <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ item.directorate_name }} • {{ item.governorate_name }}</div>
+                  </div>
+                </div>
+              </template>
+
+              <template #item.institution_type="{ item }">
+                <v-chip size="x-small" :color="item.institution_type === 'university' ? 'purple' : (item.institution_type === 'institute' ? 'amber' : 'primary')" variant="tonal" class="font-weight-bold">
+                  {{ item.institution_type === 'university' ? 'جامعي' : (item.institution_type === 'institute' ? 'مهني/معهد' : 'مدرسي') }}
+                </v-chip>
+              </template>
+
+              <template #item.exams_count="{ item }">
+                <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
+                  {{ item.exams_count }} اختبار
+                </v-chip>
+              </template>
+
+              <template #item.total_students="{ item }">
+                <span class="font-weight-bold text-subtitle-2">{{ item.total_students }} طالب</span>
+              </template>
+
+              <template #item.printed_count="{ item }">
+                <span class="font-weight-bold text-indigo">{{ item.printed_count || 0 }} ورقة</span>
+              </template>
+
+              <template #item.printed_rate="{ item }">
+                <div class="d-flex align-center gap-2">
+                  <v-progress-linear
+                    :model-value="item.printed_rate || 0"
+                    :color="(item.printed_rate >= 100) ? 'success' : (item.printed_rate > 0 ? 'warning' : 'indigo')"
+                    height="8"
+                    rounded
+                    class="flex-grow-1"
+                  />
+                  <span class="text-caption font-weight-bold">{{ item.printed_rate || 0 }}%</span>
+                </div>
+              </template>
+
+              <template #item.print_status="{ item }">
+                <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
+                  {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
+                </v-chip>
+              </template>
+
+              <template #item.actions="{ item }">
+                <div class="d-flex align-center justify-center gap-2">
+                  <v-btn
+                    size="small"
+                    color="primary"
+                    variant="flat"
+                    rounded="lg"
+                    class="font-weight-bold"
+                    prepend-icon="mdi-printer-check"
+                    @click="openSchoolStudio(item)"
+                  >
+                    سحب وطباعة أوراق الطلاب
+                  </v-btn>
+                </div>
+              </template>
+            </v-data-table>
+          </v-window-item>
+
+          <!-- 4. تبويب الاختبارات الأكاديمية -->
+          <v-window-item value="exams">
+            <v-data-table
+              :headers="examMasterHeaders"
+              :items="filteredMasterExamsTable"
+              :loading="loadingMaster"
+              density="comfortable"
+              hover
+              class="elevation-0"
+              no-data-text="لا توجد اختبارات مسجلة في هذا النطاق"
+            >
+              <template #item.uniqueCode="{ item }">
+                <span class="font-mono font-weight-bold text-caption px-2 py-1 rounded bg-grey-lighten-4 border">
+                  {{ item.uniqueCode }}
+                </span>
+              </template>
+
+              <template #item.title="{ item }">
+                <div class="py-2">
+                  <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.title }}</div>
+                  <div class="text-caption text-medium-emphasis">المادة: {{ item.subject_name || 'عام' }} • {{ item.directorate_name }}</div>
+                </div>
+              </template>
+
+              <template #item.printed_count="{ item }">
+                <span class="font-weight-bold text-primary">{{ item.printed_count || 0 }} ورقة</span>
+              </template>
+
+              <template #item.printed_rate="{ item }">
+                <div class="d-flex align-center gap-2">
+                  <v-progress-linear
+                    :model-value="item.printed_rate || 0"
+                    :color="(item.printed_rate >= 100) ? 'success' : (item.printed_rate > 0 ? 'warning' : 'primary')"
+                    height="8"
+                    rounded
+                    class="flex-grow-1"
+                  />
+                  <span class="text-caption font-weight-bold">{{ item.printed_rate || 0 }}%</span>
+                </div>
+              </template>
+
+              <template #item.print_status="{ item }">
+                <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
+                  {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
+                </v-chip>
+              </template>
+
+              <template #item.actions="{ item }">
+                <div class="d-flex align-center justify-center gap-2">
+                  <v-btn
+                    size="small"
+                    color="primary"
+                    variant="tonal"
+                    rounded="lg"
+                    class="font-weight-bold"
+                    prepend-icon="mdi-printer-eye"
+                    @click="openExamStudio(item)"
+                  >
+                    استوديو الطباعة
+                  </v-btn>
+                </div>
+              </template>
+            </v-data-table>
+          </v-window-item>
+
+          <!-- 5. تبويب سجل الدفعات المطبوعة العام -->
+          <v-window-item value="registry">
+            <v-data-table
+              :headers="registryMasterHeaders"
+              :items="filteredBatchesTable"
+              :loading="loadingBatches"
+              density="comfortable"
+              hover
+              class="elevation-0"
+              no-data-text="لا توجد دفعات طباعة مسجلة"
+            >
+              <template #item.batch_id="{ item }">
+                <span class="font-mono font-weight-bold text-caption text-primary">
+                  {{ item.batch_id }}
+                </span>
+              </template>
+
+              <template #item.total_sheets="{ item }">
+                <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
+                  {{ item.total_sheets }} ورقة
+                </v-chip>
+              </template>
+
+              <template #item.actions="{ item }">
+                <v-btn
+                  size="small"
+                  color="secondary"
+                  variant="tonal"
+                  rounded="lg"
+                  class="font-weight-bold"
+                  prepend-icon="mdi-eye-outline"
+                  @click="viewBatchDetails(item)"
+                >
+                  تفاصيل الدفعة
+                </v-btn>
+              </template>
+            </v-data-table>
+          </v-window-item>
+        </v-window>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- 2. DETAIL VIEW: استوديو المعاينة وطباعة الوثائق وحزم الاختبار  -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <div v-else class="detail-studio-container">
+      <!-- شريط التنقل الهرمي والعودة للهيكل وسياق التصفية -->
+      <div class="d-flex align-center justify-space-between flex-wrap gap-3 mb-4 pa-3 rounded-2xl bg-surface border elevation-1">
+        <div class="d-flex align-center gap-2 flex-wrap">
+          <v-btn
+            color="primary"
+            variant="tonal"
+            rounded="lg"
+            class="font-weight-bold"
+            prepend-icon="mdi-arrow-right"
+            @click="returnToMaster"
+          >
+            العودة للهيكل الإداري وسجل الطباعة
+          </v-btn>
+          <v-divider vertical class="mx-1" />
+          <!-- Breadcrumb trail -->
+          <div class="d-flex align-center text-caption font-weight-bold text-medium-emphasis flex-wrap gap-1">
+            <span class="text-primary">{{ institutionType === 'university' ? 'التعليم الجامعي' : (institutionType === 'institute' ? 'التعليم الفني' : 'التعليم العام') }}</span>
+            <v-icon size="14">mdi-chevron-left</v-icon>
+            <span>{{ selectedOfficeName || 'كل المحافظات' }}</span>
+            <v-icon size="14">mdi-chevron-left</v-icon>
+            <span>{{ selectedDirectorateName || 'كل المديريات' }}</span>
+            <template v-if="selectedSchoolName">
+              <v-icon size="14">mdi-chevron-left</v-icon>
+              <span class="text-primary font-weight-black">{{ selectedSchoolName }}</span>
+            </template>
+          </div>
+        </div>
+
+        <div class="d-flex align-center gap-2">
+          <v-chip
+            v-if="selectedSchoolName"
+            color="info"
+            variant="tonal"
+            closable
+            class="font-weight-bold"
+            prepend-icon="mdi-filter-check"
+            @click:close="clearSchoolFilter"
+          >
+            تصفية خاصة بالمدرسة: {{ selectedSchoolName }} ({{ examDetails?.registered_students?.length || 0 }} طالب)
+          </v-chip>
+        </div>
+      </div>
+
+      <!-- ── شريط اختيار وتصفية الاختبار الموحد (Unified Exam Selector & Filters) ── -->
+      <filter-fields label="تصفية واختيار الاختبار المطلوب طباعة وثائقه" class="main-card border-0 pa-5 rounded-2xl mb-4">
+        <v-row dense class="align-center">
+          <!-- 1. نوع المؤسسة التعليمية -->
+          <auto-list
+            v-model="filterInstitutionType"
           name="InstitutionType"
           placeholder="نوع المؤسسة التعليمية"
           cols="3"
@@ -1209,6 +1865,7 @@
         </custom-data-table>
       </div>
     </div>
+    </div>
 
     <!-- DIALOG: Batch Details -->
     <v-dialog v-model="detailsDialog" max-width="900px" scrollable>
@@ -1325,12 +1982,388 @@
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/services/omr/client.js'
+import { gradebookAPI } from '@/services/omr/endpoints'
 import YemeniMinistrySheet from '@/components/omr_templates/YemeniMinistrySheet.vue'
 import YemeniAuditReportSheet from '@/components/omr_templates/YemeniAuditReportSheet.vue'
 import YemeniOfficialQuestionPaper from '@/components/omr_templates/YemeniOfficialQuestionPaper.vue'
 import { printOmrElement, printOmrBatch, printOfficialQuestionPaper, printExamPackage } from './utils/omrPrint'
 
 const route = useRoute()
+
+// ── Master View & Administrative Hierarchy State ──
+const currentView = ref(route.query.exam ? 'detail' : 'master')
+const masterTab = ref('schools')
+const institutionType = ref('school')
+const loadingMaster = ref(false)
+const masterSearchQuery = ref('')
+
+const selectedOfficeId = ref(null)
+const selectedOfficeName = ref('')
+const selectedDirectorateId = ref(null)
+const selectedDirectorateName = ref('')
+const selectedSchoolId = ref(null)
+const selectedSchoolName = ref('')
+
+const officesList = ref([])
+const directoratesList = ref([])
+const schoolsList = ref([])
+const masterExamsList = ref([])
+
+// Master Table Headers
+const officeMasterHeaders = [
+  { title: "مكتب التربية والتعليم (المحافظة)", key: "office_name", sortable: true, align: "start" },
+  { title: "المديريات", key: "directorates_count", sortable: true, align: "center", width: "100px" },
+  { title: "المراكز والمدارس", key: "schools_count", sortable: true, align: "center", width: "130px" },
+  { title: "الاختبارات", key: "exams_count", sortable: true, align: "center", width: "100px" },
+  { title: "إجمالي الطلاب", key: "total_students", sortable: true, align: "center", width: "110px" },
+  { title: "أوراق مطبوعة", key: "printed_count", sortable: true, align: "center", width: "120px" },
+  { title: "نسبة الإنجاز", key: "printed_rate", sortable: true, align: "center", width: "130px" },
+  { title: "حالة الطباعة", key: "print_status", sortable: true, align: "center", width: "120px" },
+  { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "220px" },
+]
+
+const directorateMasterHeaders = [
+  { title: "إدارة التربية والتعليم (المديرية)", key: "name", sortable: true, align: "start" },
+  { title: "المكتب التابع له", key: "office_name", sortable: true, align: "center", width: "180px" },
+  { title: "المراكز والمدارس", key: "schools_count", sortable: true, align: "center", width: "130px" },
+  { title: "الاختبارات", key: "exams_count", sortable: true, align: "center", width: "100px" },
+  { title: "إجمالي الطلاب", key: "total_students", sortable: true, align: "center", width: "110px" },
+  { title: "أوراق مطبوعة", key: "printed_count", sortable: true, align: "center", width: "120px" },
+  { title: "نسبة الإنجاز", key: "printed_rate", sortable: true, align: "center", width: "130px" },
+  { title: "حالة الطباعة", key: "print_status", sortable: true, align: "center", width: "120px" },
+  { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "220px" },
+]
+
+const schoolMasterHeaders = [
+  { title: "المدرسة / المركز الامتحاني", key: "name", sortable: true, align: "start" },
+  { title: "نوع المؤسسة", key: "institution_type", sortable: true, align: "center", width: "110px" },
+  { title: "المحافظة والمديرية", key: "directorate_name", sortable: true, align: "center", width: "160px" },
+  { title: "الاختبارات", key: "exams_count", sortable: true, align: "center", width: "100px" },
+  { title: "إجمالي الطلاب", key: "total_students", sortable: true, align: "center", width: "110px" },
+  { title: "أوراق مطبوعة", key: "printed_count", sortable: true, align: "center", width: "120px" },
+  { title: "نسبة الطباعة", key: "printed_rate", sortable: true, align: "center", width: "130px" },
+  { title: "حالة الطباعة", key: "print_status", sortable: true, align: "center", width: "120px" },
+  { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "190px" },
+]
+
+const examMasterHeaders = [
+  { title: "رمز الاختبار", key: "uniqueCode", sortable: true, align: "center", width: "160px" },
+  { title: "عنوان الاختبار والمادة", key: "title", sortable: true, align: "start" },
+  { title: "المدارس المشاركة", key: "schools_count", sortable: true, align: "center", width: "120px" },
+  { title: "المقيدون", key: "total_registered", sortable: true, align: "center", width: "110px" },
+  { title: "أوراق مطبوعة", key: "printed_count", sortable: true, align: "center", width: "120px" },
+  { title: "نسبة الطباعة", key: "printed_rate", sortable: true, align: "center", width: "130px" },
+  { title: "حالة الطباعة", key: "print_status", sortable: true, align: "center", width: "120px" },
+  { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "160px" },
+]
+
+const registryMasterHeaders = [
+  { title: "رقم الدفعة", key: "batch_id", sortable: true, align: "start", width: "170px" },
+  { title: "عنوان الاختبار", key: "exam_title", sortable: true, align: "start" },
+  { title: "عدد الأوراق", key: "total_sheets", sortable: true, align: "center", width: "110px" },
+  { title: "تاريخ الطباعة", key: "printed_at", sortable: true, align: "center", width: "160px" },
+  { title: "المسؤول", key: "printed_by_name", sortable: true, align: "center", width: "140px" },
+  { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "120px" },
+]
+
+// Master KPI Computeds
+const kpiTotalPrinted = computed(() => {
+  return masterExamsList.value.reduce((acc, e) => acc + (Number(e.printed_count) || 0), 0)
+})
+
+const kpiTotalRegistered = computed(() => {
+  return masterExamsList.value.reduce((acc, e) => acc + (Number(e.total_registered || e.total_students) || 0), 0)
+})
+
+const kpiPrintRate = computed(() => {
+  if (!kpiTotalRegistered.value) return 0
+  return Math.round((kpiTotalPrinted.value / kpiTotalRegistered.value) * 1000) / 10
+})
+
+const kpiSchoolsCount = computed(() => {
+  return schoolsList.value.length
+})
+
+const kpiExamsCount = computed(() => {
+  return masterExamsList.value.length
+})
+
+// Autocomplete Options
+const directoratesOptions = computed(() => {
+  if (selectedOfficeId.value) {
+    return directoratesList.value.filter(d => d.office_id === selectedOfficeId.value)
+  }
+  return directoratesList.value
+})
+
+const schoolsOptions = computed(() => {
+  let list = schoolsList.value
+  if (institutionType.value !== 'all') {
+    list = list.filter(s => !s.institution_type || s.institution_type === institutionType.value)
+  }
+  if (selectedDirectorateId.value) {
+    const dObj = directoratesList.value.find(d => d.id === selectedDirectorateId.value)
+    const dName = dObj?.name?.replace(/^(إدارة التربية والتعليم - مديرية |مديرية )/, '').trim()
+    list = list.filter(s => 
+      s.directorate_id === selectedDirectorateId.value ||
+      (dName && s.directorate_name && s.directorate_name.includes(dName))
+    )
+  } else if (selectedOfficeId.value) {
+    const oObj = officesList.value.find(o => o.id === selectedOfficeId.value)
+    const oGov = oObj?.governorate_name?.trim()
+    list = list.filter(s => 
+      s.office_id === selectedOfficeId.value ||
+      (oGov && s.governorate_name && s.governorate_name.includes(oGov))
+    )
+  }
+  return list
+})
+
+// Filtered Master Tables Computeds
+const filteredOfficesTable = computed(() => {
+  let list = officesList.value || []
+  if (masterSearchQuery.value) {
+    const q = masterSearchQuery.value.toLowerCase().trim()
+    list = list.filter(o => 
+      (o.office_name && o.office_name.toLowerCase().includes(q)) ||
+      (o.governorate_name && o.governorate_name.toLowerCase().includes(q))
+    )
+  }
+  return list
+})
+
+const filteredDirectoratesTable = computed(() => {
+  let list = directoratesList.value || []
+  if (selectedOfficeId.value) {
+    list = list.filter(d => d.office_id === selectedOfficeId.value)
+  }
+  if (masterSearchQuery.value) {
+    const q = masterSearchQuery.value.toLowerCase().trim()
+    list = list.filter(d => 
+      (d.name && d.name.toLowerCase().includes(q)) ||
+      (d.office_name && d.office_name.toLowerCase().includes(q))
+    )
+  }
+  return list
+})
+
+const filteredSchoolsTable = computed(() => {
+  let list = schoolsList.value || []
+  if (institutionType.value !== 'all') {
+    list = list.filter(s => !s.institution_type || s.institution_type === institutionType.value)
+  }
+  if (selectedDirectorateId.value) {
+    const dObj = directoratesList.value.find(d => d.id === selectedDirectorateId.value)
+    const dName = dObj?.name?.replace(/^(إدارة التربية والتعليم - مديرية |مديرية )/, '').trim()
+    list = list.filter(s => 
+      s.directorate_id === selectedDirectorateId.value ||
+      (dName && s.directorate_name && s.directorate_name.includes(dName))
+    )
+  } else if (selectedOfficeId.value) {
+    const oObj = officesList.value.find(o => o.id === selectedOfficeId.value)
+    const oGov = oObj?.governorate_name?.trim()
+    list = list.filter(s => 
+      s.office_id === selectedOfficeId.value ||
+      (oGov && s.governorate_name && s.governorate_name.includes(oGov))
+    )
+  }
+  if (masterSearchQuery.value) {
+    const q = masterSearchQuery.value.toLowerCase().trim()
+    list = list.filter(s => 
+      (s.name && s.name.toLowerCase().includes(q)) ||
+      (s.directorate_name && s.directorate_name.toLowerCase().includes(q)) ||
+      (s.governorate_name && s.governorate_name.toLowerCase().includes(q))
+    )
+  }
+  return list
+})
+
+const filteredMasterExamsTable = computed(() => {
+  let list = masterExamsList.value || []
+  if (selectedDirectorateId.value) {
+    list = list.filter(e => e.directorate_id === selectedDirectorateId.value)
+  } else if (selectedOfficeId.value) {
+    list = list.filter(e => e.governorate_id === selectedOfficeId.value || e.office_id === selectedOfficeId.value)
+  }
+  if (masterSearchQuery.value) {
+    const q = masterSearchQuery.value.toLowerCase().trim()
+    list = list.filter(e => 
+      (e.title && e.title.toLowerCase().includes(q)) ||
+      (e.uniqueCode && e.uniqueCode.toLowerCase().includes(q)) ||
+      (e.subject_name && e.subject_name.toLowerCase().includes(q))
+    )
+  }
+  return list
+})
+
+const filteredBatchesTable = computed(() => {
+  let list = batches.value || []
+  if (masterSearchQuery.value) {
+    const q = masterSearchQuery.value.toLowerCase().trim()
+    list = list.filter(b => 
+      (b.batch_id && b.batch_id.toLowerCase().includes(q)) ||
+      (b.exam_title && b.exam_title.toLowerCase().includes(q)) ||
+      (b.exam_code && b.exam_code.toLowerCase().includes(q))
+    )
+  }
+  return list
+})
+
+// Master Methods
+const loadMasterData = async () => {
+  loadingMaster.value = true
+  try {
+    const params = {
+      institution_type: institutionType.value !== 'all' ? institutionType.value : undefined,
+    }
+    const [officesRes, directoratesRes, schoolsRes, examsRes] = await Promise.all([
+      gradebookAPI.getByOffice(params).catch(() => ({ data: { results: [] } })),
+      gradebookAPI.getByDirectorate(params).catch(() => ({ data: { results: [] } })),
+      gradebookAPI.getBySchool(params).catch(() => ({ data: { results: [] } })),
+      gradebookAPI.list(params).catch(() => ({ data: { results: [] } }))
+    ])
+    officesList.value = officesRes.data?.results || []
+    directoratesList.value = directoratesRes.data?.results || []
+    schoolsList.value = schoolsRes.data?.results || []
+    masterExamsList.value = examsRes.data?.results || []
+  } catch (err) {
+    console.error('Failed to load master data:', err)
+  } finally {
+    loadingMaster.value = false
+  }
+}
+
+const onSectorChange = (val) => {
+  institutionType.value = val
+  selectedOfficeId.value = null
+  selectedOfficeName.value = ''
+  selectedDirectorateId.value = null
+  selectedDirectorateName.value = ''
+  selectedSchoolId.value = null
+  selectedSchoolName.value = ''
+  loadMasterData()
+}
+
+const onOfficeFilterChange = (officeId) => {
+  selectedOfficeId.value = officeId
+  selectedDirectorateId.value = null
+  selectedDirectorateName.value = ''
+  selectedSchoolId.value = null
+  selectedSchoolName.value = ''
+  if (officeId) {
+    const o = officesList.value.find(item => item.id === officeId)
+    if (o) selectedOfficeName.value = o.office_name
+  } else {
+    selectedOfficeName.value = ''
+  }
+}
+
+const onDirectorateFilterChange = (dirId) => {
+  selectedDirectorateId.value = dirId
+  selectedSchoolId.value = null
+  selectedSchoolName.value = ''
+  if (dirId) {
+    const d = directoratesList.value.find(item => item.id === dirId)
+    if (d) {
+      selectedDirectorateName.value = d.name
+      if (d.office_id && !selectedOfficeId.value) {
+        selectedOfficeId.value = d.office_id
+        selectedOfficeName.value = d.office_name
+      }
+    }
+  } else {
+    selectedDirectorateName.value = ''
+  }
+}
+
+const onSchoolFilterChange = (schoolId) => {
+  selectedSchoolId.value = schoolId
+  if (schoolId) {
+    const s = schoolsList.value.find(item => item.id === schoolId)
+    if (s) {
+      selectedSchoolName.value = s.name
+      if (s.directorate_name && !selectedDirectorateName.value) selectedDirectorateName.value = s.directorate_name
+      if (s.governorate_name && !selectedOfficeName.value) selectedOfficeName.value = s.governorate_name
+    }
+  } else {
+    selectedSchoolName.value = ''
+  }
+}
+
+const drillDownToOffice = (office) => {
+  selectedOfficeId.value = office.id
+  selectedOfficeName.value = office.office_name
+  masterTab.value = 'directorates'
+}
+
+const drillDownToDirectorate = (dir) => {
+  selectedDirectorateId.value = dir.id
+  selectedDirectorateName.value = dir.name
+  if (dir.office_id && !selectedOfficeId.value) {
+    selectedOfficeId.value = dir.office_id
+    selectedOfficeName.value = dir.office_name
+  }
+  masterTab.value = 'schools'
+}
+
+const openSchoolStudio = async (school) => {
+  selectedSchoolId.value = school.id
+  selectedSchoolName.value = school.name
+  if (school.directorate_name) selectedDirectorateName.value = school.directorate_name
+  if (school.governorate_name) selectedOfficeName.value = school.governorate_name
+  currentView.value = 'detail'
+  await fetchExamsList({ school_id: school.id })
+  if (examsList.value && examsList.value.length > 0) {
+    selectedExamId.value = examsList.value[0].id
+    await loadExamDetails(selectedExamId.value, { school_id: school.id })
+  }
+}
+
+const openDirectorateStudio = async (dir) => {
+  selectedDirectorateId.value = dir.id
+  selectedDirectorateName.value = dir.name
+  if (dir.office_name) selectedOfficeName.value = dir.office_name
+  currentView.value = 'detail'
+  await fetchExamsList({ directorate_id: dir.id })
+  if (examsList.value && examsList.value.length > 0) {
+    selectedExamId.value = examsList.value[0].id
+    await loadExamDetails(selectedExamId.value, { directorate_id: dir.id })
+  }
+}
+
+const openOfficeStudio = async (office) => {
+  selectedOfficeId.value = office.id
+  selectedOfficeName.value = office.office_name
+  currentView.value = 'detail'
+  await fetchExamsList({ office_id: office.id })
+  if (examsList.value && examsList.value.length > 0) {
+    selectedExamId.value = examsList.value[0].id
+    await loadExamDetails(selectedExamId.value, { office_id: office.id })
+  }
+}
+
+const openExamStudio = async (exam) => {
+  selectedExamId.value = exam.id
+  currentView.value = 'detail'
+  await loadExamDetails(exam.id, {
+    school_id: selectedSchoolId.value || undefined,
+    directorate_id: selectedDirectorateId.value || undefined,
+    office_id: selectedOfficeId.value || undefined,
+  })
+}
+
+const returnToMaster = async () => {
+  currentView.value = 'master'
+  await loadMasterData()
+}
+
+const clearSchoolFilter = async () => {
+  selectedSchoolId.value = null
+  selectedSchoolName.value = ''
+  if (selectedExamId.value) {
+    await loadExamDetails(selectedExamId.value)
+  }
+}
 
 // Active Tab: 'sheets' | 'questions' | 'package' | 'history'
 const activeTab = ref(
@@ -1724,12 +2757,19 @@ const studentsTableItems = computed(() => ({
 }))
 
 // Methods
-const fetchExamsList = async () => {
+const fetchExamsList = async (customParams = {}) => {
   loadingExams.value = true
   try {
-    const params = {}
+    const params = {
+      school_id: selectedSchoolId.value || undefined,
+      directorate_id: selectedDirectorateId.value || undefined,
+      office_id: selectedOfficeId.value || undefined,
+      ...customParams,
+    }
     if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
       params.institution_type = filterInstitutionType.value
+    } else if (institutionType.value && institutionType.value !== 'all') {
+      params.institution_type = institutionType.value
     }
     if (filterInstitutionType.value === 'school') {
       if (filterStage.value) params.stage = filterStage.value
@@ -1764,11 +2804,17 @@ const fetchExamsList = async () => {
   }
 }
 
-const loadExamDetails = async (examId) => {
+const loadExamDetails = async (examId, customParams = {}) => {
   if (!examId) return
   loadingExamDetails.value = true
   try {
-    const resp = await api.get(`/api/omr/exam-linking/${examId}/`)
+    const params = {
+      school_id: selectedSchoolId.value || undefined,
+      directorate_id: selectedDirectorateId.value || undefined,
+      office_id: selectedOfficeId.value || undefined,
+      ...customParams,
+    }
+    const resp = await api.get(`/api/omr/exam-linking/${examId}/`, { params })
     examDetails.value = resp.data
     if (resp.data.registered_students && resp.data.registered_students.length > 0) {
       selectedStudentId.value = resp.data.registered_students[0].id
@@ -2053,19 +3099,25 @@ const batchPrintAllStudents = async () => {
 }
 
 const refreshData = async () => {
-  await fetchExamsList()
-  if (selectedExamId.value) {
-    await loadExamDetails(selectedExamId.value)
+  if (currentView.value === 'master') {
+    await loadMasterData()
+    await fetchBatches()
+  } else {
+    await fetchExamsList()
+    if (selectedExamId.value) {
+      await loadExamDetails(selectedExamId.value)
+    }
+    await fetchBatches()
   }
-  await fetchBatches()
 }
 
 onMounted(async () => {
-  await fetchExamsList()
+  await loadMasterData()
   await fetchBatches()
 
   const qExam = route.query.exam || route.query.exam_id
   if (qExam) {
+    currentView.value = 'detail'
     selectedExamId.value = Number(qExam)
     await loadExamDetails(selectedExamId.value)
     if (route.query.tab && ['sheets', 'questions', 'package', 'history'].includes(route.query.tab)) {
@@ -2079,6 +3131,8 @@ onMounted(async () => {
       color: 'success',
       message: `تم نقل واستلام "${title}" بنجاح! كافة وثائق الاختبار وأوراق التظليل جاهزة للمعاينة والطباعة الفورية.`
     }
+  } else {
+    await fetchExamsList()
   }
 })
 </script>

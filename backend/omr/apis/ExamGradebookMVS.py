@@ -293,6 +293,9 @@ class ExamGradebookMVS(ViewSet):
 
             completion_rate = round((completed_subs / max(1, total_registered)) * 100, 1) if total_registered > 0 else 0.0
 
+            prn_cnt = StudentExamRegistration.objects.filter(is_deleted=False, examVersion__exam=exam, is_printed=True).count()
+            prn_rate = round((prn_cnt / max(1, total_registered)) * 100, 1) if total_registered > 0 else 0.0
+
             exams_list.append({
                 "id": exam.id,
                 "title": exam.title,
@@ -314,6 +317,9 @@ class ExamGradebookMVS(ViewSet):
                 "needs_review_count": needs_review_subs,
                 "absent_count": max(0, total_registered - total_submissions),
                 "completion_rate": completion_rate,
+                "printed_count": prn_cnt,
+                "printed_rate": prn_rate,
+                "print_status": "printed" if (prn_cnt > 0 and prn_cnt == total_registered) else ("partial" if prn_cnt > 0 else "none"),
                 "dispatched_count": 0,
                 "dispatch_status": "dispatched" if (completed_subs > 0 and completed_subs == total_submissions) else ("partial" if completed_subs > 0 else "none"),
                 "average_score": round(avg_val, 2),
@@ -361,6 +367,8 @@ class ExamGradebookMVS(ViewSet):
                 registration__in=regs
             ).count()
 
+            printed = regs.filter(is_printed=True).count()
+
             results.append({
                 "id": off.id,
                 "office_name": off.name_ar,
@@ -372,6 +380,9 @@ class ExamGradebookMVS(ViewSet):
                 "completed_count": comp,
                 "absent_count": max(0, tot - comp),
                 "completion_rate": round((comp / max(1, tot)) * 100, 1) if tot > 0 else 0.0,
+                "printed_count": printed,
+                "printed_rate": round((printed / max(1, tot)) * 100, 1) if tot > 0 else 0.0,
+                "print_status": "printed" if (printed > 0 and printed == tot) else ("partial" if printed > 0 else "none"),
             })
 
         return Response({
@@ -413,6 +424,8 @@ class ExamGradebookMVS(ViewSet):
                 registration__in=regs
             ).count()
 
+            printed = regs.filter(is_printed=True).count()
+
             parent_office = d.fk_parent_organization
             results.append({
                 "id": d.id,
@@ -426,6 +439,9 @@ class ExamGradebookMVS(ViewSet):
                 "completed_count": comp,
                 "absent_count": max(0, tot - comp),
                 "completion_rate": round((comp / max(1, tot)) * 100, 1) if tot > 0 else 0.0,
+                "printed_count": printed,
+                "printed_rate": round((printed / max(1, tot)) * 100, 1) if tot > 0 else 0.0,
+                "print_status": "printed" if (printed > 0 and printed == tot) else ("partial" if printed > 0 else "none"),
             })
 
         return Response({
@@ -531,6 +547,16 @@ class ExamGradebookMVS(ViewSet):
             .annotate(avg=Avg('total_score'))
             .values_list('registration__student_profile__organization_id', 'avg')
         )
+        subs_printed = dict(
+            StudentExamRegistration.objects.filter(
+                is_deleted=False,
+                examVersion__exam__is_deleted=False,
+                student_profile__organization_id__in=org_ids,
+                is_printed=True
+            ).values('student_profile__organization_id')
+            .annotate(cnt=Count('id'))
+            .values_list('student_profile__organization_id', 'cnt')
+        )
 
         results = []
         for s in schools_agg:
@@ -539,6 +565,7 @@ class ExamGradebookMVS(ViewSet):
             tot = s['total_students']
             comp = subs_completed.get(org_id, 0)
             avg_sc = subs_scores.get(org_id, 0.0) or 0.0
+            prn = subs_printed.get(org_id, 0)
 
             dir_name, gov_name = core_map.get(name, (None, None))
             if not dir_name:
@@ -556,6 +583,9 @@ class ExamGradebookMVS(ViewSet):
                 "absent_count": max(0, tot - comp),
                 "completion_rate": round((comp / max(1, tot)) * 100, 1) if tot > 0 else 0.0,
                 "average_score": round(float(avg_sc), 1),
+                "printed_count": prn,
+                "printed_rate": round((prn / max(1, tot)) * 100, 1) if tot > 0 else 0.0,
+                "print_status": "printed" if (prn > 0 and prn == tot) else ("partial" if prn > 0 else "none"),
             })
 
         return Response({

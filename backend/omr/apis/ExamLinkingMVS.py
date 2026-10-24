@@ -11,6 +11,7 @@ from exams.models.ExamVersion import ExamVersion
 from exams.models.ExamQuestionOrder import ExamQuestionOrder
 from exams.models.StudentExamRegistration import StudentExamRegistration
 from submissions.models.Submission import Submission
+from OpenSoftCoreV41.common.models.Branch import Organization as CoreOrg
 
 class ExamLinkingMVS(ViewSet):
     """
@@ -48,6 +49,89 @@ class ExamLinkingMVS(ViewSet):
                 Q(subject__class_subjects__school_subject_id=subject_id) |
                 (Q(subject__name_ar__in=school_subj_names) if school_subj_names else Q())
             )
+
+        # فلترة الاختبارات حسب المركز الامتحاني / المدرسة
+        school_id = request.query_params.get('school_id') or request.query_params.get('school')
+        directorate_id = request.query_params.get('directorate_id') or request.query_params.get('directorate')
+        office_id = request.query_params.get('office_id') or request.query_params.get('office')
+
+        if school_id and school_id != 'all':
+            matched_school_names = []
+            if str(school_id).isdigit():
+                core_sch = CoreOrg.objects.filter(id=int(school_id), company_level=50).first()
+                if core_sch:
+                    matched_school_names.append(core_sch.name_ar)
+                try:
+                    from academic.models.common.Organization import Organization as AcademicOrg
+                    ac_sch = AcademicOrg.objects.filter(id=int(school_id)).first()
+                    if ac_sch and ac_sch.name_ar not in matched_school_names:
+                        matched_school_names.append(ac_sch.name_ar)
+                except Exception:
+                    pass
+            else:
+                matched_school_names.append(str(school_id).strip())
+
+            exam_ids_for_school = StudentExamRegistration.objects.filter(
+                is_deleted=False
+            ).filter(
+                Q(student_profile__organization_id=school_id) |
+                Q(student_profile__organization__name_ar__in=matched_school_names)
+            ).values_list('examVersion__exam_id', flat=True).distinct()
+
+            qs = qs.filter(id__in=exam_ids_for_school)
+
+        elif directorate_id and directorate_id != 'all':
+            dir_names = []
+            child_school_names = []
+            if str(directorate_id).isdigit():
+                core_dir = CoreOrg.objects.filter(id=int(directorate_id), company_level=40).first()
+                if core_dir:
+                    clean_name = core_dir.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip()
+                    dir_names.extend([core_dir.name_ar, clean_name])
+                    child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization=core_dir.id, is_deleted=False)
+                    child_school_names = list(child_schools.values_list('name_ar', flat=True))
+            else:
+                dir_names.append(str(directorate_id).strip())
+
+            dir_exam_ids = StudentExamRegistration.objects.filter(is_deleted=False).filter(
+                Q(student_profile__directorate__name_ar__in=dir_names) |
+                Q(student_profile__organization__name_ar__in=child_school_names)
+            ).values_list('examVersion__exam_id', flat=True).distinct()
+
+            dir_q = Q(id__in=dir_exam_ids)
+            if str(directorate_id).isdigit():
+                dir_q |= Q(directorate_id=int(directorate_id))
+            for d_name in dir_names:
+                dir_q |= Q(directorate__name_ar__icontains=d_name)
+
+            qs = qs.filter(dir_q)
+
+        elif office_id and office_id != 'all':
+            gov_names = []
+            child_school_names = []
+            if str(office_id).isdigit():
+                core_off = CoreOrg.objects.filter(id=int(office_id), company_level=30).first()
+                if core_off:
+                    clean_gov = core_off.name_ar.replace('مكتب التربية والتعليم - ', '').strip()
+                    gov_names.extend([core_off.name_ar, clean_gov])
+                    child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization=core_off.id, is_deleted=False)
+                    child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=child_dirs.values_list('id', flat=True), is_deleted=False)
+                    child_school_names = list(child_schools.values_list('name_ar', flat=True))
+            else:
+                gov_names.append(str(office_id).strip())
+
+            off_exam_ids = StudentExamRegistration.objects.filter(is_deleted=False).filter(
+                Q(student_profile__directorate__fk_governorate__name_ar__in=gov_names) |
+                Q(student_profile__organization__name_ar__in=child_school_names)
+            ).values_list('examVersion__exam_id', flat=True).distinct()
+
+            off_q = Q(id__in=off_exam_ids)
+            if str(office_id).isdigit():
+                off_q |= Q(governorate_id=int(office_id))
+            for g_name in gov_names:
+                off_q |= Q(governorate__name_ar__icontains=g_name)
+
+            qs = qs.filter(off_q)
 
         # School Filters
         stage_id = request.query_params.get('stage')
@@ -359,13 +443,75 @@ class ExamLinkingMVS(ViewSet):
                 "created_at": s.created_at.strftime("%Y-%m-%d %H:%M") if s.created_at else "",
             })
 
-        # Registered Students for this exam (returns sample for preview, full roster via paginated /students/)
+        # Registered Students for this exam (filtered by school, directorate, or office if specified)
         from exams.models.StudentExamRegistration import StudentExamRegistration
         st_qs = StudentExamRegistration.objects.filter(
             examVersion__exam=exam, is_deleted=False
         ).select_related(
             'student_profile__organization', 'student_profile__directorate', 'student', 'examVersion'
-        ).only(
+        )
+
+        req_school = request.query_params.get('school_id') or request.query_params.get('school') or request.query_params.get('organization')
+        req_directorate = request.query_params.get('directorate_id') or request.query_params.get('directorate')
+        req_office = request.query_params.get('office_id') or request.query_params.get('office')
+
+        if req_school and req_school != 'all':
+            matched_sch_names = []
+            if str(req_school).isdigit():
+                core_sch = CoreOrg.objects.filter(id=int(req_school), company_level=50).first()
+                if core_sch:
+                    matched_sch_names.append(core_sch.name_ar)
+                try:
+                    from academic.models.common.Organization import Organization as AcademicOrg
+                    ac_sch = AcademicOrg.objects.filter(id=int(req_school)).first()
+                    if ac_sch and ac_sch.name_ar not in matched_sch_names:
+                        matched_sch_names.append(ac_sch.name_ar)
+                except Exception:
+                    pass
+            else:
+                matched_sch_names.append(str(req_school).strip())
+
+            st_qs = st_qs.filter(
+                Q(student_profile__organization_id=req_school) |
+                Q(student_profile__organization__name_ar__in=matched_sch_names)
+            )
+        elif req_directorate and req_directorate != 'all':
+            dir_names = []
+            child_school_names = []
+            if str(req_directorate).isdigit():
+                core_dir = CoreOrg.objects.filter(id=int(req_directorate), company_level=40).first()
+                if core_dir:
+                    clean_name = core_dir.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip()
+                    dir_names.extend([core_dir.name_ar, clean_name])
+                    child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization=core_dir.id, is_deleted=False)
+                    child_school_names = list(child_schools.values_list('name_ar', flat=True))
+            else:
+                dir_names.append(str(req_directorate).strip())
+
+            st_qs = st_qs.filter(
+                Q(student_profile__directorate__name_ar__in=dir_names) |
+                Q(student_profile__organization__name_ar__in=child_school_names)
+            )
+        elif req_office and req_office != 'all':
+            gov_names = []
+            child_school_names = []
+            if str(req_office).isdigit():
+                core_off = CoreOrg.objects.filter(id=int(req_office), company_level=30).first()
+                if core_off:
+                    clean_gov = core_off.name_ar.replace('مكتب التربية والتعليم - ', '').strip()
+                    gov_names.extend([core_off.name_ar, clean_gov])
+                    child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization=core_off.id, is_deleted=False)
+                    child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=child_dirs.values_list('id', flat=True), is_deleted=False)
+                    child_school_names = list(child_schools.values_list('name_ar', flat=True))
+            else:
+                gov_names.append(str(req_office).strip())
+
+            st_qs = st_qs.filter(
+                Q(student_profile__directorate__fk_governorate__name_ar__in=gov_names) |
+                Q(student_profile__organization__name_ar__in=child_school_names)
+            )
+
+        st_qs = st_qs.only(
             'id', 'seatNumber', 'secretNumber', 'isPresent', 'is_printed', 'printed_at', 'print_batch',
             'student_profile__name_ar', 'student_profile__organization__name_ar', 'student_profile__organization__id',
             'student_profile__directorate__name_ar',
@@ -374,6 +520,7 @@ class ExamLinkingMVS(ViewSet):
         ).order_by('seatNumber')
         total_st_count = st_qs.count()
         students_list = []
+        schools_involved_set = set()
         for reg in st_qs:
             if reg.student_profile and reg.student_profile.name_ar:
                 s_name = reg.student_profile.name_ar
@@ -384,6 +531,8 @@ class ExamLinkingMVS(ViewSet):
                 s_name = None
             inst_name = reg.student_profile.organization.name_ar if (reg.student_profile and reg.student_profile.organization) else None
             inst_id = reg.student_profile.organization.id if (reg.student_profile and reg.student_profile.organization) else None
+            if inst_name:
+                schools_involved_set.add(inst_name)
             st_dir = reg.student_profile.directorate.name_ar if (reg.student_profile and reg.student_profile.directorate) else dir_name
             st_photo = None
 
@@ -428,7 +577,10 @@ class ExamLinkingMVS(ViewSet):
                 "created_at": exam.created_at.strftime("%Y-%m-%d %H:%M") if exam.created_at else "",
             },
             "versions": versions_details,
-            "registered_students_count": total_st_count,
+            "registered_students_count": len(students_list),
+            "total_registered_count": total_st_count,
+            "printed_count": sum(1 for s in students_list if s.get("is_printed")),
+            "schools": sorted(list(schools_involved_set)),
             "registered_students": students_list,
             "recent_submissions": recent_subs,
         })
@@ -473,12 +625,65 @@ class ExamLinkingMVS(ViewSet):
         if version and version != 'all':
             registrations = registrations.filter(examVersion__versionCode=version)
 
-        # 2. Filter by School / Organization
-        school = request.query_params.get('school') or request.query_params.get('school_name')
-        if school and school != 'all':
+        # 2. Filter by School / Organization / Directorate / Office
+        req_school = request.query_params.get('school_id') or request.query_params.get('school') or request.query_params.get('school_name') or request.query_params.get('organization')
+        req_directorate = request.query_params.get('directorate_id') or request.query_params.get('directorate')
+        req_office = request.query_params.get('office_id') or request.query_params.get('office')
+
+        if req_school and req_school != 'all':
+            matched_sch_names = []
+            if str(req_school).isdigit():
+                core_sch = CoreOrg.objects.filter(id=int(req_school), company_level=50).first()
+                if core_sch:
+                    matched_sch_names.append(core_sch.name_ar)
+                try:
+                    from academic.models.common.Organization import Organization as AcademicOrg
+                    ac_sch = AcademicOrg.objects.filter(id=int(req_school)).first()
+                    if ac_sch and ac_sch.name_ar not in matched_sch_names:
+                        matched_sch_names.append(ac_sch.name_ar)
+                except Exception:
+                    pass
+            else:
+                matched_sch_names.append(str(req_school).strip())
+
             registrations = registrations.filter(
-                Q(student_profile__organization__name_ar=school) |
-                Q(student_profile__organization__name_en=school)
+                Q(student_profile__organization_id=req_school) |
+                Q(student_profile__organization__name_ar__in=matched_sch_names)
+            )
+        elif req_directorate and req_directorate != 'all':
+            dir_names = []
+            child_school_names = []
+            if str(req_directorate).isdigit():
+                core_dir = CoreOrg.objects.filter(id=int(req_directorate), company_level=40).first()
+                if core_dir:
+                    clean_name = core_dir.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip()
+                    dir_names.extend([core_dir.name_ar, clean_name])
+                    child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization=core_dir.id, is_deleted=False)
+                    child_school_names = list(child_schools.values_list('name_ar', flat=True))
+            else:
+                dir_names.append(str(req_directorate).strip())
+
+            registrations = registrations.filter(
+                Q(student_profile__directorate__name_ar__in=dir_names) |
+                Q(student_profile__organization__name_ar__in=child_school_names)
+            )
+        elif req_office and req_office != 'all':
+            gov_names = []
+            child_school_names = []
+            if str(req_office).isdigit():
+                core_off = CoreOrg.objects.filter(id=int(req_office), company_level=30).first()
+                if core_off:
+                    clean_gov = core_off.name_ar.replace('مكتب التربية والتعليم - ', '').strip()
+                    gov_names.extend([core_off.name_ar, clean_gov])
+                    child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization=core_off.id, is_deleted=False)
+                    child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=child_dirs.values_list('id', flat=True), is_deleted=False)
+                    child_school_names = list(child_schools.values_list('name_ar', flat=True))
+            else:
+                gov_names.append(str(req_office).strip())
+
+            registrations = registrations.filter(
+                Q(student_profile__directorate__fk_governorate__name_ar__in=gov_names) |
+                Q(student_profile__organization__name_ar__in=child_school_names)
             )
 
         # 3. Search query
