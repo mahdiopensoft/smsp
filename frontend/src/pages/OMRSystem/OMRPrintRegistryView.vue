@@ -6,7 +6,7 @@
     <!-- ══════════════════════════════════════════════════════════════ -->
     <div v-if="currentView === 'master'" class="master-view-container">
       <!-- 1. Sector Switcher (فصل نوع المؤسسة التعليمية بشكل قاطع) -->
-      <div class="d-flex align-center justify-space-between flex-wrap gap-3 mb-4">
+      <div class="d-flex align-center justify-start flex-wrap gap-3 mb-4">
         <v-btn-toggle
           v-model="institutionType"
           mandatory
@@ -27,32 +27,6 @@
             التعليم الفني والمهني (معاهد)
           </v-btn>
         </v-btn-toggle>
-
-        <div class="d-flex align-center gap-2">
-          <v-btn
-            color="primary"
-            variant="flat"
-            size="small"
-            rounded="lg"
-            class="font-weight-bold"
-            prepend-icon="mdi-printer-eye"
-            @click="currentView = 'detail'"
-          >
-            استوديو الطباعة المباشر
-          </v-btn>
-          <v-btn
-            variant="tonal"
-            color="secondary"
-            size="small"
-            rounded="lg"
-            class="font-weight-bold"
-            prepend-icon="mdi-refresh"
-            :loading="loadingMaster"
-            @click="loadMasterData"
-          >
-            تحديث السجل
-          </v-btn>
-        </div>
       </div>
 
 
@@ -539,225 +513,193 @@
     <!-- 2. DETAIL VIEW: استوديو المعاينة وطباعة الوثائق وحزم الاختبار  -->
     <!-- ══════════════════════════════════════════════════════════════ -->
     <div v-else class="detail-studio-container">
-      <!-- شريط التنقل الهرمي والعودة للهيكل وسياق التصفية -->
-      <div class="d-flex align-center justify-space-between flex-wrap gap-3 mb-4 pa-3 rounded-2xl bg-surface border elevation-1">
-        <div class="d-flex align-center gap-2 flex-wrap">
-          <v-btn
-            color="primary"
-            variant="tonal"
-            rounded="lg"
-            class="font-weight-bold"
-            prepend-icon="mdi-arrow-right"
-            @click="returnToMaster"
-          >
-            العودة للهيكل الإداري وسجل الطباعة
-          </v-btn>
-          <v-divider vertical class="mx-1" />
-          <!-- Breadcrumb trail -->
-          <div class="d-flex align-center text-caption font-weight-bold text-medium-emphasis flex-wrap gap-1">
-            <span class="text-primary">{{ institutionType === 'university' ? 'التعليم الجامعي' : (institutionType === 'institute' ? 'التعليم الفني' : 'التعليم العام') }}</span>
-            <v-icon size="14">mdi-chevron-left</v-icon>
-            <span>{{ selectedOfficeName || 'كل المحافظات' }}</span>
-            <v-icon size="14">mdi-chevron-left</v-icon>
-            <span>{{ selectedDirectorateName || 'كل المديريات' }}</span>
-            <template v-if="selectedSchoolName">
-              <v-icon size="14">mdi-chevron-left</v-icon>
-              <span class="text-primary font-weight-black">{{ selectedSchoolName }}</span>
-            </template>
+      <!-- شريط الفلاتر الهيكلية واختيار الاختبار المعتمد (مرتب وهرمي) -->
+      <div class="main-card pa-4 rounded-2xl mb-4 bg-surface border elevation-1">
+        <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3 pb-2 border-b">
+          <div class="d-flex align-center gap-2 flex-wrap">
+            <v-icon color="primary" size="20">mdi-filter-variant</v-icon>
+            <span class="text-subtitle-2 font-weight-black text-on-surface">فلاتر الهيكل الإداري واختيار الاختبار المعتمد</span>
+            <v-chip
+              v-if="selectedSchoolName"
+              size="small"
+              color="info"
+              variant="tonal"
+              closable
+              class="font-weight-bold ms-2"
+              prepend-icon="mdi-filter-check"
+              @click:close="clearSchoolFilter"
+            >
+              {{ selectedSchoolName }} ({{ examDetails?.registered_students?.length || 0 }} طالب)
+            </v-chip>
+          </div>
+
+          <div class="d-flex align-center gap-2">
+            <v-btn
+              color="primary"
+              variant="tonal"
+              size="small"
+              rounded="lg"
+              class="font-weight-bold"
+              prepend-icon="mdi-arrow-right"
+              @click="returnToMaster"
+            >
+              العودة للهيكل الإداري
+            </v-btn>
+            <v-btn
+              variant="tonal"
+              color="error"
+              size="small"
+              rounded="lg"
+              class="font-weight-bold"
+              prepend-icon="mdi-filter-remove-outline"
+              @click="resetHierarchyStudioFilters"
+            >
+              تفريغ الفلاتر
+            </v-btn>
+            <v-btn
+              color="primary"
+              variant="flat"
+              size="small"
+              rounded="lg"
+              class="font-weight-bold"
+              prepend-icon="mdi-refresh"
+              :loading="loadingExams"
+              @click="fetchExamsList"
+            >
+              تحديث
+            </v-btn>
           </div>
         </div>
 
-        <div class="d-flex align-center gap-2">
-          <v-chip
-            v-if="selectedSchoolName"
-            color="info"
-            variant="tonal"
-            closable
-            class="font-weight-bold"
-            prepend-icon="mdi-filter-check"
-            @click:close="clearSchoolFilter"
-          >
-            تصفية خاصة بالمدرسة: {{ selectedSchoolName }} ({{ examDetails?.registered_students?.length || 0 }} طالب)
-          </v-chip>
-        </div>
-      </div>
-
-      <!-- ── شريط اختيار وتصفية الاختبار الموحد (Unified Exam Selector & Filters) ── -->
-      <filter-fields label="تصفية واختيار الاختبار المطلوب طباعة وثائقه" class="main-card border-0 pa-5 rounded-2xl mb-4">
         <v-row dense class="align-center">
-          <!-- 1. نوع المؤسسة التعليمية -->
-          <auto-list
-            v-model="filterInstitutionType"
-          name="InstitutionType"
-          placeholder="نوع المؤسسة التعليمية"
-          cols="3"
-          :add="false"
-          @update:model-value="onInstitutionTypeChange"
-        />
-
-        <!-- فلاتر المدارس -->
-        <template v-if="filterInstitutionType === 'school' || filterInstitutionType === 'all'">
-          <auto-list
-            v-if="filterInstitutionType === 'school'"
-            v-model="filterStage"
-            name="Stage"
-            placeholder="المرحلة الدراسية"
-            cols="3"
-            :add="false"
-            @update:model-value="onStageChange"
-          />
-          <auto-list
-            v-if="filterInstitutionType === 'school'"
-            v-model="filterClassTrack"
-            name="ClassTrackByStage"
-            :param="filterStage"
-            placeholder="الصف والمسار"
-            cols="3"
-            :add="false"
-            :disabled="!filterStage"
-            @update:model-value="fetchExamsList"
-          />
-          <auto-list
-            v-model="filterSubject"
-            name="Subject"
-            :param="subjectFilterParam"
-            placeholder="المادة الدراسية"
-            :cols="filterInstitutionType === 'school' ? '3' : '3'"
-            :add="false"
-            @update:model-value="fetchExamsList"
-          />
-        </template>
-
-        <!-- فلاتر الجامعات -->
-        <template v-if="filterInstitutionType === 'university'">
-          <auto-list
-            v-model="filterCollege"
-            name="College"
-            placeholder="الكلية الجامعية"
-            cols="3"
-            :add="false"
-            @update:model-value="onCollegeChange"
-          />
-          <auto-list
-            v-model="filterDepartment"
-            name="DepartmentByCollege"
-            :param="filterCollege"
-            placeholder="القسم الأكاديمي"
-            cols="3"
-            :add="false"
-            :disabled="!filterCollege"
-            @update:model-value="onDepartmentChange"
-          />
-          <auto-list
-            v-model="filterSpecialization"
-            name="Specialization"
-            :param="filterDepartment"
-            placeholder="التخصص والبرنامج"
-            cols="3"
-            :add="false"
-            :disabled="!filterDepartment"
-            @update:model-value="fetchExamsList"
-          />
-          <auto-list
-            v-model="filterSemesterSubject"
-            name="SemesterSubject"
-            :param="filterSpecialization"
-            placeholder="مقرر الفصل الجامعي"
-            cols="3"
-            :add="false"
-            @update:model-value="fetchExamsList"
-          />
-        </template>
-
-        <!-- فلاتر المعاهد -->
-        <template v-if="filterInstitutionType === 'institute'">
-          <auto-list
-            v-model="filterInstituteField"
-            name="InstituteField"
-            placeholder="المجال المهني"
-            cols="3"
-            :add="false"
-            @update:model-value="onInstituteFieldChange"
-          />
-          <auto-list
-            v-model="filterInstituteEducationSystem"
-            name="InstituteEducationSystem"
-            :param="filterInstituteField"
-            placeholder="نظام التعليم"
-            cols="3"
-            :add="false"
-            :disabled="!filterInstituteField"
-            @update:model-value="onInstituteEducationSystemChange"
-          />
-          <auto-list
-            v-model="filterInstituteSpecialization"
-            name="InstituteSpecialization"
-            :param="instituteSpecParam"
-            placeholder="التخصص المهني"
-            cols="3"
-            :add="false"
-            :disabled="!filterInstituteEducationSystem"
-            @update:model-value="fetchExamsList"
-          />
-          <auto-list
-            v-model="filterInstituteSubject"
-            name="InstituteSubject"
-            :param="filterInstituteSpecialization"
-            placeholder="المادة التدريبية"
-            cols="3"
-            :add="false"
-            @update:model-value="fetchExamsList"
-          />
-        </template>
-
-        <!-- منسدلة اختيار الاختبار المعتمد (في الأخير بعد الفلترة!) -->
-        <v-col cols="12" :md="filterInstitutionType === 'all' ? 4 : 6" class="py-2">
-          <v-autocomplete
-            v-model="selectedExamId"
-            :items="examsList"
-            item-title="title"
-            item-value="id"
-            label="اختر الاختبار لمعاينة وطباعة وثائقه (الأسئلة والتظليل)"
-            placeholder="ابحث باسم الاختبار أو رمزه أو المادة..."
-            prepend-inner-icon="mdi-school-outline"
-            variant="outlined"
-            density="compact"
-            rounded="lg"
-            hide-details
-            clearable
-            :loading="loadingExams"
-            @update:model-value="onExamSelected"
-          >
-            <template #item="{ props: iProps, item }">
-              <v-list-item
-                v-bind="iProps"
-                :title="item.raw.title"
-                :subtitle="`المادة: ${item.raw.subject_name || 'عام'} | الطلاب: ${item.raw.registered_students_count || 0} طالب | النماذج: ${item.raw.versions_count || 1}`"
+          <!-- التعليم العام (المدرسي): محافظة -> مديرية -> مدرسة/مركز -->
+          <template v-if="institutionType === 'school'">
+            <v-col cols="12" sm="6" md="3">
+              <v-autocomplete
+                v-model="selectedOfficeId"
+                :items="officesList"
+                item-title="office_name"
+                item-value="id"
+                label="مكتب التربية والتعليم (المحافظة)"
+                placeholder="كل المحافظات..."
+                clearable
+                density="compact"
+                variant="outlined"
+                rounded="lg"
+                hide-details
+                prepend-inner-icon="mdi-office-building-outline"
+                @update:model-value="onStudioOfficeChange"
               />
-            </template>
-          </v-autocomplete>
-        </v-col>
+            </v-col>
 
-        <!-- أزرار الإجراءات السريعة (تحديث وتفريغ) -->
-        <v-col cols="12" sm="6" :md="filterInstitutionType === 'all' ? 2 : 3" class="d-flex align-center gap-2 py-2">
-          <custom-btn
-            type="show"
-            label="تحديث"
-            color="primary"
-            class="font-weight-bold flex-grow-1"
-            :click="fetchExamsList"
-          />
-          <custom-btn
-            type="cancel_filter"
-            :click="resetInstitutionFilters"
-            variant="tonal"
-            color="error"
-            label="تفريغ"
-            class="font-weight-bold"
-          />
-        </v-col>
-      </v-row>
-    </filter-fields>
+            <v-col cols="12" sm="6" md="3">
+              <v-autocomplete
+                v-model="selectedDirectorateId"
+                :items="directoratesOptions"
+                item-title="name"
+                item-value="id"
+                label="إدارة التربية والتعليم (المديرية)"
+                placeholder="كل المديريات..."
+                clearable
+                density="compact"
+                variant="outlined"
+                rounded="lg"
+                hide-details
+                prepend-inner-icon="mdi-map-marker-radius-outline"
+                @update:model-value="onStudioDirectorateChange"
+              />
+            </v-col>
+
+            <v-col cols="12" sm="6" md="3">
+              <v-autocomplete
+                v-model="selectedSchoolId"
+                :items="schoolsOptions"
+                item-title="name"
+                item-value="id"
+                label="المدرسة / المركز الامتحاني"
+                placeholder="كل المراكز والمدارس..."
+                clearable
+                density="compact"
+                variant="outlined"
+                rounded="lg"
+                hide-details
+                prepend-inner-icon="mdi-school-outline"
+                @update:model-value="onStudioSchoolChange"
+              />
+            </v-col>
+          </template>
+
+          <!-- التعليم الجامعي: جامعة/كلية -->
+          <template v-else-if="institutionType === 'university'">
+            <v-col cols="12" sm="6" md="4">
+              <v-autocomplete
+                v-model="selectedSchoolId"
+                :items="schoolsOptions"
+                item-title="name"
+                item-value="id"
+                label="الجامعة / الكلية"
+                placeholder="اختر الكلية أو الجامعة..."
+                clearable
+                density="compact"
+                variant="outlined"
+                rounded="lg"
+                hide-details
+                prepend-inner-icon="mdi-domain"
+                @update:model-value="onStudioSchoolChange"
+              />
+            </v-col>
+          </template>
+
+          <!-- التعليم الفني (معاهد): معهد/مركز -->
+          <template v-else-if="institutionType === 'institute'">
+            <v-col cols="12" sm="6" md="4">
+              <v-autocomplete
+                v-model="selectedSchoolId"
+                :items="schoolsOptions"
+                item-title="name"
+                item-value="id"
+                label="المعهد / المركز الفني"
+                placeholder="اختر المعهد أو المركز..."
+                clearable
+                density="compact"
+                variant="outlined"
+                rounded="lg"
+                hide-details
+                prepend-inner-icon="mdi-tools"
+                @update:model-value="onStudioSchoolChange"
+              />
+            </v-col>
+          </template>
+
+          <!-- منسدلة اختيار الاختبار المعتمد المطلوب طباعة وثائقه -->
+          <v-col cols="12" :sm="institutionType === 'school' ? 6 : 6" :md="institutionType === 'school' ? 3 : (institutionType === 'university' ? 8 : 8)">
+            <v-autocomplete
+              v-model="selectedExamId"
+              :items="examsList"
+              item-title="title"
+              item-value="id"
+              label="الاختبار المعتمد المطلوب طباعته"
+              placeholder="ابحث بالاختبار أو المادة أو الرمز..."
+              prepend-inner-icon="mdi-file-document-check-outline"
+              variant="outlined"
+              density="compact"
+              rounded="lg"
+              hide-details
+              clearable
+              :loading="loadingExams"
+              @update:model-value="onExamSelected"
+            >
+              <template #item="{ props: iProps, item }">
+                <v-list-item
+                  v-bind="iProps"
+                  :title="item.raw.title"
+                  :subtitle="`المادة: ${item.raw.subject_name || 'عام'} | النماذج: ${item.raw.versions_count || 1} | الطلاب: ${item.raw.registered_students_count || 0}`"
+                />
+              </template>
+            </v-autocomplete>
+          </v-col>
+        </v-row>
+      </div>
 
     <!-- ── بطاقة معلومات الاختبار المحدد (تصميم مؤسسي متوازن وأنيق) ── -->
     <div v-if="selectedExam" class="active-exam-banner mb-4 pa-4 bg-white border rounded-xl elevation-1">
@@ -918,44 +860,6 @@
         <!-- TAB 1: UNIFIED ROSTER TABLE (الجدول الموحد custom-data-table) -->
         <!-- ════════════════════════════════════════════════════════════ -->
         <div v-if="visitedTabs.has('sheets')" v-show="activeTab === 'sheets'">
-          <!-- Active Exam / Studio Banner (نفس أسلوب وتصميم omr-human-review) -->
-          <div class="main-card rounded-2xl pa-4 mb-4 border bg-white d-flex align-center justify-space-between flex-wrap gap-3">
-            <div class="d-flex align-center gap-3">
-              <v-avatar color="primary" variant="tonal" rounded="lg" size="44">
-                <v-icon size="24" color="primary">mdi-printer-check</v-icon>
-              </v-avatar>
-              <div>
-                <div class="d-flex align-center gap-2 flex-wrap">
-                  <h3 class="text-h6 font-weight-black text-on-surface mb-0">
-                    {{ selectedExam?.subject_name ? `أوراق تظليل مادة ${selectedExam.subject_name}` : (selectedExam?.title || 'أوراق تظليل الاختبار') }}
-                  </h3>
-                  <v-chip size="small" color="primary" variant="flat" class="font-weight-bold px-2 unified-table-chip">
-                    {{ selectedExam?.title || 'اختبار معتمد' }}
-                  </v-chip>
-                  <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold px-2 unified-table-chip">
-                    {{ customDirectorate || selectedExam?.directorate || 'أمانة العاصمة' }}
-                  </v-chip>
-                </div>
-                <p class="text-caption text-medium-emphasis mb-0 mt-1">
-                  {{ customExamYear || selectedExam?.year_name || 'العام الدراسي 2026' }} • المركز الامتحاني: <strong>{{ customCenterName || selectedExam?.school_name || selectedExam?.directorate || 'المركز الاختباري الرئيسي' }}</strong>
-                </p>
-              </div>
-            </div>
-
-            <!-- Quick Counter Badge (نفس النمط في omr-human-review) -->
-            <div class="d-flex align-center gap-3">
-              <div class="d-flex align-center gap-2 px-3 py-1.5 rounded-xl border bg-surface">
-                <v-icon size="18" color="success">mdi-check-decagram</v-icon>
-                <div class="d-flex flex-column text-end">
-                  <span class="text-caption text-medium-emphasis" style="font-size: 10px; line-height: 1;">إجمالي الطلاب</span>
-                  <span class="font-weight-black text-body-1 text-primary" style="line-height: 1.2;">
-                    {{ examDetails.registered_students?.length || 0 }} <span class="text-caption text-medium-emphasis">طالب</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <!-- Controls Toolbar (شريط الفلاتر والبحث السريع وأوامر الطباعة) -->
           <div class="main-card rounded-2xl pa-4 mb-4 border bg-white shadow-sm">
             <!-- Row 1: Actions, Batch Print, Header Override -->
@@ -1171,13 +1075,13 @@
                   <v-btn value="A" size="small" color="primary" class="font-weight-bold">
                     نموذج A ({{ modelCounts.A }})
                   </v-btn>
-                  <v-btn value="B" size="small" color="deep-purple-darken-1" class="font-weight-bold">
+                  <v-btn value="B" size="small" color="deep-purple" class="font-weight-bold">
                     نموذج B ({{ modelCounts.B }})
                   </v-btn>
-                  <v-btn value="C" size="small" color="warning" class="font-weight-bold">
+                  <v-btn value="C" size="small" color="amber-darken-3" class="font-weight-bold">
                     نموذج C ({{ modelCounts.C }})
                   </v-btn>
-                  <v-btn value="D" size="small" color="teal-darken-1" class="font-weight-bold">
+                  <v-btn value="D" size="small" color="teal" class="font-weight-bold">
                     نموذج D ({{ modelCounts.D }})
                   </v-btn>
                 </v-btn-toggle>
@@ -1294,10 +1198,10 @@
                   <v-chip
                     size="small"
                     :color="getModelChipColor(item.model_code)"
-                    variant="flat"
-                    class="font-weight-black unified-table-chip"
+                    variant="tonal"
+                    class="font-weight-black rounded-lg border px-2.5 font-mono"
                   >
-                    النموذج {{ item.model_code || 'A' }}
+                    نموذج {{ item.model_code || 'A' }}
                   </v-chip>
                 </template>
 
@@ -1704,8 +1608,8 @@
                 <v-chip size="small" color="primary" variant="flat" class="font-weight-bold px-2 unified-table-chip">
                   رقم الجلوس: {{ previewStudent.seat_number }}
                 </v-chip>
-                <v-chip size="small" :color="getModelChipColor(previewStudent.model_code)" variant="flat" class="font-weight-bold px-2 unified-table-chip">
-                  النموذج: {{ previewStudent.model_code || 'A' }}
+                <v-chip size="small" :color="getModelChipColor(previewStudent.model_code)" variant="tonal" class="font-weight-bold px-2.5 rounded-lg border">
+                  نموذج {{ previewStudent.model_code || 'A' }}
                 </v-chip>
               </div>
               <p class="text-caption text-medium-emphasis mb-0 mt-1">
@@ -2214,6 +2118,63 @@ const clearSchoolFilter = async () => {
   }
 }
 
+// Studio Hierarchical Filter Handlers
+const onStudioOfficeChange = async (officeId) => {
+  onOfficeFilterChange(officeId)
+  await fetchExamsList()
+  if (examsList.value && examsList.value.length > 0) {
+    if (!examsList.value.some(e => e.id === selectedExamId.value)) {
+      selectedExamId.value = examsList.value[0].id
+      await loadExamDetails(selectedExamId.value)
+    }
+  } else {
+    selectedExamId.value = null
+    examDetails.value = null
+  }
+}
+
+const onStudioDirectorateChange = async (dirId) => {
+  onDirectorateFilterChange(dirId)
+  await fetchExamsList()
+  if (examsList.value && examsList.value.length > 0) {
+    if (!examsList.value.some(e => e.id === selectedExamId.value)) {
+      selectedExamId.value = examsList.value[0].id
+      await loadExamDetails(selectedExamId.value)
+    }
+  } else {
+    selectedExamId.value = null
+    examDetails.value = null
+  }
+}
+
+const onStudioSchoolChange = async (schoolId) => {
+  onSchoolFilterChange(schoolId)
+  await fetchExamsList()
+  if (examsList.value && examsList.value.length > 0) {
+    if (!examsList.value.some(e => e.id === selectedExamId.value)) {
+      selectedExamId.value = examsList.value[0].id
+      await loadExamDetails(selectedExamId.value)
+    }
+  } else {
+    selectedExamId.value = null
+    examDetails.value = null
+  }
+}
+
+const resetHierarchyStudioFilters = async () => {
+  selectedOfficeId.value = null
+  selectedOfficeName.value = ''
+  selectedDirectorateId.value = null
+  selectedDirectorateName.value = ''
+  selectedSchoolId.value = null
+  selectedSchoolName.value = ''
+  await fetchExamsList()
+  if (examsList.value && examsList.value.length > 0) {
+    selectedExamId.value = examsList.value[0].id
+    await loadExamDetails(selectedExamId.value)
+  }
+}
+
 // Active Tab: 'sheets' | 'questions' | 'package' | 'history'
 const activeTab = ref(
   route.query.tab === 'history' ? 'history' :
@@ -2485,9 +2446,9 @@ const modelCounts = computed(() => {
 const getModelChipColor = (code) => {
   switch (code) {
     case 'A': return 'primary'
-    case 'B': return 'deep-purple-darken-1'
-    case 'C': return 'warning'
-    case 'D': return 'teal-darken-1'
+    case 'B': return 'deep-purple'
+    case 'C': return 'amber-darken-3'
+    case 'D': return 'teal'
     default: return 'primary'
   }
 }
