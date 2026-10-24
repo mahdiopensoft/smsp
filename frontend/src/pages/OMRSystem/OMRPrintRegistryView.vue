@@ -968,92 +968,54 @@
         </v-alert>
 
         <!-- ════════════════════════════════════════════════════════════ -->
-        <!-- TAB 1: UNIFIED ROSTER TABLE (الجدول الموحد لأوراق التظليل)  -->
+        <!-- TAB 1: UNIFIED ROSTER TABLE (الجدول الموحد custom-data-table) -->
         <!-- ════════════════════════════════════════════════════════════ -->
         <div v-if="visitedTabs.has('sheets')" v-show="activeTab === 'sheets'">
-          <!-- Top Control Toolbar (شريط التحكم والفلترة الموحد) -->
-          <div class="main-card rounded-2xl pa-4 mb-4 border bg-white shadow-sm">
-            <!-- Row 1: Search, Filters & Main Actions -->
-            <div class="d-flex align-center justify-space-between flex-wrap gap-3 pb-3 border-b">
-              <!-- Search and Filters -->
-              <div class="d-flex align-center gap-2 flex-wrap flex-grow-1">
-                <!-- Search Field -->
-                <div style="min-width: 240px; max-width: 340px;" class="flex-grow-1">
-                  <v-text-field
-                    v-model="rosterSearch"
-                    placeholder="ابحث بالاسم، رقم الجلوس، الرقم السري، المدرسة..."
-                    density="compact"
-                    variant="outlined"
-                    rounded="lg"
-                    hide-details
-                    clearable
-                    prepend-inner-icon="mdi-magnify"
-                  />
+          <!-- Active Exam / Studio Banner (نفس أسلوب وتصميم omr-human-review) -->
+          <div class="main-card rounded-2xl pa-4 mb-4 border bg-white d-flex align-center justify-space-between flex-wrap gap-3">
+            <div class="d-flex align-center gap-3">
+              <v-avatar color="primary" variant="tonal" rounded="lg" size="44">
+                <v-icon size="24" color="primary">mdi-printer-check</v-icon>
+              </v-avatar>
+              <div>
+                <div class="d-flex align-center gap-2 flex-wrap">
+                  <h3 class="text-h6 font-weight-black text-on-surface mb-0">
+                    {{ selectedExam?.subject_name ? `أوراق تظليل مادة ${selectedExam.subject_name}` : (selectedExam?.title || 'أوراق تظليل الاختبار') }}
+                  </h3>
+                  <v-chip size="small" color="primary" variant="flat" class="font-weight-bold px-2 unified-table-chip">
+                    {{ selectedExam?.title || 'اختبار معتمد' }}
+                  </v-chip>
+                  <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold px-2 unified-table-chip">
+                    {{ customDirectorate || selectedExam?.directorate || 'أمانة العاصمة' }}
+                  </v-chip>
                 </div>
-
-                <!-- Model Filter -->
-                <div style="min-width: 140px; max-width: 180px;">
-                  <v-select
-                    v-model="rosterModelFilter"
-                    :items="[
-                      { title: 'كافة النماذج', value: 'all' },
-                      { title: 'النموذج A', value: 'A' },
-                      { title: 'النموذج B', value: 'B' },
-                      { title: 'النموذج C', value: 'C' },
-                      { title: 'النموذج D', value: 'D' },
-                    ]"
-                    item-title="title"
-                    item-value="value"
-                    density="compact"
-                    variant="outlined"
-                    rounded="lg"
-                    hide-details
-                    label="النموذج"
-                    prepend-inner-icon="mdi-layers-outline"
-                  />
-                </div>
-
-                <!-- Print Status Filter -->
-                <div style="min-width: 150px; max-width: 190px;">
-                  <v-select
-                    v-model="rosterPrintFilter"
-                    :items="[
-                      { title: 'كافة الحالات', value: 'all' },
-                      { title: 'بانتظار الطباعة', value: 'unprinted' },
-                      { title: 'تمت الطباعة', value: 'printed' },
-                    ]"
-                    item-title="title"
-                    item-value="value"
-                    density="compact"
-                    variant="outlined"
-                    rounded="lg"
-                    hide-details
-                    label="حالة الطباعة"
-                    prepend-inner-icon="mdi-filter-check-outline"
-                  />
-                </div>
-
-                <!-- Layout Toggle (A5 vs A4) -->
-                <v-btn-toggle
-                  v-model="selectedSheetLayout"
-                  mandatory
-                  density="compact"
-                  color="primary"
-                  variant="outlined"
-                  rounded="lg"
-                >
-                  <v-btn value="compact_a5" class="font-weight-bold px-2.5" prepend-icon="mdi-card-outline">
-                    A5 الوزارية
-                  </v-btn>
-                  <v-btn value="full_a4" class="font-weight-bold px-2.5" prepend-icon="mdi-file-document-outline">
-                    A4 الشاملة
-                  </v-btn>
-                </v-btn-toggle>
+                <p class="text-caption text-medium-emphasis mb-0 mt-1">
+                  {{ customExamYear || selectedExam?.year_name || 'العام الدراسي 2026' }} • المركز الامتحاني: <strong>{{ customCenterName || selectedExam?.school_name || selectedExam?.directorate || 'المركز الاختباري الرئيسي' }}</strong>
+                </p>
               </div>
+            </div>
 
+            <!-- Quick Counter Badge (نفس النمط في omr-human-review) -->
+            <div class="d-flex align-center gap-3">
+              <div class="d-flex align-center gap-2 px-3 py-1.5 rounded-xl border bg-surface">
+                <v-icon size="18" color="success">mdi-check-decagram</v-icon>
+                <div class="d-flex flex-column text-end">
+                  <span class="text-caption text-medium-emphasis" style="font-size: 10px; line-height: 1;">إجمالي الطلاب</span>
+                  <span class="font-weight-black text-body-1 text-primary" style="line-height: 1.2;">
+                    {{ examDetails.registered_students?.length || 0 }} <span class="text-caption text-medium-emphasis">طالب</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Controls Toolbar (شريط الفلاتر والبحث السريع وأوامر الطباعة) -->
+          <div class="main-card rounded-2xl pa-4 mb-4 border bg-white shadow-sm">
+            <!-- Row 1: Actions, Batch Print, Header Override -->
+            <div class="d-flex align-center justify-space-between flex-wrap gap-2 pb-3 border-b">
               <!-- Action Buttons -->
               <div class="d-flex align-center gap-2 flex-wrap">
-                <!-- Main Print Action -->
+                <!-- Main Batch Print Button -->
                 <v-btn
                   color="success"
                   variant="flat"
@@ -1068,7 +1030,7 @@
                   طباعة أوراق التظليل {{ selectedStudentIds.length > 0 ? `المحددة (${selectedStudentIds.length})` : `للكل (${filteredRosterStudents.length})` }}
                 </v-btn>
 
-                <!-- Audit Roster Button -->
+                <!-- Control Audit Roster -->
                 <v-btn
                   variant="tonal"
                   color="primary"
@@ -1081,7 +1043,7 @@
                   كشف تسليم الكنترول
                 </v-btn>
 
-                <!-- Blank Version Sheet Quick Print -->
+                <!-- Blank Sheet Quick Print -->
                 <v-menu location="bottom end">
                   <template #activator="{ props: bProps }">
                     <v-btn
@@ -1106,7 +1068,7 @@
                   </v-list>
                 </v-menu>
 
-                <!-- Header Override / Settings Button -->
+                <!-- Header Override Button -->
                 <v-btn
                   variant="tonal"
                   color="secondary"
@@ -1119,25 +1081,54 @@
                   <v-icon size="18">mdi-pencil-ruler</v-icon>
                 </v-btn>
 
-                <!-- Seed sample students if empty -->
-                <v-btn
-                  v-if="!examDetails.registered_students?.length"
+                <!-- Layout Mode Toggle (A5 vs A4) -->
+                <v-btn-toggle
+                  v-model="selectedSheetLayout"
+                  mandatory
+                  density="compact"
                   color="primary"
-                  variant="tonal"
+                  variant="outlined"
                   rounded="lg"
-                  size="small"
-                  prepend-icon="mdi-account-plus"
-                  :loading="seedingStudents"
-                  @click="seedSampleStudents"
                 >
-                  توليد طلاب تجريبيين
+                  <v-btn value="compact_a5" class="font-weight-bold px-2.5" prepend-icon="mdi-card-outline">
+                    A5 الوزارية
+                  </v-btn>
+                  <v-btn value="full_a4" class="font-weight-bold px-2.5" prepend-icon="mdi-file-document-outline">
+                    A4 الشاملة
+                  </v-btn>
+                </v-btn-toggle>
+              </div>
+
+              <!-- Selection Tools -->
+              <div class="d-flex align-center gap-2">
+                <v-btn
+                  v-if="filteredRosterStudents.length > 0"
+                  size="small"
+                  variant="tonal"
+                  color="primary"
+                  class="font-weight-bold"
+                  prepend-icon="mdi-checkbox-multiple-marked-outline"
+                  @click="selectAllRosterStudents"
+                >
+                  {{ selectedStudentIds.length === filteredRosterStudents.length ? 'إلغاء تحديد الكل' : 'تحديد كل المعروضين' }}
+                </v-btn>
+                <v-btn
+                  v-if="selectedStudentIds.length > 0"
+                  size="small"
+                  variant="tonal"
+                  color="success"
+                  class="font-weight-bold"
+                  prepend-icon="mdi-check-all"
+                  @click="markSelectedAsPrinted"
+                >
+                  تحديد كمطبوع ({{ selectedStudentIds.length }})
                 </v-btn>
               </div>
             </div>
 
-            <!-- Collapsible Live Adjustments Panel -->
+            <!-- Live Adjustments Panel -->
             <v-expand-transition>
-              <div v-if="showAdjustmentsPanel" class="pa-4 mt-3 bg-grey-lighten-4 rounded-xl border">
+              <div v-if="showAdjustmentsPanel" class="pa-4 my-3 bg-grey-lighten-4 rounded-xl border">
                 <div class="text-caption font-weight-black text-primary mb-3 d-flex align-center gap-1">
                   <v-icon size="16">mdi-auto-fix</v-icon>
                   تعديل بيانات الترويسة فورياً (تنعكس التعديلات لحظياً على كافة أوراق الطلاب المطبوعة)
@@ -1214,152 +1205,201 @@
               </div>
             </v-expand-transition>
 
-            <!-- Table Meta & Selection Bar -->
-            <div class="d-flex align-center justify-space-between flex-wrap gap-2 pt-3 text-caption">
-              <div class="d-flex align-center gap-2">
-                <span class="font-weight-bold text-medium-emphasis">
-                  إجمالي الطلاب في الكشف: <strong class="text-primary font-mono">{{ filteredRosterStudents.length }}</strong>
-                </span>
-                <span v-if="selectedStudentIds.length > 0" class="font-weight-black text-success">
-                  • تم تحديد {{ selectedStudentIds.length }} طالب للطباعة
-                </span>
-              </div>
-              <div class="d-flex align-center gap-2">
-                <v-btn
-                  v-if="filteredRosterStudents.length > 0"
-                  size="x-small"
-                  variant="text"
+            <!-- Row 2: Model Filters Button-Toggle & Fast Search (مطابق لـ omr-human-review) -->
+            <div class="d-flex align-center justify-space-between flex-wrap gap-2 pt-3">
+              <!-- Filter Toggles -->
+              <div class="d-flex align-center gap-2 flex-wrap">
+                <v-btn-toggle
+                  v-model="rosterModelFilter"
+                  mandatory
+                  density="compact"
+                  rounded="lg"
                   color="primary"
-                  class="font-weight-bold"
-                  @click="selectAllRosterStudents"
-                >
-                  {{ selectedStudentIds.length === filteredRosterStudents.length ? 'إلغاء التحديد' : 'تحديد الكل' }}
-                </v-btn>
-                <v-btn
-                  v-if="selectedStudentIds.length > 0"
-                  size="x-small"
                   variant="tonal"
-                  color="success"
-                  class="font-weight-bold"
-                  prepend-icon="mdi-check-all"
-                  @click="markSelectedAsPrinted"
+                  class="border"
                 >
-                  تحديد كمطبوع
-                </v-btn>
+                  <v-btn value="all" size="small" class="font-weight-bold">
+                    كافة النماذج ({{ examDetails.registered_students?.length || 0 }})
+                  </v-btn>
+                  <v-btn value="A" size="small" color="primary" class="font-weight-bold">
+                    نموذج A ({{ modelCounts.A }})
+                  </v-btn>
+                  <v-btn value="B" size="small" color="deep-purple-darken-1" class="font-weight-bold">
+                    نموذج B ({{ modelCounts.B }})
+                  </v-btn>
+                  <v-btn value="C" size="small" color="warning" class="font-weight-bold">
+                    نموذج C ({{ modelCounts.C }})
+                  </v-btn>
+                  <v-btn value="D" size="small" color="teal-darken-1" class="font-weight-bold">
+                    نموذج D ({{ modelCounts.D }})
+                  </v-btn>
+                </v-btn-toggle>
+
+                <!-- Status Toggle -->
+                <v-btn-toggle
+                  v-model="rosterPrintFilter"
+                  mandatory
+                  density="compact"
+                  rounded="lg"
+                  color="primary"
+                  variant="tonal"
+                  class="border"
+                >
+                  <v-btn value="all" size="small" class="font-weight-bold">
+                    الكل
+                  </v-btn>
+                  <v-btn value="unprinted" size="small" color="secondary" class="font-weight-bold">
+                    جاهز للطباعة ({{ unprintedCount }})
+                  </v-btn>
+                  <v-btn value="printed" size="small" color="success" class="font-weight-bold">
+                    المطبوعة ({{ printedCount }})
+                  </v-btn>
+                </v-btn-toggle>
+              </div>
+
+              <!-- Search input -->
+              <div style="min-width: 240px; max-width: 300px;">
+                <v-text-field
+                  v-model="rosterSearch"
+                  density="compact"
+                  variant="outlined"
+                  placeholder="بحث برقم الجلوس أو الاسم..."
+                  prepend-inner-icon="mdi-magnify"
+                  hide-details
+                  clearable
+                />
               </div>
             </div>
           </div>
 
-          <!-- UNIFIED ROSTER DATA TABLE (الجدول الموحد للطلاب وأوراق التظليل) -->
-          <v-card class="rounded-2xl border overflow-hidden shadow-sm mb-6 bg-white">
-            <v-data-table
-              v-model="selectedStudentIds"
-              :headers="rosterHeaders"
-              :items="filteredRosterStudents"
-              item-value="id"
-              show-select
-              density="comfortable"
-              hover
-              :items-per-page="25"
-              :items-per-page-options="[10, 25, 50, 100, -1]"
-              class="unified-roster-table text-body-2"
-              no-data-text="لا يوجد طلاب مطابقين لمعايير البحث أو التصفية"
+          <!-- ── الجدول الموحد للطلاب وأوراق التظليل (custom-data-table) ── -->
+          <div class="main-card rounded-2xl overflow-hidden mb-6">
+            <custom-data-table
+              v-bind="{
+                items: rosterTableItems,
+                getData: getRosterData,
+                headers: rosterHeaders,
+              }"
+              :customLoading="loadingExamDetails"
+              :hasFilter="false"
+              :log="false"
+              :restore="false"
+              :numbering="false"
+              :showSelect="false"
+              :actions="false"
+              class="bg-transparent"
             >
-              <!-- Seat Number Column -->
-              <template #[`item.seat_number`]="{ item }">
-                <span class="font-mono font-weight-black text-primary px-2 py-1 bg-blue-lighten-5 rounded-lg border">
-                  {{ item.seat_number }}
-                </span>
-              </template>
+              <template v-slot:item-slot="{ item, key }">
+                <!-- Select Box -->
+                <template v-if="key === 'select_box'">
+                  <div class="d-flex justify-center">
+                    <v-checkbox-btn
+                      :model-value="selectedStudentIds.includes(item.id)"
+                      color="primary"
+                      density="compact"
+                      hide-details
+                      @update:model-value="toggleStudentSelection(item.id)"
+                    />
+                  </div>
+                </template>
 
-              <!-- Secret Number Column -->
-              <template #[`item.secret_number`]="{ item }">
-                <span class="font-mono text-medium-emphasis">
-                  {{ item.secret_number || '-' }}
-                </span>
-              </template>
+                <!-- Seat Number -->
+                <template v-else-if="key === 'seat_number'">
+                  <span class="font-mono font-weight-black text-primary px-2 py-1 bg-blue-lighten-5 rounded-lg border">
+                    {{ item.seat_number }}
+                  </span>
+                </template>
 
-              <!-- Student Name Column -->
-              <template #[`item.student_name`]="{ item }">
-                <div class="d-flex align-center gap-2">
-                  <v-avatar size="28" color="grey-lighten-3" class="text-caption font-weight-bold text-primary">
-                    {{ (item.student_name || 'ط').slice(0, 1) }}
-                  </v-avatar>
-                  <span class="font-weight-bold text-on-surface">{{ item.student_name }}</span>
-                </div>
-              </template>
+                <!-- Secret Number -->
+                <template v-else-if="key === 'secret_number'">
+                  <span class="font-mono text-medium-emphasis">
+                    {{ item.secret_number || '-' }}
+                  </span>
+                </template>
 
-              <!-- School / Center Column -->
-              <template #[`item.school_name`]="{ item }">
-                <span class="text-caption text-medium-emphasis">
-                  {{ item.school_name || selectedExam?.directorate || 'المركز الرئيسي' }}
-                </span>
-              </template>
+                <!-- Student Info -->
+                <template v-else-if="key === 'student_name'">
+                  <div class="d-flex align-center gap-2 py-1">
+                    <v-avatar size="32" color="primary" variant="tonal" class="text-caption font-weight-black">
+                      {{ (item.student_name || 'ط').slice(0, 1) }}
+                    </v-avatar>
+                    <div>
+                      <div class="font-weight-bold text-body-2 text-on-surface">
+                        {{ item.student_name || 'طالب بدون اسم' }}
+                      </div>
+                      <div class="text-caption text-medium-emphasis mt-0.5">
+                        {{ item.school_name || selectedExam?.directorate || 'المركز الرئيسي' }}
+                      </div>
+                    </div>
+                  </div>
+                </template>
 
-              <!-- Directorate Column -->
-              <template #[`item.directorate`]="{ item }">
-                <span class="text-caption">
-                  {{ item.directorate || selectedExam?.directorate || '-' }}
-                </span>
-              </template>
+                <!-- School / Center -->
+                <template v-else-if="key === 'school_name'">
+                  <div class="py-1">
+                    <div class="font-weight-medium text-body-2">{{ item.school_name || selectedExam?.directorate || 'المركز الرئيسي' }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ item.directorate || selectedExam?.directorate || '-' }}</div>
+                  </div>
+                </template>
 
-              <!-- Model Code Column -->
-              <template #[`item.model_code`]="{ item }">
-                <v-chip
-                  size="small"
-                  :color="getModelChipColor(item.model_code)"
-                  variant="flat"
-                  class="font-weight-black"
-                >
-                  النموذج {{ item.model_code || 'A' }}
-                </v-chip>
-              </template>
-
-              <!-- Print Status Column -->
-              <template #[`item.is_printed`]="{ item }">
-                <v-chip
-                  size="small"
-                  :color="item.is_printed ? 'success' : 'grey'"
-                  :variant="item.is_printed ? 'flat' : 'tonal'"
-                  class="font-weight-bold cursor-pointer"
-                  title="انقر لتبديل حالة الطباعة"
-                  @click="toggleStudentPrintedStatus(item)"
-                >
-                  <v-icon start size="14">{{ item.is_printed ? 'mdi-check-circle' : 'mdi-clock-outline' }}</v-icon>
-                  {{ item.is_printed ? 'تمت الطباعة' : 'جاهز للطباعة' }}
-                </v-chip>
-              </template>
-
-              <!-- Actions Column -->
-              <template #[`item.actions`]="{ item }">
-                <div class="d-flex align-center gap-1 justify-center">
-                  <!-- Preview Dialog Button -->
-                  <v-btn
-                    icon
+                <!-- Model Code -->
+                <template v-else-if="key === 'model_code'">
+                  <v-chip
                     size="small"
-                    variant="text"
-                    color="primary"
-                    title="معاينة ورقة التظليل"
-                    @click="openSingleSheetPreview(item)"
+                    :color="getModelChipColor(item.model_code)"
+                    variant="flat"
+                    class="font-weight-black unified-table-chip"
                   >
-                    <v-icon size="18">mdi-eye-outline</v-icon>
-                  </v-btn>
+                    النموذج {{ item.model_code || 'A' }}
+                  </v-chip>
+                </template>
 
-                  <!-- Direct Print Button -->
-                  <v-btn
-                    icon
+                <!-- Print Status -->
+                <template v-else-if="key === 'is_printed'">
+                  <v-chip
                     size="small"
-                    variant="text"
-                    color="success"
-                    title="طباعة ورقة هذا الطالب فورياً"
-                    @click="printSingleStudentDirect(item)"
+                    :color="item.is_printed ? 'success' : 'grey'"
+                    :variant="item.is_printed ? 'flat' : 'tonal'"
+                    class="font-weight-bold unified-table-chip cursor-pointer"
+                    title="انقر لتبديل حالة الطباعة"
+                    @click="toggleStudentPrintedStatus(item)"
                   >
-                    <v-icon size="18">mdi-printer</v-icon>
-                  </v-btn>
-                </div>
+                    <v-icon start size="14">{{ item.is_printed ? 'mdi-check-circle' : 'mdi-clock-outline' }}</v-icon>
+                    {{ item.is_printed ? 'تمت الطباعة' : 'جاهز للطباعة' }}
+                  </v-chip>
+                </template>
+
+                <!-- Actions -->
+                <template v-else-if="key === 'actions'">
+                  <div class="d-flex align-center justify-center gap-1">
+                    <!-- Preview Dialog Button -->
+                    <v-btn
+                      icon
+                      size="small"
+                      variant="tonal"
+                      color="primary"
+                      title="معاينة ورقة التظليل"
+                      @click="openSingleSheetPreview(item)"
+                    >
+                      <v-icon size="18">mdi-eye-outline</v-icon>
+                    </v-btn>
+
+                    <!-- Direct Print Button -->
+                    <v-btn
+                      icon
+                      size="small"
+                      variant="tonal"
+                      color="success"
+                      title="طباعة ورقة هذا الطالب فورياً"
+                      @click="printSingleStudentDirect(item)"
+                    >
+                      <v-icon size="18">mdi-printer</v-icon>
+                    </v-btn>
+                  </div>
+                </template>
               </template>
-            </v-data-table>
-          </v-card>
+            </custom-data-table>
+          </div>
         </div>
 
         <!-- ════════════════════════════════════════════════════════════ -->
@@ -1700,34 +1740,46 @@
       </v-card>
     </v-dialog>
 
-    <!-- Single Sheet Preview Dialog (معاينة ورقة التظليل الفردية في نافذة منبثقة دون تشويش الشاشة) -->
+        <!-- Single Sheet Preview Dialog (معاينة ورقة التظليل الفردية - مطابق لتصميم omr-human-review) -->
     <v-dialog v-model="singleSheetDialog" max-width="850px" scrollable>
-      <v-card v-if="previewStudent" class="rounded-2xl overflow-hidden">
-        <v-card-title class="d-flex align-center justify-space-between bg-grey-lighten-4 py-3 px-4 border-b">
-          <div class="d-flex align-center gap-2">
-            <v-icon color="primary" size="22">mdi-card-account-details-outline</v-icon>
-            <span class="font-weight-black text-subtitle-1">
-              معاينة ورقة التظليل: {{ previewStudent.student_name }}
-            </span>
-            <v-chip size="x-small" :color="getModelChipColor(previewStudent.model_code)" variant="flat" class="font-weight-black ms-2">
-              النموذج {{ previewStudent.model_code || 'A' }}
-            </v-chip>
+      <v-card v-if="previewStudent" class="rounded-2xl overflow-hidden main-card">
+        <!-- Dialog Header (مطابق تماماً لـ omr-human-review) -->
+        <v-card-title class="d-flex align-center justify-space-between bg-surface px-6 py-4 border-b">
+          <div class="d-flex align-center gap-3">
+            <v-avatar color="primary" variant="tonal" rounded="lg" size="44">
+              <v-icon size="24" color="primary">mdi-card-account-details-outline</v-icon>
+            </v-avatar>
+            <div>
+              <div class="d-flex align-center gap-2 flex-wrap">
+                <h3 class="text-h6 font-weight-black text-on-surface mb-0">
+                  {{ previewStudent.student_name || 'طالب بدون اسم' }}
+                </h3>
+                <v-chip size="small" color="primary" variant="flat" class="font-weight-bold px-2 unified-table-chip">
+                  رقم الجلوس: {{ previewStudent.seat_number }}
+                </v-chip>
+                <v-chip size="small" :color="getModelChipColor(previewStudent.model_code)" variant="flat" class="font-weight-bold px-2 unified-table-chip">
+                  النموذج: {{ previewStudent.model_code || 'A' }}
+                </v-chip>
+              </div>
+              <p class="text-caption text-medium-emphasis mb-0 mt-1">
+                {{ selectedExam?.title || 'اختبار عام' }} • {{ previewStudent.school_name || selectedExam?.directorate || 'المركز الاختباري' }}
+              </p>
+            </div>
           </div>
+
           <div class="d-flex align-center gap-2">
             <v-btn
               color="success"
               variant="flat"
               rounded="lg"
-              size="small"
-              class="font-weight-bold px-3"
+              size="default"
+              class="font-weight-black px-4 shadow-sm"
               prepend-icon="mdi-printer"
               @click="printPreviewStudentSheet"
             >
               طباعة هذه الورقة
             </v-btn>
-            <v-btn icon size="small" variant="text" @click="singleSheetDialog = false">
-              <v-icon>mdi-close</v-icon>
-            </v-btn>
+            <v-btn icon="mdi-close" variant="text" size="small" color="medium-emphasis" @click="singleSheetDialog = false" />
           </div>
         </v-card-title>
 
@@ -2444,16 +2496,44 @@ const singleSheetDialog = ref(false)
 const previewStudent = ref(null)
 const singlePreviewRef = ref(null)
 
-const rosterHeaders = [
-  { title: 'رقم الجلوس', key: 'seat_number', align: 'start', sortable: true },
-  { title: 'الرقم السري', key: 'secret_number', align: 'start', sortable: true },
-  { title: 'اسم الطالب الرباعي', key: 'student_name', align: 'start', sortable: true },
-  { title: 'المدرسة / المركز', key: 'school_name', align: 'start', sortable: true },
-  { title: 'المديرية', key: 'directorate', align: 'start', sortable: true },
-  { title: 'النموذج', key: 'model_code', align: 'center', sortable: true },
-  { title: 'حالة الطباعة', key: 'is_printed', align: 'center', sortable: true },
-  { title: 'الإجراءات', key: 'actions', align: 'center', sortable: false },
-]
+const rosterHeaders = computed(() => [
+  { title: "تحديد", key: "select_box", sortable: false, align: "center", width: "65px" },
+  { title: "رقم الجلوس", key: "seat_number", sortable: true, align: "center", width: "110px" },
+  { title: "الرقم السري", key: "secret_number", sortable: true, align: "center", width: "100px" },
+  { title: "اسم الطالب الرباعي", key: "student_name", sortable: true, align: "start" },
+  { title: "المدرسة والمركز", key: "school_name", sortable: true, align: "start" },
+  { title: "النموذج", key: "model_code", sortable: true, align: "center", width: "115px" },
+  { title: "حالة الطباعة", key: "is_printed", sortable: true, align: "center", width: "135px" },
+  { title: "إجراءات الطباعة والمعاينة", key: "actions", sortable: false, align: "center", width: "130px" },
+])
+
+const toggleStudentSelection = (studentId) => {
+  const idx = selectedStudentIds.value.indexOf(studentId)
+  if (idx > -1) {
+    selectedStudentIds.value.splice(idx, 1)
+  } else {
+    selectedStudentIds.value.push(studentId)
+  }
+}
+
+const unprintedCount = computed(() => {
+  return (examDetails.value?.registered_students || []).filter(s => !s.is_printed).length
+})
+
+const printedCount = computed(() => {
+  return (examDetails.value?.registered_students || []).filter(s => s.is_printed).length
+})
+
+const modelCounts = computed(() => {
+  const students = examDetails.value?.registered_students || []
+  return {
+    all: students.length,
+    A: students.filter(s => (s.model_code || 'A') === 'A').length,
+    B: students.filter(s => s.model_code === 'B').length,
+    C: students.filter(s => s.model_code === 'C').length,
+    D: students.filter(s => s.model_code === 'D').length,
+  }
+})
 
 const getModelChipColor = (code) => {
   switch (code) {
@@ -2492,6 +2572,19 @@ const filteredRosterStudents = computed(() => {
 
   return list
 })
+
+const rosterTableItems = computed(() => ({
+  results: filteredRosterStudents.value,
+  count: filteredRosterStudents.value.length,
+  pagination: {
+    count: filteredRosterStudents.value.length,
+    total: filteredRosterStudents.value.length,
+  },
+}))
+
+const getRosterData = async () => {
+  return rosterTableItems.value
+}
 
 const targetBatchStudents = computed(() => {
   if (selectedStudentIds.value && selectedStudentIds.value.length > 0) {
