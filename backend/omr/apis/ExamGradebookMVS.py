@@ -21,6 +21,7 @@ from exams.models.ExamVersion import ExamVersion
 from exams.models.StudentExamRegistration import StudentExamRegistration
 from submissions.models.Submission import Submission
 from bank.models.AuditLog import AuditLog
+from OpenSoftCoreV41.common.models.Branch import Organization as CoreOrg
 
 
 def _calculate_grade_letter(percent: float) -> dict:
@@ -245,14 +246,112 @@ class ExamGradebookMVS(ViewSet):
             "results": exams_list
         })
 
+    @action(detail=False, methods=['get'], url_path='by-office')
+    def by_office(self, request):
+        """
+        تجميع إحصائيات الرصد والكنترول حسب مكاتب التربية والتعليم بالمحافظات (المستوى 30 الحقيقي).
+        """
+        search = request.query_params.get('search', '').strip()
+
+        offices = CoreOrg.objects.filter(company_level=30, is_deleted=False).order_by('branch_no', 'id')
+        if search:
+            offices = offices.filter(name_ar__icontains=search)
+
+        results = []
+        for off in offices:
+            child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization=off.id, is_deleted=False)
+            child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=child_dirs.values_list('id', flat=True), is_deleted=False)
+            school_names = list(child_schools.values_list('name_ar', flat=True))
+
+            regs = StudentExamRegistration.objects.filter(is_deleted=False).filter(
+                student_profile__organization__name_ar__in=school_names
+            )
+            tot = regs.count()
+            exams_cnt = regs.values('examVersion__exam_id').distinct().count()
+            comp = Submission.objects.filter(
+                is_deleted=False, 
+                status=Submission.Status.COMPLETED, 
+                registration__in=regs
+            ).count()
+
+            results.append({
+                "id": off.id,
+                "office_name": off.name_ar,
+                "governorate_name": off.name_ar.replace('مكتب التربية والتعليم - ', ''),
+                "directorates_count": child_dirs.count(),
+                "schools_count": child_schools.count(),
+                "exams_count": exams_cnt,
+                "total_students": tot,
+                "completed_count": comp,
+                "absent_count": max(0, tot - comp),
+                "completion_rate": round((comp / max(1, tot)) * 100, 1) if tot > 0 else 0.0,
+            })
+
+        return Response({
+            "success": True,
+            "count": len(results),
+            "results": results
+        })
+
+    @action(detail=False, methods=['get'], url_path='by-directorate')
+    def by_directorate(self, request):
+        """
+        تجميع إحصائيات الرصد والكنترول حسب إدارات التربية والتعليم بالمديريات (المستوى 40).
+        """
+        search = request.query_params.get('search', '').strip()
+        office_id = request.query_params.get('office_id') or request.query_params.get('office')
+
+        dirs_qs = CoreOrg.objects.filter(company_level=40, is_deleted=False)
+        if office_id:
+            dirs_qs = dirs_qs.filter(fk_parent_organization_id=office_id)
+        if search:
+            dirs_qs = dirs_qs.filter(name_ar__icontains=search)
+
+        results = []
+        for d in dirs_qs.order_by('branch_no', 'id'):
+            child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization=d.id, is_deleted=False)
+            school_names = list(child_schools.values_list('name_ar', flat=True))
+
+            regs = StudentExamRegistration.objects.filter(is_deleted=False).filter(
+                student_profile__organization__name_ar__in=school_names
+            )
+            tot = regs.count()
+            exams_cnt = regs.values('examVersion__exam_id').distinct().count()
+            comp = Submission.objects.filter(
+                is_deleted=False, 
+                status=Submission.Status.COMPLETED, 
+                registration__in=regs
+            ).count()
+
+            parent_office = d.fk_parent_organization
+            results.append({
+                "id": d.id,
+                "name": d.name_ar,
+                "office_id": d.fk_parent_organization_id,
+                "office_name": parent_office.name_ar if parent_office else "—",
+                "governorate_name": parent_office.name_ar.replace('مكتب التربية والتعليم - ', '') if parent_office else "—",
+                "schools_count": child_schools.count(),
+                "exams_count": exams_cnt,
+                "total_students": tot,
+                "completed_count": comp,
+                "absent_count": max(0, tot - comp),
+                "completion_rate": round((comp / max(1, tot)) * 100, 1) if tot > 0 else 0.0,
+            })
+
+        return Response({
+            "success": True,
+            "count": len(results),
+            "results": results
+        })
+
     @action(detail=False, methods=['get'], url_path='by-school')
     def by_school(self, request):
         """
-        تجميع إحصائيات الرصد والكنترول حسب المدرسة / المركز الامتحاني.
+        تجميع إحصائيات الرصد والكنترول حسب المدرسة / المركز الامتحاني / الجامعة / المعهد.
         """
         search = request.query_params.get('search', '').strip()
-        governorate_id = request.query_params.get('governorate')
-        directorate_id = request.query_params.get('directorate')
+        office_id = request.query_params.get('office_id') or request.query_params.get('office')
+        directorate_id = request.query_params.get('directorate_id') or request.query_params.get('directorate')
         institution_type = request.query_params.get('institution_type')
 
         regs_qs = StudentExamRegistration.objects.filter(
@@ -264,10 +363,24 @@ class ExamGradebookMVS(ViewSet):
                 Q(student_profile__organization__name_ar__icontains=search) |
                 Q(student_profile__organization__name_en__icontains=search)
             )
-        if governorate_id:
-            regs_qs = regs_qs.filter(student_profile__directorate__fk_governorate_id=governorate_id)
+
         if directorate_id:
-            regs_qs = regs_qs.filter(student_profile__directorate_id=directorate_id)
+            # Check if directorate_id is CoreOrg Level 40
+            core_dir = CoreOrg.objects.filter(id=directorate_id, company_level=40).first()
+            if core_dir:
+                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization=core_dir.id, is_deleted=False)
+                school_names = list(child_schools.values_list('name_ar', flat=True))
+                regs_qs = regs_qs.filter(student_profile__organization__name_ar__in=school_names)
+            else:
+                regs_qs = regs_qs.filter(student_profile__directorate_id=directorate_id)
+        elif office_id:
+            core_off = CoreOrg.objects.filter(id=office_id, company_level=30).first()
+            if core_off:
+                child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization=core_off.id, is_deleted=False)
+                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=child_dirs.values_list('id', flat=True), is_deleted=False)
+                school_names = list(child_schools.values_list('name_ar', flat=True))
+                regs_qs = regs_qs.filter(student_profile__organization__name_ar__in=school_names)
+
         if institution_type and institution_type != 'all':
             regs_qs = regs_qs.filter(student_profile__organization__institution_type=institution_type)
 
@@ -310,7 +423,7 @@ class ExamGradebookMVS(ViewSet):
             avg_sc = subs_scores.get(org_id, 0.0) or 0.0
             results.append({
                 "id": org_id,
-                "name": s['student_profile__organization__name_ar'] or "مدرسة غير محددة",
+                "name": s['student_profile__organization__name_ar'] or "مؤسسة تعليمية غير محددة",
                 "institution_type": s['student_profile__organization__institution_type'] or "school",
                 "directorate_name": s['student_profile__directorate__name_ar'] or "—",
                 "governorate_name": s['student_profile__directorate__fk_governorate__name_ar'] or "—",
@@ -320,67 +433,6 @@ class ExamGradebookMVS(ViewSet):
                 "absent_count": max(0, tot - comp),
                 "completion_rate": round((comp / max(1, tot)) * 100, 1) if tot > 0 else 0.0,
                 "average_score": round(float(avg_sc), 1),
-            })
-
-        return Response({
-            "success": True,
-            "count": len(results),
-            "results": results
-        })
-
-    @action(detail=False, methods=['get'], url_path='by-directorate')
-    def by_directorate(self, request):
-        """
-        تجميع إحصائيات الرصد والكنترول حسب المديرية / المنطقة الجغرافية.
-        """
-        search = request.query_params.get('search', '').strip()
-        governorate_id = request.query_params.get('governorate')
-
-        regs_qs = StudentExamRegistration.objects.filter(
-            is_deleted=False, 
-            student_profile__directorate__isnull=False
-        )
-        if search:
-            regs_qs = regs_qs.filter(student_profile__directorate__name_ar__icontains=search)
-        if governorate_id:
-            regs_qs = regs_qs.filter(student_profile__directorate__fk_governorate_id=governorate_id)
-
-        dirs_agg = regs_qs.values(
-            'student_profile__directorate_id',
-            'student_profile__directorate__name_ar',
-            'student_profile__directorate__fk_governorate__name_ar'
-        ).annotate(
-            total_students=Count('id', distinct=True),
-            schools_count=Count('student_profile__organization_id', distinct=True),
-            exams_count=Count('examVersion__exam_id', distinct=True)
-        ).order_by('-total_students')
-
-        dir_ids = [d['student_profile__directorate_id'] for d in dirs_agg]
-        subs_completed = dict(
-            Submission.objects.filter(
-                is_deleted=False, 
-                status=Submission.Status.COMPLETED,
-                registration__student_profile__directorate_id__in=dir_ids
-            ).values('registration__student_profile__directorate_id')
-            .annotate(cnt=Count('id'))
-            .values_list('registration__student_profile__directorate_id', 'cnt')
-        )
-
-        results = []
-        for d in dirs_agg:
-            did = d['student_profile__directorate_id']
-            tot = d['total_students']
-            comp = subs_completed.get(did, 0)
-            results.append({
-                "id": did,
-                "name": d['student_profile__directorate__name_ar'] or "مديرية غير محددة",
-                "governorate_name": d['student_profile__directorate__fk_governorate__name_ar'] or "—",
-                "schools_count": d['schools_count'],
-                "exams_count": d['exams_count'],
-                "total_students": tot,
-                "completed_count": comp,
-                "absent_count": max(0, tot - comp),
-                "completion_rate": round((comp / max(1, tot)) * 100, 1) if tot > 0 else 0.0,
             })
 
         return Response({

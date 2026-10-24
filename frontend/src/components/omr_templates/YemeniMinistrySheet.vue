@@ -1429,38 +1429,21 @@ function handleBubbleClick(q: number, choice: string) {
       <!-- Outer Rectangle (x: 12 to 175, width: 163, height: 17.0mm) -->
       <rect x="12" y="114.0" width="163" height="17.0" fill="#ffffff" stroke="#000000" stroke-width="0.5" />
 
-      <!-- Left Compartment: Dual High-Security Barcode & QR Code (x: 14.5 to 60.5, width: 46) -->
+      <!-- Left Compartment: Official 1D Linear Barcode (x: 14.5 to 60.5, width: 46) -->
       <rect x="14.5" y="115.5" width="46" height="14.0" fill="#ffffff" stroke="#000000" stroke-width="0.35" />
 
       <!-- 1D Linear Barcode (Code-128) -->
-      <g transform="translate(15.5, 116.5)">
+      <g transform="translate(16.0, 116.5)">
         <image
           v-if="barcodeDataUrl"
           :href="barcodeDataUrl"
           x="0"
           y="0"
-          width="31"
-          height="8.5"
+          width="43"
+          height="8.8"
           preserveAspectRatio="none"
         />
-        <text x="15.5" y="11.2" font-size="1.5" font-family="'Courier New', monospace" font-weight="bold" text-anchor="middle">{{ computedBarcodeValue }}</text>
-      </g>
-
-      <!-- Security Divider between Barcode & QR -->
-      <line x1="47.5" y1="115.5" x2="47.5" y2="129.5" stroke="#cccccc" stroke-width="0.3" stroke-dasharray="0.8,0.8" />
-
-      <!-- 2D High-Density QR Code -->
-      <g transform="translate(48.5, 116.2)">
-        <image
-          v-if="qrDataUrl"
-          :href="qrDataUrl"
-          x="0"
-          y="0"
-          width="11"
-          height="11"
-          preserveAspectRatio="xMidYMid meet"
-        />
-        <text x="5.5" y="12.4" font-size="1.1" font-weight="bold" font-family="Arial, sans-serif" text-anchor="middle">QR</text>
+        <text x="21.5" y="11.5" font-size="1.6" font-family="'Courier New', monospace" font-weight="bold" text-anchor="middle">{{ computedBarcodeValue }}</text>
       </g>
 
       <!-- Clean Vertical Divider separating Barcode from Instructions (x=65) -->
@@ -1552,25 +1535,15 @@ function handleBubbleClick(q: number, choice: string) {
       <!-- Standalone 2D QR Code on the Right (Aligned with box from x=181 to 198, y=114.0 to 131.0) -->
       <g transform="translate(181, 114.0)">
         <rect x="0" y="0" width="17" height="17" fill="#ffffff" stroke="#000000" stroke-width="0.4" />
-        <rect x="1.0" y="1.0" width="4.8" height="4.8" fill="#000" />
-        <rect x="2.0" y="2.0" width="2.8" height="2.8" fill="#fff" />
-        <rect x="2.7" y="2.7" width="1.4" height="1.4" fill="#000" />
-
-        <rect x="11.2" y="1.0" width="4.8" height="4.8" fill="#000" />
-        <rect x="12.2" y="2.0" width="2.8" height="2.8" fill="#fff" />
-        <rect x="12.9" y="2.7" width="1.4" height="1.4" fill="#000" />
-
-        <rect x="1.0" y="11.2" width="4.8" height="4.8" fill="#000" />
-        <rect x="2.0" y="12.2" width="2.8" height="2.8" fill="#fff" />
-        <rect x="2.7" y="12.9" width="1.4" height="1.4" fill="#000" />
-
-        <!-- Interior QR modules -->
-        <rect x="7.0" y="1.8" width="2.0" height="2.0" fill="#000" />
-        <rect x="9.5" y="3.8" width="2.0" height="2.0" fill="#000" />
-        <rect x="7.0" y="7.0" width="3.2" height="3.2" fill="#000" />
-        <rect x="11.2" y="8.0" width="2.0" height="2.0" fill="#000" />
-        <rect x="7.0" y="11.8" width="2.0" height="2.0" fill="#000" />
-        <rect x="10.0" y="11.8" width="2.0" height="2.0" fill="#000" />
+        <image
+          v-if="qrDataUrl"
+          :href="qrDataUrl"
+          x="1"
+          y="1"
+          width="15"
+          height="15"
+          preserveAspectRatio="xMidYMid meet"
+        />
       </g>
     </g>
   </svg>

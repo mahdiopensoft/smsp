@@ -122,6 +122,7 @@ export const omrTemplatesAPI = {
 // ── 6. شاشة سجل الدرجات والترحيل لنظام الكنترول ──
 export const gradebookAPI = {
   list: (params) => api.get('/api/omr/gradebook/', { params }),
+  getByOffice: (params) => api.get('/api/omr/gradebook/by-office/', { params }),
   getBySchool: (params) => api.get('/api/omr/gradebook/by-school/', { params }),
   getByDirectorate: (params) => api.get('/api/omr/gradebook/by-directorate/', { params }),
   getRoster: (examId, params) => api.get(`/api/omr/gradebook/${examId}/`, { params }),
