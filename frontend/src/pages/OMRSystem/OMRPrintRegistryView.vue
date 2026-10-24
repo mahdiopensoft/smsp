@@ -1177,11 +1177,9 @@
           <!-- ── الجدول الموحد للطلاب وأوراق التظليل (custom-data-table) ── -->
           <div class="main-card rounded-2xl overflow-hidden mb-6">
             <custom-data-table
-              v-bind="{
-                items: rosterTableItems,
-                getData: getRosterData,
-                headers: rosterHeaders,
-              }"
+              :items="rosterTableItems"
+              :getData="getRosterData"
+              :headers="rosterHeaders"
               :customLoading="loadingExamDetails"
               :hasFilter="false"
               :log="false"
@@ -1189,6 +1187,7 @@
               :numbering="false"
               :showSelect="false"
               :actions="false"
+              :search="false"
               class="bg-transparent"
             >
               <template v-slot:item-slot="{ item, key }">
@@ -1352,11 +1351,9 @@
           <!-- الجدول الموحد لكراسات النماذج الأربعة (custom-data-table) -->
           <div class="main-card rounded-2xl overflow-hidden mb-6">
             <custom-data-table
-              v-bind="{
-                items: questionModelsTableItems,
-                getData: getQuestionModelsData,
-                headers: questionModelsHeaders,
-              }"
+              :items="questionModelsTableItems"
+              :getData="getQuestionModelsData"
+              :headers="questionModelsHeaders"
               :customLoading="loadingExamDetails"
               :hasFilter="false"
               :log="false"
@@ -1364,6 +1361,7 @@
               :numbering="false"
               :showSelect="false"
               :actions="false"
+              :search="false"
               class="bg-transparent"
             >
               <template v-slot:item-slot="{ item, key }">
@@ -1584,11 +1582,9 @@
           <!-- الجدول الموحد لحزم الاختبار المتكاملة للطلاب (custom-data-table) -->
           <div class="main-card rounded-2xl overflow-hidden mb-6">
             <custom-data-table
-              v-bind="{
-                items: packageTableItems,
-                getData: getPackageData,
-                headers: packageHeaders,
-              }"
+              :items="packageTableItems"
+              :getData="getPackageData"
+              :headers="packageHeaders"
               :customLoading="loadingExamDetails"
               :hasFilter="false"
               :log="false"
@@ -1596,6 +1592,7 @@
               :numbering="false"
               :showSelect="false"
               :actions="false"
+              :search="false"
               class="bg-transparent"
             >
               <template v-slot:item-slot="{ item, key }">
@@ -2611,6 +2608,13 @@ watch(activeTab, (newTab) => {
   if (['sheets', 'questions', 'package'].includes(newTab)) {
     selectedDocType.value = newTab
   }
+  if (newTab === 'unified') {
+    getRosterData()
+  } else if (newTab === 'questions') {
+    getQuestionModelsData()
+  } else if (newTab === 'package') {
+    getPackageData()
+  }
 })
 
 watch(selectedDocType, (newDoc) => {
@@ -2886,18 +2890,39 @@ const filteredRosterStudents = computed(() => {
   return list
 })
 
-const rosterTableItems = computed(() => ({
-  results: filteredRosterStudents.value,
-  count: filteredRosterStudents.value.length,
+const rosterTableItems = ref({
+  results: [],
+  count: 0,
   pagination: {
-    count: filteredRosterStudents.value.length,
-    total: filteredRosterStudents.value.length,
+    count: 0,
+    total: 0,
+    num_pages: 1,
+    current_page: 1,
   },
-}))
+})
 
-const getRosterData = async () => {
+const getRosterData = async (params = {}) => {
+  const p = params?.params || params || {}
+  const page = p.page || 1
+  const pageSize = p.page_size || 50
+  const all = filteredRosterStudents.value || []
+  const start = (page - 1) * pageSize
+  rosterTableItems.value = {
+    results: all.slice(start, start + pageSize),
+    count: all.length,
+    pagination: {
+      count: all.length,
+      total: all.length,
+      num_pages: Math.ceil(all.length / pageSize) || 1,
+      current_page: page,
+    },
+  }
   return rosterTableItems.value
 }
+
+watch(filteredRosterStudents, () => {
+  getRosterData()
+}, { immediate: true })
 
 const targetBatchStudents = computed(() => {
   if (selectedStudentIds.value && selectedStudentIds.value.length > 0) {
@@ -3364,6 +3389,9 @@ const loadExamDetails = async (examId, customParams = {}) => {
     } else {
       sheetGenerationMode.value = 'blank'
     }
+    await getRosterData()
+    await getQuestionModelsData()
+    await getPackageData()
   } catch (err) {
     console.error('Failed to load exam details:', err)
   } finally {
@@ -3562,18 +3590,35 @@ const questionModelsHeaders = computed(() => [
   { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "230px" },
 ])
 
-const questionModelsTableItems = computed(() => ({
-  results: questionModelsList.value,
-  count: questionModelsList.value.length,
+const questionModelsTableItems = ref({
+  results: [],
+  count: 0,
   pagination: {
-    count: questionModelsList.value.length,
-    total: questionModelsList.value.length,
+    count: 0,
+    total: 0,
+    num_pages: 1,
+    current_page: 1,
   },
-}))
+})
 
-const getQuestionModelsData = async () => {
+const getQuestionModelsData = async (params = {}) => {
+  const all = questionModelsList.value || []
+  questionModelsTableItems.value = {
+    results: all,
+    count: all.length,
+    pagination: {
+      count: all.length,
+      total: all.length,
+      num_pages: 1,
+      current_page: 1,
+    },
+  }
   return questionModelsTableItems.value
 }
+
+watch(questionModelsList, () => {
+  getQuestionModelsData()
+}, { immediate: true })
 
 const openPreviewQuestionPaper = (modelCode) => {
   selectedQuestionsModelCode.value = modelCode
@@ -3628,18 +3673,39 @@ const packageHeaders = computed(() => [
   { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "180px" },
 ])
 
-const packageTableItems = computed(() => ({
-  results: filteredPackageStudents.value,
-  count: filteredPackageStudents.value.length,
+const packageTableItems = ref({
+  results: [],
+  count: 0,
   pagination: {
-    count: filteredPackageStudents.value.length,
-    total: filteredPackageStudents.value.length,
+    count: 0,
+    total: 0,
+    num_pages: 1,
+    current_page: 1,
   },
-}))
+})
 
-const getPackageData = async () => {
+const getPackageData = async (params = {}) => {
+  const p = params?.params || params || {}
+  const page = p.page || 1
+  const pageSize = p.page_size || 50
+  const all = filteredPackageStudents.value || []
+  const start = (page - 1) * pageSize
+  packageTableItems.value = {
+    results: all.slice(start, start + pageSize),
+    count: all.length,
+    pagination: {
+      count: all.length,
+      total: all.length,
+      num_pages: Math.ceil(all.length / pageSize) || 1,
+      current_page: page,
+    },
+  }
   return packageTableItems.value
 }
+
+watch(filteredPackageStudents, () => {
+  getPackageData()
+}, { immediate: true })
 
 const togglePackageStudentSelection = (studentId) => {
   const idx = selectedPackageStudentIds.value.indexOf(studentId)
