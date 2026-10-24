@@ -72,6 +72,7 @@ export default defineConfig({
       allow: [
         ".",
         sharedProjectPath,
+        "C:/Users/ibrahim/Desktop/question_bank/smsp/frontend/shared-project-v4",
         "C:/Users/ibrahim/Desktop/question_bank/shared-project-v4",
       ],
     },
