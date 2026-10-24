@@ -374,7 +374,6 @@
               <custom-data-table
                 v-bind="{
                   items: questionsTableItems,
-                  getData: getQuestionsData,
                   headers: questionHeaders,
                 }"
                 :customLoading="loading"
@@ -940,7 +939,7 @@ export default {
       return q
     },
 
-    getQuestionsData() {
+    async getQuestionsData() {
       return this.questionsTableItems
     },
   },
