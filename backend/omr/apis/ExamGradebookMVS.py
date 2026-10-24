@@ -147,7 +147,7 @@ class ExamGradebookMVS(ViewSet):
         exams = list(qs[:100])
         exam_ids = [e.id for e in exams]
 
-        # 1. تجميع عدد الطلاب المسجلين لكل اختبار بدفعة واحدة (استعلام واحد)
+        # 1. تجميع عدد الطلاب المسجلين والمدارس لكل اختبار بدفعة واحدة
         reg_counts = dict(
             StudentExamRegistration.objects.filter(
                 examVersion__exam_id__in=exam_ids, is_deleted=False
@@ -156,10 +156,19 @@ class ExamGradebookMVS(ViewSet):
             .values_list('examVersion__exam_id', 'cnt')
         )
 
+        schools_counts = dict(
+            StudentExamRegistration.objects.filter(
+                examVersion__exam_id__in=exam_ids, is_deleted=False, student_profile__organization__isnull=False
+            ).values('examVersion__exam_id')
+            .annotate(cnt=Count('student_profile__organization_id', distinct=True))
+            .values_list('examVersion__exam_id', 'cnt')
+        )
+
         # 2. تجميع إحصائيات التسليمات لكل اختبار بدفعة واحدة (استعلام واحد)
         sub_counts = {}
         completed_counts = {}
         needs_review_counts = {}
+        dispatched_counts = {}
         for row in (
             Submission.objects.filter(exam_id__in=exam_ids, is_deleted=False)
             .values('exam_id', 'status')
@@ -191,12 +200,15 @@ class ExamGradebookMVS(ViewSet):
             total_submissions = sub_counts.get(exam.id, 0)
             completed_subs = completed_counts.get(exam.id, 0)
             needs_review_subs = needs_review_counts.get(exam.id, 0)
+            schools_cnt = schools_counts.get(exam.id, 0)
             exam_max_score = float(getattr(exam, 'total_score', 100) or 100)
 
             aggr = score_aggregates.get(exam.id, {})
             avg_val = float(aggr.get('avg_score') or 0.0)
             highest_sc = float(aggr.get('max_score') or 0.0)
             lowest_sc = float(aggr.get('min_score') or 0.0)
+
+            completion_rate = round((completed_subs / max(1, total_registered)) * 100, 1) if total_registered > 0 else 0.0
 
             exams_list.append({
                 "id": exam.id,
@@ -206,14 +218,18 @@ class ExamGradebookMVS(ViewSet):
                 "institution_type_display": "مدرسي" if exam.institution_type == 'school' else ("جامعي" if exam.institution_type == 'university' else "معاهد"),
                 "subject_name": getattr(exam.subject, 'name_ar', str(exam.subject)) if exam.subject else "غير محدد",
                 "year_name": exam.year.gregorian_year if (exam.year and hasattr(exam.year, 'gregorian_year')) else (str(exam.year) if exam.year else "العام الحالي"),
+                "governorate_name": getattr(exam.governorate, 'name_ar', str(exam.governorate)) if exam.governorate else "",
+                "directorate_name": getattr(exam.directorate, 'name_ar', str(exam.directorate)) if exam.directorate else "",
+                "schools_count": schools_cnt,
                 "max_score": exam_max_score,
                 "total_registered": total_registered,
                 "total_submissions": total_submissions,
                 "completed_count": completed_subs,
                 "needs_review_count": needs_review_subs,
                 "absent_count": max(0, total_registered - total_submissions),
+                "completion_rate": completion_rate,
                 "dispatched_count": 0,
-                "dispatch_status": "none",
+                "dispatch_status": "dispatched" if (completed_subs > 0 and completed_subs == total_submissions) else ("partial" if completed_subs > 0 else "none"),
                 "average_score": round(avg_val, 2),
                 "highest_score": highest_sc,
                 "lowest_score": lowest_sc,
@@ -225,6 +241,150 @@ class ExamGradebookMVS(ViewSet):
             "success": True,
             "count": len(exams_list),
             "results": exams_list
+        })
+
+    @action(detail=False, methods=['get'], url_path='by-school')
+    def by_school(self, request):
+        """
+        تجميع إحصائيات الرصد والكنترول حسب المدرسة / المركز الامتحاني.
+        """
+        search = request.query_params.get('search', '').strip()
+        governorate_id = request.query_params.get('governorate')
+        directorate_id = request.query_params.get('directorate')
+        institution_type = request.query_params.get('institution_type')
+
+        regs_qs = StudentExamRegistration.objects.filter(
+            is_deleted=False, 
+            student_profile__organization__isnull=False
+        )
+        if search:
+            regs_qs = regs_qs.filter(
+                Q(student_profile__organization__name_ar__icontains=search) |
+                Q(student_profile__organization__name_en__icontains=search)
+            )
+        if governorate_id:
+            regs_qs = regs_qs.filter(student_profile__directorate__fk_governorate_id=governorate_id)
+        if directorate_id:
+            regs_qs = regs_qs.filter(student_profile__directorate_id=directorate_id)
+        if institution_type and institution_type != 'all':
+            regs_qs = regs_qs.filter(student_profile__organization__institution_type=institution_type)
+
+        schools_agg = regs_qs.values(
+            'student_profile__organization_id',
+            'student_profile__organization__name_ar',
+            'student_profile__organization__institution_type',
+            'student_profile__directorate__name_ar',
+            'student_profile__directorate__fk_governorate__name_ar'
+        ).annotate(
+            total_students=Count('id', distinct=True),
+            exams_count=Count('examVersion__exam_id', distinct=True)
+        ).order_by('-total_students')
+
+        org_ids = [s['student_profile__organization_id'] for s in schools_agg]
+        subs_completed = dict(
+            Submission.objects.filter(
+                is_deleted=False, 
+                status=Submission.Status.COMPLETED,
+                registration__student_profile__organization_id__in=org_ids
+            ).values('registration__student_profile__organization_id')
+            .annotate(cnt=Count('id'))
+            .values_list('registration__student_profile__organization_id', 'cnt')
+        )
+        subs_scores = dict(
+            Submission.objects.filter(
+                is_deleted=False, 
+                status=Submission.Status.COMPLETED,
+                registration__student_profile__organization_id__in=org_ids
+            ).values('registration__student_profile__organization_id')
+            .annotate(avg=Avg('total_score'))
+            .values_list('registration__student_profile__organization_id', 'avg')
+        )
+
+        results = []
+        for s in schools_agg:
+            org_id = s['student_profile__organization_id']
+            tot = s['total_students']
+            comp = subs_completed.get(org_id, 0)
+            avg_sc = subs_scores.get(org_id, 0.0) or 0.0
+            results.append({
+                "id": org_id,
+                "name": s['student_profile__organization__name_ar'] or "مدرسة غير محددة",
+                "institution_type": s['student_profile__organization__institution_type'] or "school",
+                "directorate_name": s['student_profile__directorate__name_ar'] or "—",
+                "governorate_name": s['student_profile__directorate__fk_governorate__name_ar'] or "—",
+                "total_students": tot,
+                "exams_count": s['exams_count'],
+                "completed_count": comp,
+                "absent_count": max(0, tot - comp),
+                "completion_rate": round((comp / max(1, tot)) * 100, 1) if tot > 0 else 0.0,
+                "average_score": round(float(avg_sc), 1),
+            })
+
+        return Response({
+            "success": True,
+            "count": len(results),
+            "results": results
+        })
+
+    @action(detail=False, methods=['get'], url_path='by-directorate')
+    def by_directorate(self, request):
+        """
+        تجميع إحصائيات الرصد والكنترول حسب المديرية / المنطقة الجغرافية.
+        """
+        search = request.query_params.get('search', '').strip()
+        governorate_id = request.query_params.get('governorate')
+
+        regs_qs = StudentExamRegistration.objects.filter(
+            is_deleted=False, 
+            student_profile__directorate__isnull=False
+        )
+        if search:
+            regs_qs = regs_qs.filter(student_profile__directorate__name_ar__icontains=search)
+        if governorate_id:
+            regs_qs = regs_qs.filter(student_profile__directorate__fk_governorate_id=governorate_id)
+
+        dirs_agg = regs_qs.values(
+            'student_profile__directorate_id',
+            'student_profile__directorate__name_ar',
+            'student_profile__directorate__fk_governorate__name_ar'
+        ).annotate(
+            total_students=Count('id', distinct=True),
+            schools_count=Count('student_profile__organization_id', distinct=True),
+            exams_count=Count('examVersion__exam_id', distinct=True)
+        ).order_by('-total_students')
+
+        dir_ids = [d['student_profile__directorate_id'] for d in dirs_agg]
+        subs_completed = dict(
+            Submission.objects.filter(
+                is_deleted=False, 
+                status=Submission.Status.COMPLETED,
+                registration__student_profile__directorate_id__in=dir_ids
+            ).values('registration__student_profile__directorate_id')
+            .annotate(cnt=Count('id'))
+            .values_list('registration__student_profile__directorate_id', 'cnt')
+        )
+
+        results = []
+        for d in dirs_agg:
+            did = d['student_profile__directorate_id']
+            tot = d['total_students']
+            comp = subs_completed.get(did, 0)
+            results.append({
+                "id": did,
+                "name": d['student_profile__directorate__name_ar'] or "مديرية غير محددة",
+                "governorate_name": d['student_profile__directorate__fk_governorate__name_ar'] or "—",
+                "schools_count": d['schools_count'],
+                "exams_count": d['exams_count'],
+                "total_students": tot,
+                "completed_count": comp,
+                "absent_count": max(0, tot - comp),
+                "completion_rate": round((comp / max(1, tot)) * 100, 1) if tot > 0 else 0.0,
+            })
+
+        return Response({
+            "success": True,
+            "count": len(results),
+            "results": results
         })
 
     def retrieve(self, request, pk=None):
