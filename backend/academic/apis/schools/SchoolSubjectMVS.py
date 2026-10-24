@@ -14,7 +14,6 @@ class SchoolSubjectMVS(AllMVS):
     filterset_fields = {
         'is_active': ['exact'],
         'is_ministerial': ['exact'],
-        'is_detailed': ['exact'],
         'subject_code': ['exact', 'icontains'],
         'class_subjects__class_track__level': ['exact'],
         'class_subjects__class_track__track': ['exact'],

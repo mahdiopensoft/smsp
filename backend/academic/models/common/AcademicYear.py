@@ -15,20 +15,58 @@ class AcademicYear(BaseSyncModel):
         verbose_name_plural = _('السنوات الدراسية')
         constraints = [
             models.UniqueConstraint(
-                fields=['hijri_year', 'gregorian_year'],
-                name='unique_academic_year_hijri_gregorian_no_deleted',
+                fields=['hijri_year'],
+                name='unique_academic_year_hijri_no_deleted',
                 condition=Q(is_deleted=False),
             ),
             models.UniqueConstraint(
-                fields=['is_current'],
-                name='unique_single_current_academic_year_no_deleted',
-                condition=Q(is_current=True, is_deleted=False),
+                fields=['gregorian_year'],
+                name='unique_academic_year_gregorian_no_deleted',
+                condition=Q(is_deleted=False),
             ),
         ]
 
+    def clean(self):
+        super().clean()
+        if self.hijri_year:
+            qs = AcademicYear.objects.filter(hijri_year=self.hijri_year.strip(), is_deleted=False)
+            if self.id:
+                qs = qs.exclude(id=self.id)
+            if qs.exists():
+                raise ValidationError({'hijri_year': _("السنة الهجرية مسجلة مسبقاً في النظام.")})
+
+        if self.gregorian_year:
+            qs = AcademicYear.objects.filter(gregorian_year=self.gregorian_year.strip(), is_deleted=False)
+            if self.id:
+                qs = qs.exclude(id=self.id)
+            if qs.exists():
+                raise ValidationError({'gregorian_year': _("السنة الميلادية مسجلة مسبقاً في النظام.")})
+
+        # Prevent deactivating the only current academic year directly
+        if self.id and not self.is_current:
+            old = AcademicYear.objects.filter(id=self.id).first()
+            if old and old.is_current:
+                other_current = AcademicYear.objects.filter(is_current=True, is_deleted=False).exclude(id=self.id).exists()
+                if not other_current:
+                    raise ValidationError({
+                        'is_current': _("لا يمكن إلغاء العام الدراسي الحالي مباشرة؛ يجب تفعيل عام دراسي آخر بدلاً منه.")
+                    })
+
     def save(self, *args, **kwargs):
+        # Auto-set as current if this is the only active year in the database
+        existing_qs = AcademicYear.objects.filter(is_deleted=False)
+        if self.id:
+            existing_qs = existing_qs.exclude(id=self.id)
+
+        if not self.is_current and not existing_qs.exists():
+            self.is_current = True
+
         if self.is_current:
-            AcademicYear.objects.filter(is_current=True, is_deleted=False).exclude(id=self.id).update(is_current=False)
+            update_qs = AcademicYear.objects.filter(is_current=True, is_deleted=False)
+            if self.id:
+                update_qs = update_qs.exclude(id=self.id)
+            update_qs.update(is_current=False)
+
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):

@@ -248,7 +248,18 @@
             </template>
 
             <template v-else-if="key === 'actions'">
-              <div class="d-flex align-center justify-center">
+              <div class="d-flex align-center justify-center gap-1">
+                <!-- زر العين المباشر لعرض تفاصيل الاختبار والمحافظة والمديرية -->
+                <v-btn
+                  icon="mdi-eye"
+                  variant="tonal"
+                  color="info"
+                  size="small"
+                  rounded="lg"
+                  title="عرض تفاصيل الاختبار والمناطق المستهدفة"
+                  @click.stop="openExamDetailsModal(item)"
+                />
+
                 <v-menu location="bottom end" transition="slide-y-transition">
                   <template v-slot:activator="{ props }">
                     <v-btn

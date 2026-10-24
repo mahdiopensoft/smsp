@@ -3,44 +3,6 @@
     <!-- Add / Edit Student Drawer -->
     <add-students v-model="drawer" :data="data" :getData="getData" />
 
-    <!-- ── Page Header (Institutional OpenSoftCore Style) ─────────────── -->
-    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-6">
-      <div class="d-flex align-center">
-        <v-avatar size="46" color="primary" variant="tonal" class="me-3 rounded-xl elevation-1">
-          <v-icon size="26">mdi-account-school-outline</v-icon>
-        </v-avatar>
-        <div>
-          <h1 class="text-h5 font-weight-black text-on-surface mb-0">سجل الطلاب المركزي</h1>
-          <p class="text-caption text-medium-emphasis mb-0">
-            إدارة وتتبع بيانات الطلاب والقيود الأكاديمية عبر كافة المؤسسات التعليمية (مدارس، جامعات، ومعاهد)
-          </p>
-        </div>
-      </div>
-
-      <div class="d-flex align-center gap-2 flex-wrap">
-        <v-btn
-          color="primary"
-          variant="flat"
-          rounded="lg"
-          class="font-weight-bold shadow-sm"
-          prepend-icon="mdi-account-plus-outline"
-          @click="() => { data = {}; drawer = true; }"
-        >
-          إضافة طالب جديد
-        </v-btn>
-        <v-btn
-          color="secondary"
-          variant="tonal"
-          rounded="lg"
-          class="font-weight-bold"
-          prepend-icon="mdi-refresh"
-          :loading="loading"
-          @click="getData"
-        >
-          تحديث السجلات
-        </v-btn>
-      </div>
-    </div>
 
     <!-- ── Comprehensive Filters Bar ── -->
     <filter-fields label="خيارات التصفية الأكاديمية والهرمية لسجلات الطلاب" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
@@ -323,7 +285,6 @@
         headers,
         delItem: url,
         editItem,
-        create: () => { data = {}; drawer = true; },
       }"
       :hasFilter="false"
       :log="false"

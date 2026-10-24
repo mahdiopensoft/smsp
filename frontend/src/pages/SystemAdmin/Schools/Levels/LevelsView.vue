@@ -10,21 +10,12 @@
           v-model="filterStage"
           name="Stage"
           placeholder="المرحلة الدراسية"
-          cols="4"
-          :add="false"
-        />
-
-        <!-- Track Filter -->
-        <auto-list
-          v-model="filterTrack"
-          name="Track"
-          placeholder="المسار التعليمي"
-          cols="4"
+          cols="3"
           :add="false"
         />
 
         <!-- Active Status Filter -->
-        <v-col cols="12" sm="6" md="4">
+        <v-col cols="12" sm="6" md="3">
           <v-select
             v-model="filterActive"
             :items="activeOptions"
@@ -41,12 +32,12 @@
         </v-col>
 
         <!-- Filter Actions -->
-        <v-col cols="12" sm="6" md="4" class="d-flex align-center gap-2">
+        <v-col cols="12" sm="6" md="3" class="d-flex align-center gap-2">
           <custom-btn
             type="show"
             label="تصفية"
             color="primary"
-            class="font-weight-bold flex-grow-1 mb-6"
+            class="font-weight-bold mb-6"
             :click="applyFilters"
           />
           <custom-btn
@@ -78,20 +69,12 @@
       <template v-slot:item-slot="{ item, key }">
         <!-- Level Name -->
         <template v-if="key === 'name_ar'">
-          <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold" v-if="item.name_ar">
-            <v-icon start size="14">mdi-school-outline</v-icon>
-            {{ item.name_ar }}
-          </v-chip>
-          <span v-else class="text-medium-emphasis">-</span>
+          <span>{{ item.name_ar || '-' }}</span>
         </template>
 
         <!-- Stage Name -->
         <template v-else-if="key === 'stage_name'">
-          <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold" v-if="item.stage_name">
-            <v-icon start size="14">mdi-domain</v-icon>
-            {{ item.stage_name }}
-          </v-chip>
-          <span v-else class="text-medium-emphasis">-</span>
+          <span>{{ item.stage_name || '-' }}</span>
         </template>
 
         <!-- Is Active Status -->
@@ -128,7 +111,6 @@ export default {
 
       // Filters
       filterStage: null,
-      filterTrack: null,
       filterActive: null,
 
       activeOptions: [
@@ -143,7 +125,6 @@ export default {
         ...(params?.params || params || {}),
       };
       if (this.filterStage) queryParams.stage = this.filterStage;
-      if (this.filterTrack) queryParams.track = this.filterTrack;
       if (this.filterActive !== null && this.filterActive !== undefined) queryParams.is_active = this.filterActive;
 
       return await this.$axios
@@ -157,7 +138,6 @@ export default {
 
     resetFilters() {
       this.filterStage = null;
-      this.filterTrack = null;
       this.filterActive = null;
       this.getData();
     },

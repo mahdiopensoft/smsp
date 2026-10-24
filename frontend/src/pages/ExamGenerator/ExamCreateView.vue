@@ -567,11 +567,11 @@
                           <v-btn value="governorate" class="flex-grow-1 font-weight-bold" prepend-icon="mdi-city-variant-outline">
                             محافظات محددة
                           </v-btn>
-                          <v-btn value="directorate" class="flex-grow-1 font-weight-bold" prepend-icon="mdi-map-marker-radius">
+                          <v-btn v-if="exam.institution_type === 'school'" value="directorate" class="flex-grow-1 font-weight-bold" prepend-icon="mdi-map-marker-radius">
                             مديريات محددة
                           </v-btn>
                           <v-btn value="school" class="flex-grow-1 font-weight-bold" prepend-icon="mdi-school-outline">
-                            مدارس / مراكز
+                            {{ exam.institution_type === 'university' ? 'جامعات محددة' : exam.institution_type === 'institute' ? 'معاهد محددة' : 'مدارس / مراكز' }}
                           </v-btn>
                         </v-btn-toggle>
                       </v-col>
@@ -585,7 +585,7 @@
                             <v-autocomplete
                               v-model="selectedTargetIds"
                               :items="governoratesList"
-                              item-title="name_ar"
+                              item-title="name"
                               item-value="id"
                               label="المحافظات المستهدفة للاختبار *"
                               placeholder="اختر المحافظات (أمانة العاصمة، صنعاء، تعز، الحديدة...)"
@@ -599,7 +599,7 @@
                               hide-details="auto"
                               :rules="exam.target_scope_level === 'governorate' ? [v => (Array.isArray(v) && v.length > 0) || 'يرجى تحديد محافظة واحدة على الأقل'] : []"
                               prepend-inner-icon="mdi-city-variant-outline"
-                              :loading="loadingGeographicOrgs"
+                              :loading="loadingGeoData"
                             />
                           </v-col>
 
@@ -610,7 +610,7 @@
                                 <v-autocomplete
                                   v-model="selectedGovernorateForFilter"
                                   :items="governoratesList"
-                                  item-title="name_ar"
+                                  item-title="name"
                                   item-value="id"
                                   label="تصفية حسب المحافظة (اختياري)"
                                   placeholder="اختر المحافظة لتصفية المديريات..."
@@ -620,14 +620,15 @@
                                   rounded="lg"
                                   hide-details="auto"
                                   prepend-inner-icon="mdi-filter-variant"
-                                  :loading="loadingGeographicOrgs"
+                                  :loading="loadingGeoData"
+                                  @update:model-value="onFilterGovForDirectorates"
                                 />
                               </v-col>
                               <v-col cols="12" md="8">
                                 <v-autocomplete
                                   v-model="selectedTargetIds"
-                                  :items="availableDirectorates"
-                                  item-title="name_ar"
+                                  :items="directoratesList"
+                                  item-title="name"
                                   item-value="id"
                                   label="المديريات المستهدفة للاختبار *"
                                   placeholder="اختر المديريات المستهدفة..."
@@ -640,20 +641,20 @@
                                   hide-details="auto"
                                   :rules="exam.target_scope_level === 'directorate' ? [v => (Array.isArray(v) && v.length > 0) || 'يرجى تحديد مديرية واحدة على الأقل'] : []"
                                   prepend-inner-icon="mdi-map-marker-radius"
-                                  :loading="loadingGeographicOrgs"
+                                  :loading="loadingDirectorates"
                                 />
                               </v-col>
                             </v-row>
                           </v-col>
 
-                          <!-- مدارس محددة -->
+                          <!-- مدارس / مؤسسات محددة -->
                           <v-col cols="12" v-if="exam.target_scope_level === 'school'">
                             <v-row dense>
-                              <v-col cols="12" md="3">
+                              <v-col cols="12" :md="exam.institution_type === 'school' ? 3 : 4">
                                 <v-autocomplete
                                   v-model="selectedGovernorateForFilter"
                                   :items="governoratesList"
-                                  item-title="name_ar"
+                                  item-title="name"
                                   item-value="id"
                                   label="المحافظة (تصفية اختيارية)"
                                   placeholder="المحافظة..."
@@ -662,15 +663,15 @@
                                   density="compact"
                                   rounded="lg"
                                   hide-details="auto"
-                                  @update:model-value="selectedDirectorateForFilter = null"
-                                  :loading="loadingGeographicOrgs"
+                                  :loading="loadingGeoData"
+                                  @update:model-value="onFilterGovForSchoolChange"
                                 />
                               </v-col>
-                              <v-col cols="12" md="3">
+                              <v-col cols="12" md="3" v-if="exam.institution_type === 'school'">
                                 <v-autocomplete
                                   v-model="selectedDirectorateForFilter"
-                                  :items="availableDirectorates"
-                                  item-title="name_ar"
+                                  :items="filteredDirectoratesForSchool"
+                                  item-title="name"
                                   item-value="id"
                                   label="المديرية (تصفية اختيارية)"
                                   placeholder="المديرية..."
@@ -680,17 +681,18 @@
                                   rounded="lg"
                                   hide-details="auto"
                                   :disabled="!selectedGovernorateForFilter"
-                                  :loading="loadingGeographicOrgs"
+                                  :loading="loadingDirectoratesForSchool"
+                                  @update:model-value="onFilterDirForSchoolChange"
                                 />
                               </v-col>
-                              <v-col cols="12" md="6">
+                              <v-col cols="12" :md="exam.institution_type === 'school' ? 6 : 8">
                                 <v-autocomplete
                                   v-model="selectedTargetIds"
-                                  :items="availableSchools"
+                                  :items="allSchoolsList"
                                   item-title="name_ar"
                                   item-value="id"
-                                  label="المدارس / المؤسسات المستهدفة *"
-                                  placeholder="ابحث بالاسم أو رقم الفرع للمدرسة..."
+                                  :label="exam.institution_type === 'university' ? 'الجامعات / الكليات المستهدفة *' : exam.institution_type === 'institute' ? 'المعاهد المستهدفة *' : 'المدارس / المؤسسات المستهدفة *'"
+                                  :placeholder="exam.institution_type === 'university' ? 'ابحث بالاسم للجامعة أو الكلية...' : exam.institution_type === 'institute' ? 'ابحث بالاسم للمعهد...' : 'ابحث بالاسم للمدرسة...'"
                                   multiple
                                   chips
                                   closable-chips
@@ -699,8 +701,8 @@
                                   rounded="lg"
                                   hide-details="auto"
                                   :rules="exam.target_scope_level === 'school' ? [v => (Array.isArray(v) && v.length > 0) || 'يرجى تحديد مؤسسة/مدرسة واحدة على الأقل'] : []"
-                                  prepend-inner-icon="mdi-school"
-                                  :loading="loadingGeographicOrgs"
+                                  :prepend-inner-icon="exam.institution_type === 'university' ? 'mdi-domain' : 'mdi-school'"
+                                  :loading="loadingSchools"
                                 />
                               </v-col>
                             </v-row>
@@ -1792,73 +1794,140 @@ const modelGroups = ref([
   { count: 2, difficulty_profile: 'easy', difficulty_distribution: { easy: 60, medium: 30, hard: 10 }, assigned_target_ids: [] },
 ])
 
-// ⭐ Geographic Targeting & Organizations (Loaded from branch hierarchy)
+// ⭐ Geographic Targeting & Organizations (Loaded from dedicated APIs)
 const selectedTargetIds = ref([])
 const selectedGovernorateForFilter = ref(null)
 const selectedDirectorateForFilter = ref(null)
 
 const governoratesList = ref([])
 const directoratesList = ref([])
+const filteredDirectoratesForSchool = ref([])
 const allSchoolsList = ref([])
-const loadingGeographicOrgs = ref(false)
 
-const loadGeographicOrgs = async () => {
-  loadingGeographicOrgs.value = true
+const loadingGeoData = ref(false)
+const loadingDirectorates = ref(false)
+const loadingDirectoratesForSchool = ref(false)
+const loadingSchools = ref(false)
+
+const loadGovernorates = async (countryId = null) => {
+  loadingGeoData.value = true
   try {
-    const orgsRes = await api.get('common/branch/?page_size=500&limit=500')
-    const allOrgs = orgsRes.data?.data || orgsRes.data?.results || orgsRes.data || []
-    governoratesList.value = allOrgs.filter(o => o.company_level === 30)
-    directoratesList.value = allOrgs.filter(o => o.company_level === 40)
-    allSchoolsList.value = allOrgs.filter(o => o.company_level === 50)
+    let url = 'api/common/governorate/all/'
+    if (countryId) {
+      url = `api/common/governorate/filter/?fk_country=${countryId}`
+    }
+    const res = await api.get(url)
+    const data = res.data?.data || res.data?.results || res.data || []
+    governoratesList.value = (Array.isArray(data) ? data : []).map(item => ({
+      ...item,
+      name: item.name || item.name_ar || item.name_en || '',
+      name_ar: item.name_ar || item.name || '',
+    }))
   } catch (e) {
-    console.error("Error loading geographic branches:", e)
+    console.error("Error loading governorates:", e)
   } finally {
-    loadingGeographicOrgs.value = false
+    loadingGeoData.value = false
   }
 }
 
-// Available Directorates filtered by selected governorate if any
-const availableDirectorates = computed(() => {
-  if (!selectedGovernorateForFilter.value) {
-    return directoratesList.value
+const loadDirectorates = async (governorateId = null) => {
+  loadingDirectorates.value = true
+  try {
+    let url = 'api/common/directorate/filter/'
+    if (governorateId) {
+      url += `?fk_governorate=${governorateId}`
+    }
+    const res = await api.get(url)
+    const data = res.data?.data || res.data?.results || res.data || []
+    directoratesList.value = (Array.isArray(data) ? data : []).map(item => ({
+      ...item,
+      name: item.name || item.name_ar || item.name_en || '',
+      name_ar: item.name_ar || item.name || '',
+    }))
+  } catch (e) {
+    console.error("Error loading directorates:", e)
+  } finally {
+    loadingDirectorates.value = false
   }
-  const govId = selectedGovernorateForFilter.value
-  return directoratesList.value.filter(d => {
-    const parentId = typeof d.fk_parent_organization === 'object' && d.fk_parent_organization !== null
-      ? d.fk_parent_organization.id
-      : (d.fk_parent_organization || d.fk_parent_organization_id || d.parent || d.parent_id)
-    const gId = typeof d.fk_governorate === 'object' && d.fk_governorate !== null
-      ? d.fk_governorate.id
-      : (d.fk_governorate || d.fk_governorate_id)
-    return parentId === govId || gId === govId
-  })
-})
+}
 
-// Available Schools filtered by governorate or directorate
-const availableSchools = computed(() => {
-  let list = allSchoolsList.value
-  if (selectedDirectorateForFilter.value) {
-    const dirId = selectedDirectorateForFilter.value
-    list = list.filter(s => {
-      const parentId = typeof s.fk_parent_organization === 'object' && s.fk_parent_organization !== null
-        ? s.fk_parent_organization.id
-        : (s.fk_parent_organization || s.fk_parent_organization_id || s.parent || s.parent_id)
-      const dId = typeof s.fk_directorate === 'object' && s.fk_directorate !== null
-        ? s.fk_directorate.id
-        : (s.fk_directorate || s.fk_directorate_id)
-      return parentId === dirId || dId === dirId
-    })
-  } else if (selectedGovernorateForFilter.value) {
-    const govId = selectedGovernorateForFilter.value
-    list = list.filter(s => {
-      const gId = typeof s.fk_governorate === 'object' && s.fk_governorate !== null
-        ? s.fk_governorate.id
-        : (s.fk_governorate || s.fk_governorate_id)
-      return gId === govId
-    })
+const loadDirectoratesForSchoolFilter = async (governorateId) => {
+  if (!governorateId) {
+    filteredDirectoratesForSchool.value = []
+    return
   }
-  return list
-})
+  loadingDirectoratesForSchool.value = true
+  try {
+    const res = await api.get(`api/common/directorate/filter/?fk_governorate=${governorateId}`)
+    const data = res.data?.data || res.data?.results || res.data || []
+    filteredDirectoratesForSchool.value = (Array.isArray(data) ? data : []).map(item => ({
+      ...item,
+      name: item.name || item.name_ar || item.name_en || '',
+      name_ar: item.name_ar || item.name || '',
+    }))
+  } catch (e) {
+    console.error("Error loading directorates for school filter:", e)
+    filteredDirectoratesForSchool.value = []
+  } finally {
+    loadingDirectoratesForSchool.value = false
+  }
+}
+
+const loadOrganizations = async (params = {}) => {
+  loadingSchools.value = true
+  try {
+    const instType = exam.value.institution_type || 'school'
+    const queryParts = [`institution_type=${instType}`]
+    if (params.governorate) queryParts.push(`governorate=${params.governorate}`)
+    if (params.directorate) queryParts.push(`directorate=${params.directorate}`)
+    const res = await api.get(`api/academic/organizations/all/?${queryParts.join('&')}`)
+    const data = res.data?.data || res.data?.results || res.data || []
+    allSchoolsList.value = Array.isArray(data) ? data : []
+  } catch (e) {
+    console.error("Error loading organizations:", e)
+  } finally {
+    loadingSchools.value = false
+  }
+}
+
+const loadGeographicOrgs = async () => {
+  await Promise.all([
+    loadGovernorates(exam.value.countryId),
+    loadDirectorates(),
+    loadOrganizations()
+  ])
+}
+
+const onFilterGovForDirectorates = (val) => {
+  selectedGovernorateForFilter.value = val
+  selectedTargetIds.value = []
+  loadDirectorates(val)
+}
+
+const onFilterGovForSchoolChange = (val) => {
+  selectedGovernorateForFilter.value = val
+  selectedDirectorateForFilter.value = null
+  filteredDirectoratesForSchool.value = []
+  selectedTargetIds.value = []
+  if (val) {
+    loadDirectoratesForSchoolFilter(val)
+    loadOrganizations({ governorate: val })
+  } else {
+    loadOrganizations()
+  }
+}
+
+const onFilterDirForSchoolChange = (val) => {
+  selectedDirectorateForFilter.value = val
+  selectedTargetIds.value = []
+  if (val) {
+    loadOrganizations({ governorate: selectedGovernorateForFilter.value, directorate: val })
+  } else if (selectedGovernorateForFilter.value) {
+    loadOrganizations({ governorate: selectedGovernorateForFilter.value })
+  } else {
+    loadOrganizations()
+  }
+}
 
 // ⭐ STRICT FILTERING: Only the entities chosen in Section 4 are available for model groups
 const targetOptionsForGroups = computed(() => {
@@ -2147,6 +2216,13 @@ const onInstitutionTypeToggle = () => {
   exam.value.instituteCurriculumId = null
   exam.value.instituteSubjectId = null
   blueprint.value.units = []
+  selectedTargetIds.value = []
+  selectedGovernorateForFilter.value = null
+  selectedDirectorateForFilter.value = null
+  if (exam.value.target_scope_level === 'directorate' && exam.value.institution_type !== 'school') {
+    exam.value.target_scope_level = 'all'
+  }
+  loadOrganizations()
 }
 
 watch(() => exam.value.stageId, (newVal, oldVal) => {
@@ -2161,6 +2237,7 @@ watch(() => exam.value.countryId, (newVal, oldVal) => {
     exam.value.directorateId = null
     exam.value.regionId = null
     selectedTargetIds.value = []
+    loadGovernorates(newVal)
   }
 })
 
@@ -2177,10 +2254,15 @@ watch(() => exam.value.directorateId, (newVal, oldVal) => {
   }
 })
 
-watch(() => exam.value.target_scope_level, () => {
+watch(() => exam.value.target_scope_level, (newLevel) => {
   selectedTargetIds.value = []
   selectedGovernorateForFilter.value = null
   selectedDirectorateForFilter.value = null
+  if (newLevel === 'directorate') {
+    loadDirectorates()
+  } else if (newLevel === 'school') {
+    loadOrganizations()
+  }
 })
 
 // Options from Store

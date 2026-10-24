@@ -14,39 +14,13 @@
           :add="false"
         />
 
-        <!-- Track Filter -->
-        <auto-list
-          v-model="filterTrack"
-          name="Track"
-          placeholder="المسار التعليمي"
-          cols="3"
-          :add="false"
-        />
-
-        <!-- Default Track Filter -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterDefault"
-            :items="defaultOptions"
-            item-title="text"
-            item-value="value"
-            label="نوع المسار"
-            prepend-inner-icon="mdi-tag-outline"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-          />
-        </v-col>
-
         <!-- Filter Actions -->
         <v-col cols="12" sm="6" md="3" class="d-flex align-center gap-2">
           <custom-btn
             type="show"
             label="تصفية"
             color="primary"
-            class="font-weight-bold flex-grow-1 mb-6"
+            class="font-weight-bold mb-6"
             :click="applyFilters"
           />
           <custom-btn
@@ -78,32 +52,17 @@
       <template v-slot:item-slot="{ item, key }">
         <!-- Level Name -->
         <template v-if="key === 'level_name'">
-          <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold" v-if="item.level_name">
-            <v-icon start size="14">mdi-school-outline</v-icon>
-            {{ item.level_name }}
-          </v-chip>
-          <span v-else class="text-medium-emphasis">-</span>
+          <span>{{ item.level_name || '-' }}</span>
         </template>
 
         <!-- Track Name -->
         <template v-else-if="key === 'track_name'">
-          <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold" v-if="item.track_name">
-            <v-icon start size="14">mdi-source-branch</v-icon>
-            {{ item.track_name }}
-          </v-chip>
-          <span v-else class="text-medium-emphasis">-</span>
+          <span>{{ item.track_name || '-' }}</span>
         </template>
 
-        <!-- Is Default Chip -->
+        <!-- Is Default -->
         <template v-else-if="key === 'is_default'">
-          <v-chip
-            size="small"
-            :color="item.is_default ? 'teal' : 'grey'"
-            variant="tonal"
-            class="font-weight-bold"
-          >
-            {{ item.is_default ? 'افتراضي' : 'فرعي / اختياري' }}
-          </v-chip>
+          <span>{{ item.is_default ? 'افتراضي' : 'فرعي / اختياري' }}</span>
         </template>
 
         <!-- Is Active Status -->
@@ -140,14 +99,6 @@ export default {
 
       // Filters
       filterStage: null,
-      filterTrack: null,
-      filterDefault: null,
-
-      defaultOptions: [
-        { text: "الكل", value: null },
-        { text: "المسار الافتراضي فقط", value: true },
-        { text: "المسارات الفرعية", value: false },
-      ],
     };
   },
   methods: {
@@ -156,8 +107,6 @@ export default {
         ...(params?.params || params || {}),
       };
       if (this.filterStage) queryParams.stage = this.filterStage;
-      if (this.filterTrack) queryParams.track = this.filterTrack;
-      if (this.filterDefault !== null && this.filterDefault !== undefined) queryParams.is_default = this.filterDefault;
 
       return await this.$axios
         .get(this.url, { params: queryParams })
@@ -170,8 +119,6 @@ export default {
 
     resetFilters() {
       this.filterStage = null;
-      this.filterTrack = null;
-      this.filterDefault = null;
       this.getData();
     },
 

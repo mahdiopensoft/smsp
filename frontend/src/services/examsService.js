@@ -257,6 +257,10 @@ export const examsService = {
         const { data } = await api.post(`${BASE}distributions/resolve-hierarchy/`, payload)
         return data
     },
+    async getEducationalHierarchy() {
+        const { data } = await api.get(`${BASE}distributions/educational-hierarchy/`)
+        return data
+    },
     async createDispatch(payload) {
         const { data } = await api.post(`${BASE}distributions/create-dispatch/`, payload)
         return data

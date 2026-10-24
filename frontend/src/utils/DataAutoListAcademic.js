@@ -1044,6 +1044,17 @@ export default function DataAutoListAcademic(param) {
     // ═══════════════════════════════════════════════════════════════════════════════
     // 🏫 أسماء مطابقة لمدخلات نماذج المدارس (Schools Aliases)
     // ═══════════════════════════════════════════════════════════════════════════════
+    SchoolStage: {
+      label: "المرحلة الدراسية",
+      icon: "school",
+      method: () =>
+        shared.getData({
+          path: "api/academic/educational-stages/all/",
+        }),
+      title: "name_ar",
+      value: "id",
+    },
+
     SchoolLevel: {
       label: "الصف الدراسي",
       icon: "bookshelf",

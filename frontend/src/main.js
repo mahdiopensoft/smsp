@@ -47,6 +47,14 @@ async function bootstarApp() {
       if (typeof msg === "string" && msg.includes("Extraneous non-props attributes")) return;
       console.warn(`[Vue warn]: ${msg}`, trace);
     };
+
+    app.config.errorHandler = (err, instance, info) => {
+      if (err && typeof err.message === "string" && err.message.includes("$el")) {
+        console.warn("Vuetify $el ref captured:", err);
+        return;
+      }
+      console.error("Vue Error:", err, info);
+    };
      // =========================
     // Pinia
     // =========================
@@ -175,5 +183,18 @@ async function addImport(list) {
   }
 }
 
+
+if (typeof window !== "undefined") {
+  window.addEventListener("unhandledrejection", (event) => {
+    if (
+      event?.reason?.message &&
+      typeof event.reason.message === "string" &&
+      event.reason.message.includes("$el")
+    ) {
+      event.preventDefault();
+      console.warn("Suppressed unhandled $el promise rejection:", event.reason);
+    }
+  });
+}
 
 bootstarApp();
