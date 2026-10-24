@@ -96,6 +96,11 @@ def _process_and_grade_image_file(
     barcode_val = result.get("barcode") or ""
     qr_val = result.get("qr") or ""
 
+    # تجهيز قائمة بأرقام الجلوس المحتملة من الباركود والـ QR
+    candidate_seats = []
+    if seat_num:
+        candidate_seats.append(str(seat_num).strip())
+
     # استخراج معرف الاختبار من الباركود إذا وجد (مثال: EXAM_7_VER_A_SEAT_418485)
     if barcode_val and "EXAM_" in barcode_val:
         try:
@@ -107,10 +112,20 @@ def _process_and_grade_image_file(
         except Exception:
             pass
 
-    # تجهيز قائمة بأرقام الجلوس المحتملة من الباركود والـ QR
-    candidate_seats = []
-    if seat_num:
-        candidate_seats.append(str(seat_num).strip())
+    # فحص الكود المشفر بالصيغة الوزارية الرسمية: {uniqueCode}|{versionCode}|{seatNumber}|{secretNumber}
+    for c_val in [barcode_val, qr_val]:
+        if c_val and "|" in c_val:
+            parts = [p.strip() for p in c_val.split("|")]
+            if len(parts) >= 1 and not exam_obj:
+                u_code = parts[0]
+                found_ex = Exam.objects.filter(uniqueCode=u_code, is_deleted=False).first()
+                if found_ex:
+                    exam_obj = found_ex
+            if len(parts) >= 3 and parts[2].isdigit():
+                candidate_seats.insert(0, parts[2])
+            if len(parts) >= 4 and parts[3].isdigit():
+                candidate_seats.append(parts[3])
+
     if barcode_val:
         if "_SEAT_" in barcode_val:
             candidate_seats.append(barcode_val.split("_SEAT_")[-1].split("_")[0].strip())
@@ -120,6 +135,7 @@ def _process_and_grade_image_file(
             candidate_seats.append(clean_b[:6])
     if qr_val:
         tokens = [t.strip() for t in re.split(r'[-|_/]', qr_val) if t.strip().isdigit()]
+        candidate_seats.extend(tokens)
         candidate_seats.extend(tokens)
 
     matched_reg = None
@@ -136,6 +152,19 @@ def _process_and_grade_image_file(
                     matched_reg = r
                     break
 
+    # محاولة مطابقة الطالب برقم الجلوس مباشرة حتى لو لم يحدد الاختبار مسبقاً
+    if not matched_reg:
+        for c_seat in candidate_seats:
+            if c_seat and c_seat.isdigit():
+                reg_found = StudentExamRegistration.objects.filter(
+                    seatNumber=c_seat, is_deleted=False
+                ).select_related('student', 'student_profile__organization', 'examVersion__exam').first()
+                if reg_found:
+                    matched_reg = reg_found
+                    if not exam_obj:
+                        exam_obj = matched_reg.examVersion.exam
+                    break
+
     inst_name = ""
     if matched_reg:
         if not target_version:
@@ -144,7 +173,7 @@ def _process_and_grade_image_file(
             s_name = matched_reg.student_profile.name_ar
         elif matched_reg.student:
             s_name = matched_reg.student.first_name or matched_reg.student.username
-        if not seat_num:
+        if matched_reg.seatNumber:
             seat_num = matched_reg.seatNumber
         if matched_reg.student_profile and matched_reg.student_profile.organization:
             inst_name = matched_reg.student_profile.organization.name_ar
@@ -170,13 +199,28 @@ def _process_and_grade_image_file(
                 f"درجات الطالب '{s_name}' (رقم الجلوس: {seat_num}) معتمدة ومقفلة رسمياً بنظام الكنترول المركزي (إيصال: {receipt} بتاريخ: {disp_date}). يمنع منعاً باتاً إعادة تصحيح أو تعديل الورقة."
             )
 
-    # مطابقة النموذج المحدد من الباركود إذا لم يكن محدداً
-    if not target_version and barcode_val and "_VER_" in barcode_val and exam_obj:
-        try:
-            v_code = barcode_val.split("_VER_")[1].split("_")[0]
-            target_version = ExamVersion.objects.filter(exam=exam_obj, versionCode=v_code, is_deleted=False).prefetch_related('question_orders__question__options').first()
-        except Exception:
-            pass
+    # مطابقة النموذج المحدد من الباركود أو رمز QR إذا لم يكن محدداً
+    if not target_version and exam_obj:
+        v_code_extracted = None
+        for c_val in [barcode_val, qr_val]:
+            if c_val and "_VER_" in c_val:
+                try:
+                    v_code_extracted = c_val.split("_VER_")[1].split("_")[0]
+                    break
+                except Exception:
+                    pass
+            elif c_val and "|" in c_val:
+                try:
+                    parts = [p.strip() for p in c_val.split("|")]
+                    if len(parts) >= 2:
+                        v_code_extracted = parts[1]
+                        break
+                except Exception:
+                    pass
+        if v_code_extracted:
+            target_version = ExamVersion.objects.filter(
+                exam=exam_obj, versionCode=v_code_extracted, is_deleted=False
+            ).prefetch_related('question_orders__question__options').first()
 
     # إذا تم كشف نموذج معتمد بدقة، يتم إعادة احتساب الدرجات بمفتاح النموذج الفعلي
     if target_version:
@@ -252,32 +296,36 @@ def _process_and_grade_image_file(
             "annotated_b64": annotated_b64,
         }
         return {
-            "result_id":       result_id,
-            "submission_id":   None,
-            "page_number":     page_number,
-            "student_name":    s_name,
-            "seat_number":     seat_num,
-            "status":          initial_sub_status,
-            "confidence":      confidence,
-            "total_questions": total_q,
-            "score":           result["score"],
-            "max_score":       result["max_score"],
-            "score_percent":   result["score_percent"],
-            "total_correct":   total_c,
-            "total_wrong":     result.get("total_wrong", 0),
-            "total_answered":  result.get("total_answered", 0),
-            "total_empty":     result.get("total_empty", 0),
-            "ai_corrections":  ambiguous_cnt,
-            "processing_ms":   result["processing_ms"],
-            "questions":       result["questions"],
-            "annotated_image": annotated_b64,
-            "engine_used":     result.get("engine_used", "legacy"),
-            "template_id":     result.get("template_id") or template_id or "svg_hardcoded",
-            "template_name":   result.get("template_name", ""),
-            "barcode":         barcode_val,
-            "qr":              qr_val,
-            "student_info":    result.get("student_info", {}),
-            "switched_notice": result.get("switched_notice", ""),
+            "result_id":        result_id,
+            "submission_id":    None,
+            "page_number":      page_number,
+            "student_name":     s_name,
+            "seat_number":      seat_num,
+            "institution_name": inst_name,
+            "exam_id":          exam_obj.id if exam_obj else None,
+            "exam_title":       exam_obj.title if exam_obj else "",
+            "version_code":     target_version.versionCode if target_version else "",
+            "status":           initial_sub_status,
+            "confidence":       confidence,
+            "total_questions":  total_q,
+            "score":            result["score"],
+            "max_score":        result["max_score"],
+            "score_percent":    result["score_percent"],
+            "total_correct":    total_c,
+            "total_wrong":      result.get("total_wrong", 0),
+            "total_answered":   result.get("total_answered", 0),
+            "total_empty":      result.get("total_empty", 0),
+            "ai_corrections":   ambiguous_cnt,
+            "processing_ms":    result["processing_ms"],
+            "questions":        result["questions"],
+            "annotated_image":  annotated_b64,
+            "engine_used":      result.get("engine_used", "legacy"),
+            "template_id":      result.get("template_id") or template_id or "svg_hardcoded",
+            "template_name":    result.get("template_name", ""),
+            "barcode":          barcode_val,
+            "qr":               qr_val,
+            "student_info":     result.get("student_info", {}),
+            "switched_notice":  result.get("switched_notice", ""),
         }
 
     sub_kwargs = {
@@ -372,32 +420,36 @@ def _process_and_grade_image_file(
     }
 
     return {
-        "result_id":       result_id,
-        "submission_id":   sub_record.id,
-        "page_number":     page_number,
-        "student_name":    s_name,
-        "seat_number":     seat_num,
-        "status":          initial_sub_status,
-        "confidence":      confidence,
-        "total_questions": total_q,
-        "score":           result["score"],
-        "max_score":       result["max_score"],
-        "score_percent":   result["score_percent"],
-        "total_correct":   result["total_correct"],
-        "total_wrong":     result["total_wrong"],
-        "total_answered":  result["total_answered"],
-        "total_empty":     result["total_empty"],
-        "ai_corrections":  ambiguous_cnt,
-        "processing_ms":   result["processing_ms"],
-        "questions":       result["questions"],
-        "annotated_image": annotated_b64,
-        "engine_used":     result.get("engine_used", "legacy"),
-        "template_id":     result.get("template_id") or template_id or "svg_hardcoded",
-        "template_name":   result.get("template_name", ""),
-        "barcode":         barcode_val,
-        "qr":              qr_val,
-        "student_info":    result.get("student_info", {}),
-        "switched_notice": result.get("switched_notice", ""),
+        "result_id":        result_id,
+        "submission_id":    sub_record.id,
+        "page_number":      page_number,
+        "student_name":     s_name,
+        "seat_number":      seat_num,
+        "institution_name": inst_name,
+        "exam_id":          exam_obj.id if exam_obj else None,
+        "exam_title":       exam_obj.title if exam_obj else "",
+        "version_code":     target_version.versionCode if target_version else "",
+        "status":           initial_sub_status,
+        "confidence":       confidence,
+        "total_questions":  total_q,
+        "score":            result["score"],
+        "max_score":        result["max_score"],
+        "score_percent":    result["score_percent"],
+        "total_correct":    result["total_correct"],
+        "total_wrong":      result["total_wrong"],
+        "total_answered":   result["total_answered"],
+        "total_empty":      result["total_empty"],
+        "ai_corrections":   ambiguous_cnt,
+        "processing_ms":    result["processing_ms"],
+        "questions":        result["questions"],
+        "annotated_image":  annotated_b64,
+        "engine_used":      result.get("engine_used", "legacy"),
+        "template_id":      result.get("template_id") or template_id or "svg_hardcoded",
+        "template_name":    result.get("template_name", ""),
+        "barcode":          barcode_val,
+        "qr":               qr_val,
+        "student_info":     result.get("student_info", {}),
+        "switched_notice":  result.get("switched_notice", ""),
     }
 
 
