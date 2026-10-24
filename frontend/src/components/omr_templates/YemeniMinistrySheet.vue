@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { EAGLE_OFFICIAL_BASE64 } from '@/assets/eagleBase64'
+import JsBarcode from 'jsbarcode'
+import QRCode from 'qrcode'
 
 const props = withDefaults(
   defineProps<{
@@ -143,6 +145,75 @@ const displayExamYear = computed(() => {
   }
   return y
 })
+
+// ── Real Scannable Barcode & QR Code Engine ──
+const computedBarcodeValue = computed(() => {
+  if (props.barcodeValue && String(props.barcodeValue).trim()) {
+    return String(props.barcodeValue).trim()
+  }
+  const seat = String(props.seatNumber || '418485').trim()
+  const model = String(props.modelCode || 'A').trim()
+  return `SEAT_${seat}_VER_${model}`
+})
+
+const computedQrValue = computed(() => {
+  if (props.qrValue && String(props.qrValue).trim()) {
+    return String(props.qrValue).trim()
+  }
+  const seat = String(props.seatNumber || '418485').trim()
+  const model = String(props.modelCode || 'A').trim()
+  const subj = String(props.examSubject || 'EXAM').trim()
+  const center = String(props.centerCode || props.centerName || 'CENTER').trim()
+  return `${subj}|${model}|${seat}|${center}`
+})
+
+const barcodeDataUrl = ref('')
+const qrDataUrl = ref('')
+
+const updateBarcodeAndQr = async () => {
+  const bcVal = computedBarcodeValue.value
+  const qrVal = computedQrValue.value
+
+  // 1. Generate real Code-128 Barcode via JsBarcode
+  if (typeof document !== 'undefined') {
+    try {
+      const canvas = document.createElement('canvas')
+      JsBarcode(canvas, bcVal, {
+        format: 'CODE128',
+        displayValue: false,
+        margin: 10,
+        lineColor: '#000000',
+        background: '#ffffff',
+        width: 2,
+        height: 60,
+      })
+      barcodeDataUrl.value = canvas.toDataURL('image/png')
+    } catch (bcErr) {
+      console.warn('JsBarcode generation failed:', bcErr)
+      barcodeDataUrl.value = ''
+    }
+  }
+
+  // 2. Generate real 2D QR Code via QRCode
+  try {
+    qrDataUrl.value = await QRCode.toDataURL(qrVal, {
+      margin: 1,
+      width: 256,
+      errorCorrectionLevel: 'M',
+      color: {
+        dark: '#000000',
+        light: '#ffffff',
+      },
+    })
+  } catch (qrErr) {
+    console.warn('QRCode generation failed:', qrErr)
+    qrDataUrl.value = ''
+  }
+}
+
+watch([computedBarcodeValue, computedQrValue], () => {
+  updateBarcodeAndQr()
+}, { immediate: true })
 
 const emit = defineEmits<{
   (e: 'bubble-click', question: number, choice: string): void
@@ -1037,13 +1108,19 @@ function handleBubbleClick(q: number, choice: string) {
     <g id="bottom-zone-a4" transform="translate(14, 238)">
       <rect x="0" y="0" width="182" height="38" fill="#ffffff" stroke="#000000" stroke-width="0.6" />
 
-      <!-- Left: 1D Linear Barcode -->
+      <!-- Left: 1D Linear Barcode (Code-128) -->
       <g transform="translate(3, 4)">
-        <rect x="0" y="0" width="62" height="28" fill="#ffffff" stroke="#000000" stroke-width="0.2" />
-        <g transform="translate(3, 3)">
-          <line v-for="i in 34" :key="'bc-a4-' + i" :x1="i * 1.65" y1="1" :x2="i * 1.65" y2="18" stroke="#000000" :stroke-width="i % 3 === 0 ? '1.4' : i % 2 === 0 ? '0.9' : '0.4'" />
-        </g>
-        <text x="31" y="25.5" font-size="2.4" font-family="'Courier New', monospace" text-anchor="middle">{{ barcodeValue }}</text>
+        <rect x="0" y="0" width="62" height="28" fill="#ffffff" stroke="#000000" stroke-width="0.3" />
+        <image
+          v-if="barcodeDataUrl"
+          :href="barcodeDataUrl"
+          x="3"
+          y="2.5"
+          width="56"
+          height="18"
+          preserveAspectRatio="none"
+        />
+        <text x="31" y="24.5" font-size="2.3" font-family="'Courier New', monospace" font-weight="bold" text-anchor="middle">{{ computedBarcodeValue }}</text>
       </g>
 
       <!-- Center: Shading Guidelines Box -->
@@ -1059,29 +1136,19 @@ function handleBubbleClick(q: number, choice: string) {
         <text x="56" y="27.5" font-size="1.7" fill="#64748b" text-anchor="end">إدارة الاختبارات والتقويم الآلي — سرية تامة ومطابقة آلية معتمدة</text>
       </g>
 
-      <!-- Right: 2D QR Code Box -->
+      <!-- Right: 2D QR Code Box (Encrypted Payload) -->
       <g transform="translate(154, 4)">
-        <rect x="0" y="0" width="24" height="24" fill="#ffffff" stroke="#000000" stroke-width="0.5" />
-        <rect x="2" y="2" width="5.5" height="5.5" fill="#000000" />
-        <rect x="3.2" y="3.2" width="3.1" height="3.1" fill="#ffffff" />
-        <rect x="4" y="4" width="1.5" height="1.5" fill="#000000" />
-
-        <rect x="16.5" y="2" width="5.5" height="5.5" fill="#000000" />
-        <rect x="17.7" y="3.2" width="3.1" height="3.1" fill="#ffffff" />
-        <rect x="18.5" y="4" width="1.5" height="1.5" fill="#000000" />
-
-        <rect x="2" y="16.5" width="5.5" height="5.5" fill="#000000" />
-        <rect x="3.2" y="17.7" width="3.1" height="3.1" fill="#ffffff" />
-        <rect x="4" y="18.5" width="1.5" height="1.5" fill="#000000" />
-
-        <rect x="9" y="3" width="1.6" height="1.6" fill="#000" />
-        <rect x="12" y="5" width="1.6" height="1.6" fill="#000" />
-        <rect x="10" y="10" width="4.5" height="4.5" fill="#000" />
-        <rect x="11.5" y="11.5" width="1.5" height="1.5" fill="#fff" />
-        <rect x="16.5" y="10" width="1.6" height="1.6" fill="#000" />
-        <rect x="9" y="17" width="1.6" height="1.6" fill="#000" />
-        <rect x="13" y="19" width="1.6" height="1.6" fill="#000" />
-        <text x="12" y="30.5" font-size="1.9" font-weight="bold" text-anchor="middle">QR CODE</text>
+        <rect x="0" y="0" width="24" height="28" fill="#ffffff" stroke="#000000" stroke-width="0.3" />
+        <image
+          v-if="qrDataUrl"
+          :href="qrDataUrl"
+          x="1"
+          y="1"
+          width="22"
+          height="22"
+          preserveAspectRatio="xMidYMid meet"
+        />
+        <text x="12" y="26" font-size="1.8" font-weight="bold" font-family="'Courier New', monospace" text-anchor="middle">QR CODE</text>
       </g>
     </g>
 
@@ -1362,11 +1429,38 @@ function handleBubbleClick(q: number, choice: string) {
       <!-- Outer Rectangle (x: 12 to 175, width: 163, height: 17.0mm) -->
       <rect x="12" y="114.0" width="163" height="17.0" fill="#ffffff" stroke="#000000" stroke-width="0.5" />
 
-      <!-- Left Compartment: Inner Frame around Barcode -->
+      <!-- Left Compartment: Dual High-Security Barcode & QR Code (x: 14.5 to 60.5, width: 46) -->
       <rect x="14.5" y="115.5" width="46" height="14.0" fill="#ffffff" stroke="#000000" stroke-width="0.35" />
-      <g transform="translate(16, 116.5)">
-        <line v-for="i in 34" :key="'bc-a5-' + i" :x1="i * 1.25" y1="0" :x2="i * 1.25" y2="9.5" stroke="#000000" :stroke-width="i % 4 === 0 ? '0.9' : i % 2 === 0 ? '0.6' : '0.35'" />
-        <text x="21.5" y="12.0" font-size="1.8" font-family="'Courier New', monospace" font-weight="bold" text-anchor="middle">{{ barcodeValue || '41848501164148' }}</text>
+
+      <!-- 1D Linear Barcode (Code-128) -->
+      <g transform="translate(15.5, 116.5)">
+        <image
+          v-if="barcodeDataUrl"
+          :href="barcodeDataUrl"
+          x="0"
+          y="0"
+          width="31"
+          height="8.5"
+          preserveAspectRatio="none"
+        />
+        <text x="15.5" y="11.2" font-size="1.5" font-family="'Courier New', monospace" font-weight="bold" text-anchor="middle">{{ computedBarcodeValue }}</text>
+      </g>
+
+      <!-- Security Divider between Barcode & QR -->
+      <line x1="47.5" y1="115.5" x2="47.5" y2="129.5" stroke="#cccccc" stroke-width="0.3" stroke-dasharray="0.8,0.8" />
+
+      <!-- 2D High-Density QR Code -->
+      <g transform="translate(48.5, 116.2)">
+        <image
+          v-if="qrDataUrl"
+          :href="qrDataUrl"
+          x="0"
+          y="0"
+          width="11"
+          height="11"
+          preserveAspectRatio="xMidYMid meet"
+        />
+        <text x="5.5" y="12.4" font-size="1.1" font-weight="bold" font-family="Arial, sans-serif" text-anchor="middle">QR</text>
       </g>
 
       <!-- Clean Vertical Divider separating Barcode from Instructions (x=65) -->
