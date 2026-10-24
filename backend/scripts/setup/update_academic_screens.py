@@ -488,7 +488,7 @@ def update_academic_screens():
                 {"icon": "abjad-arabic", "name": "name_ar", "index": 4, "label": "اسم الشعبة / الفصل (عربي)", "required": True},
                 {"icon": "alpha-e", "name": "name_en", "index": 5, "label": "اسم الشعبة (إنجليزي)"},
                 {"icon": "barcode", "name": "section_code", "index": 6, "label": "كود الشعبة"},
-                {"icon": "gender-male-female", "name": "gender", "index": 7, "label": "نوع الشعبة (بنين / بنات / مشترك)"},
+                {"icon": "gender-male-female", "name": "gender", "index": 7, "label": "نوع الشعبة", "type": "select", "options": [{"label": "بنين", "value": 1}, {"label": "بنات", "value": 2}, {"label": "مشترك", "value": 3}]},
                 {"icon": "counter", "name": "max_capacity", "index": 8, "label": "السعة الاستيعابية"},
                 {"icon": "check-circle-outline", "name": "is_active", "index": 9, "label": "مفعل"}
             ]

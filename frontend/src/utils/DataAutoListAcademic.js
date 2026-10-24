@@ -18,6 +18,18 @@ export default function DataAutoListAcademic(param) {
       value: "id",
     },
 
+    SectionGender: {
+      label: "نوع الشعبة",
+      icon: "gender-male-female",
+      method: () => Promise.resolve([
+        { id: 1, value: 1, name: "بنين", name_ar: "بنين", title: "بنين", text: "بنين", label: "بنين" },
+        { id: 2, value: 2, name: "بنات", name_ar: "بنات", title: "بنات", text: "بنات", label: "بنات" },
+        { id: 3, value: 3, name: "مشترك", name_ar: "مشترك", title: "مشترك", text: "مشترك", label: "مشترك" },
+      ]),
+      title: "name",
+      value: "id",
+    },
+
     // ═══════════════════════════════════════════════════════════════════════════════
     // 🏫 قوائم المدارس المستقلة (Independent School Lists)
     // ═══════════════════════════════════════════════════════════════════════════════
