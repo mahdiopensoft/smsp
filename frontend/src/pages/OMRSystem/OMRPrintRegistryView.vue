@@ -5,34 +5,61 @@
     <!-- 1. MASTER VIEW: الهيكل الإداري وسجل الطباعة المركزي             -->
     <!-- ══════════════════════════════════════════════════════════════ -->
     <div v-if="currentView === 'master'" class="master-view-container">
-      <!-- 1. Sector Switcher (فصل نوع المؤسسة التعليمية بشكل قاطع) -->
-      <div class="d-flex align-center justify-start flex-wrap gap-3 mb-4">
-        <v-btn-toggle
-          v-model="institutionType"
-          mandatory
-          color="primary"
-          variant="outlined"
-          density="comfortable"
-          rounded="xl"
-          class="bg-surface border"
-          @update:model-value="onSectorChange"
-        >
-          <v-btn value="school" class="px-4 font-weight-bold" prepend-icon="mdi-school">
-            التعليم العام (المدرسي)
-          </v-btn>
-          <v-btn value="university" class="px-4 font-weight-bold" prepend-icon="mdi-domain">
-            التعليم الجامعي (كليات وجامعات)
-          </v-btn>
-          <v-btn value="institute" class="px-4 font-weight-bold" prepend-icon="mdi-tools">
-            التعليم الفني والمهني (معاهد)
-          </v-btn>
-        </v-btn-toggle>
-      </div>
-
-
-
-      <!-- 3. شريط التصفية الهيكلي الموحد (مرتب وبدون تكرار) -->
+      <!-- شريط التصفية الهيكلي الموحد (مرتب وبدون تكرار) -->
       <div class="main-card pa-4 rounded-2xl mb-4 bg-surface border elevation-1">
+        <!-- شريط الفلاتر العلوي: نوع المؤسسة التعليمية بين الفلاتر + أزرار الإجراءات -->
+        <div class="d-flex align-center justify-space-between flex-wrap gap-3 mb-3 pb-3 border-b">
+          <div class="d-flex align-center gap-2 flex-wrap">
+            <span class="text-caption font-weight-black text-medium-emphasis">نوع المؤسسة التعليمية:</span>
+            <v-btn-toggle
+              v-model="institutionType"
+              mandatory
+              color="primary"
+              variant="outlined"
+              density="compact"
+              rounded="xl"
+              class="bg-surface border"
+              @update:model-value="onSectorChange"
+            >
+              <v-btn value="school" class="px-3 font-weight-bold" prepend-icon="mdi-school">
+                التعليم العام (المدرسي)
+              </v-btn>
+              <v-btn value="university" class="px-3 font-weight-bold" prepend-icon="mdi-domain">
+                التعليم الجامعي (كليات وجامعات)
+              </v-btn>
+              <v-btn value="institute" class="px-3 font-weight-bold" prepend-icon="mdi-tools">
+                التعليم الفني والمهني (معاهد)
+              </v-btn>
+            </v-btn-toggle>
+          </div>
+
+          <div class="d-flex align-center gap-2">
+            <v-btn
+              variant="tonal"
+              color="error"
+              size="small"
+              rounded="lg"
+              class="font-weight-bold"
+              prepend-icon="mdi-filter-remove-outline"
+              @click="resetHierarchyFilters"
+            >
+              تفريغ الفلاتر
+            </v-btn>
+            <v-btn
+              color="primary"
+              variant="flat"
+              size="small"
+              rounded="lg"
+              class="font-weight-bold"
+              prepend-icon="mdi-refresh"
+              :loading="loadingMaster"
+              @click="loadMasterData"
+            >
+              تحديث
+            </v-btn>
+          </div>
+        </div>
+
         <v-row dense class="align-center">
           <!-- التعليم العام (مدرسي) -->
           <template v-if="institutionType === 'school'">
@@ -516,16 +543,39 @@
       <!-- شريط الفلاتر الهيكلية واختيار الاختبار المعتمد (مرتب وهرمي) -->
       <div class="main-card pa-4 rounded-2xl mb-4 bg-surface border elevation-1">
         <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3 pb-2 border-b">
-          <div class="d-flex align-center gap-2 flex-wrap">
+          <div class="d-flex align-center gap-3 flex-wrap">
             <v-icon color="primary" size="20">mdi-filter-variant</v-icon>
-            <span class="text-subtitle-2 font-weight-black text-on-surface">فلاتر الهيكل الإداري واختيار الاختبار المعتمد</span>
+            <span class="text-subtitle-2 font-weight-black text-on-surface">فلاتر الهيكل واختيار الاختبار:</span>
+
+            <!-- مبدل نوع المؤسسة التعليمية بين الفلاتر -->
+            <v-btn-toggle
+              v-model="institutionType"
+              mandatory
+              color="primary"
+              variant="outlined"
+              density="compact"
+              rounded="xl"
+              class="bg-surface border"
+              @update:model-value="onSectorChange"
+            >
+              <v-btn value="school" class="px-3 font-weight-bold" prepend-icon="mdi-school">
+                التعليم العام (المدرسي)
+              </v-btn>
+              <v-btn value="university" class="px-3 font-weight-bold" prepend-icon="mdi-domain">
+                التعليم الجامعي (كليات وجامعات)
+              </v-btn>
+              <v-btn value="institute" class="px-3 font-weight-bold" prepend-icon="mdi-tools">
+                التعليم الفني والمهني (معاهد)
+              </v-btn>
+            </v-btn-toggle>
+
             <v-chip
               v-if="selectedSchoolName"
               size="small"
               color="info"
               variant="tonal"
               closable
-              class="font-weight-bold ms-2"
+              class="font-weight-bold ms-1"
               prepend-icon="mdi-filter-check"
               @click:close="clearSchoolFilter"
             >
@@ -924,12 +974,13 @@
                   variant="tonal"
                   color="secondary"
                   rounded="lg"
-                  icon
                   size="small"
+                  class="font-weight-bold"
+                  prepend-icon="mdi-pencil-outline"
                   title="تعديل بيانات الترويسة فورياً"
                   @click="showAdjustmentsPanel = !showAdjustmentsPanel"
                 >
-                  <v-icon size="18">mdi-pencil-ruler</v-icon>
+                  تعديل الترويسة
                 </v-btn>
 
                 <!-- Layout Mode Toggle (A5 vs A4) -->
@@ -1254,162 +1305,512 @@
         </div>
 
         <!-- ════════════════════════════════════════════════════════════ -->
-        <!-- TAB 2: QUESTIONS PAPER (كراسة ورقة الأسئلة الرسمية المعتمدة) -->
+        <!-- TAB 2: QUESTIONS PAPER (كراسات نماذج الأسئلة الرسمية)          -->
         <!-- ════════════════════════════════════════════════════════════ -->
         <div v-if="visitedTabs.has('questions')" v-show="activeTab === 'questions'" class="questions-paper-viewport mb-6">
-          <div class="main-card rounded-2xl pa-4 mb-4 border d-flex align-center justify-space-between flex-wrap gap-3 bg-white">
-            <div class="d-flex align-center gap-3 flex-wrap">
-              <div class="text-caption font-weight-black text-primary d-flex align-center gap-1">
-                <v-icon size="18">mdi-format-list-bulleted-type</v-icon>
-                اختيار النموذج:
-              </div>
-              <div style="min-width: 200px; max-width: 260px;">
-                <v-select
-                  v-model="selectedQuestionsModelCode"
-                  :items="questionsModelSelectOptions"
-                  item-title="title"
-                  item-value="value"
+          <!-- شريط الإجراءات والمقاس الوزاري المعتمد -->
+          <div class="main-card pa-3 px-4 rounded-2xl mb-4 bg-white border elevation-1">
+            <div class="d-flex align-center justify-space-between flex-wrap gap-2">
+              <div class="d-flex align-center gap-2 flex-wrap">
+                <v-btn
+                  color="primary"
+                  variant="flat"
+                  rounded="lg"
+                  class="font-weight-bold"
+                  prepend-icon="mdi-printer"
+                  @click="printAllFourQuestionPapers"
+                >
+                  طباعة كافة النماذج الأربعة (A, B, C, D)
+                </v-btn>
+
+                <v-btn-toggle
+                  v-model="selectedQuestionPaperLayout"
+                  mandatory
                   density="compact"
+                  color="secondary"
                   variant="outlined"
                   rounded="lg"
-                  hide-details
-                  prepend-inner-icon="mdi-format-list-bulleted-type"
-                  label="النموذج المعروض"
-                />
+                >
+                  <v-btn value="a4" class="font-weight-bold px-3" prepend-icon="mdi-file-outline">
+                    A4 الوزاري القياسي
+                  </v-btn>
+                  <v-btn value="a3" class="font-weight-bold px-3" prepend-icon="mdi-file-document-outline">
+                    A3 عريض (عمودين)
+                  </v-btn>
+                </v-btn-toggle>
               </div>
 
-              <v-btn-toggle
-                v-model="selectedQuestionPaperLayout"
-                mandatory
-                density="compact"
-                color="secondary"
-                variant="outlined"
-                rounded="lg"
-              >
-                <v-btn value="a4" class="font-weight-bold px-3" prepend-icon="mdi-file-outline">
-                  مقاس A4 (النمط الوزاري المعتمد)
-                </v-btn>
-                <v-btn value="a3" class="font-weight-bold px-3" prepend-icon="mdi-file-document-outline">
-                  مقاس كبير A3 (ورقة واحدة عمودين)
-                </v-btn>
-              </v-btn-toggle>
-            </div>
-
-            <div class="d-flex align-center gap-2">
-              <v-btn
-                color="primary"
-                variant="flat"
-                rounded="lg"
-                class="font-weight-black px-5"
-                prepend-icon="mdi-printer"
-                @click="printCurrentQuestionPaper"
-              >
-                طباعة ورقة الأسئلة الرسمية
-              </v-btn>
+              <div class="d-flex align-center gap-2">
+                <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
+                  <v-icon start size="16">mdi-book-open-page-variant-outline</v-icon>
+                  كراسات الأسئلة المعتمدة (4 نماذج)
+                </v-chip>
+              </div>
             </div>
           </div>
 
-          <!-- Official Question Paper Component Frame -->
-          <div ref="questionPaperRef" class="overflow-auto bg-grey-lighten-4 pa-4 rounded-2xl border d-flex justify-center">
-            <YemeniOfficialQuestionPaper
-              :exam-title="customStageTitle || selectedExam?.title || ''"
-              :exam-subject="selectedExam?.subject_name || ''"
-              :stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || ''))"
-              :exam-year="customExamYear || selectedExam?.year_name || ''"
-              :governorate="customGovernorate || selectedExam?.governorate || ''"
-              :directorate="customDirectorate || selectedExam?.directorate || ''"
-              :center-name="customCenterName || activeSheetStudent?.school_name || selectedExam?.school_name || selectedExam?.center_name || 'المركز الامتحاني الرئيسي'"
-              :center-code="activeSheetStudent?.school_id || selectedExam?.center_code || selectedExam?.id || '11'"
-              :exam-time="selectedExam?.time_allowed || selectedExam?.exam_time || ''"
-              :day-name="selectedExam?.day_name || ''"
-              :exam-date="selectedExam?.exam_date || ''"
-              :envelope-no="selectedExam?.envelope_no || '1'"
-              :student-name="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_name || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.student_name || ''))"
-              :seat-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.seat_number || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.seat_number || ''))"
-              :secret-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.secret_number || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.secret_number || ''))"
-              :student-photo="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_photo || activeSheetStudent?.photo || '') : ''"
-              :is-blank-mode="sheetGenerationMode === 'blank'"
-              :model-code="selectedQuestionsModelCode"
-              :questions="selectedQuestionsVersionObj?.questions || []"
-              :default-layout="selectedQuestionPaperLayout"
-            />
+          <!-- الجدول الموحد لكراسات النماذج الأربعة (custom-data-table) -->
+          <div class="main-card rounded-2xl overflow-hidden mb-6">
+            <custom-data-table
+              v-bind="{
+                items: questionModelsTableItems,
+                getData: getQuestionModelsData,
+                headers: questionModelsHeaders,
+              }"
+              :customLoading="loadingExamDetails"
+              :hasFilter="false"
+              :log="false"
+              :restore="false"
+              :numbering="false"
+              :showSelect="false"
+              :actions="false"
+              class="bg-transparent"
+            >
+              <template v-slot:item-slot="{ item, key }">
+                <!-- Model Code -->
+                <template v-if="key === 'model_code'">
+                  <v-chip
+                    size="small"
+                    :color="getModelChipColor(item.versionCode)"
+                    variant="tonal"
+                    class="font-weight-black rounded-lg border px-3 font-mono"
+                  >
+                    نموذج {{ item.versionCode }}
+                  </v-chip>
+                </template>
+
+                <!-- Paper Title -->
+                <template v-else-if="key === 'paper_title'">
+                  <div class="py-1">
+                    <div class="font-weight-bold text-body-2 text-on-surface">
+                      كراسة أسئلة مادة {{ selectedExam?.subject_name || 'الاختبار' }} - النموذج ({{ item.versionCode }})
+                    </div>
+                    <div class="text-caption text-medium-emphasis mt-0.5">
+                      {{ selectedExam?.title || 'اختبار معتمد' }} • {{ customExamYear || selectedExam?.year_name || 'العام الحالي' }}
+                    </div>
+                  </div>
+                </template>
+
+                <!-- Questions Count -->
+                <template v-else-if="key === 'questions_count'">
+                  <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
+                    {{ item.questionsCount }} سؤال
+                  </v-chip>
+                </template>
+
+                <!-- Approved Layout -->
+                <template v-else-if="key === 'layout_type'">
+                  <span class="text-caption font-weight-bold text-medium-emphasis">
+                    {{ selectedQuestionPaperLayout === 'a3' ? 'A3 عريض (عمودين)' : 'A4 الوزاري القياسي' }}
+                  </span>
+                </template>
+
+                <!-- Paper Status -->
+                <template v-else-if="key === 'status'">
+                  <v-chip size="small" color="success" variant="tonal" class="font-weight-bold" prepend-icon="mdi-check-decagram-outline">
+                    معتمد وجاهز
+                  </v-chip>
+                </template>
+
+                <!-- Actions -->
+                <template v-else-if="key === 'actions'">
+                  <div class="d-flex align-center justify-center gap-2">
+                    <v-btn
+                      size="small"
+                      color="secondary"
+                      variant="tonal"
+                      rounded="lg"
+                      class="font-weight-bold"
+                      prepend-icon="mdi-eye-outline"
+                      @click="openPreviewQuestionPaper(item.versionCode)"
+                    >
+                      معاينة
+                    </v-btn>
+                    <v-btn
+                      size="small"
+                      color="primary"
+                      variant="flat"
+                      rounded="lg"
+                      class="font-weight-bold"
+                      prepend-icon="mdi-printer"
+                      @click="printQuestionPaperForModel(item.versionCode)"
+                    >
+                      طباعة
+                    </v-btn>
+                  </div>
+                </template>
+              </template>
+            </custom-data-table>
           </div>
+
+          <!-- نافذة حوار معاينة كراسة الأسئلة الرسمية المنبثقة -->
+          <v-dialog v-model="previewQuestionPaperDialog" max-width="960" scrollable>
+            <v-card rounded="2xl" class="overflow-hidden">
+              <v-toolbar color="surface" density="comfortable" class="border-b px-4">
+                <div class="d-flex align-center gap-2">
+                  <v-avatar color="primary" variant="tonal" size="32" rounded="lg">
+                    <v-icon size="18">mdi-file-document-outline</v-icon>
+                  </v-avatar>
+                  <span class="text-subtitle-1 font-weight-black">
+                    معاينة كراسة الأسئلة الرسمية - نموذج {{ selectedQuestionsModelCode }}
+                  </span>
+                  <v-chip size="small" :color="getModelChipColor(selectedQuestionsModelCode)" variant="tonal" class="font-weight-bold ms-2">
+                    نموذج {{ selectedQuestionsModelCode }}
+                  </v-chip>
+                </div>
+                <v-spacer />
+                <v-btn
+                  color="primary"
+                  variant="flat"
+                  size="small"
+                  rounded="lg"
+                  class="font-weight-bold me-2"
+                  prepend-icon="mdi-printer"
+                  @click="printCurrentQuestionPaper"
+                >
+                  طباعة الكراسة الآن
+                </v-btn>
+                <v-btn icon size="small" variant="text" @click="previewQuestionPaperDialog = false">
+                  <v-icon>mdi-close</v-icon>
+                </v-btn>
+              </v-toolbar>
+              <v-card-text class="pa-4 bg-grey-lighten-4 d-flex justify-center" style="max-height: 80vh;">
+                <div ref="questionPaperRef" class="w-100 d-flex justify-center">
+                  <YemeniOfficialQuestionPaper
+                    :exam-title="customStageTitle || selectedExam?.title || ''"
+                    :exam-subject="selectedExam?.subject_name || ''"
+                    :stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || ''))"
+                    :exam-year="customExamYear || selectedExam?.year_name || ''"
+                    :governorate="customGovernorate || selectedExam?.governorate || ''"
+                    :directorate="customDirectorate || selectedExam?.directorate || ''"
+                    :center-name="customCenterName || activeSheetStudent?.school_name || selectedExam?.school_name || selectedExam?.center_name || 'المركز الامتحاني الرئيسي'"
+                    :center-code="activeSheetStudent?.school_id || selectedExam?.center_code || selectedExam?.id || '11'"
+                    :exam-time="selectedExam?.time_allowed || selectedExam?.exam_time || ''"
+                    :day-name="selectedExam?.day_name || ''"
+                    :exam-date="selectedExam?.exam_date || ''"
+                    :envelope-no="selectedExam?.envelope_no || '1'"
+                    :student-name="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_name || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.student_name || ''))"
+                    :seat-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.seat_number || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.seat_number || ''))"
+                    :secret-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.secret_number || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.secret_number || ''))"
+                    :student-photo="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_photo || activeSheetStudent?.photo || '') : ''"
+                    :is-blank-mode="sheetGenerationMode === 'blank'"
+                    :model-code="selectedQuestionsModelCode"
+                    :questions="selectedQuestionsVersionObj?.questions || []"
+                    :default-layout="selectedQuestionPaperLayout"
+                  />
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-dialog>
         </div>
 
         <!-- ════════════════════════════════════════════════════════════ -->
-        <!-- TAB 3: COMBINED PACKAGE (كراسة الأسئلة + ورقة التظليل)     -->
+        <!-- TAB 3: COMBINED PACKAGE (حزم الاختبار المتكاملة للطلاب)     -->
         <!-- ════════════════════════════════════════════════════════════ -->
         <div v-if="visitedTabs.has('package')" v-show="activeTab === 'package'" class="exam-package-viewport mb-6">
-          <div class="main-card rounded-2xl pa-4 mb-4 border d-flex align-center justify-space-between flex-wrap gap-3 bg-white">
-            <div class="d-flex align-center gap-2">
-              <v-avatar color="primary" variant="tonal" size="36" rounded="lg">
-                <v-icon size="20">mdi-package-variant-closed</v-icon>
-              </v-avatar>
-              <div>
-                <div class="text-subtitle-2 font-weight-black">حزمة الاختبار المتكاملة الرسمية</div>
-                <div class="text-caption text-medium-emphasis">تدمج كراسة الأسئلة المعتمدة مع ورقة التظليل الخاصة بكل طالب في مستند واحد جاهز للطباعة</div>
+          <!-- شريط الإجراءات والبحث وفلاتر حزم الطلاب (منظم وموحد) -->
+          <div class="main-card pa-3 px-4 rounded-2xl mb-4 bg-white border elevation-1">
+            <div class="d-flex align-center justify-space-between flex-wrap gap-2">
+              <div class="d-flex align-center gap-2 flex-wrap">
+                <v-btn
+                  color="success"
+                  variant="flat"
+                  rounded="lg"
+                  class="font-weight-bold"
+                  prepend-icon="mdi-printer"
+                  :loading="printingPackages"
+                  :disabled="!filteredPackageStudents.length"
+                  @click="batchPrintSelectedPackages"
+                >
+                  طباعة حزم الاختبار {{ selectedPackageStudentIds.length > 0 ? `المحددة (${selectedPackageStudentIds.length})` : `للكل (${filteredPackageStudents.length})` }}
+                </v-btn>
+
+                <v-btn
+                  v-if="filteredPackageStudents.length > 0"
+                  size="small"
+                  variant="tonal"
+                  color="primary"
+                  class="font-weight-bold"
+                  prepend-icon="mdi-checkbox-multiple-marked-outline"
+                  @click="selectAllPackageStudents"
+                >
+                  {{ selectedPackageStudentIds.length === filteredPackageStudents.length ? 'إلغاء تحديد الكل' : 'تحديد كل المعروضين' }}
+                </v-btn>
+              </div>
+
+              <!-- حقول التصفية والبحث -->
+              <div class="d-flex align-center gap-2 flex-wrap">
+                <v-btn-toggle
+                  v-model="packageModelFilter"
+                  mandatory
+                  density="compact"
+                  rounded="lg"
+                  color="primary"
+                  variant="tonal"
+                  class="border"
+                >
+                  <v-btn value="all" size="small" class="font-weight-bold">
+                    كافة النماذج ({{ examDetails?.registered_students?.length || 0 }})
+                  </v-btn>
+                  <v-btn value="A" size="small" color="primary" class="font-weight-bold">
+                    A ({{ modelCounts.A }})
+                  </v-btn>
+                  <v-btn value="B" size="small" color="deep-purple" class="font-weight-bold">
+                    B ({{ modelCounts.B }})
+                  </v-btn>
+                  <v-btn value="C" size="small" color="amber-darken-3" class="font-weight-bold">
+                    C ({{ modelCounts.C }})
+                  </v-btn>
+                  <v-btn value="D" size="small" color="teal" class="font-weight-bold">
+                    D ({{ modelCounts.D }})
+                  </v-btn>
+                </v-btn-toggle>
+
+                <div style="min-width: 220px; max-width: 280px;">
+                  <v-text-field
+                    v-model="packageSearch"
+                    density="compact"
+                    variant="outlined"
+                    placeholder="بحث برقم الجلوس أو اسم الطالب..."
+                    prepend-inner-icon="mdi-magnify"
+                    hide-details
+                    clearable
+                  />
+                </div>
               </div>
             </div>
+          </div>
 
-            <v-btn
-              color="primary"
-              variant="flat"
-              rounded="lg"
-              class="font-weight-black px-5"
-              prepend-icon="mdi-printer"
-              @click="printCurrentExamPackage"
+          <!-- الجدول الموحد لحزم الاختبار المتكاملة للطلاب (custom-data-table) -->
+          <div class="main-card rounded-2xl overflow-hidden mb-6">
+            <custom-data-table
+              v-bind="{
+                items: packageTableItems,
+                getData: getPackageData,
+                headers: packageHeaders,
+              }"
+              :customLoading="loadingExamDetails"
+              :hasFilter="false"
+              :log="false"
+              :restore="false"
+              :numbering="false"
+              :showSelect="false"
+              :actions="false"
+              class="bg-transparent"
             >
-              طباعة حزمة الاختبار الكاملة
-            </v-btn>
+              <template v-slot:item-slot="{ item, key }">
+                <!-- Select Box -->
+                <template v-if="key === 'select_box'">
+                  <div class="d-flex justify-center">
+                    <v-checkbox-btn
+                      :model-value="selectedPackageStudentIds.includes(item.id)"
+                      color="primary"
+                      density="compact"
+                      hide-details
+                      @update:model-value="togglePackageStudentSelection(item.id)"
+                    />
+                  </div>
+                </template>
+
+                <!-- Seat Number -->
+                <template v-else-if="key === 'seat_number'">
+                  <span class="font-mono font-weight-black text-primary px-2 py-1 bg-blue-lighten-5 rounded-lg border">
+                    {{ item.seat_number }}
+                  </span>
+                </template>
+
+                <!-- Student Info -->
+                <template v-else-if="key === 'student_name'">
+                  <div class="d-flex align-center gap-2 py-1">
+                    <v-avatar size="32" color="primary" variant="tonal" class="text-caption font-weight-black">
+                      {{ (item.student_name || 'ط').slice(0, 1) }}
+                    </v-avatar>
+                    <div>
+                      <div class="font-weight-bold text-body-2 text-on-surface">
+                        {{ item.student_name || 'طالب بدون اسم' }}
+                      </div>
+                      <div class="text-caption text-medium-emphasis mt-0.5">
+                        {{ item.school_name || selectedExam?.directorate || 'المركز الرئيسي' }}
+                      </div>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- School / Center -->
+                <template v-else-if="key === 'school_name'">
+                  <div class="py-1">
+                    <div class="font-weight-medium text-body-2">{{ item.school_name || selectedExam?.directorate || 'المركز الرئيسي' }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ item.directorate || selectedExam?.directorate || '-' }}</div>
+                  </div>
+                </template>
+
+                <!-- Model Code -->
+                <template v-else-if="key === 'model_code'">
+                  <v-chip
+                    size="small"
+                    :color="getModelChipColor(item.model_code)"
+                    variant="tonal"
+                    class="font-weight-black rounded-lg border px-2.5 font-mono"
+                  >
+                    نموذج {{ item.model_code || 'A' }}
+                  </v-chip>
+                </template>
+
+                <!-- Package Contents -->
+                <template v-else-if="key === 'package_contents'">
+                  <div class="d-flex align-center justify-center gap-1 flex-wrap">
+                    <v-chip size="x-small" color="secondary" variant="tonal" class="font-weight-bold">
+                      <v-icon start size="12">mdi-file-document-outline</v-icon>
+                      كراسة أسئلة ({{ item.model_code || 'A' }})
+                    </v-chip>
+                    <span class="text-caption text-disabled">+</span>
+                    <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
+                      <v-icon start size="12">mdi-checkbox-marked-circle-outline</v-icon>
+                      ورقة تظليل OMR
+                    </v-chip>
+                  </div>
+                </template>
+
+                <!-- Print Status -->
+                <template v-else-if="key === 'is_printed'">
+                  <v-chip
+                    size="small"
+                    :color="item.is_printed ? 'success' : 'grey'"
+                    :variant="item.is_printed ? 'flat' : 'tonal'"
+                    class="font-weight-bold cursor-pointer"
+                    title="انقر لتبديل حالة الطباعة"
+                    @click="toggleStudentPrintedStatus(item)"
+                  >
+                    <v-icon start size="14">{{ item.is_printed ? 'mdi-check-circle' : 'mdi-clock-outline' }}</v-icon>
+                    {{ item.is_printed ? 'تمت الطباعة' : 'جاهز للطباعة' }}
+                  </v-chip>
+                </template>
+
+                <!-- Actions -->
+                <template v-else-if="key === 'actions'">
+                  <div class="d-flex align-center justify-center gap-1">
+                    <v-btn
+                      icon
+                      size="small"
+                      variant="tonal"
+                      color="primary"
+                      title="معاينة الحزمة المتكاملة"
+                      @click="openPreviewPackage(item)"
+                    >
+                      <v-icon size="18">mdi-eye-outline</v-icon>
+                    </v-btn>
+                    <v-btn
+                      icon
+                      size="small"
+                      variant="tonal"
+                      color="success"
+                      title="طباعة حزمة هذا الطالب"
+                      @click="printSingleStudentPackage(item)"
+                    >
+                      <v-icon size="18">mdi-printer</v-icon>
+                    </v-btn>
+                  </div>
+                </template>
+              </template>
+            </custom-data-table>
           </div>
 
-          <div class="d-flex flex-column align-center gap-6 overflow-auto bg-grey-lighten-4 pa-4 rounded-2xl border">
-            <div class="text-caption font-weight-black text-primary">1. كراسة الأسئلة الرسمية:</div>
-            <YemeniOfficialQuestionPaper
-              :exam-title="customStageTitle || selectedExam?.title || ''"
-              :exam-subject="selectedExam?.subject_name || ''"
-              :stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || ''))"
-              :exam-year="customExamYear || selectedExam?.year_name || ''"
-              :governorate="customGovernorate || selectedExam?.governorate || ''"
-              :directorate="customDirectorate || selectedExam?.directorate || ''"
-              :center-name="customCenterName || activeSheetStudent?.school_name || selectedExam?.school_name || selectedExam?.center_name || 'المركز الامتحاني الرئيسي'"
-              :center-code="activeSheetStudent?.school_id || selectedExam?.center_code || selectedExam?.id || '11'"
-              :exam-time="selectedExam?.time_allowed || selectedExam?.exam_time || ''"
-              :day-name="selectedExam?.day_name || ''"
-              :exam-date="selectedExam?.exam_date || ''"
-              :envelope-no="selectedExam?.envelope_no || '1'"
-              :student-name="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_name || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.student_name || ''))"
-              :seat-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.seat_number || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.seat_number || ''))"
-              :secret-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.secret_number || '') : (sheetGenerationMode === 'blank' ? '__BLANK__' : (activeSheetStudent?.secret_number || ''))"
-              :student-photo="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_photo || activeSheetStudent?.photo || '') : ''"
-              :is-blank-mode="sheetGenerationMode === 'blank'"
-              :model-code="activeSheetModelCode"
-              :questions="selectedQuestionsVersionObj?.questions || []"
-              :default-layout="'a4'"
-            />
+          <!-- نافذة حوار معاينة حزمة الاختبار المتكاملة للطلاب المنبثقة -->
+          <v-dialog v-model="previewPackageDialog" max-width="960" scrollable>
+            <v-card rounded="2xl" class="overflow-hidden" v-if="previewPackageStudent">
+              <v-toolbar color="surface" density="comfortable" class="border-b px-4">
+                <div class="d-flex align-center gap-2">
+                  <v-avatar color="primary" variant="tonal" size="32" rounded="lg">
+                    <v-icon size="18">mdi-package-variant-closed</v-icon>
+                  </v-avatar>
+                  <span class="text-subtitle-1 font-weight-black">
+                    معاينة حزمة الاختبار للطالب: {{ previewPackageStudent.student_name }}
+                  </span>
+                  <v-chip size="small" :color="getModelChipColor(previewPackageStudent.model_code)" variant="tonal" class="font-weight-bold ms-2">
+                    نموذج {{ previewPackageStudent.model_code || 'A' }}
+                  </v-chip>
+                </div>
+                <v-spacer />
+                <v-btn
+                  color="success"
+                  variant="flat"
+                  size="small"
+                  rounded="lg"
+                  class="font-weight-bold me-2"
+                  prepend-icon="mdi-printer"
+                  @click="printSingleStudentPackage(previewPackageStudent)"
+                >
+                  طباعة حزمة الطالب
+                </v-btn>
+                <v-btn icon size="small" variant="text" @click="previewPackageDialog = false">
+                  <v-icon>mdi-close</v-icon>
+                </v-btn>
+              </v-toolbar>
+              <v-card-text class="pa-4 bg-grey-lighten-4" style="max-height: 80vh;">
+                <div class="d-flex flex-column align-center gap-6">
+                  <div class="text-caption font-weight-black text-primary border-b pb-1 w-100 text-center d-flex align-center justify-center gap-1">
+                    <v-icon size="16" color="primary">mdi-file-document-outline</v-icon>
+                    <span>الجزء 1: كراسة ورقة الأسئلة الرسمية المعتمدة (نموذج {{ previewPackageStudent.model_code || 'A' }})</span>
+                  </div>
+                  <YemeniOfficialQuestionPaper
+                    :exam-title="customStageTitle || selectedExam?.title || ''"
+                    :exam-subject="selectedExam?.subject_name || ''"
+                    :stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || ''))"
+                    :exam-year="customExamYear || selectedExam?.year_name || ''"
+                    :governorate="customGovernorate || selectedExam?.governorate || ''"
+                    :directorate="customDirectorate || selectedExam?.directorate || ''"
+                    :center-name="customCenterName || previewPackageStudent.school_name || selectedExam?.school_name || selectedExam?.center_name || 'المركز الامتحاني الرئيسي'"
+                    :center-code="previewPackageStudent.school_id || selectedExam?.center_code || selectedExam?.id || '11'"
+                    :exam-time="selectedExam?.time_allowed || selectedExam?.exam_time || ''"
+                    :day-name="selectedExam?.day_name || ''"
+                    :exam-date="selectedExam?.exam_date || ''"
+                    :envelope-no="selectedExam?.envelope_no || '1'"
+                    :student-name="previewPackageStudent.student_name"
+                    :seat-number="previewPackageStudent.seat_number"
+                    :secret-number="previewPackageStudent.secret_number || '60'"
+                    :model-code="previewPackageStudent.model_code || 'A'"
+                    :questions="examDetails?.versions?.find(v => v.versionCode === (previewPackageStudent.model_code || 'A'))?.questions || []"
+                    :default-layout="'a4'"
+                  />
 
-            <div class="text-caption font-weight-black text-primary mt-4">2. ورقة التظليل (OMR Answer Sheet):</div>
-            <div class="sheet-page-card elevation-4 bg-white rounded-lg position-relative d-inline-block text-start" :style="sheetArtboardStyle">
-              <YemeniMinistrySheet
-                layout-mode="compact_a5"
-                :student-name="sheetGenerationMode === 'student' ? (activeSheetStudent?.student_name || '................................') : '................................'"
-                :seat-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.seat_number || '.....') : '.....'"
-                :serial-number="sheetGenerationMode === 'student' ? (activeSheetStudent?.secret_number || activeSheetModelCode) : activeSheetModelCode"
-                :model-code="activeSheetModelCode"
-                :exam-subject="selectedExam?.subject_name || 'الرياضيات'"
-                :exam-stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || 'اختبار الشهادة الثانوية العامة'))"
-                :exam-year="customExamYear || selectedExam?.year_name || '2026'"
-                :center-name="customCenterName || activeSheetStudent?.school_name || selectedExam?.directorate || 'المركز الامتحاني الرئيسي'"
-                :governorate="customGovernorate || selectedExam?.governorate || 'أمانة العاصمة'"
-                :directorate="customDirectorate || activeSheetStudent?.directorate || selectedExam?.directorate || 'السبعين'"
-                :barcode-value="sheetGenerationMode === 'student' ? (activeSheetStudent?.barcode_value || `EXAM_${selectedExam?.id}_VER_${activeSheetModelCode}_SEAT_${activeSheetStudent?.seat_number}`) : `EXAM_${selectedExam?.id}_VER_${selectedBlankVersionCode}_BLANK`"
-                :qr-value="sheetGenerationMode === 'student' ? (activeSheetStudent?.qr_value || `${selectedExam?.uniqueCode}|${activeSheetModelCode}|${activeSheetStudent?.seat_number}`) : `${selectedExam?.uniqueCode}|${selectedBlankVersionCode}|BLANK`"
-                :total-questions="getQuestionsCountForVersion(activeSheetModelCode)"
-                :sections="getSectionsForVersion(activeSheetModelCode)"
-                :interactive="false"
-              />
-            </div>
-          </div>
+                  <div class="text-caption font-weight-black text-teal border-b pb-1 w-100 text-center mt-4 d-flex align-center justify-center gap-1">
+                    <v-icon size="16" color="teal">mdi-checkbox-marked-circle-outline</v-icon>
+                    <span>الجزء 2: ورقة التظليل الإلكترونية OMR المخصصة للطالب</span>
+                  </div>
+                  <div class="sheet-page-card elevation-4 bg-white rounded-lg position-relative d-inline-block text-start" :style="sheetArtboardStyle">
+                    <YemeniMinistrySheet
+                      layout-mode="compact_a5"
+                      :student-name="previewPackageStudent.student_name"
+                      :seat-number="previewPackageStudent.seat_number"
+                      :serial-number="previewPackageStudent.secret_number || previewPackageStudent.model_code"
+                      :model-code="previewPackageStudent.model_code || 'A'"
+                      :exam-subject="selectedExam?.subject_name || 'الرياضيات'"
+                      :exam-stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || 'اختبار الشهادة الثانوية العامة'))"
+                      :exam-year="customExamYear || selectedExam?.year_name || '2026'"
+                      :center-name="customCenterName || previewPackageStudent.school_name || selectedExam?.directorate || 'المركز الامتحاني الرئيسي'"
+                      :governorate="customGovernorate || selectedExam?.governorate || 'أمانة العاصمة'"
+                      :directorate="customDirectorate || previewPackageStudent.directorate || selectedExam?.directorate || 'السبعين'"
+                      :barcode-value="`EXAM_${selectedExam?.id}_VER_${previewPackageStudent.model_code || 'A'}_SEAT_${previewPackageStudent.seat_number}`"
+                      :qr-value="`${selectedExam?.uniqueCode}|${previewPackageStudent.model_code || 'A'}|${previewPackageStudent.seat_number}`"
+                      :field-layout="examFieldLayout"
+                      :institution-type="previewPackageStudent.institution_type || selectedExam?.institution_type || institutionType || 'school'"
+                      :college-name="previewPackageStudent.college_name || selectedExam?.college_name || ''"
+                      :major-name="previewPackageStudent.major_name || selectedExam?.major_name || ''"
+                      :academic-year="previewPackageStudent.academic_year || selectedExam?.academic_year || ''"
+                      :semester-name="previewPackageStudent.semester_name || selectedExam?.semester_name || ''"
+                      :course-name="previewPackageStudent.course_name || selectedExam?.subject_name || ''"
+                      :course-code="previewPackageStudent.course_code || selectedExam?.subject_code || ''"
+                      :student-level="previewPackageStudent.student_level || selectedExam?.stage_name || ''"
+                      :group-section="previewPackageStudent.group_section || ''"
+                      :term-name="previewPackageStudent.term_name || ''"
+                      :student-id="previewPackageStudent.seat_number"
+                      :is-preview="true"
+                    />
+                  </div>
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-dialog>
         </div>
       </div>
     </div>
@@ -1994,7 +2395,11 @@ const onSectorChange = (val) => {
   selectedDirectorateName.value = ''
   selectedSchoolId.value = null
   selectedSchoolName.value = ''
-  loadMasterData()
+  if (currentView.value === 'master') {
+    loadMasterData()
+  } else {
+    fetchExamsList()
+  }
 }
 
 const onOfficeFilterChange = (officeId) => {
@@ -3130,6 +3535,187 @@ const printCurrentExamPackage = async () => {
     mode: 'package',
     isA5: selectedSheetLayout.value === 'compact_a5'
   })
+}
+
+// State & Methods for Tab 2: Question Booklets
+const previewQuestionPaperDialog = ref(false)
+const questionModelsList = computed(() => {
+  const models = ['A', 'B', 'C', 'D']
+  return models.map(code => {
+    const ver = examDetails.value?.versions?.find(v => v.versionCode === code)
+    const qCount = ver?.questions?.length || 56
+    return {
+      versionCode: code,
+      title: `كراسة ورقة الأسئلة - نموذج ${code}`,
+      questionsCount: qCount,
+      hasQuestions: !!(ver?.questions && ver.questions.length > 0)
+    }
+  })
+})
+
+const questionModelsHeaders = computed(() => [
+  { title: "النموذج", key: "model_code", sortable: false, align: "center", width: "120px" },
+  { title: "عنوان كراسة الأسئلة", key: "paper_title", sortable: false, align: "start" },
+  { title: "عدد الأسئلة", key: "questions_count", sortable: false, align: "center", width: "130px" },
+  { title: "المقاس المعتمد", key: "layout_type", sortable: false, align: "center", width: "170px" },
+  { title: "حالة الكراسة", key: "status", sortable: false, align: "center", width: "150px" },
+  { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "230px" },
+])
+
+const questionModelsTableItems = computed(() => ({
+  results: questionModelsList.value,
+  count: questionModelsList.value.length,
+  pagination: {
+    count: questionModelsList.value.length,
+    total: questionModelsList.value.length,
+  },
+}))
+
+const getQuestionModelsData = async () => {
+  return questionModelsTableItems.value
+}
+
+const openPreviewQuestionPaper = (modelCode) => {
+  selectedQuestionsModelCode.value = modelCode
+  previewQuestionPaperDialog.value = true
+}
+
+const printQuestionPaperForModel = async (modelCode) => {
+  selectedQuestionsModelCode.value = modelCode
+  await nextTick()
+  const verObj = examDetails.value?.versions?.find(ver => ver.versionCode === modelCode) || examDetails.value?.versions?.[0]
+  await printExamPackage({
+    examTitle: customStageTitle.value || selectedExam.value?.title || 'اختبار الشهادة العامة',
+    subjectName: selectedExam.value?.subject_name || 'الرياضيات',
+    stageName: selectedExam.value?.stage_name || '',
+    yearName: customExamYear.value || selectedExam.value?.year_name || '1446هـ - 2024-2025م',
+    governorate: customGovernorate.value || selectedExam.value?.governorate || 'أمانة العاصمة',
+    directorate: customDirectorate.value || selectedExam.value?.directorate || 'السبعين',
+    centerName: customCenterName.value || selectedExam.value?.school_name || selectedExam.value?.directorate || 'المركز الاختباري الرئيسي',
+    centerCode: selectedExam.value?.id || '3026',
+    versionCode: modelCode,
+    studentName: '',
+    seatNumber: '',
+    secretNumber: '',
+    isA3: selectedQuestionPaperLayout.value === 'a3',
+    questions: verObj?.questions || [],
+    mode: 'questions_only'
+  })
+}
+
+const printAllFourQuestionPapers = async () => {
+  for (const ver of ['A', 'B', 'C', 'D']) {
+    await printQuestionPaperForModel(ver)
+  }
+}
+
+// State & Methods for Tab 3: Combined Student Packages
+const packageSearch = ref('')
+const packageModelFilter = ref('all')
+const selectedPackageStudentIds = ref([])
+const previewPackageStudent = ref(null)
+const previewPackageDialog = ref(false)
+const printingPackages = ref(false)
+
+const packageHeaders = computed(() => [
+  { title: "تحديد", key: "select_box", sortable: false, align: "center", width: "65px" },
+  { title: "رقم الجلوس", key: "seat_number", sortable: true, align: "center", width: "115px" },
+  { title: "اسم الطالب الرباعي", key: "student_name", sortable: true, align: "start" },
+  { title: "المدرسة / المركز الامتحاني", key: "school_name", sortable: true, align: "start" },
+  { title: "النموذج", key: "model_code", sortable: true, align: "center", width: "110px" },
+  { title: "محتوى الحزمة", key: "package_contents", sortable: false, align: "center", width: "220px" },
+  { title: "حالة الطباعة", key: "is_printed", sortable: true, align: "center", width: "130px" },
+  { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "180px" },
+])
+
+const packageTableItems = computed(() => ({
+  results: filteredPackageStudents.value,
+  count: filteredPackageStudents.value.length,
+  pagination: {
+    count: filteredPackageStudents.value.length,
+    total: filteredPackageStudents.value.length,
+  },
+}))
+
+const getPackageData = async () => {
+  return packageTableItems.value
+}
+
+const togglePackageStudentSelection = (studentId) => {
+  const idx = selectedPackageStudentIds.value.indexOf(studentId)
+  if (idx > -1) {
+    selectedPackageStudentIds.value.splice(idx, 1)
+  } else {
+    selectedPackageStudentIds.value.push(studentId)
+  }
+}
+
+const filteredPackageStudents = computed(() => {
+  if (!examDetails.value?.registered_students) return []
+  let list = examDetails.value.registered_students
+  if (packageModelFilter.value && packageModelFilter.value !== 'all') {
+    list = list.filter(s => (s.model_code || 'A') === packageModelFilter.value)
+  }
+  if (packageSearch.value && packageSearch.value.trim()) {
+    const q = packageSearch.value.trim().toLowerCase()
+    list = list.filter(s =>
+      String(s.seat_number || '').toLowerCase().includes(q) ||
+      String(s.student_name || '').toLowerCase().includes(q) ||
+      String(s.school_name || '').toLowerCase().includes(q)
+    )
+  }
+  return list
+})
+
+const openPreviewPackage = (student) => {
+  previewPackageStudent.value = student
+  previewPackageDialog.value = true
+}
+
+const printSingleStudentPackage = async (student) => {
+  const vCode = student?.model_code || 'A'
+  const verObj = examDetails.value?.versions?.find(ver => ver.versionCode === vCode) || examDetails.value?.versions?.[0]
+  await printExamPackage({
+    examTitle: customStageTitle.value || selectedExam.value?.title || 'اختبار الشهادة العامة',
+    subjectName: selectedExam.value?.subject_name || 'الرياضيات',
+    stageName: selectedExam.value?.stage_name || '',
+    yearName: customExamYear.value || selectedExam.value?.year_name || '1446هـ - 2024-2025م',
+    governorate: customGovernorate.value || selectedExam.value?.governorate || 'أمانة العاصمة',
+    directorate: customDirectorate.value || selectedExam.value?.directorate || 'السبعين',
+    centerName: customCenterName.value || student?.school_name || selectedExam.value?.directorate || 'المركز الاختباري الرئيسي',
+    centerCode: student?.school_id || selectedExam.value?.id || '3026',
+    versionCode: vCode,
+    studentName: student?.student_name || '',
+    seatNumber: student?.seat_number || '',
+    secretNumber: student?.secret_number || '60',
+    isA3: false,
+    questions: verObj?.questions || [],
+    omrElement: null,
+    mode: 'package',
+    isA5: selectedSheetLayout.value === 'compact_a5'
+  })
+}
+
+const batchPrintSelectedPackages = async () => {
+  printingPackages.value = true
+  try {
+    const targets = selectedPackageStudentIds.value.length > 0
+      ? filteredPackageStudents.value.filter(s => selectedPackageStudentIds.value.includes(s.id))
+      : filteredPackageStudents.value
+    for (const st of targets) {
+      await printSingleStudentPackage(st)
+    }
+  } finally {
+    printingPackages.value = false
+  }
+}
+
+const selectAllPackageStudents = () => {
+  if (selectedPackageStudentIds.value.length === filteredPackageStudents.value.length) {
+    selectedPackageStudentIds.value = []
+  } else {
+    selectedPackageStudentIds.value = filteredPackageStudents.value.map(s => s.id)
+  }
 }
 
 const printSingleSheet = async () => {
