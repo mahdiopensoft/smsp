@@ -218,7 +218,9 @@ class ExamGradebookMVS(ViewSet):
                 "institution_type_display": "مدرسي" if exam.institution_type == 'school' else ("جامعي" if exam.institution_type == 'university' else "معاهد"),
                 "subject_name": getattr(exam.subject, 'name_ar', str(exam.subject)) if exam.subject else "غير محدد",
                 "year_name": exam.year.gregorian_year if (exam.year and hasattr(exam.year, 'gregorian_year')) else (str(exam.year) if exam.year else "العام الحالي"),
+                "governorate_id": exam.governorate_id,
                 "governorate_name": getattr(exam.governorate, 'name_ar', str(exam.governorate)) if exam.governorate else "",
+                "directorate_id": exam.directorate_id,
                 "directorate_name": getattr(exam.directorate, 'name_ar', str(exam.directorate)) if exam.directorate else "",
                 "schools_count": schools_cnt,
                 "max_score": exam_max_score,
@@ -534,64 +536,71 @@ class ExamGradebookMVS(ViewSet):
             'examVersion'
         )
 
-        # 3.1 فلتر المحافظة (يدعم المعرف الرقمي واسم المحافظة بالعربية والإنجليزية)
-        governorate = request.query_params.get('governorate') or request.query_params.get('governorate_name')
-        if governorate and governorate != 'all' and str(governorate).strip() != '':
-            gov_str = str(governorate).strip()
-            gov_q = (
-                Q(student_profile__directorate__fk_governorate__name_ar=gov_str) |
-                Q(student_profile__directorate__fk_governorate__name_en=gov_str) |
-                Q(student__student_profile__directorate__fk_governorate__name_ar=gov_str) |
-                Q(student__student_profile__directorate__fk_governorate__name_en=gov_str) |
-                Q(examVersion__exam__governorate__name_ar=gov_str) |
-                Q(examVersion__exam__governorate__name_en=gov_str)
-            )
-            if gov_str.isdigit():
-                gov_id = int(gov_str)
+        # 3.1 فلتر المحافظة (يدعم تحديد مفرد أو متعدد عبر المعرفات الرقمية والأسماء)
+        gov_raw = request.query_params.getlist('governorate') or [request.query_params.get('governorate') or request.query_params.get('governorate_name') or '']
+        gov_list = [p.strip() for item in gov_raw for p in str(item).split(',') if p.strip() and p != 'all']
+        if gov_list:
+            gov_ids = [int(p) for p in gov_list if p.isdigit()]
+            gov_names = [p for p in gov_list if not p.isdigit()]
+            gov_q = Q()
+            if gov_ids:
                 gov_q |= (
-                    Q(student_profile__directorate__fk_governorate_id=gov_id) |
-                    Q(student__student_profile__directorate__fk_governorate_id=gov_id) |
-                    Q(examVersion__exam__governorate_id=gov_id)
+                    Q(student_profile__directorate__fk_governorate_id__in=gov_ids) |
+                    Q(student__student_profile__directorate__fk_governorate_id__in=gov_ids) |
+                    Q(examVersion__exam__governorate_id__in=gov_ids)
                 )
+            if gov_names:
+                for g_name in gov_names:
+                    gov_q |= (
+                        Q(student_profile__directorate__fk_governorate__name_ar__icontains=g_name) |
+                        Q(student_profile__directorate__fk_governorate__name_en__icontains=g_name) |
+                        Q(student__student_profile__directorate__fk_governorate__name_ar__icontains=g_name) |
+                        Q(examVersion__exam__governorate__name_ar__icontains=g_name)
+                    )
             registrations = registrations.filter(gov_q)
 
-        # 3.2 فلتر المديرية (يدعم المعرف الرقمي واسم المديرية بالعربية والإنجليزية)
-        directorate = request.query_params.get('directorate') or request.query_params.get('directorate_name')
-        if directorate and directorate != 'all' and str(directorate).strip() != '':
-            dir_str = str(directorate).strip()
-            dir_q = (
-                Q(student_profile__directorate__name_ar=dir_str) |
-                Q(student_profile__directorate__name_en=dir_str) |
-                Q(student__student_profile__directorate__name_ar=dir_str) |
-                Q(student__student_profile__directorate__name_en=dir_str) |
-                Q(examVersion__exam__directorate__name_ar=dir_str) |
-                Q(examVersion__exam__directorate__name_en=dir_str)
-            )
-            if dir_str.isdigit():
-                dir_id = int(dir_str)
+        # 3.2 فلتر المديرية (يدعم تحديد مفرد أو متعدد عبر المعرفات والأسماء)
+        dir_raw = request.query_params.getlist('directorate') or [request.query_params.get('directorate') or request.query_params.get('directorate_name') or '']
+        dir_list = [p.strip() for item in dir_raw for p in str(item).split(',') if p.strip() and p != 'all']
+        if dir_list:
+            dir_ids = [int(p) for p in dir_list if p.isdigit()]
+            dir_names = [p for p in dir_list if not p.isdigit()]
+            dir_q = Q()
+            if dir_ids:
                 dir_q |= (
-                    Q(student_profile__directorate_id=dir_id) |
-                    Q(student__student_profile__directorate_id=dir_id) |
-                    Q(examVersion__exam__directorate_id=dir_id)
+                    Q(student_profile__directorate_id__in=dir_ids) |
+                    Q(student__student_profile__directorate_id__in=dir_ids) |
+                    Q(examVersion__exam__directorate_id__in=dir_ids)
                 )
+            if dir_names:
+                for d_name in dir_names:
+                    dir_q |= (
+                        Q(student_profile__directorate__name_ar__icontains=d_name) |
+                        Q(student_profile__directorate__name_en__icontains=d_name) |
+                        Q(student__student_profile__directorate__name_ar__icontains=d_name) |
+                        Q(examVersion__exam__directorate__name_ar__icontains=d_name)
+                    )
             registrations = registrations.filter(dir_q)
 
-        # 3.3 فلتر المدرسة / المؤسسة (يدعم المعرف الرقمي والاسم)
-        school = request.query_params.get('school') or request.query_params.get('school_name') or request.query_params.get('organization')
-        if school and school != 'all' and str(school).strip() != '':
-            sch_str = str(school).strip()
-            sch_q = (
-                Q(student_profile__organization__name_ar=sch_str) |
-                Q(student_profile__organization__name_en=sch_str) |
-                Q(student__student_profile__organization__name_ar=sch_str) |
-                Q(student__student_profile__organization__name_en=sch_str)
-            )
-            if sch_str.isdigit():
-                sch_id = int(sch_str)
+        # 3.3 فلتر المدرسة / المركز الامتحاني (يدعم تحديد مفرد أو متعدد)
+        sch_raw = request.query_params.getlist('school') or [request.query_params.get('school') or request.query_params.get('school_name') or request.query_params.get('organization') or '']
+        sch_list = [p.strip() for item in sch_raw for p in str(item).split(',') if p.strip() and p != 'all']
+        if sch_list:
+            sch_ids = [int(p) for p in sch_list if p.isdigit()]
+            sch_names = [p for p in sch_list if not p.isdigit()]
+            sch_q = Q()
+            if sch_ids:
                 sch_q |= (
-                    Q(student_profile__organization_id=sch_id) |
-                    Q(student__student_profile__organization_id=sch_id)
+                    Q(student_profile__organization_id__in=sch_ids) |
+                    Q(student__student_profile__organization_id__in=sch_ids)
                 )
+            if sch_names:
+                for s_name in sch_names:
+                    sch_q |= (
+                        Q(student_profile__organization__name_ar__icontains=s_name) |
+                        Q(student_profile__organization__name_en__icontains=s_name) |
+                        Q(student__student_profile__organization__name_ar__icontains=s_name)
+                    )
             registrations = registrations.filter(sch_q)
 
         # 3.4 فلتر النموذج

@@ -29,13 +29,108 @@
     <!-- ── OMR Workflow Stepper (مسار مراحل التصحيح الآلي والكنترول خطوة بخطوة) ── -->
     <omr-workflow-bar :active-step="6" :exam-id="selectedExamId" />
 
-    <!-- ── بطاقة اختيار الاختبار الأكاديمي والتحكم بالكنترول (Executive Exam Selector) ── -->
+    <!-- ── بطاقة النطاق الجغرافي والإداري واختيار الاختبار (Geographic Hierarchy & Exam Selector) ── -->
     <div class="main-card pa-4 rounded-2xl mb-4 bg-surface border elevation-1">
-      <div class="d-flex align-center justify-space-between flex-wrap gap-4">
+      <!-- 1.1 المستوى الجغرافي: الدولة والمحافظات والمديريات والمراكز الامتحانية -->
+      <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3 border-b pb-3">
+        <div class="d-flex align-center gap-2">
+          <v-avatar color="primary" variant="tonal" size="28" class="rounded-lg">
+            <v-icon color="primary" size="16">mdi-map-marker-radius</v-icon>
+          </v-avatar>
+          <span class="text-subtitle-2 font-weight-black text-on-surface">
+            النطاق الجغرافي والمؤسسي المعتمد
+          </span>
+          <v-chip size="x-small" color="primary" variant="flat" class="font-weight-black ms-2">
+            اليمن
+          </v-chip>
+        </div>
+
+        <!-- شارة اعتماد النطاق المستهدف الذكية (مطابقة لـ exams-create) -->
+        <div v-if="scopeBadgeText" class="d-flex align-center gap-2">
+          <v-chip size="small" color="teal" variant="tonal" class="font-weight-black">
+            <v-icon start size="14">mdi-check-decagram</v-icon>
+            {{ scopeBadgeText }}
+          </v-chip>
+          <v-btn size="x-small" variant="text" color="error" class="font-weight-bold" @click="clearGeoFilters">
+            إعادة تعيين النطاق
+          </v-btn>
+        </div>
+      </div>
+
+      <!-- حقول النطاق الجغرافي المتسلسل من قاعدة البيانات -->
+      <v-row dense class="align-center mb-3">
+        <!-- المحافظات / مكاتب التربية بالمحافظات -->
+        <v-col cols="12" md="4">
+          <v-autocomplete
+            v-model="selectedGovernorates"
+            :items="governoratesList"
+            item-title="name_ar"
+            item-value="id"
+            label="مكاتب التربية بالمحافظات"
+            placeholder="اختر المحافظة (أمانة العاصمة، صنعاء، تعز...)"
+            multiple
+            chips
+            closable-chips
+            clearable
+            density="compact"
+            variant="outlined"
+            hide-details
+            prepend-inner-icon="mdi-city-variant-outline"
+            :loading="loadingGeo"
+            @update:model-value="onGovernoratesChange"
+          />
+        </v-col>
+
+        <!-- المديريات / إدارات التربية بالمديريات -->
+        <v-col cols="12" md="4">
+          <v-autocomplete
+            v-model="selectedDirectorates"
+            :items="filteredDirectoratesList"
+            item-title="name_ar"
+            item-value="id"
+            label="إدارات التربية بالمديريات"
+            placeholder="اختر المديريات المستهدفة..."
+            multiple
+            chips
+            closable-chips
+            clearable
+            density="compact"
+            variant="outlined"
+            hide-details
+            :disabled="!selectedGovernorates || selectedGovernorates.length === 0"
+            prepend-inner-icon="mdi-map-marker-radius"
+            @update:model-value="onDirectoratesChange"
+          />
+        </v-col>
+
+        <!-- المراكز الامتحانية والمدارس -->
+        <v-col cols="12" md="4">
+          <v-autocomplete
+            v-model="selectedSchools"
+            :items="filteredSchoolsList"
+            item-title="name_ar"
+            item-value="id"
+            label="المراكز الامتحانية والمدارس"
+            placeholder="ابحث بالاسم للمركز / المدرسة..."
+            multiple
+            chips
+            closable-chips
+            clearable
+            density="compact"
+            variant="outlined"
+            hide-details
+            prepend-inner-icon="mdi-school-outline"
+            @update:model-value="onSchoolsChange"
+          />
+        </v-col>
+      </v-row>
+
+      <!-- 1.2 اختيار الاختبار الأكاديمي النشط -->
+      <div class="d-flex align-center justify-space-between flex-wrap gap-4 pt-2 border-t">
         <div class="d-flex align-center gap-3 flex-grow-1" style="max-width: 650px;">
           <v-autocomplete
             v-model="selectedExamId"
-            :items="examsList"
+            :items="filteredExamsList"
             item-title="title"
             item-value="id"
             placeholder="اختر الاختبار الأكاديمي..."
@@ -158,11 +253,11 @@
         </div>
       </div>
 
-      <!-- شريط تصفية طلاب الاختبار المدمج -->
+      <!-- شريط تصفية نتائج الطلاب (البحث والنموذج والحالة والتقدير) -->
       <div class="main-card pa-3 px-4 rounded-2xl mb-4 bg-surface border">
         <v-row dense class="align-center">
           <!-- البحث السريع -->
-          <v-col cols="12" sm="6" md="3">
+          <v-col cols="12" sm="6" md="4">
             <v-text-field
               v-model="searchQuery"
               placeholder="بحث بالاسم أو رقم الجلوس أو السري..."
@@ -174,36 +269,6 @@
               @update:model-value="onSearchInput"
               @keydown.enter="applyFilters"
               @click:clear="onClearSearch"
-            />
-          </v-col>
-
-                    <!-- فلتر المديرية والمحافظة -->
-          <v-col cols="6" sm="3" md="2" v-if="availableDirectorates && availableDirectorates.length > 0">
-            <v-select
-              v-model="filterDirectorate"
-              :items="['الكل', ...availableDirectorates]"
-              placeholder="المديرية"
-              prepend-inner-icon="mdi-map-marker-radius"
-              density="compact"
-              variant="outlined"
-              hide-details
-              clearable
-              @update:model-value="applyFilters"
-            />
-          </v-col>
-
-          <!-- فلتر المدرسة -->
-          <v-col cols="6" sm="3" md="3" v-if="availableSchools.length > 0">
-            <v-select
-              v-model="filterOrganization"
-              :items="['الكل', ...availableSchools]"
-              placeholder="المدرسة / المركز"
-              prepend-inner-icon="mdi-school-outline"
-              density="compact"
-              variant="outlined"
-              hide-details
-              clearable
-              @update:model-value="applyFilters"
             />
           </v-col>
 
@@ -248,6 +313,22 @@
               item-value="value"
               placeholder="حالة التصحيح"
               prepend-inner-icon="mdi-filter-check-outline"
+              density="compact"
+              variant="outlined"
+              hide-details
+              @update:model-value="applyFilters"
+            />
+          </v-col>
+
+          <!-- حالة الكنترول والترحيل -->
+          <v-col cols="6" sm="3" md="2">
+            <v-select
+              v-model="filterDispatch"
+              :items="dispatchFilterOptions"
+              item-title="text"
+              item-value="value"
+              placeholder="حالة الكنترول"
+              prepend-inner-icon="mdi-shield-check-outline"
               density="compact"
               variant="outlined"
               hide-details
@@ -956,6 +1037,7 @@
 </template>
 
 <script>
+import api from '@/services/api'
 import { gradebookAPI, examsAPI } from '@/services/omr/endpoints'
 import OMRWorkflowBar from '@/components/OMRWorkflowBar.vue'
 
@@ -976,6 +1058,16 @@ export default {
 
       schoolsList: [],
       directoratesList: [],
+
+      // الهيكلية الجغرافية والمؤسسية الموحدة (قاعدة البيانات المركزية)
+      loadingGeo: false,
+      governoratesList: [],
+      allDirectoratesList: [],
+      allOrganizationsList: [],
+
+      selectedGovernorates: [],
+      selectedDirectorates: [],
+      selectedSchools: [],
 
       examMasterHeaders: [
         { title: "اسم الاختبار والمادة", key: "exam_title", sortable: true, align: "start" },
@@ -1375,6 +1467,60 @@ export default {
       )
     },
 
+    filteredDirectoratesList() {
+      if (!this.selectedGovernorates || this.selectedGovernorates.length === 0) {
+        return this.allDirectoratesList
+      }
+      return this.allDirectoratesList.filter(d => this.selectedGovernorates.includes(d.fk_governorate))
+    },
+
+    filteredSchoolsList() {
+      return this.allOrganizationsList
+    },
+
+    filteredExamsList() {
+      if (!this.selectedGovernorates?.length && !this.selectedDirectorates?.length) {
+        return this.examsList
+      }
+      const filtered = this.examsList.filter(e => {
+        let matchGov = true
+        let matchDir = true
+        if (this.selectedGovernorates?.length) {
+          matchGov = this.selectedGovernorates.includes(e.governorate_id) ||
+                     this.selectedGovernorates.some(gId => {
+                       const g = this.governoratesList.find(x => x.id === gId)
+                       return g && e.governorate_name && (e.governorate_name.includes(g.name_ar) || g.name_ar.includes(e.governorate_name))
+                     })
+        }
+        if (this.selectedDirectorates?.length) {
+          matchDir = this.selectedDirectorates.includes(e.directorate_id) ||
+                     this.selectedDirectorates.some(dId => {
+                       const d = this.allDirectoratesList.find(x => x.id === dId)
+                       return d && e.directorate_name && (e.directorate_name.includes(d.name_ar) || d.name_ar.includes(e.directorate_name))
+                     })
+        }
+        return matchGov && matchDir
+      })
+      return filtered.length > 0 ? filtered : this.examsList
+    },
+
+    scopeBadgeText() {
+      const parts = []
+      if (this.selectedGovernorates && this.selectedGovernorates.length > 0) {
+        parts.push(`${this.selectedGovernorates.length} محافظة`)
+      }
+      if (this.selectedDirectorates && this.selectedDirectorates.length > 0) {
+        parts.push(`${this.selectedDirectorates.length} مديرية`)
+      }
+      if (this.selectedSchools && this.selectedSchools.length > 0) {
+        parts.push(`${this.selectedSchools.length} مركز امتحاني / مدرسة`)
+      }
+      if (parts.length > 0) {
+        return `تم اعتماد تحديد ${parts.join(' و ')} في نطاق الرصد`
+      }
+      return ''
+    },
+
     activeFilterCount() {
       let count = 0
       if (this.filterInstitutionType && this.filterInstitutionType !== 'all') count++
@@ -1398,7 +1544,12 @@ export default {
   },
 
   async created() {
-    await this.fetchExamsList()
+    await Promise.all([
+      this.fetchExamsList(),
+      this.loadGovernorates(),
+      this.loadAllDirectorates(),
+      this.loadAllOrganizations(),
+    ])
     const queryExam = this.$route.query.exam || this.$route.query.open_exam_id
     if (queryExam) {
       this.selectedExamId = parseInt(queryExam) || queryExam
@@ -1585,6 +1736,100 @@ export default {
       this.applyFilters()
     },
 
+    async loadGovernorates() {
+      this.loadingGeo = true
+      try {
+        const res = await api.get('api/common/governorate/all/')
+        const data = res.data?.data || res.data?.results || res.data || []
+        this.governoratesList = (Array.isArray(data) ? data : []).map(item => ({
+          ...item,
+          id: item.id,
+          name: item.name || item.name_ar || item.name_en || '',
+          name_ar: item.name_ar || item.name || '',
+        }))
+      } catch (err) {
+        console.error('Error loading governorates:', err)
+      } finally {
+        this.loadingGeo = false
+      }
+    },
+
+    async loadAllDirectorates() {
+      try {
+        const res = await api.get('api/common/directorate/all/')
+        const data = res.data?.data || res.data?.results || res.data || []
+        this.allDirectoratesList = (Array.isArray(data) ? data : []).map(item => ({
+          ...item,
+          id: item.id,
+          name: item.name || item.name_ar || item.name_en || '',
+          name_ar: item.name_ar || item.name || '',
+          fk_governorate: item.fk_governorate,
+        }))
+      } catch (err) {
+        console.error('Error loading directorates:', err)
+      }
+    },
+
+    async loadAllOrganizations() {
+      await this.loadOrganizationsForScope()
+    },
+
+    async loadOrganizationsForScope() {
+      try {
+        const params = []
+        if (this.selectedGovernorates && this.selectedGovernorates.length > 0) {
+          params.push(`governorate=${this.selectedGovernorates.join(',')}`)
+        }
+        if (this.selectedDirectorates && this.selectedDirectorates.length > 0) {
+          params.push(`directorate=${this.selectedDirectorates.join(',')}`)
+        }
+        const qs = params.length > 0 ? `?${params.join('&')}` : ''
+        const res = await api.get(`api/academic/organizations/all/${qs}`)
+        const data = res.data?.data || res.data?.results || res.data || []
+        this.allOrganizationsList = (Array.isArray(data) ? data : []).map(item => ({
+          ...item,
+          id: item.id,
+          name_ar: item.name_ar || item.name || '',
+          name_en: item.name_en || '',
+        }))
+      } catch (err) {
+        console.error('Error loading organizations for scope:', err)
+      }
+    },
+
+    async onGovernoratesChange() {
+      // Clear directorates and schools that do not belong to the selected governorates
+      if (this.selectedGovernorates && this.selectedGovernorates.length > 0) {
+        this.selectedDirectorates = (this.selectedDirectorates || []).filter(dirId => {
+          const dir = this.allDirectoratesList.find(d => d.id === dirId)
+          return dir && this.selectedGovernorates.includes(dir.fk_governorate)
+        })
+      } else {
+        this.selectedDirectorates = []
+      }
+      this.selectedSchools = []
+      await this.loadOrganizationsForScope()
+      this.applyFilters()
+    },
+
+    async onDirectoratesChange() {
+      this.selectedSchools = []
+      await this.loadOrganizationsForScope()
+      this.applyFilters()
+    },
+
+    onSchoolsChange() {
+      this.applyFilters()
+    },
+
+    async clearGeoFilters() {
+      this.selectedGovernorates = []
+      this.selectedDirectorates = []
+      this.selectedSchools = []
+      await this.loadOrganizationsForScope()
+      this.applyFilters()
+    },
+
     onGovernorateChange(val) {
       if (val !== undefined) this.filterGovernorate = val
       this.filterDirectorate = null
@@ -1651,6 +1896,9 @@ export default {
 
     resetFilterSelections() {
       this.searchQuery = ''
+      this.selectedGovernorates = []
+      this.selectedDirectorates = []
+      this.selectedSchools = []
       this.filterGovernorate = null
       this.filterDirectorate = null
       this.filterOrganization = null
@@ -1719,13 +1967,21 @@ export default {
       if (this.searchQuery && this.searchQuery.trim()) {
         queryParams.search = this.searchQuery.trim()
       }
-      if (this.filterGovernorate && this.filterGovernorate !== 'all') {
+      if (this.selectedGovernorates && this.selectedGovernorates.length > 0) {
+        queryParams.governorate = this.selectedGovernorates.join(',')
+      } else if (this.filterGovernorate && this.filterGovernorate !== 'all') {
         queryParams.governorate = this.filterGovernorate
       }
-      if (this.filterDirectorate && this.filterDirectorate !== 'all') {
+
+      if (this.selectedDirectorates && this.selectedDirectorates.length > 0) {
+        queryParams.directorate = this.selectedDirectorates.join(',')
+      } else if (this.filterDirectorate && this.filterDirectorate !== 'all') {
         queryParams.directorate = this.filterDirectorate
       }
-      if (this.filterOrganization && this.filterOrganization !== 'all') {
+
+      if (this.selectedSchools && this.selectedSchools.length > 0) {
+        queryParams.school = this.selectedSchools.join(',')
+      } else if (this.filterOrganization && this.filterOrganization !== 'all') {
         queryParams.organization = this.filterOrganization
         queryParams.school = this.filterOrganization
       } else if (this.filterSchool && this.filterSchool !== 'all') {

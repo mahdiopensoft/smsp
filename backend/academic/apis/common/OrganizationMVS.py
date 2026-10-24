@@ -20,17 +20,20 @@ class OrganizationMVS(AllMVS):
         if inst_type and inst_type != 'all':
             qs = qs.filter(institution_type=inst_type)
 
-        gov_id = self.request.query_params.get('governorate') or self.request.query_params.get('governorate_id')
-        dir_id = self.request.query_params.get('directorate') or self.request.query_params.get('directorate_id')
+        gov_raw = self.request.query_params.getlist('governorate') or [self.request.query_params.get('governorate') or self.request.query_params.get('governorate_id') or '']
+        gov_ids = [int(p.strip()) for item in gov_raw for p in str(item).split(',') if p.strip().isdigit()]
 
-        if gov_id or dir_id:
+        dir_raw = self.request.query_params.getlist('directorate') or [self.request.query_params.get('directorate') or self.request.query_params.get('directorate_id') or '']
+        dir_ids = [int(p.strip()) for item in dir_raw for p in str(item).split(',') if p.strip().isdigit()]
+
+        if gov_ids or dir_ids:
             try:
                 from OpenSoftCoreV41.common.models.Branch import Organization as CoreOrg
                 core_qs = CoreOrg.objects.filter(is_deleted=False)
-                if gov_id:
-                    core_qs = core_qs.filter(fk_governorate_id=gov_id)
-                if dir_id:
-                    core_qs = core_qs.filter(fk_directorate_id=dir_id)
+                if gov_ids:
+                    core_qs = core_qs.filter(fk_governorate_id__in=gov_ids)
+                if dir_ids:
+                    core_qs = core_qs.filter(fk_directorate_id__in=dir_ids)
 
                 matching_names = list(core_qs.values_list('name_ar', flat=True))
                 if matching_names:
