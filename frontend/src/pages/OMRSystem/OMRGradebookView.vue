@@ -589,6 +589,21 @@
               ترحيل الدرجات للكنترول
             </v-btn>
 
+            <!-- زر إلغاء الترحيل (إذا تم ترحيله مسبقاً) -->
+            <v-btn
+              v-if="activeExamStats.dispatched_count > 0"
+              color="warning"
+              variant="tonal"
+              size="small"
+              rounded="lg"
+              class="font-weight-bold px-3"
+              prepend-icon="mdi-undo-variant"
+              :loading="rollbackLoading"
+              @click="confirmRollbackDispatch"
+            >
+              إلغاء الترحيل
+            </v-btn>
+
             <!-- قائمة التصدير والتقارير -->
             <v-menu transition="slide-y-transition" location="bottom end">
               <template v-slot:activator="{ props }">
@@ -602,14 +617,14 @@
                   append-icon="mdi-chevron-down"
                   prepend-icon="mdi-printer-outline"
                 >
-                  خيارات التصدير والتقارير
+                  خيارات الكشف والتصدير
                 </v-btn>
               </template>
               <v-list density="compact" rounded="lg" elevation="6" class="py-1">
-                <v-list-item prepend-icon="mdi-file-excel-outline" title="تصدير كشف الكنترول (Excel)" @click="exportToExcel" />
+                <v-list-item prepend-icon="mdi-file-excel-outline" title="تصدير كشف الكنترول (Excel/CSV)" @click="exportToExcel" />
                 <v-list-item prepend-icon="mdi-printer-outline" title="طباعة كشف الكنترول الرسمي" @click="printRosterSheet" />
                 <v-divider class="my-1" />
-                <v-list-item prepend-icon="mdi-chart-bell-curve-cumulative" title="التحليل السيكومتري (Item Analysis)" @click="openPsychometricsDialog" />
+                <v-list-item prepend-icon="mdi-chart-bell-curve-cumulative" title="التحليل السيكومتري (Item Analysis)" :disabled="!selectedExamId" @click="openPsychometricsDialog" />
               </v-list>
             </v-menu>
           </div>
@@ -755,75 +770,8 @@
           </span>
         </div>
 
-        <!-- قسم العمليات والترحيل والتقارير عند اختيار اختبار -->
-        <div class="d-flex align-center gap-2 flex-wrap" v-if="selectedExamObj">
-          <!-- زر الترحيل الشامل للاختبار (Primary CTA) -->
-          <v-btn
-            color="success"
-            size="small"
-            rounded="lg"
-            class="font-weight-bold px-4"
-            prepend-icon="mdi-send-check"
-            :loading="dispatchingLoading"
-            :disabled="activeExamStats.completed_count === 0 || activeExamStats.is_fully_dispatched"
-            @click="openDispatchDialog"
-          >
-            ترحيل الدرجات للكنترول
-          </v-btn>
-
-          <!-- زر إلغاء الترحيل (إذا تم ترحيله مسبقاً) -->
-          <v-btn
-            v-if="activeExamStats.dispatched_count > 0"
-            color="warning"
-            variant="tonal"
-            size="small"
-            rounded="lg"
-            class="font-weight-bold px-3"
-            prepend-icon="mdi-undo-variant"
-            :loading="rollbackLoading"
-            @click="confirmRollbackDispatch"
-          >
-            إلغاء الترحيل
-          </v-btn>
-
-          <!-- قائمة خيارات الكشف والتقارير -->
-          <v-menu transition="slide-y-transition" location="bottom end">
-            <template v-slot:activator="{ props }">
-              <v-btn
-                v-bind="props"
-                color="primary"
-                variant="tonal"
-                size="small"
-                rounded="lg"
-                class="font-weight-bold px-3"
-                append-icon="mdi-chevron-down"
-                prepend-icon="mdi-printer-outline"
-              >
-                خيارات الكشف والتقارير
-              </v-btn>
-            </template>
-            <v-list density="compact" rounded="lg" elevation="6" class="py-1">
-              <v-list-item
-                prepend-icon="mdi-file-excel-outline"
-                title="تصدير كشف الكنترول (Excel/CSV)"
-                @click="exportToExcel"
-              />
-              <v-list-item
-                prepend-icon="mdi-printer-outline"
-                title="طباعة كشف الكنترول الرسمي"
-                @click="printRosterSheet"
-              />
-              <v-divider class="my-1" />
-              <v-list-item
-                prepend-icon="mdi-chart-bell-curve-cumulative"
-                title="التحليل السيكومتري (Item Analysis)"
-                :disabled="!selectedExamId"
-                @click="openPsychometricsDialog"
-              />
-            </v-list>
-          </v-menu>
-
-          <!-- إعادة تحميل الكشف -->
+        <!-- إجراءات تحديث الكشف -->
+        <div class="d-flex align-center gap-2" v-if="selectedExamObj">
           <v-btn
             icon="mdi-refresh"
             variant="text"
@@ -831,7 +779,7 @@
             color="medium-emphasis"
             title="إعادة تحميل الكشف"
             :loading="loadingRecords"
-            @click="loadRoster(selectedExamId)"
+            @click="fetchGradebookRoster({ params: { page: 1 } })"
           />
         </div>
       </div>
@@ -1971,15 +1919,19 @@ export default {
       this.selectedOfficeId = item.id
       this.selectedDirectorateId = null
       this.selectedSchoolId = null
-      
-      const matchExam = this.examsList.find(e => e.institution_type === this.institutionType) || this.examsList[0]
-      if (matchExam) {
-        this.selectedExamId = matchExam.id
-        this.selectedExamObj = matchExam
-      }
-      this.currentView = 'detail'
       this.resetFilterSelections()
       this.selectedStudentIds = []
+
+      // جلب الاختبارات الخاصة بهذا المكتب فقط
+      const offExams = await this.fetchExamsList({ office_id: item.id })
+      if (offExams && offExams.length > 0) {
+        this.selectedExamId = offExams[0].id
+        this.selectedExamObj = offExams[0]
+      } else {
+        this.selectedExamId = null
+        this.selectedExamObj = null
+      }
+      this.currentView = 'detail'
       await this.fetchGradebookRoster({ params: { page: 1, page_size: 10, office_id: item.id } })
     },
 
@@ -1990,15 +1942,19 @@ export default {
       if (item.office_id) {
         this.selectedOfficeId = item.office_id
       }
-      
-      const matchExam = this.examsList.find(e => e.institution_type === this.institutionType) || this.examsList[0]
-      if (matchExam) {
-        this.selectedExamId = matchExam.id
-        this.selectedExamObj = matchExam
-      }
-      this.currentView = 'detail'
       this.resetFilterSelections()
       this.selectedStudentIds = []
+
+      // جلب الاختبارات الخاصة بهذه المديرية فقط
+      const dirExams = await this.fetchExamsList({ directorate_id: item.id })
+      if (dirExams && dirExams.length > 0) {
+        this.selectedExamId = dirExams[0].id
+        this.selectedExamObj = dirExams[0]
+      } else {
+        this.selectedExamId = null
+        this.selectedExamObj = null
+      }
+      this.currentView = 'detail'
       await this.fetchGradebookRoster({ params: { page: 1, page_size: 10, directorate_id: item.id } })
     },
 
@@ -2014,20 +1970,34 @@ export default {
 
     async openSchoolRoster(item) {
       if (!item) return
-      const matchExam = this.examsList.find(e => e.institution_type === this.institutionType) || this.examsList[0]
-      if (matchExam) {
-        this.selectedExamId = matchExam.id
-        this.selectedExamObj = matchExam
-      }
-      this.currentView = 'detail'
+      this.selectedSchoolId = item.id
+      this.selectedDirectorateId = null
+      this.selectedOfficeId = null
       this.resetFilterSelections()
       this.filterOrganization = item.name
       this.selectedStudentIds = []
-      await this.fetchGradebookRoster({ params: { page: 1, page_size: 10 } })
+
+      // جلب الاختبارات الخاصة بهذه المدرسة فقط
+      const schoolExams = await this.fetchExamsList({ school_id: item.id })
+      if (schoolExams && schoolExams.length > 0) {
+        this.selectedExamId = schoolExams[0].id
+        this.selectedExamObj = schoolExams[0]
+      } else {
+        this.selectedExamId = null
+        this.selectedExamObj = null
+      }
+      this.currentView = 'detail'
+      await this.fetchGradebookRoster({ params: { page: 1, page_size: 10, school: item.name, school_id: item.id } })
     },
 
     returnToMaster() {
       this.currentView = 'master'
+      this.selectedOfficeId = null
+      this.selectedDirectorateId = null
+      this.selectedSchoolId = null
+      this.filterOrganization = null
+      this.resetFilterSelections()
+      this.fetchExamsList()
       this.refreshMasterData()
     },
 
@@ -2394,6 +2364,9 @@ export default {
       }
       if (this.selectedDirectorateId) {
         queryParams.directorate_id = this.selectedDirectorateId
+      }
+      if (this.selectedSchoolId) {
+        queryParams.school_id = this.selectedSchoolId
       }
       if (this.filterDispatch && this.filterDispatch !== 'all') {
         queryParams.dispatch = this.filterDispatch

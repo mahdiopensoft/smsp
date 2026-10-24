@@ -308,6 +308,7 @@ class ExamGradebookMVS(ViewSet):
                 "schools_count": schools_cnt,
                 "max_score": exam_max_score,
                 "total_registered": total_registered,
+                "total_students": total_registered,
                 "total_submissions": total_submissions,
                 "completed_count": completed_subs,
                 "needs_review_count": needs_review_subs,
@@ -347,7 +348,7 @@ class ExamGradebookMVS(ViewSet):
             dir_names = list(child_dirs.values_list('name_ar', flat=True))
             clean_dir_names = [d.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip() for d in dir_names]
 
-            regs = StudentExamRegistration.objects.filter(is_deleted=False).filter(
+            regs = StudentExamRegistration.objects.filter(is_deleted=False, examVersion__exam__is_deleted=False).filter(
                 Q(student_profile__organization__name_ar__in=school_names) |
                 Q(student_profile__directorate__name_ar__in=clean_dir_names) |
                 Q(student_profile__directorate__name_ar__in=dir_names)
@@ -399,7 +400,7 @@ class ExamGradebookMVS(ViewSet):
             school_names = list(child_schools.values_list('name_ar', flat=True))
             clean_dir_name = d.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip()
 
-            regs = StudentExamRegistration.objects.filter(is_deleted=False).filter(
+            regs = StudentExamRegistration.objects.filter(is_deleted=False, examVersion__exam__is_deleted=False).filter(
                 Q(student_profile__organization__name_ar__in=school_names) |
                 Q(student_profile__directorate__name_ar__icontains=clean_dir_name) |
                 Q(student_profile__directorate__name_ar__icontains=d.name_ar)
@@ -445,6 +446,7 @@ class ExamGradebookMVS(ViewSet):
 
         regs_qs = StudentExamRegistration.objects.filter(
             is_deleted=False, 
+            examVersion__exam__is_deleted=False,
             student_profile__organization__isnull=False
         )
         if search:
@@ -787,6 +789,9 @@ class ExamGradebookMVS(ViewSet):
 
         # 3.3 فلتر المدرسة / المركز الامتحاني (يدعم تحديد مفرد أو متعدد)
         sch_raw = request.query_params.getlist('school') or [request.query_params.get('school') or request.query_params.get('school_name') or request.query_params.get('organization') or '']
+        req_school_id = request.query_params.get('school_id')
+        if req_school_id and str(req_school_id).strip():
+            sch_raw.append(str(req_school_id).strip())
         sch_list = [p.strip() for item in sch_raw for p in str(item).split(',') if p.strip() and p != 'all']
         if sch_list:
             sch_ids = [int(p) for p in sch_list if p.isdigit()]
