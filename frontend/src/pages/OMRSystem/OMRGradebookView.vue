@@ -106,7 +106,7 @@
         <custom-data-table
           :headers="examMasterHeaders"
           :items="masterExamsTableItems"
-          :getData="() => {}"
+          :getData="fetchMasterExamsTable"
           :customLoading="loadingExams"
           class="bg-transparent"
           :hasFilter="false"
@@ -250,7 +250,7 @@
         <custom-data-table
           :headers="schoolMasterHeaders"
           :items="masterSchoolsTableItems"
-          :getData="() => {}"
+          :getData="fetchMasterSchoolsTable"
           :customLoading="loadingMaster"
           class="bg-transparent"
           :hasFilter="false"
@@ -343,7 +343,7 @@
         <custom-data-table
           :headers="directorateMasterHeaders"
           :items="masterDirectoratesTableItems"
-          :getData="() => {}"
+          :getData="fetchMasterDirectoratesTable"
           :customLoading="loadingMaster"
           class="bg-transparent"
           :hasFilter="false"
@@ -1795,8 +1795,10 @@ export default {
         const res = await gradebookAPI.getBySchool()
         const data = res.data
         this.schoolsList = data?.results || (Array.isArray(data) ? data : [])
+        return this.schoolsList
       } catch (err) {
         console.error('Error fetching schools summary:', err)
+        return []
       }
     },
 
@@ -1805,9 +1807,23 @@ export default {
         const res = await gradebookAPI.getByDirectorate()
         const data = res.data
         this.directoratesList = data?.results || (Array.isArray(data) ? data : [])
+        return this.directoratesList
       } catch (err) {
         console.error('Error fetching directorates summary:', err)
+        return []
       }
+    },
+
+    async fetchMasterExamsTable() {
+      return await this.fetchExamsList()
+    },
+
+    async fetchMasterSchoolsTable() {
+      return await this.fetchSchoolsList()
+    },
+
+    async fetchMasterDirectoratesTable() {
+      return await this.fetchDirectoratesList()
     },
 
     async openExamRoster(item) {
@@ -1860,6 +1876,7 @@ export default {
           this.selectedExamId = this.examsList[0].id
           await this.fetchGradebookRoster({ params: { page: 1, page_size: 10 } })
         }
+        return this.examsList
       } catch (err) {
         console.error('Error fetching exams for gradebook:', err)
         try {
@@ -1879,8 +1896,10 @@ export default {
             this.selectedExamId = this.examsList[0].id
             await this.fetchGradebookRoster({ params: { page: 1, page_size: 10 } })
           }
+          return this.examsList
         } catch (exErr) {
           this.notify('تعذر جلب قائمة الاختبارات', 'error')
+          return []
         }
       } finally {
         this.loadingExams = false
@@ -2097,7 +2116,7 @@ export default {
     async fetchGradebookRoster(tableParams = null) {
       if (!this.selectedExamId) {
         this.tableItems = { results: [], pagination: { count: 0, num_pages: 1, current_page: 1, page_size: 10, total: 0 } }
-        return
+        return this.tableItems
       }
       this.loadingRecords = true
       try {
@@ -2163,9 +2182,11 @@ export default {
             }
           }
         }
+        return this.tableItems
       } catch (err) {
         console.error('Error loading gradebook roster from backend:', err)
         this.notify('تعذر تحميل كشف درجات الاختبار', 'error')
+        return this.tableItems
       } finally {
         this.loadingRecords = false
       }
