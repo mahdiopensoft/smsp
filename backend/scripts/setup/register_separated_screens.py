@@ -26,9 +26,8 @@ def register_screens():
         {"icon": "barcode", "name": "subject_code", "index": 3, "label": "كود المادة الوزاري"},
         {"icon": "sort-numeric-ascending", "name": "subject_order", "index": 4, "label": "ترتيب المادة"},
         {"icon": "bank", "name": "is_ministerial", "index": 5, "label": "مادة وزارية"},
-        {"icon": "file-tree", "name": "is_detailed", "index": 6, "label": "تفصيلي"},
-        {"icon": "note-text", "name": "note", "index": 7, "label": "ملاحظات"},
-        {"icon": "check-circle-outline", "name": "is_active", "index": 8, "label": "حالة التفعيل"},
+        {"icon": "note-text", "name": "note", "index": 6, "label": "ملاحظات"},
+        {"icon": "check-circle-outline", "name": "is_active", "index": 7, "label": "حالة التفعيل"},
     ]
 
     # البحث عن الشاشة الحالية للمواد لتحديثها وتفادي تعارض unique_component_per_parent

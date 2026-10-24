@@ -19,15 +19,38 @@ class ExamDistributionMVS(AllMVS):
     """
     queryset = ExamDistribution.objects.filter(is_deleted=False).select_related(
         'exam__subject', 'exam__year'
-    ).prefetch_related('organizations', 'school_statuses__school')
+    ).prefetch_related(
+        'organizations',
+        'school_statuses__school__fk_governorate',
+        'school_statuses__school__fk_directorate'
+    )
     serializer_class = ExamDistributionSerializer
+    filterset_fields = {
+        'target_level': ['exact'],
+        'status': ['exact'],
+        'target_system': ['exact'],
+    }
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        inst_type = self.request.query_params.get('institution_type') or self.request.query_params.get('target_system')
+        if inst_type and inst_type != 'all':
+            from django.db.models import Q
+            qs = qs.filter(Q(exam__institution_type=inst_type) | Q(target_system=inst_type))
+        target_level = self.request.query_params.get('target_level')
+        if target_level and target_level != 'all':
+            qs = qs.filter(target_level=target_level)
+        status_val = self.request.query_params.get('status')
+        if status_val and status_val != 'all':
+            qs = qs.filter(status=status_val)
+        return qs
 
     @action(detail=False, methods=['get', 'post'], url_path='resolve-hierarchy', permission_classes=[AllowAny], pagination_class=None)
     def resolve_hierarchy(self, request):
         """
         يقوم بفك الاستهداف الهرمي وتحويل (الوزارة أو المحافظات أو المديريات)
         إلى قائمة فعلية بجميع المدارس المستهدفة (company_level = 50).
-        يعرض كافة المدارس (30 مدرسة) دفعة واحدة دون أي بجنشن (Unpaginated).
+        يدعم البجنشن من الباكند عبر page و page_size / limit مع إرجاع إجمالي المدارس المستهدفة وجميع المعرفات.
         """
         target_level = request.data.get('target_level') if hasattr(request, 'data') and request.data else None
         if not target_level:
@@ -48,7 +71,32 @@ class ExamDistributionMVS(AllMVS):
         if not exam_id:
             exam_id = request.query_params.get('exam_id')
 
+        inst_type = (request.data.get('institution_type') if hasattr(request, 'data') and request.data else None) or request.query_params.get('institution_type')
+        if not inst_type and exam_id:
+            try:
+                from exams.models.Exam import Exam
+                exam_obj = Exam.objects.filter(id=exam_id).first()
+                if exam_obj and getattr(exam_obj, 'institution_type', None):
+                    inst_type = exam_obj.institution_type
+            except Exception:
+                pass
+
         schools_qs = Organization.objects.filter(is_deleted=False, company_level=50)
+
+        # فلترة حسب نوع المؤسسة إن وُجد (مدرسة / معهد / جامعة) عبر مطابقة academic.Organization
+        if inst_type and inst_type != 'all':
+            try:
+                from academic.models.common.Organization import Organization as AcademicOrg
+                if inst_type == 'school':
+                    non_school_names = list(AcademicOrg.objects.filter(institution_type__in=['university', 'institute']).values_list('name_ar', flat=True))
+                    if non_school_names:
+                        schools_qs = schools_qs.exclude(name_ar__in=non_school_names)
+                elif inst_type in ['university', 'institute']:
+                    typed_names = list(AcademicOrg.objects.filter(institution_type=inst_type).values_list('name_ar', flat=True))
+                    if typed_names:
+                        schools_qs = schools_qs.filter(name_ar__in=typed_names)
+            except Exception:
+                pass
 
         if target_level == 'ministry':
             # يشمل جميع المدارس بالكامل في الجمهورية
@@ -96,27 +144,170 @@ class ExamDistributionMVS(AllMVS):
                 if scope_q:
                     final_schools = final_schools.filter(scope_q)
 
-        final_schools = final_schools.distinct().select_related('fk_governorate', 'fk_directorate').order_by('branch_no', 'id')
+        # البحث إن وجد
+        search = (request.data.get('search') if hasattr(request, 'data') and request.data else None) or request.query_params.get('search')
+        if search:
+            from django.db.models import Q
+            search = str(search).strip()
+            final_schools = final_schools.filter(
+                Q(name_ar__icontains=search) |
+                Q(name_en__icontains=search) |
+                Q(branch_no__icontains=search) |
+                Q(fk_governorate__name_ar__icontains=search) |
+                Q(fk_directorate__name_ar__icontains=search)
+            )
 
-        data = [
-            {
+        # فلترة إضافية حسب المحافظة والمديرية (وفق هيكلية المؤسسات التعليمية company_level=30 و company_level=40)
+        from django.db.models import Q
+        filter_governorate = request.data.get('filter_governorate') if hasattr(request, 'data') and request.data else None
+        if not filter_governorate:
+            filter_governorate = request.query_params.get('filter_governorate')
+        if filter_governorate:
+            try:
+                filter_governorate = int(filter_governorate)
+                gov_org = Organization.objects.filter(id=filter_governorate).first()
+                gov_q = (
+                    Q(fk_parent_organization__fk_parent_organization_id=filter_governorate) |
+                    Q(fk_parent_organization_id=filter_governorate)
+                )
+                if gov_org and getattr(gov_org, 'fk_governorate_id', None):
+                    gov_q |= Q(fk_governorate_id=gov_org.fk_governorate_id)
+                gov_q |= Q(fk_governorate_id=filter_governorate)
+                final_schools = final_schools.filter(gov_q)
+            except (ValueError, TypeError):
+                pass
+
+        filter_directorate = request.data.get('filter_directorate') if hasattr(request, 'data') and request.data else None
+        if not filter_directorate:
+            filter_directorate = request.query_params.get('filter_directorate')
+        if filter_directorate:
+            try:
+                filter_directorate = int(filter_directorate)
+                dir_org = Organization.objects.filter(id=filter_directorate).first()
+                dir_q = Q(fk_parent_organization_id=filter_directorate)
+                if dir_org and getattr(dir_org, 'fk_directorate_id', None):
+                    dir_q |= Q(fk_directorate_id=dir_org.fk_directorate_id)
+                dir_q |= Q(fk_directorate_id=filter_directorate)
+                final_schools = final_schools.filter(dir_q)
+            except (ValueError, TypeError):
+                pass
+
+        final_schools = final_schools.distinct().select_related(
+            'fk_governorate',
+            'fk_directorate',
+            'fk_parent_organization',
+            'fk_parent_organization__fk_parent_organization'
+        ).order_by('branch_no', 'id')
+
+        total_count = final_schools.count()
+        all_school_ids = list(final_schools.values_list('id', flat=True))
+
+        paginate_param = request.data.get('paginate') if hasattr(request, 'data') and request.data else None
+        if paginate_param is None:
+            paginate_param = request.query_params.get('paginate')
+
+        is_unpaginated = paginate_param is not None and str(paginate_param).lower() in ['false', '0', 'no']
+
+        if is_unpaginated:
+            paginated_schools = list(final_schools)
+            page = 1
+            page_size = total_count if total_count > 0 else 10
+            num_pages = 1
+        else:
+            try:
+                page = int(request.data.get('page') or request.query_params.get('page', 1) or 1)
+            except (ValueError, TypeError):
+                page = 1
+
+            try:
+                page_size = int(request.data.get('page_size') or request.data.get('limit') or request.query_params.get('page_size') or request.query_params.get('limit', 10) or 10)
+            except (ValueError, TypeError):
+                page_size = 10
+
+            from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+            paginator = Paginator(final_schools, page_size)
+            try:
+                page_obj = paginator.page(page)
+            except (EmptyPage, PageNotAnInteger):
+                page_obj = paginator.page(1)
+                page = 1
+
+            paginated_schools = list(page_obj.object_list)
+            num_pages = paginator.num_pages
+
+        data = []
+        for s in paginated_schools:
+            gov_name = '-'
+            dir_name = '-'
+
+            parent = getattr(s, 'fk_parent_organization', None)
+            if parent:
+                if getattr(parent, 'company_level', None) == 40:
+                    dir_name = parent.name_ar or parent.name_en or getattr(parent, 'name', '-')
+                    grandparent = getattr(parent, 'fk_parent_organization', None)
+                    if grandparent and getattr(grandparent, 'company_level', None) == 30:
+                        gov_name = grandparent.name_ar or grandparent.name_en or getattr(grandparent, 'name', '-')
+                elif getattr(parent, 'company_level', None) == 30:
+                    gov_name = parent.name_ar or parent.name_en or getattr(parent, 'name', '-')
+
+            if gov_name == '-' and s.fk_governorate:
+                gov_name = getattr(s.fk_governorate, 'name_ar', getattr(s.fk_governorate, 'name', '-'))
+            if dir_name == '-' and s.fk_directorate:
+                dir_name = getattr(s.fk_directorate, 'name_ar', getattr(s.fk_directorate, 'name', '-'))
+
+            data.append({
                 "id": s.id,
                 "name_ar": s.name_ar,
                 "name_en": s.name_en or s.name_ar,
                 "branch_no": s.branch_no,
-                "governorate": s.fk_governorate.name_ar if s.fk_governorate else '-',
-                "directorate": s.fk_directorate.name_ar if s.fk_directorate else '-',
-            }
-            for s in final_schools
-        ]
+                "governorate": gov_name,
+                "directorate": dir_name,
+            })
 
         return Response({
             "success": True,
             "target_level": target_level,
-            "total_schools": len(data),
-            "count": len(data),
+            "total_schools": total_count,
+            "all_school_ids": all_school_ids,
+            "count": total_count,
+            "num_pages": num_pages,
+            "current_page": page,
+            "page_size": page_size,
+            "results": data,
             "schools": data,
-            "results": data
+            "pagination": {
+                "count": total_count,
+                "num_pages": num_pages,
+                "current_page": page,
+                "page_size": page_size,
+            }
+        })
+
+    @action(detail=False, methods=['get'], url_path='educational-hierarchy')
+    def educational_hierarchy(self, request):
+        """
+        جلب هيكلية المؤسسات التعليمية (المستويات: 20=وزارة، 30=مكاتب محافظات، 40=إدارات مديريات، 50=مدارس)
+        وفق جدول المؤسسات OpenSoftCoreV41.common.models.Branch.Organization
+        """
+        orgs = Organization.objects.filter(is_deleted=False).values(
+            'id', 'name_ar', 'name_en', 'company_level', 'branch_no', 'fk_parent_organization_id'
+        ).order_by('company_level', 'branch_no', 'id')
+
+        data = [
+            {
+                "id": o['id'],
+                "name_ar": o['name_ar'],
+                "name_en": o['name_en'] or o['name_ar'],
+                "company_level": o['company_level'],
+                "branch_no": o['branch_no'],
+                "fk_parent_organization": o['fk_parent_organization_id'],
+            }
+            for o in orgs
+        ]
+        return Response({
+            "success": True,
+            "message": "✅ تم جلب هيكلية المؤسسات التعليمية بنجاح",
+            "data": data
         })
 
     @action(detail=False, methods=['post'], url_path='create-dispatch')
@@ -174,7 +365,7 @@ class ExamDistributionMVS(AllMVS):
         # إذا لم يتم تمرير المدارس مباشرة، يتم فك الهيكلية
         if not selected_school_ids:
             res = self.resolve_hierarchy(request)
-            selected_school_ids = [s["id"] for s in res.data.get("schools", [])]
+            selected_school_ids = res.data.get("all_school_ids") or [s["id"] for s in res.data.get("schools", [])]
 
         # التحقق من تقيد المدارس بنطاق استهداف الاختبار الجغرافي إن وجد
         from exams.models.ExamTargetScope import ExamTargetScope

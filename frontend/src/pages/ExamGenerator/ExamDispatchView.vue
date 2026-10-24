@@ -5,17 +5,26 @@
       <!-- System Filters Component -->
       <filter-fields label="خيارات البحث وتصفية مهام التوزيع" class="main-card border-0 pa-5 rounded-2xl mb-8">
         <v-row dense class="align-center">
-          <v-col cols="12" sm="6" md="4">
-            <v-text-field
-              v-model="searchQuery"
-              placeholder="بحث بالعنوان أو المادة أو الرمز..."
-              prepend-inner-icon="mdi-magnify"
+          <!-- فلتر نوع المؤسسة والنظام التعليمي (مدارس / جامعات / معاهد) -->
+          <v-col cols="12" sm="6" md="3">
+            <v-select
+              v-model="filterInstitutionType"
+              :items="institutionTypeFilterOptions"
+              item-title="label"
+              item-value="value"
+              placeholder="نوع المؤسسة (مدارس / جامعات / معاهد)"
+              prepend-inner-icon="mdi-domain"
               clearable
               density="compact"
               variant="outlined"
               hide-details
               class="mb-6"
-            />
+              @update:model-value="onInstitutionTypeFilterChange"
+            >
+              <template v-slot:item="{ props, item }">
+                <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
+              </template>
+            </v-select>
           </v-col>
 
           <v-col cols="12" sm="6" md="3">
@@ -31,10 +40,11 @@
               variant="outlined"
               hide-details
               class="mb-6"
+              @update:model-value="applyFilters"
             />
           </v-col>
 
-          <v-col cols="12" sm="6" md="2">
+          <v-col cols="12" sm="6" md="3">
             <v-select
               v-model="filterStatus"
               :items="statusFilterOptions"
@@ -47,6 +57,7 @@
               variant="outlined"
               hide-details
               class="mb-6"
+              @update:model-value="applyFilters"
             />
           </v-col>
 
@@ -112,6 +123,14 @@
                   </div>
                 </div>
               </div>
+            </template>
+
+            <!-- Institution Type -->
+            <template v-else-if="key === 'institution_type'">
+              <v-chip size="small" :color="getInstTypeColor(item)" variant="tonal" class="font-weight-bold">
+                <v-icon size="14" start>{{ getInstTypeIcon(item) }}</v-icon>
+                {{ getInstTypeLabel(item) }}
+              </v-chip>
             </template>
 
             <!-- Target Level -->
@@ -182,9 +201,6 @@
                     <v-btn icon="mdi-dots-vertical" variant="text" size="small" color="slate-600" v-bind="props" />
                   </template>
                   <v-list density="compact" class="rounded-xl border elevation-4">
-                    <v-list-item prepend-icon="mdi-code-json" title="معاينة حزمة JSON" @click="previewPackageJson(item)" />
-                    <v-list-item prepend-icon="mdi-download" title="تنزيل الحزمة الرسمية (JSON)" @click="downloadPackageFile(item)" />
-                    <v-divider class="my-1" />
                     <v-list-item
                       v-if="item.status !== 'accessible' && item.status !== 'completed' && item.status !== 'cancelled'"
                       prepend-icon="mdi-lock-open-alert"
@@ -211,172 +227,260 @@
     <!-- TAB 2: WIZARD CREATION VIEW -->
     <div v-else-if="currentTab === 'wizard'">
       <v-card class="main-card rounded-2xl border-subtle pa-6 mb-8" elevation="0">
-        <!-- Wizard Header Bar with Return Button -->
+        <!-- Wizard Top Bar: Return Icon Button opposite Stepper Indicator -->
         <div class="d-flex align-center justify-space-between mb-6 pb-4 border-b">
-          <div class="d-flex align-center gap-3">
-            <custom-btn
-              type="prev"
-              label="العودة لقائمة التوزيعات"
-              variant="outlined"
-              class="font-weight-bold px-4"
-              :click="() => (currentTab = 'list')"
-            />
-            <div>
-              <h2 class="text-h6 font-weight-black text-slate-800 mb-0">معالج جدولة وتصدير الاختبارات</h2>
-              <span class="text-caption text-medium-emphasis">توزيع حزم الاختبارات المعتمدة وقوالب OMR للمدارس والجامعات</span>
-            </div>
-          </div>
-        </div>
+          <!-- Return Icon Button -->
+          <v-tooltip text="العودة لقائمة التوزيعات" location="bottom">
+            <template v-slot:activator="{ props }">
+              <v-btn
+                v-bind="props"
+                icon="mdi-arrow-right"
+                variant="outlined"
+                color="slate-700"
+                density="comfortable"
+                class="rounded-xl border shadow-xs"
+                @click="currentTab = 'list'"
+              />
+            </template>
+          </v-tooltip>
 
-        <!-- Stepper Indicator -->
-        <div class="wizard-stepper mb-8 d-flex justify-center">
-          <div class="d-flex align-center gap-4">
-            <div
-              v-for="step in [1, 2, 3]"
-              :key="step"
-              class="step-item d-flex align-center gap-2"
-              :class="{ 'step-active': currentStep === step, 'step-done': currentStep > step }"
-            >
-              <v-avatar size="34" :color="currentStep >= step ? 'primary' : 'slate-200'" class="font-weight-bold text-white">
-                {{ step }}
-              </v-avatar>
-              <span class="text-subtitle-2 font-weight-bold" :class="currentStep >= step ? 'text-primary' : 'text-medium-emphasis'">
-                {{ stepTitles[step - 1] }}
-              </span>
-              <v-icon v-if="step < 3" color="slate-300" class="ms-2">mdi-chevron-left</v-icon>
+          <!-- Stepper Indicator (Aligned opposite return button) -->
+          <div class="wizard-stepper d-flex justify-center flex-grow-1 mx-4">
+            <div class="d-flex align-center gap-3 bg-slate-50 pa-2 px-5 rounded-2xl border">
+              <div
+                v-for="step in [1, 2, 3]"
+                :key="step"
+                class="step-item d-flex align-center gap-2"
+                :class="{ 
+                  'cursor-pointer': canNavigateToStep(step),
+                  'step-active': currentStep === step,
+                  'step-done': currentStep > step 
+                }"
+                @click="canNavigateToStep(step) && (currentStep = step)"
+              >
+                <v-avatar size="32" :color="currentStep === step ? 'primary' : currentStep > step ? 'teal' : 'slate-200'" class="font-weight-bold text-white shadow-xs">
+                  <v-icon v-if="currentStep > step" size="18">mdi-check</v-icon>
+                  <span v-else>{{ step }}</span>
+                </v-avatar>
+                <span class="text-subtitle-2 font-weight-bold" :class="currentStep === step ? 'text-primary' : currentStep > step ? 'text-teal-darken-2' : 'text-medium-emphasis'">
+                  {{ stepTitles[step - 1] }}
+                </span>
+                <v-icon v-if="step < 3" color="slate-300" class="ms-2">mdi-chevron-left</v-icon>
+              </div>
             </div>
           </div>
+
+          <!-- Symmetrical Spacer -->
+          <div style="width: 40px;" class="d-none d-sm-block"></div>
         </div>
 
         <!-- STEP 1: EXAM SELECTION -->
         <div v-if="currentStep === 1">
-          <h2 class="text-h6 font-weight-bold text-slate-800 mb-2">1. اختيار الاختبار المعتمد المراد تصديره</h2>
-          <p class="text-body-2 text-medium-emphasis mb-4">
-            اختر أحد الاختبارات المعتمدة من الأرشيف لتوزيعها على المدارس أو الجامعات أو المعاهد التابعة.
-          </p>
-
-          <!-- Institution Type Filter Toggle -->
-          <div class="d-flex align-center gap-2 mb-5 flex-wrap">
-            <span class="text-caption font-weight-bold text-slate-700">نوع المؤسسة التعليمية:</span>
-            <v-btn-toggle
-              v-model="filterExamInstitutionType"
-              mandatory
-              density="compact"
-              color="primary"
-              rounded="lg"
-              variant="outlined"
-            >
-              <v-btn value="school" size="small">
-                <v-icon start size="16">mdi-school-outline</v-icon>
-                مدارس
-              </v-btn>
-              <v-btn value="university" size="small">
-                <v-icon start size="16">mdi-town-hall</v-icon>
-                جامعات
-              </v-btn>
-              <v-btn value="institute" size="small">
-                <v-icon start size="16">mdi-tools</v-icon>
-                معاهد وتدريب مهني
-              </v-btn>
-            </v-btn-toggle>
-            <v-chip size="small" variant="tonal" color="slate-600" class="font-weight-bold ms-auto">
-              عدد الاختبارات المتاحة: {{ filteredAvailableExams.length }}
-            </v-chip>
+          <!-- Enhanced Institution Type Filter Bar -->
+          <div class="pa-3 px-4 rounded-2xl bg-white border mb-5 shadow-xs">
+            <div class="d-flex align-center gap-3 flex-wrap">
+              <span class="text-caption font-weight-bold text-slate-700 d-flex align-center gap-1">
+                <v-icon size="16" color="primary">mdi-filter-variant</v-icon>
+                <span>نوع المؤسسة:</span>
+              </span>
+              <div class="d-flex align-center gap-2 flex-wrap">
+                <v-btn
+                  v-for="opt in institutionTypeFilterTabs"
+                  :key="opt.value"
+                  size="small"
+                  :variant="filterExamInstitutionType === opt.value ? 'flat' : 'outlined'"
+                  :color="filterExamInstitutionType === opt.value ? 'primary' : 'slate-600'"
+                  class="font-weight-bold rounded-lg px-4 transition-all"
+                  @click="filterExamInstitutionType = opt.value"
+                >
+                  <v-icon start size="16">{{ opt.icon }}</v-icon>
+                  <span>{{ opt.label }}</span>
+                  <v-chip
+                    size="x-small"
+                    class="ms-2 font-weight-black"
+                    :color="filterExamInstitutionType === opt.value ? 'white' : 'primary'"
+                    :variant="filterExamInstitutionType === opt.value ? 'flat' : 'tonal'"
+                    :class="filterExamInstitutionType === opt.value ? 'text-primary' : ''"
+                  >
+                    {{ opt.count }}
+                  </v-chip>
+                </v-btn>
+              </div>
+            </div>
           </div>
 
-          <!-- Empty State if no exams found for selected institution type -->
-          <div v-if="filteredAvailableExams.length === 0" class="pa-8 text-center border rounded-2xl bg-slate-50 mb-4">
+          <!-- Empty State if no exams found -->
+          <div v-if="filteredAvailableExams.length === 0" class="pa-8 text-center border rounded-2xl bg-slate-50 mb-6">
             <v-icon size="48" color="slate-400" class="mb-2">mdi-file-document-alert-outline</v-icon>
             <div class="text-subtitle-1 font-weight-bold text-slate-700">
-              لا توجد اختبارات معتمدة خاصة بـ ({{ filterExamInstitutionType === 'school' ? 'المدارس' : filterExamInstitutionType === 'university' ? 'الجامعات' : 'المعاهد والتدريب المهني' }}) حالياً
+              لا توجد اختبارات معتمدة مطابقة للبحث أو للمسار المحدد حالياً
             </div>
             <div class="text-caption text-medium-emphasis mt-1">
-              يمكنك اعتماد اختبارات جديدة من شاشة «أرشيف الاختبارات» أو توليد اختبار مخصص لهذا المسار.
+              يمكنك اعتماد اختبارات جديدة من شاشة «أرشيف الاختبارات» أو التحقق من معايير البحث.
             </div>
           </div>
 
-          <v-row v-else class="mb-4">
-            <v-col
-              v-for="exam in filteredAvailableExams"
-              :key="exam.id"
-              cols="12"
-              md="6"
-              lg="4"
+          <!-- Exams Table using custom-data-table Component -->
+          <v-card v-else class="main-card rounded-2xl overflow-hidden mb-6 border-subtle" elevation="0">
+            <custom-data-table
+              :headers="wizardExamHeaders"
+              :items="wizardExamsTableItems"
+              :getData="getWizardExamsData"
+              :customLoading="loading"
+              class="bg-transparent"
+              :hasFilter="false"
+              :log="false"
+              :restore="false"
+              :showSelect="false"
+              :editItem="false"
             >
-              <v-card
-                class="main-card pa-5 rounded-2xl border-subtle transition-all cursor-pointer h-100 hover-lift"
-                :class="{ 
-                  'selected-card': selectedExam?.id === exam.id,
-                  'border-amber-lighten-1 bg-amber-lighten-5': getExamActiveDistribution(exam)
-                }"
-                elevation="0"
-                @click="selectExam(exam)"
-              >
-                <div class="d-flex justify-space-between align-start mb-2">
-                  <div class="d-flex align-center gap-1 flex-wrap">
-                    <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
-                      {{ exam.uniqueCode || exam.unique_code }}
-                    </v-chip>
-                    <v-chip
-                      v-if="exam.institution_type"
-                      size="x-small"
-                      :color="exam.institution_type === 'institute' ? 'warning' : exam.institution_type === 'university' ? 'info' : 'emerald'"
-                      variant="tonal"
-                      class="font-weight-bold"
+              <template v-slot:item-slot="{ item, key }">
+                <!-- Select Button / Radio -->
+                <template v-if="key === 'select'">
+                  <div class="text-center py-1">
+                    <v-btn
+                      size="small"
+                      :variant="selectedExam?.id === item.id ? 'flat' : 'outlined'"
+                      :color="selectedExam?.id === item.id ? 'primary' : 'slate-500'"
+                      class="font-weight-bold rounded-lg"
+                      :disabled="!!getExamActiveDistribution(item)"
+                      @click.stop="selectExam(item)"
                     >
-                      {{ exam.institution_type === 'institute' ? 'معاهد' : exam.institution_type === 'university' ? 'جامعة' : 'مدرسة' }}
-                    </v-chip>
-                    <v-chip
-                      size="x-small"
-                      :color="exam.target_scope_level === 'governorate' ? 'deep-purple' : exam.target_scope_level === 'directorate' ? 'indigo' : exam.target_scope_level === 'school' ? 'amber-darken-3' : 'teal'"
-                      variant="tonal"
-                      class="font-weight-bold"
-                    >
-                      <v-icon start size="12">{{ exam.target_scope_level === 'governorate' ? 'mdi-map-marker-radius' : exam.target_scope_level === 'directorate' ? 'mdi-town-hall' : exam.target_scope_level === 'school' ? 'mdi-school' : 'mdi-earth' }}</v-icon>
-                      {{ exam.target_scope_level === 'governorate' ? 'محافظات محددة' : exam.target_scope_level === 'directorate' ? 'مديريات محددة' : exam.target_scope_level === 'school' ? 'مدارس محددة' : 'نطاق شامل' }}
-                    </v-chip>
+                      <v-icon start size="16">
+                        {{ selectedExam?.id === item.id ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank' }}
+                      </v-icon>
+                      {{ selectedExam?.id === item.id ? 'محدد' : 'تحديد' }}
+                    </v-btn>
+                  </div>
+                </template>
 
-                    <!-- Active Distribution Status Badge -->
-                    <v-chip
-                      v-if="getExamActiveDistribution(exam)"
-                      size="x-small"
-                      color="amber-darken-4"
-                      variant="flat"
-                      class="font-weight-bold text-white shadow-xs"
-                    >
+                <!-- Unique Code -->
+                <template v-else-if="key === 'unique_code'">
+                  <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold font-mono">
+                    {{ item.uniqueCode || item.unique_code }}
+                  </v-chip>
+                </template>
+
+                <!-- Title -->
+                <template v-else-if="key === 'title'">
+                  <div 
+                    class="font-weight-bold text-slate-800 cursor-pointer hover:text-primary transition-colors py-1"
+                    @click="!getExamActiveDistribution(item) && selectExam(item)"
+                  >
+                    {{ item.title }}
+                  </div>
+                </template>
+
+                <!-- Institution Type -->
+                <template v-else-if="key === 'institution_type'">
+                  <v-chip
+                    size="x-small"
+                    :color="item.institution_type === 'institute' ? 'warning' : item.institution_type === 'university' ? 'info' : 'emerald'"
+                    variant="tonal"
+                    class="font-weight-bold"
+                  >
+                    {{ item.institution_type === 'institute' ? 'معاهد' : item.institution_type === 'university' ? 'جامعة' : 'مدرسة' }}
+                  </v-chip>
+                </template>
+
+                <!-- Subject -->
+                <template v-else-if="key === 'subject_name'">
+                  <div class="d-flex align-center gap-1">
+                    <v-icon size="14" color="primary">mdi-book-open-outline</v-icon>
+                    <span class="text-body-2 font-weight-medium">{{ item.subject_name || 'عام' }}</span>
+                  </div>
+                </template>
+
+                <!-- Academic Year -->
+                <template v-else-if="key === 'year_name'">
+                  <span class="text-caption font-weight-bold">{{ item.year_name || '2025/2026' }}</span>
+                </template>
+
+                <!-- Target Scope Level -->
+                <template v-else-if="key === 'target_scope_level'">
+                  <v-chip
+                    size="x-small"
+                    :color="item.target_scope_level === 'governorate' ? 'deep-purple' : item.target_scope_level === 'directorate' ? 'indigo' : item.target_scope_level === 'school' ? 'amber-darken-3' : 'teal'"
+                    variant="tonal"
+                    class="font-weight-bold"
+                  >
+                    <v-icon start size="12">{{ item.target_scope_level === 'governorate' ? 'mdi-map-marker-radius' : item.target_scope_level === 'directorate' ? 'mdi-town-hall' : item.target_scope_level === 'school' ? 'mdi-school' : 'mdi-earth' }}</v-icon>
+                    {{ item.target_scope_level === 'governorate' ? 'محافظات محددة' : item.target_scope_level === 'directorate' ? 'مديريات محددة' : item.target_scope_level === 'school' ? 'مدارس محددة' : 'نطاق شامل' }}
+                  </v-chip>
+                </template>
+
+                <!-- Exam Details -->
+                <template v-else-if="key === 'exam_details'">
+                  <div class="text-caption font-weight-bold text-slate-700">
+                    <span>{{ item.versions_count || 4 }} نماذج</span>
+                    <span class="mx-1 text-slate-300">•</span>
+                    <span>{{ item.questions_count || 40 }} سؤالاً</span>
+                  </div>
+                </template>
+
+                <!-- Distribution Status -->
+                <template v-else-if="key === 'distribution_status'">
+                  <template v-if="getExamActiveDistribution(item)">
+                    <v-chip size="x-small" color="amber-darken-4" variant="flat" class="text-white font-weight-bold">
                       <v-icon start size="12">mdi-clock-alert-outline</v-icon>
-                      قيد التوزيع حالياً ({{ getExamActiveDistribution(exam).status_display }})
+                      قيد التوزيع ({{ getExamActiveDistribution(item).status_display }})
                     </v-chip>
+                  </template>
+                  <template v-else>
+                    <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold">
+                      <v-icon start size="12">mdi-check-circle-outline</v-icon>
+                      جاهز للجدولة
+                    </v-chip>
+                  </template>
+                </template>
+              </template>
+            </custom-data-table>
+          </v-card>
+
+          <!-- Selected Exam Confirmation Bar & Action ("وعند تختار اختبار يظهر لك التالي") -->
+          <v-card
+            v-if="selectedExam && !getExamActiveDistribution(selectedExam)"
+            class="pa-4 rounded-2xl border border-primary bg-blue-lighten-5 mb-4 shadow-xs"
+            elevation="0"
+          >
+            <div class="d-flex align-center justify-space-between flex-wrap gap-4">
+              <div class="d-flex align-center gap-3">
+                <v-avatar color="primary" size="46" class="text-white shadow-xs">
+                  <v-icon size="24">mdi-check-decagram</v-icon>
+                </v-avatar>
+                <div>
+                  <div class="text-caption text-primary font-weight-bold">تم تحديد الاختبار المعتمد بنجاح:</div>
+                  <div class="text-subtitle-1 font-weight-black text-slate-900">{{ selectedExam.title }}</div>
+                  <div class="text-caption text-slate-600 d-flex align-center gap-2 mt-1 flex-wrap">
+                    <span>الرمز: <strong>{{ selectedExam.uniqueCode || selectedExam.unique_code }}</strong></span>
+                    <span>•</span>
+                    <span>المادة: <strong>{{ selectedExam.subject_name || 'عام' }}</strong></span>
+                    <span>•</span>
+                    <span>العام الدراسي: <strong>{{ selectedExam.year_name || '2025/2026' }}</strong></span>
+                    <span>•</span>
+                    <span>النطاق: <strong>{{ getPreDeterminedScopeTitle(selectedExam) }}</strong></span>
                   </div>
-                  <v-icon :color="selectedExam?.id === exam.id ? 'primary' : 'slate-300'">
-                    {{ selectedExam?.id === exam.id ? 'mdi-checkbox-marked-circle' : 'mdi-checkbox-blank-circle-outline' }}
-                  </v-icon>
                 </div>
-                <h3 class="text-subtitle-1 font-weight-bold text-slate-800 mb-2">{{ exam.title }}</h3>
-                <div class="d-flex flex-column gap-1 text-caption text-medium-emphasis mb-3">
-                  <div class="d-flex align-center gap-1">
-                    <v-icon size="14">mdi-book-open-outline</v-icon>
-                    <span>المادة: <strong>{{ exam.subject_name || 'عام' }}</strong></span>
-                  </div>
-                  <div class="d-flex align-center gap-1">
-                    <v-icon size="14">mdi-calendar-range</v-icon>
-                    <span>العام الدراسي: <strong>{{ exam.year_name || '2025/2026' }}</strong></span>
-                  </div>
-                </div>
-                <div class="d-flex align-center justify-space-between pt-3 border-t text-caption font-weight-bold text-indigo">
-                  <span>{{ exam.versions_count || 4 }} نماذج (A, B, C, D)</span>
-                  <span>{{ exam.questions_count || 40 }} سؤالاً</span>
-                </div>
-              </v-card>
-            </v-col>
-          </v-row>
+              </div>
+
+              <div>
+                <custom-btn
+                  type="next"
+                  label="التالي: نطاق المؤسسات المستهدفة"
+                  color="primary"
+                  class="px-8 font-weight-bold text-white shadow-xs"
+                  :click="() => (currentStep = 2)"
+                />
+              </div>
+            </div>
+          </v-card>
 
           <!-- Active Distribution Warning Alert -->
           <v-alert
             v-if="selectedExam && getExamActiveDistribution(selectedExam)"
             type="warning"
             variant="tonal"
-            class="rounded-2xl font-weight-bold mt-4 mb-2 border-amber"
+            class="rounded-2xl font-weight-bold mt-4 mb-4 border-amber"
           >
             <div class="d-flex align-center justify-space-between flex-wrap gap-2">
               <div class="d-flex align-center gap-3">
@@ -407,259 +511,147 @@
             </div>
           </v-alert>
 
-          <div class="d-flex justify-end mt-8">
-            <custom-btn
-              type="next"
-              label="التالي: تحديد نطاق المؤسسات المستهدفة"
-              color="primary"
-              class="px-8 font-weight-bold"
-              :disabled="!selectedExam || !!getExamActiveDistribution(selectedExam)"
-              :click="() => (currentStep = 2)"
-            />
+          <div v-if="!selectedExam" class="d-flex justify-end mt-4">
+            <v-chip color="slate-400" variant="tonal" class="font-weight-bold">
+              <v-icon start size="16">mdi-information-outline</v-icon>
+              يرجى تحديد أحد الاختبارات أعلاه للمتابعة إلى الخطوة التالية
+            </v-chip>
           </div>
         </div>
 
         <!-- STEP 2: TARGETING HIERARCHY (DIRECTLY PRE-DETERMINED FROM EXAM) -->
         <div v-else-if="currentStep === 2">
-          <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3">
-            <div>
-              <h2 class="text-h6 font-weight-bold text-slate-800 mb-1">
-                2. نطاق المؤسسات المستهدفة بالتوزيع (معتمد ومحدد مسبقاً)
-              </h2>
-              <p class="text-body-2 text-medium-emphasis mb-0">
-                تم اعتماد وتطبيق النطاق الجغرافي والمؤسسي المحدد مسبقاً للاختبار مباشرة دون الحاجة لإعادة التحديد.
-              </p>
-            </div>
-            <v-chip color="success" variant="tonal" class="font-weight-bold">
-              <v-icon start size="16">mdi-check-decagram</v-icon>
-              نطاق معتمد تلقائياً من الاختبار
-            </v-chip>
-          </div>
+          <!-- Resolved Schools Header & Filters -->
+          <div class="mb-4">
+            <div class="d-flex align-center justify-space-between mb-3 flex-wrap gap-2">
+              <div class="d-flex align-center gap-2">
+                <span class="text-subtitle-2 font-weight-bold text-slate-800">
+                  {{ isSchoolTarget ? 'قائمة المدارس المستهدفة فعلياً:' : 'قائمة المعاهد / الجامعات المستهدفة فعلياً:' }}
+                </span>
+                <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
+                  {{ totalResolvedSchoolsCount }} {{ isSchoolTarget ? 'مدرسة' : 'مؤسسة / فرع' }}
+                </v-chip>
+              </div>
 
-          <!-- Pre-determined Target Scope Highlight Card -->
-          <v-card class="main-card pa-5 rounded-2xl border-subtle bg-slate-50 mb-6" elevation="0">
-            <v-row dense class="align-center">
-              <v-col cols="12" md="7">
-                <div class="d-flex align-center gap-3">
-                  <v-avatar size="52" color="primary" class="text-white shadow-sm">
-                    <v-icon size="26">{{ getLevelIcon(selectedTargetLevel) }}</v-icon>
-                  </v-avatar>
-                  <div>
-                    <div class="text-caption text-medium-emphasis font-weight-bold">مستوى الاستهداف المعتمد للاختبار:</div>
-                    <div class="text-h6 font-weight-black text-slate-800">
-                      {{ getPreDeterminedScopeTitle(selectedExam) }}
-                    </div>
-                    <div class="text-caption text-slate-600 mt-1 d-flex align-center gap-1 flex-wrap">
-                      <span class="font-weight-bold">الجهات المشمولة:</span>
-                      <template v-if="getPreDeterminedScopeTargets(selectedExam).length > 0">
-                        <v-chip
-                          v-for="(tgt, idx) in getPreDeterminedScopeTargets(selectedExam)"
-                          :key="idx"
-                          size="x-small"
-                          color="primary"
-                          variant="flat"
-                          class="font-weight-bold"
-                        >
-                          {{ tgt }}
-                        </v-chip>
-                      </template>
-                      <v-chip v-else size="x-small" color="teal" variant="flat" class="font-weight-bold text-white">
-                        كافة مدارس ومؤسسات الجمهورية
-                      </v-chip>
-                    </div>
-                  </div>
-                </div>
-              </v-col>
-
-              <v-col cols="12" md="5" class="d-flex justify-md-end align-center gap-3 mt-3 mt-md-0">
-                <div class="pa-3 rounded-xl bg-white border text-center flex-grow-1 flex-md-grow-0" style="min-width: 170px;">
-                  <div class="text-caption text-medium-emphasis font-weight-bold">المؤسسات المحصورة فعلياً</div>
-                  <div class="text-h5 font-weight-black text-primary">{{ resolvedSchools.length }}</div>
-                  <div class="text-caption text-emerald font-weight-bold">جاهزة لاستلام الحزمة</div>
-                </div>
-
+              <div v-if="step2FilterGovernorate || step2FilterDirectorate" class="d-flex align-center">
                 <v-btn
                   size="small"
                   variant="text"
-                  color="slate-600"
+                  color="error"
+                  density="compact"
                   class="font-weight-bold"
-                  prepend-icon="mdi-tune"
-                  @click="showManualScopeOverride = !showManualScopeOverride"
+                  @click="resetStep2Filters"
                 >
-                  {{ showManualScopeOverride ? 'إخفاء التعديل' : 'تخصيص يدوي (اختياري)' }}
+                  <v-icon start size="16">mdi-filter-remove-outline</v-icon>
+                  إعادة ضبط الفلاتر
                 </v-btn>
-              </v-col>
-            </v-row>
-
-            <!-- Collapsible Manual Override (Only for edge cases) -->
-            <v-expand-transition>
-              <div v-if="showManualScopeOverride" class="mt-4 pt-4 border-t">
-                <div class="d-flex align-center justify-space-between mb-3">
-                  <span class="text-caption font-weight-bold text-slate-700">
-                    تعديل استثنائي للمستوى والنطاق المعتمد:
-                  </span>
-                  <v-btn size="x-small" variant="text" color="error" @click="resetScopeToExamDefault">
-                    إعادة ضبط للنطاق الافتراضي للاختبار
-                  </v-btn>
-                </div>
-
-                <v-row class="mb-3" dense>
-                  <v-col v-for="lvl in targetLevelOptions" :key="lvl.value" cols="6" sm="3">
-                    <v-card
-                      class="pa-3 rounded-xl border text-center cursor-pointer transition-all"
-                      :class="{ 'selected-card': selectedTargetLevel === lvl.value }"
-                      elevation="0"
-                      @click="changeTargetLevel(lvl.value)"
-                    >
-                      <v-icon :color="selectedTargetLevel === lvl.value ? 'primary' : 'slate-500'" size="20" class="mb-1">{{ lvl.icon }}</v-icon>
-                      <div class="text-caption font-weight-bold">{{ lvl.label }}</div>
-                    </v-card>
-                  </v-col>
-                </v-row>
-
-                <div v-if="selectedTargetLevel === 'governorate'">
-                  <v-autocomplete
-                    v-model="selectedOrgIds"
-                    :items="governoratesList"
-                    item-title="name_ar"
-                    item-value="id"
-                    multiple
-                    chips
-                    closable-chips
-                    variant="outlined"
-                    placeholder="اختر المحافظات المستهدفة..."
-                    density="compact"
-                    hide-details
-                    @update:model-value="fetchResolvedSchools"
-                  />
-                </div>
-                <div v-else-if="selectedTargetLevel === 'directorate'">
-                  <v-autocomplete
-                    v-model="selectedOrgIds"
-                    :items="directoratesList"
-                    item-title="name_ar"
-                    item-value="id"
-                    multiple
-                    chips
-                    closable-chips
-                    variant="outlined"
-                    placeholder="اختر المديريات المستهدفة..."
-                    density="compact"
-                    hide-details
-                    @update:model-value="fetchResolvedSchools"
-                  />
-                </div>
-                <div v-else-if="selectedTargetLevel === 'school'">
-                  <v-autocomplete
-                    v-model="selectedOrgIds"
-                    :items="allSchoolsList"
-                    item-title="name_ar"
-                    item-value="id"
-                    multiple
-                    chips
-                    closable-chips
-                    variant="outlined"
-                    placeholder="ابحث بالاسم أو رقم الفرع للمدرسة..."
-                    density="compact"
-                    hide-details
-                    @update:model-value="fetchResolvedSchools"
-                  />
-                </div>
               </div>
-            </v-expand-transition>
-          </v-card>
-
-          <!-- Resolved Schools Header & Real-time Search -->
-          <div class="d-flex align-center justify-space-between mb-3 flex-wrap gap-2">
-            <div class="d-flex align-center gap-2">
-              <span class="text-subtitle-2 font-weight-bold text-slate-800">
-                قائمة المؤسسات والمدارس المستهدفة فعلياً:
-              </span>
-              <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
-                {{ resolvedSchools.length }} مؤسسة / مدرسة
-              </v-chip>
-              <v-chip size="small" color="teal" variant="tonal" class="font-weight-bold">
-                <v-icon size="14" start>mdi-check-all</v-icon>
-                عرض شامل لكافة المدارس الـ 30 دفعة واحدة (بدون بجنشن)
-              </v-chip>
             </div>
 
-            <!-- Inline Search Filter for Resolved Schools -->
-            <div style="min-width: 260px;">
-              <v-text-field
-                v-model="schoolSearchQuery"
-                density="compact"
-                variant="outlined"
-                placeholder="تصفية سريعة (الاسم، الفرع، المحافظة)..."
-                prepend-inner-icon="mdi-magnify"
-                hide-details
-                clearable
-              />
-            </div>
+            <!-- Inline Filters Bar -->
+            <v-card class="pa-3 rounded-xl border bg-slate-50 mb-3" elevation="0">
+              <v-row dense class="align-center">
+                <!-- Filter by Governorate -->
+                <v-col cols="12" :md="isSchoolTarget ? 6 : 12">
+                  <v-autocomplete
+                    v-model="step2FilterGovernorate"
+                    :items="governoratesList"
+                    item-title="name"
+                    item-value="id"
+                    label="المحافظة"
+                    placeholder="كل المحافظات"
+                    variant="outlined"
+                    density="compact"
+                    prepend-inner-icon="mdi-map-marker-outline"
+                    clearable
+                    hide-details
+                    bg-color="white"
+                    :loading="loadingGeoData"
+                    @update:model-value="onStep2GovernorateChanged"
+                  />
+                </v-col>
+
+                <!-- Filter by Directorate (Only shown if isSchoolTarget is true) -->
+                <v-col v-if="isSchoolTarget" cols="12" md="6">
+                  <v-autocomplete
+                    v-model="step2FilterDirectorate"
+                    :items="directoratesList"
+                    item-title="name"
+                    item-value="id"
+                    label="المديرية"
+                    placeholder="كل المديريات"
+                    variant="outlined"
+                    density="compact"
+                    prepend-inner-icon="mdi-domain"
+                    clearable
+                    hide-details
+                    bg-color="white"
+                    :loading="loadingGeoData"
+                    @update:model-value="onStep2DirectorateChanged"
+                  />
+                </v-col>
+              </v-row>
+            </v-card>
           </div>
 
-          <!-- Unpaginated Full Schools Table (Guaranteed 30 Schools Visible in Scrollable Card) -->
-          <v-card class="main-card rounded-2xl overflow-hidden border-subtle mb-6" elevation="0">
-            <div style="max-height: 460px; overflow-y: auto;">
-              <v-table hover density="comfortable" class="bg-transparent">
-                <thead>
-                  <tr class="bg-slate-50 text-slate-700">
-                    <th class="font-weight-bold text-center" style="width: 60px;">#</th>
-                    <th class="font-weight-bold">اسم المدرسة</th>
-                    <th class="font-weight-bold" style="width: 160px;">رقم الفرع (Branch No)</th>
-                    <th class="font-weight-bold" style="width: 180px;">المحافظة</th>
-                    <th class="font-weight-bold" style="width: 180px;">المديرية</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-if="filteredResolvedSchools.length === 0">
-                    <td colspan="5" class="text-center py-8 text-medium-emphasis">
-                      <v-icon size="36" color="slate-300" class="mb-2 d-block mx-auto">mdi-school-outline</v-icon>
-                      <span>لا توجد مدارس مطابقة للاستهداف المحدد</span>
-                    </td>
-                  </tr>
-                  <tr
-                    v-for="(school, index) in filteredResolvedSchools"
-                    :key="school.id || index"
-                    class="transition-all"
-                  >
-                    <td class="text-center text-caption font-weight-bold text-medium-emphasis">
-                      {{ index + 1 }}
-                    </td>
-                    <td>
-                      <div class="font-weight-bold text-slate-800 d-flex align-center gap-2 py-1">
-                        <v-avatar size="28" color="primary" variant="tonal" class="rounded-lg">
-                          <v-icon size="16">mdi-school</v-icon>
-                        </v-avatar>
-                        <span>{{ school.name_ar }}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold font-mono">
-                        {{ school.branch_no }}
-                      </v-chip>
-                    </td>
-                    <td>
-                      <span class="text-body-2 text-slate-700">{{ school.governorate }}</span>
-                    </td>
-                    <td>
-                      <span class="text-body-2 text-slate-600">{{ school.directorate }}</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </v-table>
-            </div>
-            
-            <!-- Table Footer Summary Confirming Full Unpaginated Delivery -->
-            <div class="pa-3 bg-slate-50 border-t d-flex align-center justify-space-between text-caption text-medium-emphasis">
-              <span>
-                إجمالي المدارس المعروضة: <strong>{{ filteredResolvedSchools.length }}</strong> من أصل <strong>{{ resolvedSchools.length }}</strong> مدرسة
-              </span>
-              <span class="text-teal font-weight-bold">
-                <v-icon size="14" color="teal" class="me-1">mdi-check-circle</v-icon>
-                كافة المدارس الـ 30 مدرجة وجاهزة للاستلام دون تقسيم
-              </span>
-            </div>
+          <!-- Targeted Schools Table using custom-data-table Component -->
+          <v-card class="main-card rounded-2xl overflow-hidden mb-6 border-subtle" elevation="0">
+            <custom-data-table
+              :headers="schoolTableHeaders"
+              :items="resolvedSchoolsTableItems"
+              :getData="getResolvedSchoolsData"
+              :customLoading="loadingSchools"
+              class="bg-transparent"
+              :hasFilter="false"
+              :log="false"
+              :restore="false"
+              :showSelect="false"
+              :editItem="false"
+            >
+              <template v-slot:item-slot="{ item, key, index }">
+                <!-- Index -->
+                <template v-if="key === 'index'">
+                  <div class="text-center text-caption font-weight-bold text-medium-emphasis">
+                    {{ (resolvedSchoolsPagination.current_page - 1) * resolvedSchoolsPagination.page_size + index + 1 }}
+                  </div>
+                </template>
+
+                <!-- School / Institution Name -->
+                <template v-else-if="key === 'name_ar'">
+                  <div class="font-weight-bold text-slate-800 d-flex align-center gap-2 py-1">
+                    <v-avatar size="28" color="primary" variant="tonal" class="rounded-lg">
+                      <v-icon size="16">mdi-school</v-icon>
+                    </v-avatar>
+                    <span>{{ item.name_ar }}</span>
+                  </div>
+                </template>
+
+                <!-- Branch No -->
+                <template v-else-if="key === 'branch_no'">
+                  <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold font-mono">
+                    {{ item.branch_no }}
+                  </v-chip>
+                </template>
+
+                <!-- Governorate -->
+                <template v-else-if="key === 'governorate'">
+                  <span class="text-body-2 text-slate-700">{{ item.governorate }}</span>
+                </template>
+
+                <!-- Directorate -->
+                <template v-else-if="key === 'directorate'">
+                  <span class="text-body-2 text-slate-600">{{ item.directorate }}</span>
+                </template>
+
+                <!-- Status -->
+                <template v-else-if="key === 'status'">
+                  <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold">
+                    <v-icon start size="12">mdi-check-decagram</v-icon>
+                    جاهزة للاستلام
+                  </v-chip>
+                </template>
+              </template>
+            </custom-data-table>
           </v-card>
 
           <div class="d-flex justify-space-between mt-6">
@@ -674,8 +666,8 @@
               type="next"
               label="التالي: جدول المواعيد والأمان"
               color="primary"
-              class="px-8 font-weight-bold"
-              :disabled="resolvedSchools.length === 0"
+              class="px-8 font-weight-bold text-white shadow-xs"
+              :disabled="totalResolvedSchoolsCount === 0"
               :click="() => (currentStep = 3)"
             />
           </div>
@@ -683,77 +675,133 @@
 
         <!-- STEP 3: TIMING & SECURITY -->
         <div v-else-if="currentStep === 3">
-          <h2 class="text-h6 font-weight-bold text-slate-800 mb-2">3. جدول المواعيد الزمنية والسرية</h2>
-          <p class="text-body-2 text-medium-emphasis mb-6">
-            اضبط مواعيد تسليم الحزمة، وقت إتاحة الأسئلة للطباعة بالمدرسة، ووقت بدء الامتحان.
-          </p>
+          <!-- Executive Context Recap Card -->
+          <v-card class="pa-4 rounded-2xl border bg-slate-50 mb-6 shadow-xs" elevation="0">
+            <v-row dense class="align-center">
+              <v-col cols="12" md="7">
+                <div class="d-flex align-center gap-3">
+                  <v-avatar color="primary" variant="tonal" size="46" class="rounded-xl">
+                    <v-icon size="24">mdi-file-document-check</v-icon>
+                  </v-avatar>
+                  <div>
+                    <div class="text-caption text-medium-emphasis font-weight-bold">الاختبار المعتمد المجدول للتصدير:</div>
+                    <div class="text-subtitle-1 font-weight-black text-slate-900">{{ selectedExam?.title || '-' }}</div>
+                    <div class="text-caption text-slate-600 mt-1 d-flex align-center gap-2 flex-wrap">
+                      <span>الرمز: <strong>{{ selectedExam?.uniqueCode || selectedExam?.unique_code }}</strong></span>
+                      <span>•</span>
+                      <span>المادة: <strong>{{ selectedExam?.subject_name || 'عام' }}</strong></span>
+                      <span>•</span>
+                      <span>العام الدراسي: <strong>{{ selectedExam?.year_name || '2025/2026' }}</strong></span>
+                    </div>
+                  </div>
+                </div>
+              </v-col>
+              <v-col cols="12" md="5" class="d-flex justify-md-end align-center gap-3 mt-3 mt-md-0 flex-wrap">
+                <div class="pa-2 px-4 rounded-xl bg-white border text-center flex-grow-1 flex-md-grow-0">
+                  <div class="text-caption text-medium-emphasis font-weight-bold">نطاق الاستهداف</div>
+                  <div class="text-subtitle-2 font-weight-black text-slate-800">{{ getPreDeterminedScopeTitle(selectedExam) }}</div>
+                </div>
+                <div class="pa-2 px-4 rounded-xl bg-white border text-center flex-grow-1 flex-md-grow-0">
+                  <div class="text-caption text-medium-emphasis font-weight-bold">المؤسسات المحصورة</div>
+                  <div class="text-subtitle-2 font-weight-black text-primary">{{ totalResolvedSchoolsCount }} مؤسسة جاهزة</div>
+                </div>
+              </v-col>
+            </v-row>
+          </v-card>
+
+          <!-- Mission Title Input -->
+          <div class="mb-5">
+            <label class="text-caption font-weight-bold text-slate-700 d-block mb-1">
+              مسمى مهمة التصدير والجدولة:
+            </label>
+            <v-text-field
+              v-model="dispatchForm.title"
+              variant="outlined"
+              density="compact"
+              placeholder="مثال: تصدير الاختبار النصفي الموحد - الرياضيات"
+              prepend-inner-icon="mdi-format-title"
+              hide-details
+            />
+          </div>
 
           <v-row>
-            <v-col cols="12">
-              <v-text-field
-                v-model="dispatchForm.title"
-                label="عنوان مهمة التوزيع"
-                variant="outlined"
-                density="compact"
-                class="rounded-lg"
-                placeholder="مثال: الاختبار النصفي الموحد - الرياضيات - ثالث ثانوي"
-              />
-            </v-col>
-
-            <!-- Timing Fields Card -->
+            <!-- Timing Milestones Card -->
             <v-col cols="12" md="6">
               <v-card class="main-card pa-5 rounded-2xl border-subtle mb-4 h-100" elevation="0">
-                <div class="text-subtitle-2 font-weight-bold text-indigo mb-3 d-flex align-center gap-1">
-                  <v-icon size="18">mdi-clock-outline</v-icon>
-                  <span>نوافذ التوقيت والجدولة</span>
+                <div class="d-flex align-center justify-space-between mb-4 flex-wrap gap-2">
+                  <div class="text-subtitle-2 font-weight-bold text-indigo d-flex align-center gap-2">
+                    <v-icon size="20">mdi-clock-outline</v-icon>
+                    <span>المحطات والمواعيد الزمنية الرسمية</span>
+                  </div>
                 </div>
 
                 <!-- Quick Timing Presets -->
-                <div class="d-flex align-center gap-2 mb-4 flex-wrap">
-                  <span class="text-caption font-weight-bold text-medium-emphasis">اختصارات ذكية:</span>
-                  <v-chip size="x-small" variant="tonal" color="indigo" class="cursor-pointer font-weight-bold" @click="applyTimingPreset('now')">
-                    <v-icon start size="12">mdi-lightning-bolt</v-icon> تجربة فورية (الآن)
-                  </v-chip>
-                  <v-chip size="x-small" variant="tonal" color="teal" class="cursor-pointer font-weight-bold" @click="applyTimingPreset('2hours')">
-                    <v-icon start size="12">mdi-timer-outline</v-icon> بعد ساعتين
-                  </v-chip>
-                  <v-chip size="x-small" variant="tonal" color="primary" class="cursor-pointer font-weight-bold" @click="applyTimingPreset('tomorrow_morning')">
-                    <v-icon start size="12">mdi-weather-sunset-up</v-icon> صباح الغد (08:00 ص)
-                  </v-chip>
+                <div class="pa-3 rounded-xl bg-slate-50 border mb-4">
+                  <div class="text-caption font-weight-bold text-slate-700 mb-2 d-flex align-center gap-1">
+                    <v-icon size="14" color="primary">mdi-lightning-bolt</v-icon>
+                    <span>اختصارات التوقيت القياسية:</span>
+                  </div>
+                  <div class="d-flex align-center gap-2 flex-wrap">
+                    <v-btn size="x-small" variant="flat" color="primary" class="font-weight-bold rounded-lg" @click="applyTimingPreset('tomorrow_morning')">
+                      <v-icon start size="14">mdi-weather-sunset-up</v-icon> صباح الغد (08:00 ص)
+                    </v-btn>
+                    <v-btn size="x-small" variant="tonal" color="teal" class="font-weight-bold rounded-lg" @click="applyTimingPreset('2hours')">
+                      <v-icon start size="14">mdi-timer-outline</v-icon> بعد ساعتين
+                    </v-btn>
+                    <v-btn size="x-small" variant="tonal" color="indigo" class="font-weight-bold rounded-lg" @click="applyTimingPreset('now')">
+                      <v-icon start size="14">mdi-play-circle-outline</v-icon> الآن (تجربة فورية)
+                    </v-btn>
+                  </div>
                 </div>
 
-                <div class="mb-4">
-                  <label class="text-caption font-weight-bold text-slate-700 d-block mb-1">
-                    1. وقت توفر الحزمة لنظام المدرسة (Dispatch Time):
-                  </label>
+                <!-- Milestone 1: Dispatch Time -->
+                <div class="mb-4 pa-3 rounded-xl border bg-white">
+                  <div class="d-flex align-center gap-2 mb-1">
+                    <v-avatar size="22" color="indigo" class="text-white text-caption font-weight-bold">1</v-avatar>
+                    <label class="text-caption font-weight-bold text-slate-800">
+                      موعد إرسال الحزمة المشفرة للمؤسسات (Dispatch Time):
+                    </label>
+                  </div>
                   <v-text-field
                     v-model="dispatchForm.dispatch_at"
                     type="datetime-local"
                     density="compact"
                     variant="outlined"
+                    prepend-inner-icon="mdi-cloud-upload-outline"
                     hide-details
+                    class="mb-1"
                   />
-                  <span class="text-caption text-medium-emphasis">تصل الحزمة لمخدم المدرسة بانتظار موعد الإتاحة.</span>
+                  <div class="text-caption text-medium-emphasis">تصل الحزمة مؤمنة ومشفرة لمخدم المدرسة وتُحفظ دون فتح.</div>
                 </div>
 
-                <div class="mb-4">
-                  <label class="text-caption font-weight-bold text-amber-darken-3 d-block mb-1">
-                    2. وقت فك الحجب وإتاحة الأسئلة للطباعة (Accessible Time):
-                  </label>
+                <!-- Milestone 2: Accessible Time -->
+                <div class="mb-4 pa-3 rounded-xl border bg-white">
+                  <div class="d-flex align-center gap-2 mb-1">
+                    <v-avatar size="22" color="amber-darken-3" class="text-white text-caption font-weight-bold">2</v-avatar>
+                    <label class="text-caption font-weight-bold text-amber-darken-4">
+                      موعد فك الحجب والإتاحة للطباعة (Accessible Time):
+                    </label>
+                  </div>
                   <v-text-field
                     v-model="dispatchForm.accessible_from"
                     type="datetime-local"
                     density="compact"
                     variant="outlined"
+                    prepend-inner-icon="mdi-printer-eye"
                     hide-details
+                    class="mb-1"
                   />
-                  <span class="text-caption text-medium-emphasis">تفتح الأسئلة تلقائياً لكادر الكنترول بالمدرسة لبدء الطباعة.</span>
+                  <div class="text-caption text-medium-emphasis">يُفتح التشفير تلقائياً لكادر الكنترول بالمدرسة لبدء طباعة الكراسات وأوراق OMR.</div>
                 </div>
 
-                <div>
-                  <label class="text-caption font-weight-bold text-teal d-block mb-1">
-                    3. موعد بدء ونهاية الاختبار الرسمي:
-                  </label>
+                <!-- Milestone 3: Exam Duration -->
+                <div class="pa-3 rounded-xl border bg-white">
+                  <div class="d-flex align-center gap-2 mb-1">
+                    <v-avatar size="22" color="teal" class="text-white text-caption font-weight-bold">3</v-avatar>
+                    <label class="text-caption font-weight-bold text-teal-darken-3">
+                      فترة انعقاد الامتحان الفعلي (Exam Session):
+                    </label>
+                  </div>
                   <v-row dense>
                     <v-col cols="6">
                       <v-text-field
@@ -761,7 +809,8 @@
                         type="datetime-local"
                         density="compact"
                         variant="outlined"
-                        placeholder="البدء"
+                        prepend-inner-icon="mdi-play-outline"
+                        label="بدء الامتحان"
                         hide-details
                       />
                     </v-col>
@@ -771,77 +820,119 @@
                         type="datetime-local"
                         density="compact"
                         variant="outlined"
-                        placeholder="الانتهاء"
+                        prepend-inner-icon="mdi-stop-outline"
+                        label="انتهاء الامتحان"
                         hide-details
                       />
                     </v-col>
                   </v-row>
+                  <div class="text-caption text-medium-emphasis mt-1">وقت دخول الطلاب القاعات ووقت جمع الأوراق وسحب الإجابات.</div>
                 </div>
               </v-card>
             </v-col>
 
-            <!-- Security & Delivery Options Card -->
+            <!-- Security & Execution Policies Card -->
             <v-col cols="12" md="6">
               <v-card class="main-card pa-5 rounded-2xl border-subtle mb-4 h-100" elevation="0">
-                <div class="text-subtitle-2 font-weight-bold text-teal mb-4 d-flex align-center gap-1">
-                  <v-icon size="18">mdi-shield-lock-outline</v-icon>
-                  <span>خيارات الأمان والسرية (منع التسريب)</span>
+                <div class="text-subtitle-2 font-weight-bold text-teal d-flex align-center gap-2 mb-4">
+                  <v-icon size="20">mdi-shield-lock-outline</v-icon>
+                  <span>سياسات الأمان والسرية وطريقة التسليم</span>
                 </div>
 
-                <v-switch
-                  v-model="dispatchForm.is_encrypted"
-                  color="indigo"
-                  label="تشفير محتوى الأسئلة حتى موعد الإتاحة"
-                  hide-details
-                  class="mb-2"
-                />
-
-                <v-switch
-                  v-model="dispatchForm.auto_unlock"
-                  color="teal"
-                  label="فتح الأسئلة تلقائياً بمجرد حلول وقت الإتاحة"
-                  hide-details
-                  class="mb-3"
-                />
-
-                <div class="pa-3 rounded-xl bg-slate-50 border mb-3">
-                  <div class="text-caption font-weight-bold text-slate-800 mb-1">نمط تسليم وتنفيذ الاختبار المعتمد:</div>
-                  <v-chip color="teal" variant="tonal" size="small" class="font-weight-bold">
-                    <v-icon size="14" start>mdi-printer</v-icon>
-                    طباعة كراسات + أوراق إجابة OMR
-                  </v-chip>
+                <div class="pa-3 rounded-xl border bg-white mb-3">
+                  <v-switch
+                    v-model="dispatchForm.is_encrypted"
+                    color="primary"
+                    label="تشفير محتوى الحزمة والأسئلة (AES-256 GCM)"
+                    hide-details
+                    density="compact"
+                  />
+                  <div class="text-caption text-medium-emphasis ms-8">
+                    يضمن عدم إمكانية استعراض أو تسريب نماذج الأسئلة قبل حلول موعد الإتاحة المحدد رسمياً.
+                  </div>
                 </div>
 
-                <v-textarea
-                  v-model="dispatchForm.notes"
-                  label="تعليمات وملاحظات للكنترول المدرسي"
-                  variant="outlined"
-                  density="compact"
-                  rows="2"
-                  class="rounded-lg"
-                  placeholder="تعليمات خاصة بأوراق الإجابة أو نماذج A/B/C/D..."
-                />
+                <div class="pa-3 rounded-xl border bg-white mb-3">
+                  <v-switch
+                    v-model="dispatchForm.auto_unlock"
+                    color="teal"
+                    label="فك التشفير التلقائي فور حلول موعد الإتاحة"
+                    hide-details
+                    density="compact"
+                  />
+                  <div class="text-caption text-medium-emphasis ms-8">
+                    توليد وتوفير مفتاح فك التشفير ذاتياً لنظام المدرسة عند الوقت المحدد دون تدخل يدوي.
+                  </div>
+                </div>
+
+                <div class="pa-3 rounded-xl bg-slate-50 border mb-4">
+                  <div class="text-caption font-weight-bold text-slate-800 mb-1 d-flex align-center gap-1">
+                    <v-icon size="16" color="teal">mdi-check-circle</v-icon>
+                    <span>نمط تنفيذ الاختبار المعتمد:</span>
+                  </div>
+                  <div class="text-body-2 text-slate-700 font-weight-bold">
+                    طباعة كراسات الأسئلة بنماذجها المتعددة (A, B, C, D) + أوراق إجابة OMR مخصصة للطلاب.
+                  </div>
+                </div>
+
+                <div>
+                  <label class="text-caption font-weight-bold text-slate-700 d-block mb-1">
+                    توجيهات وملاحظات للكنترول المدرسي (اختياري):
+                  </label>
+                  <v-textarea
+                    v-model="dispatchForm.notes"
+                    variant="outlined"
+                    density="compact"
+                    rows="3"
+                    class="rounded-lg"
+                    placeholder="اكتب أي تعليمات خاصة بتسليم النماذج أو لجان الامتحان..."
+                    hide-details
+                  />
+                </div>
               </v-card>
             </v-col>
           </v-row>
 
-          <div class="d-flex justify-space-between mt-6">
-            <custom-btn
-              type="prev"
-              label="السابق"
-              variant="outlined"
-              class="px-6 font-weight-bold"
-              :click="() => (currentStep = 2)"
-            />
-            <custom-btn
-              type="save"
-              label="تأكيد وجدولة التصدير الآن"
-              color="success"
-              class="px-8 font-weight-bold text-white"
-              :loading="saving"
-              :click="submitDispatch"
-            />
-          </div>
+          <!-- Final Confirmation Strip -->
+          <v-card class="pa-4 rounded-2xl border bg-slate-50 mt-4 shadow-xs" elevation="0">
+            <div class="d-flex align-center justify-space-between flex-wrap gap-4">
+              <div class="d-flex align-center gap-3">
+                <v-avatar color="success" size="44" class="text-white shadow-xs">
+                  <v-icon size="24">mdi-shield-check</v-icon>
+                </v-avatar>
+                <div>
+                  <div class="text-subtitle-2 font-weight-black text-slate-900">جاهز لاعتماد وجدولة مهمة التوزيع</div>
+                  <div class="text-caption text-slate-600 mt-1 d-flex align-center gap-2 flex-wrap">
+                    <span>المؤسسات المستهدفة: <strong>{{ totalResolvedSchoolsCount }} مؤسسة</strong></span>
+                    <span>•</span>
+                    <span>موعد الطباعة: <strong>{{ formatDateTime(dispatchForm.accessible_from) }}</strong></span>
+                    <span>•</span>
+                    <span>بدء الامتحان: <strong>{{ formatDateTime(dispatchForm.exam_start_at) }}</strong></span>
+                    <span>•</span>
+                    <span>التشفير: <strong>{{ dispatchForm.is_encrypted ? 'مشفر بالكامل' : 'غير مشفر' }}</strong></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="d-flex align-center gap-3">
+                <custom-btn
+                  type="prev"
+                  label="السابق"
+                  variant="outlined"
+                  class="px-6 font-weight-bold"
+                  :click="() => (currentStep = 2)"
+                />
+                <custom-btn
+                  type="save"
+                  label="تأكيد وجدولة التصدير الآن"
+                  color="success"
+                  class="px-8 font-weight-bold text-white shadow-xs"
+                  :loading="saving"
+                  :click="submitDispatch"
+                />
+              </div>
+            </div>
+          </v-card>
         </div>
       </v-card>
     </div>
@@ -1302,9 +1393,15 @@ const currentTab = ref('list') // 'list' | 'wizard'
 const currentStep = ref(1)
 
 // Filters State
-const searchQuery = ref('')
+const filterInstitutionType = ref(null)
 const filterTargetLevel = ref(null)
 const filterStatus = ref(null)
+
+const institutionTypeFilterOptions = [
+  { value: 'school', label: 'مدارس (التعليم العام)', icon: 'mdi-school-outline' },
+  { value: 'university', label: 'جامعات (التعليم الجامعي)', icon: 'mdi-town-hall' },
+  { value: 'institute', label: 'معاهد (التعليم المهني)', icon: 'mdi-tools' },
+]
 
 const targetLevelFilterOptions = [
   { value: 'ministry', label: 'الوزارة (شامل)' },
@@ -1326,13 +1423,73 @@ const distributionsList = ref([])
 const availableExams = ref([])
 const selectedExam = ref(null)
 const filterExamInstitutionType = ref('school')
+const examSearchQuery = ref('')
 
 const filteredAvailableExams = computed(() => {
-  return availableExams.value.filter(e => {
+  let list = availableExams.value.filter(e => {
     const instType = e.institution_type || 'school'
     return instType === filterExamInstitutionType.value
   })
+  if (examSearchQuery.value?.trim()) {
+    const q = examSearchQuery.value.trim().toLowerCase()
+    list = list.filter(e =>
+      (e.title && e.title.toLowerCase().includes(q)) ||
+      (e.unique_code && e.unique_code.toLowerCase().includes(q)) ||
+      (e.uniqueCode && e.uniqueCode.toLowerCase().includes(q)) ||
+      (e.subject_name && e.subject_name.toLowerCase().includes(q)) ||
+      (e.year_name && e.year_name.toLowerCase().includes(q))
+    )
+  }
+  return list
 })
+
+const institutionTypeFilterTabs = computed(() => [
+  {
+    value: 'school',
+    label: 'المدارس',
+    icon: 'mdi-school',
+    count: availableExams.value.filter(e => (e.institution_type || 'school') === 'school').length
+  },
+  {
+    value: 'university',
+    label: 'الجامعات والكليات',
+    icon: 'mdi-town-hall',
+    count: availableExams.value.filter(e => e.institution_type === 'university').length
+  },
+  {
+    value: 'institute',
+    label: 'المعاهد والتدريب المهني',
+    icon: 'mdi-tools',
+    count: availableExams.value.filter(e => e.institution_type === 'institute').length
+  }
+])
+
+const wizardExamsTableItems = computed(() => ({
+  results: filteredAvailableExams.value,
+  count: filteredAvailableExams.value.length,
+  pagination: {
+    count: filteredAvailableExams.value.length,
+    current_page: 1,
+    num_pages: 1,
+  }
+}))
+
+async function getWizardExamsData() {
+  return wizardExamsTableItems.value
+}
+
+const noop = async () => ({
+  results: [],
+  count: 0,
+  pagination: { count: 0, current_page: 1, num_pages: 1 }
+})
+
+function canNavigateToStep(step) {
+  if (step === 1) return true
+  if (step === 2) return !!selectedExam.value && !getExamActiveDistribution(selectedExam.value)
+  if (step === 3) return !!selectedExam.value && !getExamActiveDistribution(selectedExam.value) && totalResolvedSchoolsCount.value > 0
+  return false
+}
 
 watch(filterExamInstitutionType, (newType) => {
   const matching = availableExams.value.filter(e => (e.institution_type || 'school') === newType)
@@ -1345,28 +1502,217 @@ watch(filterExamInstitutionType, (newType) => {
     selectedExam.value = null
     dispatchForm.value.title = ''
   }
+  loadOrganizations()
 })
 
 const selectedTargetLevel = ref('ministry')
 const selectedOrgIds = ref([])
 const resolvedSchools = ref([])
+const totalResolvedSchoolsCount = ref(0)
+const allResolvedSchoolIds = ref([])
 const schoolSearchQuery = ref('')
+const step2FilterGovernorate = ref(null)
+const step2FilterDirectorate = ref(null)
 
-const filteredResolvedSchools = computed(() => {
-  if (!schoolSearchQuery.value) return resolvedSchools.value
-  const q = schoolSearchQuery.value.toLowerCase().trim()
-  return resolvedSchools.value.filter(s =>
-    (s.name_ar && s.name_ar.toLowerCase().includes(q)) ||
-    (s.branch_no && String(s.branch_no).includes(q)) ||
-    (s.governorate && s.governorate.toLowerCase().includes(q)) ||
-    (s.directorate && s.directorate.toLowerCase().includes(q))
-  )
+const isSchoolTarget = computed(() => {
+  const type = selectedExam.value?.institution_type || filterExamInstitutionType.value || 'school'
+  return type === 'school'
 })
 
-const governoratesList = ref([])
-const directoratesList = ref([])
-const allSchoolsList = ref([])
+const resolvedSchoolsPagination = ref({
+  count: 0,
+  current_page: 1,
+  num_pages: 1,
+  page_size: 10
+})
 
+const resolvedSchoolsTableItems = ref({
+  results: [],
+  count: 0,
+  pagination: {
+    count: 0,
+    current_page: 1,
+    num_pages: 1,
+    page_size: 10
+  }
+})
+
+let schoolSearchTimeout = null
+function onSchoolSearchChanged() {
+  if (schoolSearchTimeout) clearTimeout(schoolSearchTimeout)
+  schoolSearchTimeout = setTimeout(() => {
+    getResolvedSchoolsData({ page: 1 })
+  }, 350)
+}
+
+function onClearSchoolSearch() {
+  schoolSearchQuery.value = ''
+  getResolvedSchoolsData({ page: 1 })
+}
+
+function onStep2GovernorateChanged(val) {
+  step2FilterGovernorate.value = val
+  step2FilterDirectorate.value = null
+  getResolvedSchoolsData({ page: 1 })
+}
+
+function onStep2DirectorateChanged(val) {
+  step2FilterDirectorate.value = val
+  getResolvedSchoolsData({ page: 1 })
+}
+
+function resetStep2Filters() {
+  step2FilterGovernorate.value = null
+  step2FilterDirectorate.value = null
+  schoolSearchQuery.value = ''
+  getResolvedSchoolsData({ page: 1 })
+}
+
+async function getResolvedSchoolsData(tableParams = null) {
+  loadingSchools.value = true
+  try {
+    let page = 1
+    let pageSize = resolvedSchoolsPagination.value.page_size || 10
+
+    if (tableParams) {
+      const p = tableParams.params || tableParams
+      if (p.page) page = Number(p.page)
+      if (p.page_size) pageSize = Number(p.page_size)
+      else if (p.limit) pageSize = Number(p.limit)
+      else if (p.itemsPerPage) pageSize = Number(p.itemsPerPage)
+    }
+
+    const currentInstType = selectedExam.value?.institution_type || filterExamInstitutionType.value || 'school'
+    const payload = {
+      target_level: selectedTargetLevel.value || 'ministry',
+      selected_org_ids: selectedOrgIds.value || [],
+      institution_type: currentInstType,
+      page,
+      page_size: pageSize,
+      limit: pageSize
+    }
+
+    if (selectedExam.value?.id) {
+      payload.exam_id = selectedExam.value.id
+    }
+
+    if (schoolSearchQuery.value && schoolSearchQuery.value.trim()) {
+      payload.search = schoolSearchQuery.value.trim()
+    }
+
+    if (step2FilterGovernorate.value) {
+      payload.filter_governorate = step2FilterGovernorate.value
+    }
+
+    if (isSchoolTarget.value && step2FilterDirectorate.value) {
+      payload.filter_directorate = step2FilterDirectorate.value
+    }
+
+    const res = await examsService.resolveDistributionHierarchy(payload)
+    const results = res?.results || res?.schools || (Array.isArray(res) ? res : [])
+    const count = res?.count ?? res?.total_schools ?? results.length
+    const numPages = res?.num_pages ?? Math.max(1, Math.ceil(count / pageSize))
+    const currentPage = res?.current_page ?? page
+
+    resolvedSchools.value = results
+    totalResolvedSchoolsCount.value = count
+
+    if (res?.all_school_ids && Array.isArray(res.all_school_ids)) {
+      allResolvedSchoolIds.value = res.all_school_ids
+    } else if (results.length > 0) {
+      allResolvedSchoolIds.value = results.map(s => s.id)
+    }
+
+    resolvedSchoolsPagination.value = {
+      count,
+      current_page: currentPage,
+      num_pages: numPages,
+      page_size: pageSize
+    }
+
+    resolvedSchoolsTableItems.value = {
+      results,
+      count,
+      pagination: {
+        count,
+        current_page: currentPage,
+        num_pages: numPages,
+        page_size: pageSize
+      }
+    }
+
+    return resolvedSchoolsTableItems.value
+  } catch (e) {
+    console.error('Error resolving hierarchy schools with backend pagination:', e)
+    resolvedSchoolsTableItems.value = {
+      results: [],
+      count: 0,
+      pagination: {
+        count: 0,
+        current_page: 1,
+        num_pages: 1,
+        page_size: 10
+      }
+    }
+    return resolvedSchoolsTableItems.value
+  } finally {
+    loadingSchools.value = false
+  }
+}
+
+const educationalOrgsList = ref([])
+
+const governoratesList = computed(() => {
+  return educationalOrgsList.value
+    .filter(org => Number(org.company_level) === 30)
+    .map(org => ({
+      id: org.id,
+      name: org.name_ar || org.name || org.name_en || '',
+      name_ar: org.name_ar || org.name || '',
+      name_en: org.name_en || '',
+      branch_no: org.branch_no,
+      company_level: org.company_level,
+      fk_parent_organization: org.fk_parent_organization
+    }))
+})
+
+const directoratesList = computed(() => {
+  if (!step2FilterGovernorate.value) {
+    return educationalOrgsList.value
+      .filter(org => Number(org.company_level) === 40)
+      .map(org => ({
+        id: org.id,
+        name: org.name_ar || org.name || org.name_en || '',
+        name_ar: org.name_ar || org.name || '',
+        name_en: org.name_en || '',
+        branch_no: org.branch_no,
+        company_level: org.company_level,
+        fk_parent_organization: org.fk_parent_organization
+      }))
+  }
+  return educationalOrgsList.value
+    .filter(org => {
+      if (Number(org.company_level) !== 40) return false
+      const parentId = typeof org.fk_parent_organization === 'object' && org.fk_parent_organization !== null
+        ? org.fk_parent_organization.id
+        : org.fk_parent_organization
+      return Number(parentId) === Number(step2FilterGovernorate.value)
+    })
+    .map(org => ({
+      id: org.id,
+      name: org.name_ar || org.name || org.name_en || '',
+      name_ar: org.name_ar || org.name || '',
+      name_en: org.name_en || '',
+      branch_no: org.branch_no,
+      company_level: org.company_level,
+      fk_parent_organization: org.fk_parent_organization
+    }))
+})
+
+const allSchoolsList = ref([])
+const loadingGeoData = ref(false)
+const loadingDirectorates = ref(false)
+const loadingSchools = ref(false)
 // Wizard Form
 const dispatchForm = ref({
   title: '',
@@ -1394,8 +1740,6 @@ const stepTitles = [
   'جدول المواعيد والأمان',
 ]
 
-const showManualScopeOverride = ref(false)
-
 function getPreDeterminedScopeTitle(exam) {
   if (!exam) return '-'
   if (exam.target_scope_level === 'governorate') return 'محافظات محددة'
@@ -1413,12 +1757,6 @@ function getPreDeterminedScopeTargets(exam) {
   if (exam.governorate_name) return [exam.governorate_name]
   if (exam.directorate_name) return [exam.directorate_name]
   return []
-}
-
-function resetScopeToExamDefault() {
-  if (selectedExam.value) {
-    selectExam(selectedExam.value)
-  }
 }
 
 function getExamActiveDistribution(exam) {
@@ -1452,30 +1790,51 @@ function openLiveMonitorFromActiveDist(activeDist) {
   openLiveMonitor(targetDist)
 }
 
-const targetLevelOptions = [
-  { value: 'ministry', label: 'الوزارة (شامل)', icon: 'mdi-city-variant', desc: 'كافة المدارس والمعاهد في الجمهورية' },
-  { value: 'governorate', label: 'مكاتب المحافظات', icon: 'mdi-map-marker-radius', desc: 'كل مؤسسات المحافظات المختارة' },
-  { value: 'directorate', label: 'إدارات المديريات', icon: 'mdi-town-hall', desc: 'كل مؤسسات المديريات المختارة' },
-  { value: 'school', label: 'مؤسسات / معاهد محددة', icon: 'mdi-school', desc: 'اختيار مدارس أو معاهد محددة بالاسم' },
-]
-
 // Main Table Headers for custom-data-table
 const tableHeaders = [
   { title: 'مهمة التوزيع والاختبار', key: 'title', sortable: true },
+  { title: 'نوع المؤسسة', key: 'institution_type', sortable: true },
   { title: 'المستوى المستهدف', key: 'target_level', sortable: true },
-  { title: 'تقدم استلام المدارس', key: 'targeted_schools_count', sortable: true },
+  { title: 'تقدم استلام المؤسسات', key: 'targeted_schools_count', sortable: true },
   { title: 'نافذة الإتاحة والامتحان', key: 'accessible_from', sortable: true },
   { title: 'نمط التسليم', key: 'delivery_mode', sortable: false },
   { title: 'الحالة', key: 'status', sortable: true },
 ]
 
-// Secondary Table Headers for resolved schools in Step 2
-const schoolTableHeaders = [
-  { title: 'اسم المدرسة', key: 'name_ar', sortable: true },
-  { title: 'رقم الفرع (Branch No)', key: 'branch_no', sortable: true },
-  { title: 'المحافظة', key: 'governorate', sortable: true },
-  { title: 'المديرية', key: 'directorate', sortable: true },
+// Wizard Step 1: Exams Table Headers
+const wizardExamHeaders = [
+  { title: 'تحديد', key: 'select', sortable: false, width: '90px', align: 'center' },
+  { title: 'رمز الاختبار', key: 'unique_code', sortable: true, width: '130px' },
+  { title: 'عنوان الاختبار المعتمد', key: 'title', sortable: true },
+  { title: 'نوع المؤسسة', key: 'institution_type', sortable: true, width: '110px' },
+  { title: 'المادة', key: 'subject_name', sortable: true, width: '140px' },
+  { title: 'العام الدراسي', key: 'year_name', sortable: true, width: '120px' },
+  { title: 'نطاق الاستهداف', key: 'target_scope_level', sortable: true, width: '140px' },
+  { title: 'النماذج والأسئلة', key: 'exam_details', sortable: false, width: '150px' },
+  { title: 'حالة التوزيع', key: 'distribution_status', sortable: false, width: '160px' },
 ]
+
+// Wizard Step 2: Secondary Table Headers for resolved schools in Step 2
+const schoolTableHeaders = computed(() => {
+  const headers = [
+    { title: '#', key: 'index', sortable: false, width: '60px', align: 'center' },
+    {
+      title: isSchoolTarget.value ? 'اسم المدرسة' : 'اسم المعهد / الجامعة',
+      key: 'name_ar',
+      sortable: true
+    },
+    { title: 'رقم الفرع (Branch No)', key: 'branch_no', sortable: true, width: '160px' },
+    { title: 'المحافظة', key: 'governorate', sortable: true, width: '180px' },
+  ]
+
+  if (isSchoolTarget.value) {
+    headers.push({ title: 'المديرية', key: 'directorate', sortable: true, width: '180px' })
+  }
+
+  headers.push({ title: 'حالة الجاهزية', key: 'status', sortable: false, width: '150px' })
+
+  return headers
+})
 
 // Secondary Table Headers for Live Monitor Dialog
 const liveMonitorHeaders = [
@@ -1492,14 +1851,11 @@ const liveMonitorHeaders = [
 
 const filteredDistributions = computed(() => {
   let list = distributionsList.value
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase()
-    list = list.filter(d =>
-      (d.title && d.title.toLowerCase().includes(q)) ||
-      (d.exam_title && d.exam_title.toLowerCase().includes(q)) ||
-      (d.subject_name && d.subject_name.toLowerCase().includes(q)) ||
-      (d.exam_unique_code && d.exam_unique_code.toLowerCase().includes(q))
-    )
+  if (filterInstitutionType.value) {
+    list = list.filter(d => {
+      const type = d.institution_type || d.target_system || d.exam?.institution_type || 'school'
+      return type === filterInstitutionType.value
+    })
   }
   if (filterTargetLevel.value) {
     list = list.filter(d => d.target_level === filterTargetLevel.value)
@@ -1509,6 +1865,31 @@ const filteredDistributions = computed(() => {
   }
   return list
 })
+
+function getInstType(item) {
+  return item.institution_type || item.target_system || item.exam?.institution_type || 'school'
+}
+
+function getInstTypeLabel(item) {
+  const type = getInstType(item)
+  if (type === 'university') return 'جامعات'
+  if (type === 'institute') return 'معاهد'
+  return 'مدارس'
+}
+
+function getInstTypeColor(item) {
+  const type = getInstType(item)
+  if (type === 'university') return 'indigo'
+  if (type === 'institute') return 'amber-darken-3'
+  return 'teal'
+}
+
+function getInstTypeIcon(item) {
+  const type = getInstType(item)
+  if (type === 'university') return 'mdi-town-hall'
+  if (type === 'institute') return 'mdi-tools'
+  return 'mdi-school-outline'
+}
 
 // Items object format compatible with custom-data-table
 const tableItems = computed(() => ({
@@ -1556,10 +1937,11 @@ const totalTargetedSchoolsCount = computed(() => {
   return distributionsList.value.reduce((acc, cur) => acc + (cur.targeted_schools_count || 0), 0)
 })
 
-onMounted(async () => {
+onMounted(() => {
   initDefaultTimings()
-  await getData()
-  await loadAuxiliaryData()
+  getData()
+  loadAuxiliaryData()
+  loadEducationalHierarchy()
 })
 
 function initDefaultTimings() {
@@ -1586,14 +1968,16 @@ async function getData(tableParams = null) {
     if (tableParams && tableParams.params) {
       queryParams = { ...tableParams.params }
     }
-    if (searchQuery.value) queryParams.search = searchQuery.value
+    if (filterInstitutionType.value) queryParams.institution_type = filterInstitutionType.value
     if (filterTargetLevel.value) queryParams.target_level = filterTargetLevel.value
     if (filterStatus.value) queryParams.status = filterStatus.value
 
     const distData = await examsService.getDistributions(queryParams)
     distributionsList.value = distData.results || distData || []
+    return tableItems.value
   } catch (err) {
     console.error('Error fetching distributions:', err)
+    return { results: [], count: 0, pagination: { count: 0, current_page: 1, num_pages: 1 } }
   } finally {
     loading.value = false
   }
@@ -1601,41 +1985,70 @@ async function getData(tableParams = null) {
 
 async function loadAuxiliaryData() {
   try {
-    // 1. Fetch approved exams
     const examsRes = await examsService.getArchivedExams({ limit: 50, page_size: 50 })
     availableExams.value = examsRes.results || examsRes || []
-
-    // 2. Load schools hierarchy directly from resolve-hierarchy endpoint
-    await fetchResolvedSchools()
-
-    // 3. Fetch organizations hierarchy with high page_size to avoid pagination truncating
-    const orgsRes = await api.get('common/branch/?page_size=500&limit=500')
-    const allOrgs = orgsRes.data?.data || orgsRes.data?.results || orgsRes.data || []
-    governoratesList.value = allOrgs.filter(o => o.company_level === 30)
-    directoratesList.value = allOrgs.filter(o => o.company_level === 40)
-    allSchoolsList.value = allOrgs.filter(o => o.company_level === 50)
   } catch (err) {
     console.error('Error loading auxiliary data:', err)
   }
 }
 
+async function loadEducationalHierarchy() {
+  loadingGeoData.value = true
+  try {
+    const res = await examsService.getEducationalHierarchy()
+    const data = res?.data || res?.results || (Array.isArray(res) ? res : [])
+    educationalOrgsList.value = Array.isArray(data) ? data : []
+  } catch (err) {
+    console.error('Error loading educational hierarchy:', err)
+  } finally {
+    loadingGeoData.value = false
+  }
+}
+
+async function loadOrganizations(params = {}) {
+  loadingSchools.value = true
+  try {
+    const instType = selectedExam.value?.institution_type || filterExamInstitutionType.value || 'school'
+    const queryParts = [`institution_type=${instType}`]
+    if (params.governorate) queryParts.push(`governorate=${params.governorate}`)
+    if (params.directorate) queryParts.push(`directorate=${params.directorate}`)
+    const res = await api.get(`api/academic/organizations/all/?${queryParts.join('&')}`)
+    const data = res.data?.data || res.data?.results || res.data || []
+    allSchoolsList.value = Array.isArray(data) ? data : []
+  } catch (err) {
+    console.error('Error loading organizations:', err)
+  } finally {
+    loadingSchools.value = false
+  }
+}
+
 function applyFilters() {
-  getData()
+  return getData()
 }
 
 function resetFilters() {
-  searchQuery.value = ''
+  filterInstitutionType.value = null
   filterTargetLevel.value = null
   filterStatus.value = null
-  getData()
+  return getData()
 }
 
-function openNewDispatchWizard() {
+function onInstitutionTypeFilterChange() {
+  return getData()
+}
+
+async function openNewDispatchWizard() {
   currentTab.value = 'wizard'
   currentStep.value = 1
-  filterExamInstitutionType.value = 'school'
-  const schoolExams = availableExams.value.filter(e => (e.institution_type || 'school') === 'school')
-  const firstNonActive = schoolExams.find(e => !getExamActiveDistribution(e)) || schoolExams[0] || null
+  if (availableExams.value.length === 0) {
+    loading.value = true
+    await loadAuxiliaryData()
+    loading.value = false
+  }
+  filterExamInstitutionType.value = filterInstitutionType.value || 'school'
+  const targetType = filterExamInstitutionType.value
+  const typedExams = availableExams.value.filter(e => (e.institution_type || 'school') === targetType)
+  const firstNonActive = typedExams.find(e => !getExamActiveDistribution(e)) || typedExams[0] || null
   selectedExam.value = firstNonActive
   if (selectedExam.value) {
     selectExam(selectedExam.value)
@@ -1651,7 +2064,9 @@ function openNewDispatchWizard() {
 function selectExam(exam) {
   selectedExam.value = exam
   dispatchForm.value.title = `تصدير اختبار: ${exam.title}`
-  showManualScopeOverride.value = false
+  step2FilterGovernorate.value = null
+  step2FilterDirectorate.value = null
+  schoolSearchQuery.value = ''
 
   // استخراج وتطبيق نطاق الاستهداف المعتمد مسبقاً للاختبار مباشرة
   if (exam.target_scope_level && exam.target_scope_level !== 'all') {
@@ -1684,49 +2099,8 @@ function selectExam(exam) {
   fetchResolvedSchools()
 }
 
-function changeTargetLevel(level) {
-  selectedTargetLevel.value = level
-  selectedOrgIds.value = []
-  schoolSearchQuery.value = ''
-  fetchResolvedSchools()
-}
-
 async function fetchResolvedSchools() {
-  try {
-    const payload = {
-      target_level: selectedTargetLevel.value || 'ministry',
-      selected_org_ids: selectedOrgIds.value || []
-    }
-    if (selectedExam.value?.id) {
-      payload.exam_id = selectedExam.value.id
-    }
-    const res = await examsService.resolveDistributionHierarchy(payload)
-    const list = res?.schools || res?.results || res?.data?.schools || (Array.isArray(res) ? res : [])
-    if (list && list.length > 0) {
-      resolvedSchools.value = list
-    } else if (selectedTargetLevel.value === 'ministry' && allSchoolsList.value.length > 0) {
-      resolvedSchools.value = allSchoolsList.value.map(s => ({
-        id: s.id,
-        name_ar: s.name_ar,
-        branch_no: s.branch_no,
-        governorate: s.fk_governorate_name || s.governorate || '-',
-        directorate: s.fk_directorate_name || s.directorate || '-'
-      }))
-    } else {
-      resolvedSchools.value = []
-    }
-  } catch (e) {
-    console.error('Error resolving hierarchy:', e)
-    if (selectedTargetLevel.value === 'ministry' && allSchoolsList.value.length > 0) {
-      resolvedSchools.value = allSchoolsList.value.map(s => ({
-        id: s.id,
-        name_ar: s.name_ar,
-        branch_no: s.branch_no,
-        governorate: s.fk_governorate_name || s.governorate || '-',
-        directorate: s.fk_directorate_name || s.directorate || '-'
-      }))
-    }
-  }
+  return getResolvedSchoolsData({ page: 1 })
 }
 
 async function submitDispatch() {
@@ -1747,7 +2121,7 @@ async function submitDispatch() {
       is_encrypted: dispatchForm.value.is_encrypted,
       auto_unlock: dispatchForm.value.auto_unlock,
       notes: dispatchForm.value.notes,
-      selected_school_ids: resolvedSchools.value.map(s => s.id)
+      selected_school_ids: allResolvedSchoolIds.value.length > 0 ? allResolvedSchoolIds.value : resolvedSchools.value.map(s => s.id)
     }
 
     await examsService.createDispatch(payload)
@@ -1769,12 +2143,14 @@ async function openLiveMonitor(item) {
 }
 
 async function refreshLiveMonitor() {
-  if (!selectedMonitorDistribution.value) return
+  if (!selectedMonitorDistribution.value) return liveMonitorSchoolsTableItems.value
   try {
     const res = await examsService.getDistributionLiveStatus(selectedMonitorDistribution.value.id)
     liveMonitorData.value = res
+    return liveMonitorSchoolsTableItems.value
   } catch (err) {
     console.error('Error loading live status:', err)
+    return liveMonitorSchoolsTableItems.value
   }
 }
 

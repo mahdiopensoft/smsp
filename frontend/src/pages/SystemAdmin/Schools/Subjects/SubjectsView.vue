@@ -5,29 +5,8 @@
     <!-- Filters Bar -->
     <filter-fields label="خيارات التصفية والبحث" class="main-card border-0 pa-5 rounded-2xl mb-6">
       <v-row dense class="align-center">
-        <!-- Stage Filter -->
-        <auto-list
-          v-model="filterStage"
-          name="Stage"
-          placeholder="المرحلة الدراسية"
-          cols="3"
-          :add="false"
-          @update:model-value="onStageChange"
-        />
-
-        <!-- ClassTrack (Level & Track) Filter -->
-        <auto-list
-          v-model="filterClassTrack"
-          name="ClassTrackByStage"
-          :param="filterStage"
-          placeholder="الصف والمسار التعليمي"
-          cols="3"
-          :add="false"
-          :disabled="!filterStage"
-        />
-
         <!-- Ministerial Status Filter -->
-        <v-col cols="12" sm="6" md="3">
+        <v-col cols="12" sm="6" md="4">
           <v-select
             v-model="filterMinisterial"
             :items="ministerialOptions"
@@ -44,7 +23,7 @@
         </v-col>
 
         <!-- Active Status Filter -->
-        <v-col cols="12" sm="6" md="3">
+        <v-col cols="12" sm="6" md="4">
           <v-select
             v-model="filterActive"
             :items="activeOptions"
@@ -61,12 +40,12 @@
         </v-col>
 
         <!-- Filter Actions -->
-        <v-col cols="12" sm="6" md="3" class="d-flex align-center gap-2">
+        <v-col cols="12" sm="6" md="4" class="d-flex align-center gap-2">
           <custom-btn
             type="show"
             label="تصفية"
             color="primary"
-            class="font-weight-bold flex-grow-1 mb-6"
+            class="font-weight-bold mb-6"
             :click="applyFilters"
           />
           <custom-btn
@@ -108,18 +87,6 @@
           </v-chip>
         </template>
 
-        <!-- Detailed Chip -->
-        <template v-else-if="key === 'is_detailed'">
-          <v-chip
-            size="small"
-            :color="item.is_detailed ? 'teal' : 'grey'"
-            variant="tonal"
-            class="font-weight-bold"
-          >
-            {{ item.is_detailed ? 'نعم' : 'لا' }}
-          </v-chip>
-        </template>
-
         <!-- Is Active Status -->
         <template v-else-if="key === 'is_active'">
           <v-chip
@@ -153,8 +120,6 @@ export default {
       url: "api/academic/subjects/",
 
       // Filters
-      filterStage: null,
-      filterClassTrack: null,
       filterMinisterial: null,
       filterActive: null,
 
@@ -175,18 +140,17 @@ export default {
       const queryParams = {
         ...(params?.params || params || {}),
       };
-      if (this.filterStage) queryParams.stage = this.filterStage;
-      if (this.filterClassTrack) queryParams.class_track = this.filterClassTrack;
       if (this.filterMinisterial !== null && this.filterMinisterial !== undefined) queryParams.is_ministerial = this.filterMinisterial;
       if (this.filterActive !== null && this.filterActive !== undefined) queryParams.is_active = this.filterActive;
 
       return await this.$axios
         .get(this.url, { params: queryParams })
-        .then((response) => (this.items = response.data));
-    },
-
-    onStageChange() {
-      this.filterClassTrack = null;
+        .then((response) => (this.items = response.data))
+        .catch((error) => {
+          console.error("Error fetching subjects:", error);
+          this.items = { results: [] };
+          return this.items;
+        });
     },
 
     applyFilters() {
@@ -194,8 +158,6 @@ export default {
     },
 
     resetFilters() {
-      this.filterStage = null;
-      this.filterClassTrack = null;
       this.filterMinisterial = null;
       this.filterActive = null;
       this.getData();
@@ -214,7 +176,6 @@ export default {
         { title: "كود المادة", key: "subject_code" },
         { title: "الترتيب", key: "subject_order" },
         { title: "مادة وزارية", key: "is_ministerial" },
-        { title: "تفصيلية", key: "is_detailed" },
         { title: "الحالة", key: "is_active" },
       ];
     },

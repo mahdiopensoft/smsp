@@ -257,8 +257,7 @@ def update_academic_screens():
             "fields": [
                 {"icon": "calendar-text", "name": "hijri_year", "index": 1, "label": "السنة الهجرية", "required": True},
                 {"icon": "calendar-month", "name": "gregorian_year", "index": 2, "label": "السنة الميلادية", "required": True},
-                {"icon": "calendar-check", "name": "is_current", "index": 3, "label": "السنة الحالية"},
-                {"icon": "check-circle-outline", "name": "is_active", "index": 4, "label": "مفعل"}
+                {"icon": "calendar-check", "name": "is_current", "index": 3, "label": "السنة الحالية"}
             ]
         },
         {
@@ -444,9 +443,8 @@ def update_academic_screens():
                 {"icon": "barcode", "name": "subject_code", "index": 3, "label": "كود المادة الوزاري"},
                 {"icon": "sort-numeric-ascending", "name": "subject_order", "index": 4, "label": "ترتيب المادة"},
                 {"icon": "bank", "name": "is_ministerial", "index": 5, "label": "مادة وزارية"},
-                {"icon": "file-tree", "name": "is_detailed", "index": 6, "label": "تفصيلي"},
-                {"icon": "note-text", "name": "note", "index": 7, "label": "ملاحظات"},
-                {"icon": "check-circle-outline", "name": "is_active", "index": 8, "label": "حالة التفعيل"}
+                {"icon": "note-text", "name": "note", "index": 6, "label": "ملاحظات"},
+                {"icon": "check-circle-outline", "name": "is_active", "index": 7, "label": "حالة التفعيل"}
             ]
         },
         {

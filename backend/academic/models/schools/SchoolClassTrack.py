@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 from academic.models.common.BaseSyncModel import BaseSyncModel
 
 class SchoolClassTrack(BaseSyncModel):
@@ -26,9 +27,23 @@ class SchoolClassTrack(BaseSyncModel):
         constraints = [
             models.UniqueConstraint(
                 fields=['level', 'track'],
-                name='unique_school_level_track_integrity',
+                condition=models.Q(is_deleted=False),
+                name='unique_active_school_level_track',
             ),
         ]
+
+    def clean(self):
+        super().clean()
+        if self.level_id and self.track_id:
+            qs = SchoolClassTrack.objects.filter(
+                level_id=self.level_id,
+                track_id=self.track_id,
+                is_deleted=False
+            )
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            if qs.exists():
+                raise ValidationError(_("مسار الصف هذا مسجل مسبقاً (تم ربط هذا الصف الدراسي بهذا المسار التعليمي بالفعل، يرجى اختيار مسار آخر أو صف آخر)."))
 
     @property
     def full_name(self):

@@ -37,6 +37,8 @@ class ExamDistributionSerializer(serializers.ModelSerializer):
     received_schools_count = serializers.SerializerMethodField(read_only=True)
     accessible_schools_count = serializers.SerializerMethodField(read_only=True)
     
+    institution_type = serializers.SerializerMethodField(read_only=True)
+    institution_type_display = serializers.SerializerMethodField(read_only=True)
     school_statuses = ExamSchoolDispatchStatusSerializer(many=True, read_only=True)
 
     class Meta:
@@ -61,10 +63,30 @@ class ExamDistributionSerializer(serializers.ModelSerializer):
         return '-'
 
     def get_targeted_schools_count(self, obj):
+        if hasattr(obj, '_prefetched_objects_cache') and 'organizations' in obj._prefetched_objects_cache:
+            return len([o for o in obj.organizations.all() if not getattr(o, 'is_deleted', False)])
         return obj.organizations.filter(is_deleted=False).count()
 
     def get_received_schools_count(self, obj):
+        if hasattr(obj, '_prefetched_objects_cache') and 'school_statuses' in obj._prefetched_objects_cache:
+            return len([s for s in obj.school_statuses.all() if not getattr(s, 'is_deleted', False) and s.is_received])
         return obj.school_statuses.filter(is_received=True, is_deleted=False).count()
 
     def get_accessible_schools_count(self, obj):
+        if hasattr(obj, '_prefetched_objects_cache') and 'school_statuses' in obj._prefetched_objects_cache:
+            return len([s for s in obj.school_statuses.all() if not getattr(s, 'is_deleted', False) and s.is_accessible])
         return obj.school_statuses.filter(is_accessible=True, is_deleted=False).count()
+
+    def get_institution_type(self, obj):
+        if obj.exam and hasattr(obj.exam, 'institution_type') and obj.exam.institution_type:
+            return obj.exam.institution_type
+        return getattr(obj, 'target_system', 'school') or 'school'
+
+    def get_institution_type_display(self, obj):
+        t = self.get_institution_type(obj)
+        labels = {
+            'school': 'مدارس',
+            'university': 'جامعات',
+            'institute': 'معاهد',
+        }
+        return labels.get(t, t)
