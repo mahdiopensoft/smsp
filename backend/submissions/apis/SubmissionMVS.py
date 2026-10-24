@@ -385,37 +385,48 @@ class SubmissionMVS(AllMVS):
                 seat_num = student_info.get("seat_number") or ""
                 s_name = student_info.get("name") or "طالب اختبار"
 
-                # 1. مطابقة نموذج الاختبار الدقيق (A, B, C, D) من الباركود أو الـ QR
-                target_version = default_version
-                if barcode_val and "_VER_" in barcode_val:
-                    try:
-                        v_code = barcode_val.split("_VER_")[1].split("_")[0]
-                        if v_code in versions_keys:
-                            target_version = versions_keys[v_code][0]
-                    except Exception:
-                        pass
-                elif qr_val and "|" in qr_val:
-                    parts = qr_val.split("|")
-                    if len(parts) >= 2 and parts[1] in versions_keys:
-                        target_version = versions_keys[parts[1]][0]
-
-                # 2. مطابقة الطالب ورقم جلوسه الفعلي من قاعدة البيانات
+                # 1. استخراج وفحص الأكواد المشفرة من الباركود والـ QR
                 import re
                 candidate_seats = []
+                candidate_versions = []
+
                 if seat_num:
                     candidate_seats.append(str(seat_num).strip())
-                if barcode_val:
-                    if "_SEAT_" in barcode_val:
-                        candidate_seats.append(barcode_val.split("_SEAT_")[-1].split("_")[0].strip())
-                    clean_b = barcode_val.strip()
+
+                for c_val in [barcode_val, qr_val]:
+                    if not c_val:
+                        continue
+                    if "_SEAT_" in c_val:
+                        candidate_seats.insert(0, c_val.split("_SEAT_")[-1].split("_")[0].strip())
+                    if "_VER_" in c_val:
+                        candidate_versions.append(c_val.split("_VER_")[1].split("_")[0].strip())
+                    if "|" in c_val:
+                        parts = [p.strip() for p in c_val.split("|")]
+                        if len(parts) >= 2:
+                            candidate_versions.append(parts[1])
+                        if len(parts) >= 3 and parts[2].isdigit():
+                            candidate_seats.insert(0, parts[2])
+                        if len(parts) >= 4 and parts[3].isdigit():
+                            candidate_seats.append(parts[3])
+                        tokens = [t.strip() for t in re.split(r'[-|_/]', c_val) if t.strip().isdigit()]
+                        candidate_seats.extend(tokens)
+                    clean_b = c_val.strip()
                     candidate_seats.append(clean_b)
                     if len(clean_b) >= 6:
                         candidate_seats.append(clean_b[:6])
-                if qr_val:
-                    tokens = [t.strip() for t in re.split(r'[-|_/]', qr_val) if t.strip().isdigit()]
-                    candidate_seats.extend(tokens)
 
+                # 2. تحديد نموذج الاختبار (A, B, C, D)
+                target_version = default_version
+                for v_cand in candidate_versions:
+                    if v_cand in versions_keys:
+                        target_version = versions_keys[v_cand][0]
+                        break
+
+                # 3. مطابقة الطالب ورقم جلوسه الفعلي من قاعدة البيانات
                 matched_reg = None
+                is_cross_exam = False
+                sheet_true_exam = None
+
                 if exam_obj:
                     reg_qs = StudentExamRegistration.objects.filter(examVersion__exam=exam_obj, is_deleted=False).select_related('student', 'student_profile__organization', 'examVersion')
                     for c_seat in candidate_seats:
@@ -429,14 +440,32 @@ class SubmissionMVS(AllMVS):
                                 matched_reg = r
                                 break
 
+                # إذا لم يُعثر على الطالب في الاختبار المختار، ابحث في كافة اختبارات النظام (Cross-Exam Detection)
+                if not matched_reg:
+                    for c_seat in candidate_seats:
+                        if c_seat and c_seat.isdigit():
+                            found_reg = StudentExamRegistration.objects.filter(
+                                seatNumber=c_seat, is_deleted=False
+                            ).select_related('student', 'student_profile__organization', 'examVersion__exam').first()
+                            if found_reg:
+                                matched_reg = found_reg
+                                sheet_true_exam = found_reg.examVersion.exam
+                                if exam_obj and sheet_true_exam.id != exam_obj.id:
+                                    is_cross_exam = True
+                                break
+
                 if matched_reg:
                     target_version = matched_reg.examVersion
                     if matched_reg.student_profile and matched_reg.student_profile.name_ar:
                         s_name = matched_reg.student_profile.name_ar
                     elif matched_reg.student:
-                        s_name = matched_reg.student.first_name or matched_reg.student.username
-                    if not seat_num:
+                        st = matched_reg.student
+                        s_name = getattr(st, 'get_full_name', lambda: '')() or f"{st.first_name or ''} {st.last_name or ''}".strip() or st.username
+                    if matched_reg.seatNumber:
                         seat_num = matched_reg.seatNumber
+
+                    if is_cross_exam and sheet_true_exam:
+                        s_name = f"{s_name} (⚠️ ورقة تتبع {sheet_true_exam.title})"
 
                 # ═══ فحص قفل الكنترول المركزي (Control Lock) ═══
                 locked_sub = None
