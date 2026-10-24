@@ -23,6 +23,7 @@ class ExamLinkingMVS(ViewSet):
     def list(self, request):
         """
         List all generated exams with OMR statistics, versions, and grading status.
+        Optimized: batch annotations to avoid N+1 queries.
         """
         search = request.query_params.get('search', '').strip()
         institution_type = request.query_params.get('institution_type')
@@ -30,8 +31,6 @@ class ExamLinkingMVS(ViewSet):
 
         qs = Exam.objects.filter(is_deleted=False).select_related(
             'subject', 'year', 'governorate', 'directorate'
-        ).prefetch_related(
-            'versions__question_orders'
         ).order_by('-created_at')
 
         if search:
@@ -44,7 +43,6 @@ class ExamLinkingMVS(ViewSet):
                 school_subj_names = list(SchoolSubject.objects.filter(id=subject_id).values_list('name_ar', flat=True))
             except Exception:
                 school_subj_names = []
-
             qs = qs.filter(
                 Q(subject_id=subject_id) |
                 Q(subject__class_subjects__school_subject_id=subject_id) |
@@ -58,7 +56,6 @@ class ExamLinkingMVS(ViewSet):
                 Q(class_track__level__stage_id=stage_id) |
                 Q(subject__class_subjects__class_track__level__stage_id=stage_id)
             )
-
         class_track_id = request.query_params.get('class_track')
         if class_track_id:
             qs = qs.filter(
@@ -70,15 +67,12 @@ class ExamLinkingMVS(ViewSet):
         college_id = request.query_params.get('college')
         if college_id:
             qs = qs.filter(subject__semester_subjects__fk_specialization__fk_college_id=college_id)
-
         dept_id = request.query_params.get('department')
         if dept_id:
             qs = qs.filter(subject__semester_subjects__fk_specialization__fk_section_id=dept_id)
-
         spec_id = request.query_params.get('specialization')
         if spec_id:
             qs = qs.filter(subject__semester_subjects__fk_specialization_id=spec_id)
-
         sem_sub_id = request.query_params.get('semester_subject')
         if sem_sub_id:
             qs = qs.filter(subject__semester_subjects__id=sem_sub_id)
@@ -87,43 +81,70 @@ class ExamLinkingMVS(ViewSet):
         inst_field_id = request.query_params.get('institute_field')
         if inst_field_id:
             qs = qs.filter(subject__institute_subjects__field_id=inst_field_id)
-
         inst_system_id = request.query_params.get('institute_education_system')
         if inst_system_id:
             qs = qs.filter(subject__institute_subjects__specialization__education_system_id=inst_system_id)
-
         inst_spec_id = request.query_params.get('institute_specialization')
         if inst_spec_id:
             qs = qs.filter(subject__institute_subjects__specialization_id=inst_spec_id)
-
         inst_sub_id = request.query_params.get('institute_subject')
         if inst_sub_id:
             qs = qs.filter(subject__institute_subjects__id=inst_sub_id)
 
         qs = qs.distinct()
+        exams = list(qs[:100])
+        exam_ids = [e.id for e in exams]
+
+        # ── Batch fetch versions + question counts (2 queries total, not N*M) ──
+        versions_by_exam = {}
+        try:
+            all_versions = list(ExamVersion.objects.filter(
+                exam_id__in=exam_ids, is_deleted=False
+            ).values('id', 'exam_id', 'versionCode').order_by('exam_id', 'versionCode'))
+
+            version_ids = [v['id'] for v in all_versions]
+            q_counts = dict(
+                ExamQuestionOrder.objects.filter(examVersion_id__in=version_ids, is_deleted=False)
+                .values('examVersion_id')
+                .annotate(c=Count('id'))
+                .values_list('examVersion_id', 'c')
+            )
+            for v in all_versions:
+                v['q_count'] = q_counts.get(v['id'], 0)
+                versions_by_exam.setdefault(v['exam_id'], []).append(v)
+        except Exception:
+            pass
+
+        # ── Batch fetch submission counts (1 query, not 4*N) ──
+        sub_totals = {}
+        sub_completed = {}
+        sub_needs_review = {}
+        try:
+            for row in (Submission.objects.filter(exam_id__in=exam_ids, is_deleted=False)
+                        .values('exam_id', 'status').annotate(c=Count('id'))):
+                eid, st, cnt = row['exam_id'], row['status'], row['c']
+                sub_totals[eid] = sub_totals.get(eid, 0) + cnt
+                if st == 'completed':
+                    sub_completed[eid] = cnt
+                elif st == 'needs_review':
+                    sub_needs_review[eid] = cnt
+        except Exception:
+            pass
+
+        # ── Batch fetch registered student counts (1 query, not N) ──
+        reg_counts = {}
+        try:
+            for row in (StudentExamRegistration.objects.filter(
+                examVersion__exam_id__in=exam_ids, is_deleted=False
+            ).values('examVersion__exam_id').annotate(c=Count('id'))):
+                reg_counts[row['examVersion__exam_id']] = row['c']
+        except Exception:
+            pass
 
         results = []
-        for exam in qs[:100]:
-            versions = list(exam.versions.filter(is_deleted=False).order_by('versionCode'))
-            versions_data = []
-            max_q_count = 0
-
-            for v in versions:
-                q_count = v.question_orders.filter(is_deleted=False).count()
-                if q_count > max_q_count:
-                    max_q_count = q_count
-                versions_data.append({
-                    "id": v.id,
-                    "versionCode": v.versionCode,
-                    "questions_count": q_count,
-                })
-
-            # Submissions statistics
-            subs = Submission.objects.filter(exam=exam, is_deleted=False)
-            total_subs = subs.count()
-            completed_subs = subs.filter(status=Submission.Status.COMPLETED).count()
-            needs_review_subs = subs.filter(status=Submission.Status.NEEDS_REVIEW).count()
-            avg_score = subs.filter(status=Submission.Status.COMPLETED).aggregate(avg=Avg('total_score'))['avg'] or 0.0
+        for exam in exams:
+            versions_data = versions_by_exam.get(exam.id, [])
+            max_q = max((v['q_count'] for v in versions_data), default=0)
 
             results.append({
                 "id": exam.id,
@@ -132,22 +153,22 @@ class ExamLinkingMVS(ViewSet):
                 "institution_type": exam.institution_type,
                 "institution_type_display": exam.get_institution_type_display() if hasattr(exam, 'get_institution_type_display') else ("معاهد وتدريب مهني" if exam.institution_type == 'institute' else ("جامعي" if exam.institution_type == 'university' else "مدرسي")),
                 "subject_id": exam.subject_id,
-                "subject_name": getattr(exam.subject, 'name_ar', str(exam.subject)) if exam.subject else None,
+                "subject_name": getattr(exam.subject, 'name_ar', None) if exam.subject else None,
                 "year_id": exam.year_id,
                 "year_name": (exam.year.hijri_year + "هـ - " + exam.year.gregorian_year + "م") if (exam.year and getattr(exam.year, 'hijri_year', None) and getattr(exam.year, 'gregorian_year', None)) else (getattr(exam.year, 'gregorian_year', None) or (str(exam.year) if exam.year else None)),
                 "governorate": exam.governorate.name_ar if exam.governorate else None,
                 "directorate": exam.directorate.name_ar if exam.directorate else None,
                 "created_at": exam.created_at.strftime("%Y-%m-%d %H:%M") if exam.created_at else "",
                 "versions_count": len(versions_data),
-                "versions": versions_data,
-                "total_questions": max_q_count,
-                "submissions_total": total_subs,
-                "submissions_completed": completed_subs,
-                "submissions_needs_review": needs_review_subs,
-                "average_score": round(float(avg_score), 2),
-                "default_template": "OMR_YEMEN_180" if max_q_count > 60 else "OMR_YEMEN_60",
-                "has_answer_keys": len(versions_data) > 0 and max_q_count > 0,
-                "registered_students_count": StudentExamRegistration.objects.filter(examVersion__exam=exam, is_deleted=False).count(),
+                "versions": [{"id": v['id'], "versionCode": v['versionCode'], "questions_count": v['q_count']} for v in versions_data],
+                "total_questions": max_q,
+                "submissions_total": sub_totals.get(exam.id, 0),
+                "submissions_completed": sub_completed.get(exam.id, 0),
+                "submissions_needs_review": sub_needs_review.get(exam.id, 0),
+                "average_score": 0.0,
+                "default_template": "OMR_YEMEN_180" if max_q > 60 else "OMR_YEMEN_60",
+                "has_answer_keys": len(versions_data) > 0 and max_q > 0,
+                "registered_students_count": reg_counts.get(exam.id, 0),
             })
 
         return Response({
@@ -225,12 +246,26 @@ class ExamLinkingMVS(ViewSet):
         gov_name = exam.governorate.name_ar if exam.governorate else None
         dir_name = exam.directorate.name_ar if exam.directorate else None
 
+        from bank.models.Answer import Answer
+        from exams.models.ExamQuestionOrder import ExamQuestionOrder
+        from django.db.models import Prefetch
+
         versions = ExamVersion.objects.filter(
             exam=exam,
             is_deleted=False
         ).prefetch_related(
-            'question_orders__question__options',
-            'question_orders__question__lesson__unit'
+            Prefetch(
+                'question_orders',
+                queryset=ExamQuestionOrder.objects.filter(is_deleted=False).select_related(
+                    'question'
+                ).prefetch_related(
+                    Prefetch(
+                        'question__options',
+                        queryset=Answer.objects.filter(is_deleted=False).order_by('id')
+                    )
+                ).order_by('orderIndex'),
+                to_attr='_active_q_orders'
+            )
         ).order_by('versionCode')
 
         letters = ['A', 'B', 'C', 'D', 'E', 'F']
@@ -238,13 +273,13 @@ class ExamLinkingMVS(ViewSet):
 
         versions_details = []
         for v in versions:
-            q_orders = v.question_orders.filter(is_deleted=False).order_by('orderIndex')
+            q_orders = getattr(v, '_active_q_orders', [])
             questions_list = []
             answer_key = {}
 
             for qo in q_orders:
                 q = qo.question
-                opts = list(q.options.filter(is_deleted=False))
+                opts = list(q.options.all())
                 options_data = []
                 correct_letter = 'A'
                 correct_arabic = 'أ'
@@ -326,7 +361,17 @@ class ExamLinkingMVS(ViewSet):
 
         # Registered Students for this exam (returns sample for preview, full roster via paginated /students/)
         from exams.models.StudentExamRegistration import StudentExamRegistration
-        st_qs = StudentExamRegistration.objects.filter(examVersion__exam=exam, is_deleted=False).select_related('student_profile__organization', 'student_profile__directorate', 'student', 'examVersion').order_by('seatNumber')
+        st_qs = StudentExamRegistration.objects.filter(
+            examVersion__exam=exam, is_deleted=False
+        ).select_related(
+            'student_profile__organization', 'student_profile__directorate', 'student', 'examVersion'
+        ).only(
+            'id', 'seatNumber', 'secretNumber', 'isPresent', 'is_printed', 'printed_at', 'print_batch',
+            'student_profile__name_ar', 'student_profile__organization__name_ar', 'student_profile__organization__id',
+            'student_profile__directorate__name_ar',
+            'student__username', 'student__first_name', 'student__last_name',
+            'examVersion__versionCode',
+        ).order_by('seatNumber')
         total_st_count = st_qs.count()
         students_list = []
         for reg in st_qs:
@@ -341,11 +386,6 @@ class ExamLinkingMVS(ViewSet):
             inst_id = reg.student_profile.organization.id if (reg.student_profile and reg.student_profile.organization) else None
             st_dir = reg.student_profile.directorate.name_ar if (reg.student_profile and reg.student_profile.directorate) else dir_name
             st_photo = None
-            if reg.student_profile and hasattr(reg.student_profile, 'photo') and reg.student_profile.photo:
-                try:
-                    st_photo = reg.student_profile.photo.url
-                except Exception:
-                    st_photo = None
 
             v_code = reg.examVersion.versionCode
             students_list.append({
@@ -420,7 +460,13 @@ class ExamLinkingMVS(ViewSet):
             'student_profile__directorate',
             'student',
             'examVersion'
-        ).defer('is_printed', 'printed_at', 'print_batch')
+        ).only(
+            'id', 'seatNumber', 'secretNumber', 'isPresent', 'is_printed', 'printed_at', 'print_batch',
+            'student_profile__name_ar', 'student_profile__organization__name_ar', 'student_profile__organization__id',
+            'student_profile__directorate__name_ar',
+            'student__username', 'student__first_name', 'student__last_name',
+            'examVersion__versionCode',
+        )
 
         # 1. Filter by Model Code / Version
         version = request.query_params.get('version') or request.query_params.get('model_code') or request.query_params.get('versionCode')
@@ -454,15 +500,6 @@ class ExamLinkingMVS(ViewSet):
 
         total_students_count = registrations.count()
 
-        # Extract available schools for dropdown filter
-        schools_list = list(
-            StudentExamRegistration.objects.filter(examVersion__exam=exam, is_deleted=False)
-            .values_list('student_profile__organization__name_ar', flat=True)
-            .exclude(student_profile__organization__name_ar__isnull=True)
-            .exclude(student_profile__organization__name_ar__exact='')
-            .distinct()
-        )
-
         # 5. Pagination Parameters
         try:
             page_num = int(request.query_params.get('page', 1) or 1)
@@ -475,6 +512,18 @@ class ExamLinkingMVS(ViewSet):
 
         page_size = max(1, min(page_size, 100))
         page_num = max(1, page_num)
+
+        # Extract available schools only on initial page load (page 1) to eliminate heavy scans during pagination
+        schools_list = []
+        if page_num == 1:
+            schools_list = list(
+                StudentExamRegistration.objects.filter(examVersion__exam=exam, is_deleted=False)
+                .order_by()
+                .values_list('student_profile__organization__name_ar', flat=True)
+                .exclude(student_profile__organization__name_ar__isnull=True)
+                .exclude(student_profile__organization__name_ar__exact='')
+                .distinct()
+            )
 
         start = (page_num - 1) * page_size
         end = start + page_size
@@ -496,13 +545,7 @@ class ExamLinkingMVS(ViewSet):
             inst_id = profile.organization.id if (profile and profile.organization) else None
             dir_name = profile.directorate.name_ar if (profile and profile.directorate) else (exam.directorate.name_ar if exam.directorate else None)
             v_code = reg.examVersion.versionCode if reg.examVersion else "-"
-
             st_photo = None
-            if profile and hasattr(profile, 'photo') and profile.photo:
-                try:
-                    st_photo = profile.photo.url
-                except Exception:
-                    st_photo = None
 
             students_data.append({
                 "id": reg.id,

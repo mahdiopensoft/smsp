@@ -4,67 +4,63 @@
     <div class="main-card rounded-2xl pa-4 mb-4">
       <!-- Row 1: Model Selection & Core Model Actions -->
       <div class="d-flex align-center justify-space-between flex-wrap gap-3 pb-3 border-b">
-        <!-- Model Selector -->
-        <div class="d-flex align-center gap-2 flex-wrap">
-          <span class="text-caption font-weight-black text-medium-emphasis">النموذج:</span>
-          <v-btn-toggle
+        <!-- Model Selector Dropdown (يدعم أي عدد من النماذج للجامعات والمعاهد دون انكسار الواجهة) -->
+        <div style="min-width: 200px; max-width: 260px;">
+          <v-select
             :model-value="activeVersionTab"
-            mandatory
+            :items="versionSelectOptions"
+            item-title="title"
+            item-value="value"
             density="compact"
-            color="primary"
             variant="outlined"
             rounded="lg"
+            hide-details
+            prepend-inner-icon="mdi-format-list-bulleted-type"
+            label="النموذج المعروض"
             @update:model-value="(val) => $emit('update:activeVersionTab', val)"
-          >
-            <v-btn
-              v-for="(v, idx) in (examDetails?.versions || [])"
-              :key="v.id || idx"
-              :value="idx"
-              class="font-weight-bold px-3"
-            >
-              <v-icon start size="16">mdi-file-document-outline</v-icon>
-              النموذج {{ v.versionCode }}
-              <span class="ms-1 text-caption text-medium-emphasis">({{ v.questionsCount || v.questions?.length || 0 }} سؤال)</span>
-            </v-btn>
-          </v-btn-toggle>
+          />
         </div>
 
-        <!-- Actions for this Model -->
-        <div class="d-flex align-center gap-2 flex-wrap" v-if="currentVersionObj">
-          <custom-btn
-            icon="newspaper-variant-outline"
-            label="معاينة كراسة الأسئلة"
-            color="primary"
-            variant="tonal"
-            class="font-weight-bold"
-            :click="() => $emit('open-question-paper-modal')"
-          />
-          <custom-btn
-            type="print"
-            icon="file-document-outline"
-            :label="`طباعة أسئلة (${currentVersionObj.versionCode})`"
-            color="secondary"
-            variant="tonal"
-            class="font-weight-bold"
-            :click="() => $emit('print-questions-only')"
-          />
-          <custom-btn
-            icon="book-open-page-variant-outline"
-            label="طباعة الحزمة"
-            color="secondary"
-            variant="tonal"
-            class="font-weight-bold"
-            :click="() => $emit('print-package')"
-          />
-          <custom-btn
-            icon="scanner"
-            label="بدء التصحيح"
-            color="success"
-            variant="tonal"
-            class="font-weight-bold"
-            :click="() => $emit('start-grading', currentVersionObj.versionCode)"
-          />
-        </div>
+        <!-- Actions for this Model (collapsed into one menu) -->
+        <v-menu v-if="currentVersionObj" location="bottom end">
+          <template #activator="{ props: mProps }">
+            <v-btn
+              v-bind="mProps"
+              variant="tonal"
+              color="primary"
+              rounded="lg"
+              size="small"
+              class="font-weight-bold"
+              prepend-icon="mdi-cog-outline"
+            >
+              إجراءات النموذج
+              <v-icon end>mdi-chevron-down</v-icon>
+            </v-btn>
+          </template>
+          <v-list density="compact" rounded="lg" class="elevation-3 py-1" min-width="220">
+            <v-list-item
+              prepend-icon="mdi-newspaper-variant-outline"
+              title="معاينة كراسة الأسئلة"
+              @click="$emit('open-question-paper-modal')"
+            />
+            <v-list-item
+              prepend-icon="mdi-printer"
+              :title="`طباعة أسئلة (${currentVersionObj.versionCode})`"
+              @click="$emit('print-questions-only')"
+            />
+            <v-list-item
+              prepend-icon="mdi-book-open-page-variant-outline"
+              title="طباعة الحزمة الكاملة"
+              @click="$emit('print-package')"
+            />
+            <v-divider class="my-1" />
+            <v-list-item
+              prepend-icon="mdi-scanner"
+              title="بدء التصحيح الضوئي"
+              @click="$emit('start-grading', currentVersionObj.versionCode)"
+            />
+          </v-list>
+        </v-menu>
       </div>
 
       <!-- Row 2: Answer Key Strip (Inline & Sleek) -->
@@ -150,7 +146,7 @@
               variant="tonal"
               color="error"
               label="تفريغ"
-              class="font-weight-bold mb-6 w-100"
+              class="font-weight-bold w-100"
             />
           </v-col>
         </v-row>
@@ -163,6 +159,7 @@
             items: questionsTableItems,
             headers: questionsHeaders,
           }"
+          :search="false"
           :hasFilter="false"
           :log="false"
           :restore="false"
@@ -251,6 +248,14 @@ const filterQuestionType = ref(null)
 const currentVersionObj = computed(() => {
   if (!props.examDetails?.versions?.length) return null
   return props.examDetails.versions[props.activeVersionTab] || props.examDetails.versions[0]
+})
+
+const versionSelectOptions = computed(() => {
+  if (!props.examDetails?.versions?.length) return []
+  return props.examDetails.versions.map((v, idx) => ({
+    title: `النموذج ${v.versionCode} (${v.questionsCount || v.questions?.length || 0} سؤال)`,
+    value: idx
+  }))
 })
 
 const bloomLevelOptions = computed(() => {

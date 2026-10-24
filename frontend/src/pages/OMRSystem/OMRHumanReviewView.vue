@@ -337,28 +337,28 @@
       </custom-data-table>
     </div>
 
-    <!-- ── نافذة المراجعة والتدقيق وتعديل الإجابات الملتبسة ── -->
-    <v-dialog v-model="reviewDialog" max-width="1000" scrollable>
-      <v-card class="rounded-2xl overflow-hidden review-dialog-card" v-if="activeReviewSheet">
-        <!-- Dialog Header - Bright, Clean & Modern (No black/dark background) -->
-        <v-card-title class="d-flex align-center justify-space-between bg-white px-6 py-4 border-b dialog-header">
+    <!-- ── نافذة المراجعة والتدقيق وتعديل الإجابات الملتبسة (الجدول الموحد custom-data-table) ── -->
+    <v-dialog v-model="reviewDialog" max-width="1180" scrollable>
+      <v-card class="rounded-2xl overflow-hidden main-card" v-if="activeReviewSheet">
+        <!-- Dialog Header -->
+        <v-card-title class="d-flex align-center justify-space-between bg-surface px-6 py-4 border-b">
           <div class="d-flex align-center gap-3">
-            <div class="dialog-icon-avatar">
+            <v-avatar color="primary" variant="tonal" rounded="lg" size="44">
               <v-icon size="24" color="primary">mdi-file-eye-outline</v-icon>
-            </div>
+            </v-avatar>
             <div>
               <div class="d-flex align-center gap-2 flex-wrap">
-                <h3 class="text-h6 font-weight-black text-slate-900 mb-0">
+                <h3 class="text-h6 font-weight-black text-on-surface mb-0">
                   {{ activeReviewSheet.student_name || 'ورقة بدون اسم' }}
                 </h3>
-                <v-chip size="small" color="primary" variant="flat" class="font-weight-bold px-2">
+                <v-chip size="small" color="primary" variant="flat" class="font-weight-bold px-2 unified-table-chip">
                   {{ activeReviewSheet.seat_number ? (activeReviewSheet.institution_type === 'university' ? 'رقم القيد: ' : 'رقم الجلوس: ') + activeReviewSheet.seat_number : 'ورقة #' + activeReviewSheet.id }}
                 </v-chip>
-                <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold px-2">
+                <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold px-2 unified-table-chip">
                   النموذج: {{ activeReviewSheet.version_code || 'A' }}
                 </v-chip>
               </div>
-              <p class="text-caption text-slate-500 mb-0 mt-1">
+              <p class="text-caption text-medium-emphasis mb-0 mt-1">
                 {{ activeReviewSheet.exam_title || 'اختبار عام' }} • نسبة الثقة: 
                 <strong :class="(activeReviewSheet.confidence || 0) >= 0.85 ? 'text-success' : 'text-warning'">
                   {{ Math.round((activeReviewSheet.confidence || 0) * 100) }}%
@@ -368,32 +368,32 @@
           </div>
 
           <div class="d-flex align-center gap-3">
-            <div class="header-score-pill d-flex align-center gap-2 px-3 py-1.5 rounded-xl">
+            <div class="d-flex align-center gap-2 px-3 py-1.5 rounded-xl border bg-surface">
               <v-icon size="18" color="success">mdi-check-decagram</v-icon>
               <div class="d-flex flex-column text-end">
-                <span class="text-caption text-slate-500 font-weight-medium" style="font-size: 10px; line-height: 1;">الدرجة الحالية</span>
+                <span class="text-caption text-medium-emphasis" style="font-size: 10px; line-height: 1;">الدرجة الحالية</span>
                 <span class="font-weight-black text-body-1 text-success" style="line-height: 1.2;">
-                  {{ activeReviewSheet.mcq_score != null ? activeReviewSheet.mcq_score : 0 }} <span class="text-caption text-slate-400">/ {{ activeReviewSheet.mcq_max_score || 0 }}</span>
+                  {{ activeReviewSheet.mcq_score != null ? activeReviewSheet.mcq_score : 0 }} <span class="text-caption text-medium-emphasis">/ {{ activeReviewSheet.mcq_max_score || 0 }}</span>
                 </span>
               </div>
             </div>
-            <v-btn icon="mdi-close" variant="text" size="small" color="grey-darken-1" @click="reviewDialog = false" />
+            <v-btn icon="mdi-close" variant="text" size="small" color="medium-emphasis" @click="reviewDialog = false" />
           </div>
         </v-card-title>
 
-        <v-card-text class="pa-6 dialog-body-content" style="max-height: 72vh; background-color: #f8fafc;">
+        <v-card-text class="pa-4 bg-surface" style="max-height: 72vh;">
           <!-- تنبيه الأسئلة الملتبسة -->
           <v-alert
             v-if="dialogCounts.ambiguous > 0"
             type="warning"
             variant="tonal"
             density="compact"
-            class="mb-4 rounded-xl font-weight-bold border-warning"
+            class="mb-3 rounded-xl font-weight-bold"
           >
             <div class="d-flex align-center justify-space-between flex-wrap gap-2">
               <div class="d-flex align-center gap-2">
                 <v-icon size="20">mdi-alert-circle</v-icon>
-                <span>يوجد <strong>{{ dialogCounts.ambiguous }}</strong> أسئلة بها تظليل ملتبس أو غير مؤكد يتطلب فحص وتأكيد المدقق.</span>
+                <span>يوجد <strong>{{ dialogCounts.ambiguous }}</strong> أسئلة بها تظليل ملتبس تتطلب تدقيقاً.</span>
               </div>
               <v-btn
                 size="x-small"
@@ -402,214 +402,239 @@
                 class="font-weight-bold"
                 @click="dialogQuestionFilter = 'ambiguous'"
               >
-                تصفية الأسئلة الملتبسة فقط
+                تصفية الملتبسة فقط
               </v-btn>
             </div>
           </v-alert>
 
-          <!-- Sheet image preview if present -->
-          <div v-if="activeReviewSheet.sheet_image" class="mb-4 text-center">
-            <v-expansion-panels variant="accordion">
-              <v-expansion-panel class="rounded-xl border border-slate-200">
-                <v-expansion-panel-title class="font-weight-bold text-slate-700">
-                  <v-icon start size="18" color="primary">mdi-image-search-outline</v-icon>
-                  معاينة الصورة الأصلية للورقة المصححة ضوئياً
-                </v-expansion-panel-title>
-                <v-expansion-panel-text>
-                  <div class="image-preview-wrapper pa-2 bg-white rounded-lg border text-center">
-                    <img :src="activeReviewSheet.sheet_image" alt="Scanned OMR Sheet" style="max-width: 100%; max-height: 500px; object-fit: contain; border-radius: 8px;" />
-                  </div>
-                </v-expansion-panel-text>
-              </v-expansion-panel>
-            </v-expansion-panels>
-          </div>
-
-          <!-- شريط التصفية والتحكم السريع في الأسئلة -->
-          <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-4 bg-white pa-3 rounded-xl border border-slate-200">
-            <div class="d-flex align-center gap-2">
-              <v-icon size="20" color="primary">mdi-format-list-checks</v-icon>
-              <span class="text-subtitle-2 font-weight-black text-slate-800">
-                سجل إجابات وتظليلات الطالب ({{ dialogCounts.all }} سؤال):
-              </span>
-            </div>
-
+          <!-- شريط الفلاتر والبحث السريع -->
+          <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3">
             <v-btn-toggle
               v-model="dialogQuestionFilter"
               mandatory
               density="compact"
               rounded="lg"
               color="primary"
-              class="dialog-filter-toggle"
+              variant="tonal"
+              class="border"
             >
-              <v-btn value="all" size="x-small" class="font-weight-bold">
+              <v-btn value="all" size="small" class="font-weight-bold">
                 الكل ({{ dialogCounts.all }})
               </v-btn>
               <v-btn
                 v-if="dialogCounts.ambiguous > 0"
                 value="ambiguous"
-                size="x-small"
+                size="small"
                 color="warning"
                 class="font-weight-bold"
               >
-                <v-icon start size="12">mdi-alert</v-icon>
                 الملتبسة ({{ dialogCounts.ambiguous }})
               </v-btn>
               <v-btn
                 value="wrong"
-                size="x-small"
+                size="small"
                 color="error"
                 class="font-weight-bold"
               >
-                <v-icon start size="12">mdi-close-circle</v-icon>
                 الخاطئة ({{ dialogCounts.wrong }})
               </v-btn>
               <v-btn
                 value="correct"
-                size="x-small"
+                size="small"
                 color="success"
                 class="font-weight-bold"
               >
-                <v-icon start size="12">mdi-check-circle</v-icon>
                 الصحيحة ({{ dialogCounts.correct }})
               </v-btn>
               <v-btn
                 value="empty"
-                size="x-small"
-                class="font-weight-bold text-slate-600"
+                size="small"
+                color="secondary"
+                class="font-weight-bold"
               >
-                <v-icon start size="12">mdi-circle-outline</v-icon>
                 الفارغة ({{ dialogCounts.empty }})
               </v-btn>
             </v-btn-toggle>
+
+            <div style="width: 220px;">
+              <v-text-field
+                v-model="dialogSearchQuery"
+                density="compact"
+                variant="outlined"
+                placeholder="بحث برقم السؤال أو الخيار..."
+                prepend-inner-icon="mdi-magnify"
+                hide-details
+                clearable
+              />
+            </div>
           </div>
 
-          <!-- بطاقات الأسئلة OMR Cards Grid -->
-          <v-row dense>
-            <v-col
-              v-for="q in filteredDialogQuestions"
-              :key="q.id || q.question_number"
-              cols="12"
-              md="6"
+          <!-- ── الجدول الموحد للأسئلة (custom-data-table) ── -->
+          <div class="main-card rounded-2xl overflow-hidden mb-2">
+            <custom-data-table
+              v-bind="{
+                items: dialogTableItems,
+                getData: getDialogData,
+                headers: dialogHeaders,
+              }"
+              :customLoading="false"
+              :hasFilter="false"
+              :log="false"
+              :restore="false"
+              :numbering="false"
+              :showSelect="false"
+              class="bg-transparent"
             >
-              <div
-                class="review-question-card pa-3 mb-2"
-                :class="getCardStatusClass(q)"
-              >
-                <!-- Card Header -->
-                <div class="d-flex align-center justify-space-between mb-2">
-                  <div class="d-flex align-center gap-2">
-                    <div class="q-number-circle">
-                      {{ q.question_number }}
-                    </div>
-                    <span class="font-weight-black text-body-2 text-slate-800">
-                      السؤال {{ q.question_number }}
+              <template v-slot:item-slot="{ item, key }">
+                <!-- رقم السؤال -->
+                <template v-if="key === 'question_number'">
+                  <div class="text-center py-1">
+                    <span class="font-weight-black text-body-2 text-primary bg-blue-lighten-5 px-3 py-1 rounded-pill border">
+                      #{{ item.question_number }}
                     </span>
+                  </div>
+                </template>
+
+                <!-- نوع السؤال -->
+                <template v-else-if="key === 'question_type'">
+                  <div class="text-center">
                     <v-chip
-                      size="x-small"
-                      :color="getStatusChipColor(q)"
-                      variant="flat"
-                      class="font-weight-bold px-2 rounded-md"
+                      size="small"
+                      variant="tonal"
+                      :color="isTrueFalse(item) ? 'teal' : 'indigo'"
+                      class="font-weight-bold unified-table-chip px-2.5"
                     >
-                      <v-icon start size="12">{{ getStatusChipIcon(q) }}</v-icon>
-                      {{ getStatusChipText(q) }}
-                    </v-chip>
-                    <v-chip
-                      v-if="q.bubble_state === 'ambiguous' || (q.final_confidence && q.final_confidence < 0.7)"
-                      size="x-small"
-                      color="warning"
-                      variant="flat"
-                      class="font-weight-black px-2 rounded-md"
-                    >
-                      ملتبس
+                      <v-icon start size="13">{{ isTrueFalse(item) ? 'mdi-check-all' : 'mdi-format-list-bulleted' }}</v-icon>
+                      {{ item.question_type }}
                     </v-chip>
                   </div>
+                </template>
 
-                  <!-- Model Answer Tag -->
-                  <div class="model-key-pill d-flex align-center gap-1">
-                    <span class="text-caption text-slate-500 font-weight-medium">النموذجية:</span>
-                    <span class="model-key-char">
-                      {{ q.correct_choice || '—' }}
-                    </span>
+                <!-- الإجابة النموذجية -->
+                <template v-else-if="key === 'correct_choice_display'">
+                  <div class="text-center">
+                    <v-chip
+                      v-if="item.correct_choice && item.correct_choice !== 'لم تُحدد'"
+                      size="small"
+                      color="success"
+                      variant="tonal"
+                      class="font-weight-black unified-table-chip px-3 border"
+                    >
+                      <v-icon start size="13" color="success">mdi-check-circle-outline</v-icon>
+                      {{ item.correct_choice }}
+                    </v-chip>
+                    <v-chip
+                      v-else
+                      size="x-small"
+                      variant="tonal"
+                      color="blue-grey"
+                      class="font-weight-medium px-2 text-caption"
+                    >
+                      لم تُحدد
+                    </v-chip>
                   </div>
-                </div>
+                </template>
 
-                <!-- Divider -->
-                <div class="card-inner-divider my-2"></div>
+                <!-- تظليل الطالب المكتشف -->
+                <template v-else-if="key === 'marked_choice_display'">
+                  <div class="text-center">
+                    <v-chip
+                      size="small"
+                      :color="getStatusChipColor(item)"
+                      variant="tonal"
+                      class="font-weight-bold unified-table-chip px-3"
+                    >
+                      <v-icon start size="13">{{ getStatusChipIcon(item) }}</v-icon>
+                      {{ (item.marked_choice && item.marked_choice !== 'لم يُجب (فارغ)') ? item.marked_choice : 'فارغ' }}
+                    </v-chip>
+                  </div>
+                </template>
 
-                <!-- Interactive OMR Bubbles Row -->
-                <div class="d-flex align-center justify-space-between gap-1 flex-wrap pt-1">
-                  <div class="d-flex align-center gap-2">
-                    <span class="text-caption font-weight-bold text-slate-600">تظليل الطالب:</span>
-                    <div class="bubbles-row d-flex align-center gap-1.5">
-                      <button
-                        v-for="opt in getQuestionOptions(q)"
-                        :key="opt"
-                        type="button"
-                        class="omr-bubble-interactive"
-                        :class="getBubbleClass(q, opt)"
-                        :disabled="overridingLoading === `${q.question_number}_${opt}`"
-                        :title="getBubbleTooltip(q, opt)"
-                        @click="overrideQuestionChoice(q, opt)"
+                <!-- التدقيق والتعديل السريع -->
+                <template v-else-if="key === 'override'">
+                  <div class="review-buttons-row">
+                    <v-btn
+                      v-for="opt in getQuestionOptions(item)"
+                      :key="opt"
+                      size="small"
+                      density="comfortable"
+                      :variant="isOptionSelected(item, opt) ? 'flat' : 'tonal'"
+                      :color="getOptionBtnColor(item, opt)"
+                      :class="[
+                        'rounded-lg review-choice-btn',
+                        isOptionSelected(item, opt) ? 'font-weight-black shadow-sm' : 'text-medium-emphasis border font-weight-medium'
+                      ]"
+                      :loading="overridingLoading === `${item.question_number}_${opt}`"
+                      @click="overrideQuestionChoice(item, opt)"
+                    >
+                      <v-icon
+                        v-if="isOptionSelected(item, opt)"
+                        start
+                        size="13"
+                        class="me-1"
                       >
-                        <v-progress-circular
-                          v-if="overridingLoading === `${q.question_number}_${opt}`"
-                          size="14"
-                          width="2"
-                          indeterminate
-                          color="primary"
-                        />
-                        <span v-else>{{ opt }}</span>
-                      </button>
+                        {{ item.is_correct ? 'mdi-check' : 'mdi-close' }}
+                      </v-icon>
+                      {{ opt }}
+                    </v-btn>
 
-                      <!-- خيار مسح التظليل -->
-                      <button
-                        type="button"
-                        class="omr-eraser-btn ms-1"
-                        :class="{ 'opacity-50 pointer-events-none': overridingLoading === `${q.question_number}_clear` }"
-                        title="مسح إجابة هذا السؤال (جعله بدون إجابة)"
-                        @click="overrideQuestionChoice(q, '')"
-                      >
-                        <v-progress-circular
-                          v-if="overridingLoading === `${q.question_number}_clear`"
-                          size="12"
-                          width="2"
-                          indeterminate
-                          color="error"
-                        />
-                        <v-icon v-else size="14" color="error">mdi-eraser</v-icon>
-                      </button>
-                    </div>
+                    <!-- فاصل عمودي ناعم -->
+                    <div class="review-btn-divider"></div>
+
+                    <!-- زر مسح التظليل -->
+                    <v-btn
+                      size="small"
+                      density="comfortable"
+                      variant="tonal"
+                      :color="item.marked_choice ? 'error' : 'secondary'"
+                      class="rounded-lg review-eraser-btn"
+                      title="مسح إجابة هذا السؤال"
+                      :disabled="!item.marked_choice"
+                      :loading="overridingLoading === `${item.question_number}_clear`"
+                      @click="overrideQuestionChoice(item, '')"
+                    >
+                      <v-icon size="15">mdi-eraser</v-icon>
+                    </v-btn>
                   </div>
+                </template>
 
-                  <!-- Question Score & Confidence -->
-                  <div class="d-flex align-center gap-2">
-                    <span class="text-caption font-weight-bold" :class="q.is_correct ? 'text-success' : 'text-slate-400'">
-                      الدرجة: {{ q.is_correct ? (q.marks_awarded != null && Number(q.marks_awarded) > 0 ? Number(q.marks_awarded).toFixed(1).replace('.0', '') : '1') : '0' }}
-                    </span>
-                    <span v-if="q.final_confidence" class="text-caption text-slate-400" style="font-size: 10px;">
-                      ({{ Math.round(q.final_confidence * 100) }}%)
-                    </span>
+                <!-- حالة السؤال -->
+                <template v-else-if="key === 'status'">
+                  <div class="text-center">
+                    <v-chip
+                      size="small"
+                      :color="getStatusChipColor(item)"
+                      variant="tonal"
+                      class="font-weight-bold unified-table-chip px-3"
+                    >
+                      {{ getStatusChipText(item) }}
+                    </v-chip>
                   </div>
-                </div>
-              </div>
-            </v-col>
+                </template>
 
-            <!-- حالة عدم وجود نتائج للفلتر -->
-            <v-col cols="12" v-if="filteredDialogQuestions.length === 0">
-              <div class="text-center pa-8 bg-white rounded-xl border border-slate-200">
-                <v-icon size="42" color="grey-lighten-1" class="mb-2">mdi-filter-off-outline</v-icon>
-                <div class="text-body-2 font-weight-bold text-slate-700">لا توجد أسئلة تطابق الفلتر المحدد</div>
-                <div class="text-caption text-slate-400 mt-1">اختر "الكل" لعرض كافة أسئلة الورقة</div>
-              </div>
-            </v-col>
-          </v-row>
+                <!-- الدرجة -->
+                <template v-else-if="key === 'score'">
+                  <div class="text-center">
+                    <v-chip
+                      size="x-small"
+                      :color="item.is_correct ? 'success' : 'grey'"
+                      variant="tonal"
+                      class="font-weight-black px-2.5"
+                    >
+                      {{ item.is_correct ? (item.marks_awarded != null && Number(item.marks_awarded) > 0 ? Number(item.marks_awarded).toFixed(1).replace('.0', '') : '1.0') : '0.0' }}
+                    </v-chip>
+                  </div>
+                </template>
+              </template>
+            </custom-data-table>
+          </div>
         </v-card-text>
 
-        <!-- Dialog Footer - Bright, Clean Slate -->
-        <v-card-actions class="px-6 py-4 bg-white border-t dialog-footer" style="background-color: #ffffff !important; border-top: 1px solid #e2e8f0 !important;">
+        <!-- Dialog Footer -->
+        <v-card-actions class="px-6 py-3 bg-surface border-t">
           <v-btn
             variant="text"
-            color="grey-darken-2"
+            color="medium-emphasis"
             class="font-weight-bold px-4"
             @click="reviewDialog = false"
           >
@@ -647,8 +672,10 @@ const reviewDialog = ref(false)
 const activeReviewSheet = ref(null)
 const overridingLoading = ref('')
 const approvingLoading = ref(false)
+const dialogSearchQuery = ref('')
+const sheetImageError = ref(false)
 
-// Table headers (Clean & Professional, with actions column)
+// Table headers (Clean & Professional; CustomDataTable automatically appends header_actions)
 const headers = computed(() => [
   { title: "الطالب ورقم الجلوس / القيد", key: "student_info", sortable: true },
   { title: "الاختبار", key: "exam_title", sortable: true },
@@ -656,7 +683,6 @@ const headers = computed(() => [
   { title: "الأسئلة الملتبسة", key: "ambiguous_count", sortable: true, align: "center", width: "130px" },
   { title: "الدرجة المقدرة", key: "score", sortable: false, align: "center", width: "130px" },
   { title: "حالة المراجعة", key: "status", sortable: true, align: "center", width: "120px" },
-  { title: "الإجراءات والتدقيق", key: "actions", sortable: false, align: "center", width: "180px" },
 ])
 
 // Bound items for custom-data-table
@@ -668,6 +694,30 @@ const tableItems = computed(() => ({
     total: sheets.value.length,
   },
 }))
+
+// Dialog Headers & Items (Matching unified custom-data-table)
+const dialogHeaders = computed(() => [
+  { title: "رقم السؤال", key: "question_number", sortable: true, align: "center", width: "95px" },
+  { title: "نوع السؤال", key: "question_type", sortable: false, align: "center", width: "120px" },
+  { title: "الإجابة النموذجية", key: "correct_choice_display", sortable: true, align: "center", width: "130px" },
+  { title: "تظليل الطالب", key: "marked_choice_display", sortable: true, align: "center", width: "140px" },
+  { title: "التدقيق والتعديل السريع", key: "override", sortable: false, align: "center", width: "270px" },
+  { title: "حالة السؤال", key: "status", sortable: true, align: "center", width: "125px" },
+  { title: "الدرجة", key: "score", sortable: true, align: "center", width: "85px" },
+])
+
+const dialogTableItems = computed(() => ({
+  results: filteredDialogQuestions.value,
+  count: filteredDialogQuestions.value.length,
+  pagination: {
+    count: filteredDialogQuestions.value.length,
+    total: filteredDialogQuestions.value.length,
+  },
+}))
+
+const getDialogData = async () => {
+  return dialogTableItems.value
+}
 
 // Filters
 const filterInstitutionType = ref('all')
@@ -794,40 +844,48 @@ const getData = async (params = {}) => {
   return await fetchData(params)
 }
 
+let activeFetchPromise = null
 const fetchData = async () => {
-  loading.value = true
-  try {
-    const queryParams = {
-      institution_type: (filterInstitutionType.value && filterInstitutionType.value !== 'all') ? filterInstitutionType.value : undefined,
-      college: filterCollege.value || undefined,
-      department: filterDepartment.value || undefined,
-      specialization: filterSpecialization.value || undefined,
-      semester_subject: filterSemesterSubject.value || undefined,
-      institute_field: filterInstituteField.value || undefined,
-      institute_education_system: filterInstituteEducationSystem.value || undefined,
-      institute_specialization: filterInstituteSpecialization.value || undefined,
-      institute_subject: filterInstituteSubject.value || undefined,
-      stage: filterStage.value || undefined,
-      class_track: filterClassTrack.value || undefined,
-      subject: filterSubject.value || undefined,
-      exam: filterExam.value || undefined,
-      status: filterStatus.value || undefined,
-      search: searchQuery.value || undefined,
-    }
-    const [statsRes, listRes] = await Promise.all([
-      humanReviewAPI.getStats(),
-      humanReviewAPI.list(queryParams)
-    ])
-    stats.value = statsRes?.data || stats.value
-    const results = listRes?.data?.results || listRes?.data || []
-    sheets.value = Array.isArray(results) ? results : []
-    return tableItems.value
-  } catch (err) {
-    console.error('Failed to load human review data', err)
-    return { results: [], count: 0 }
-  } finally {
-    loading.value = false
+  if (loading.value && activeFetchPromise) {
+    return activeFetchPromise
   }
+  loading.value = true
+  activeFetchPromise = (async () => {
+    try {
+      const queryParams = {
+        institution_type: (filterInstitutionType.value && filterInstitutionType.value !== 'all') ? filterInstitutionType.value : undefined,
+        college: filterCollege.value || undefined,
+        department: filterDepartment.value || undefined,
+        specialization: filterSpecialization.value || undefined,
+        semester_subject: filterSemesterSubject.value || undefined,
+        institute_field: filterInstituteField.value || undefined,
+        institute_education_system: filterInstituteEducationSystem.value || undefined,
+        institute_specialization: filterInstituteSpecialization.value || undefined,
+        institute_subject: filterInstituteSubject.value || undefined,
+        stage: filterStage.value || undefined,
+        class_track: filterClassTrack.value || undefined,
+        subject: filterSubject.value || undefined,
+        exam: filterExam.value || undefined,
+        status: filterStatus.value || undefined,
+        search: searchQuery.value || undefined,
+      }
+      const [statsRes, listRes] = await Promise.all([
+        humanReviewAPI.getStats(),
+        humanReviewAPI.list(queryParams)
+      ])
+      stats.value = statsRes?.data || stats.value
+      const results = listRes?.data?.results || listRes?.data || []
+      sheets.value = Array.isArray(results) ? results : []
+      return tableItems.value
+    } catch (err) {
+      console.error('Failed to load human review data', err)
+      return { results: [], count: 0 }
+    } finally {
+      loading.value = false
+      activeFetchPromise = null
+    }
+  })()
+  return activeFetchPromise
 }
 
 const approveSheet = async (sheet) => {
@@ -844,21 +902,57 @@ const approveSheet = async (sheet) => {
 // Dialog Question Filtering & Counts
 const dialogQuestionFilter = ref('all')
 
+const isTrueFalse = (q) => {
+  const opts = getQuestionOptions(q)
+  return opts.length === 2 && (opts.includes('صح') || opts.includes('خطأ') || opts.includes('T') || opts.includes('F'))
+}
+
+const enrichQuestion = (q) => {
+  if (!q) return q
+  const isTF = isTrueFalse(q)
+  q.question_type = isTF ? 'صح وخطأ' : 'اختيارات'
+  q.correct_choice_display = q.correct_choice || 'لم تُحدد'
+  q.marked_choice_display = (q.marked_choice && q.marked_choice !== 'لم يُجب (فارغ)') ? q.marked_choice : 'لم يُجب (فارغ)'
+  q.status = getStatusChipText(q)
+  q.score = q.is_correct ? (q.marks_awarded != null && Number(q.marks_awarded) > 0 ? Number(q.marks_awarded).toFixed(1).replace('.0', '') : '1.0') : '0.0'
+  q.override = q.marked_choice ? `تظليل حالي: ${q.marked_choice}` : 'متاح للتعديل السريع'
+  return q
+}
+
+const isOptionSelected = (item, opt) => {
+  return String(item?.marked_choice || '').trim() === String(opt || '').trim()
+}
+
+const getOptionBtnColor = (item, opt) => {
+  if (isOptionSelected(item, opt)) {
+    if (item.is_correct === true) return 'success'
+    if (item.is_correct === false && item.marked_choice && item.marked_choice !== 'لم يُجب (فارغ)') return 'error'
+    return 'primary'
+  }
+  return undefined
+}
+
 const filteredDialogQuestions = computed(() => {
-  const qs = activeReviewSheet.value?.questions || []
+  let qs = activeReviewSheet.value?.questions || []
   if (dialogQuestionFilter.value === 'ambiguous') {
-    return qs.filter(q => q.bubble_state === 'ambiguous' || (q.final_confidence && q.final_confidence < 0.7))
+    qs = qs.filter(q => q.bubble_state === 'ambiguous' || (q.final_confidence && q.final_confidence < 0.7))
+  } else if (dialogQuestionFilter.value === 'wrong') {
+    qs = qs.filter(q => q.is_correct === false && q.marked_choice)
+  } else if (dialogQuestionFilter.value === 'correct') {
+    qs = qs.filter(q => q.is_correct === true)
+  } else if (dialogQuestionFilter.value === 'empty') {
+    qs = qs.filter(q => !q.marked_choice || q.marked_choice === 'لم يُجب (فارغ)')
   }
-  if (dialogQuestionFilter.value === 'wrong') {
-    return qs.filter(q => q.is_correct === false && q.marked_choice)
+
+  if (dialogSearchQuery.value && dialogSearchQuery.value.trim()) {
+    const qTerm = dialogSearchQuery.value.trim().toLowerCase()
+    qs = qs.filter(q => 
+      String(q.question_number).includes(qTerm) || 
+      String(q.marked_choice || '').toLowerCase().includes(qTerm) || 
+      String(q.correct_choice || '').toLowerCase().includes(qTerm)
+    )
   }
-  if (dialogQuestionFilter.value === 'correct') {
-    return qs.filter(q => q.is_correct === true)
-  }
-  if (dialogQuestionFilter.value === 'empty') {
-    return qs.filter(q => !q.marked_choice)
-  }
-  return qs
+  return qs.map(enrichQuestion)
 })
 
 const dialogCounts = computed(() => {
@@ -866,15 +960,20 @@ const dialogCounts = computed(() => {
   return {
     all: qs.length,
     ambiguous: qs.filter(q => q.bubble_state === 'ambiguous' || (q.final_confidence && q.final_confidence < 0.7)).length,
-    wrong: qs.filter(q => q.is_correct === false && q.marked_choice).length,
+    wrong: qs.filter(q => q.is_correct === false && q.marked_choice && q.marked_choice !== 'لم يُجب (فارغ)').length,
     correct: qs.filter(q => q.is_correct === true).length,
-    empty: qs.filter(q => !q.marked_choice).length,
+    empty: qs.filter(q => !q.marked_choice || q.marked_choice === 'لم يُجب (فارغ)').length,
   }
 })
 
 const openReviewModal = (sheet) => {
   activeReviewSheet.value = { ...sheet }
   dialogQuestionFilter.value = 'all'
+  dialogSearchQuery.value = ''
+  sheetImageError.value = false
+  if (Array.isArray(activeReviewSheet.value.questions)) {
+    activeReviewSheet.value.questions.forEach(enrichQuestion)
+  }
   reviewDialog.value = true
 }
 
@@ -977,30 +1076,33 @@ const getCardStatusClass = (q) => {
   if (q.is_correct === true) {
     return 'card-correct'
   }
-  if (q.is_correct === false && q.marked_choice) {
+  if (q.is_correct === false && q.marked_choice && q.marked_choice !== 'لم يُجب (فارغ)') {
     return 'card-wrong'
   }
   return 'card-empty'
 }
 
 const getStatusChipColor = (q) => {
+  if (!q) return 'secondary'
   if (q.bubble_state === 'ambiguous') return 'warning'
   if (q.is_correct === true) return 'success'
-  if (q.is_correct === false && q.marked_choice) return 'error'
-  return 'grey-darken-1'
+  if (q.is_correct === false && q.marked_choice && q.marked_choice !== 'لم يُجب (فارغ)') return 'error'
+  return 'secondary'
 }
 
 const getStatusChipIcon = (q) => {
-  if (q.bubble_state === 'ambiguous') return 'mdi-alert'
-  if (q.is_correct === true) return 'mdi-check-circle'
-  if (q.is_correct === false && q.marked_choice) return 'mdi-close-circle'
+  if (!q) return 'mdi-circle-outline'
+  if (q.bubble_state === 'ambiguous') return 'mdi-alert-outline'
+  if (q.is_correct === true) return 'mdi-check-circle-outline'
+  if (q.is_correct === false && q.marked_choice && q.marked_choice !== 'لم يُجب (فارغ)') return 'mdi-close-circle-outline'
   return 'mdi-circle-outline'
 }
 
 const getStatusChipText = (q) => {
+  if (!q) return 'لم يُجب (فارغ)'
   if (q.bubble_state === 'ambiguous') return 'ملتبس'
   if (q.is_correct === true) return 'صحيحة'
-  if (q.is_correct === false && q.marked_choice) return 'خاطئة'
+  if (q.is_correct === false && q.marked_choice && q.marked_choice !== 'لم يُجب (فارغ)') return 'خاطئة'
   return 'لم يُجب (فارغ)'
 }
 
@@ -1016,6 +1118,7 @@ const overrideQuestionChoice = async (q, choice) => {
     q.marked_choice = choice
     q.is_correct = choice ? (normalizeChoiceValue(choice) === normalizeChoiceValue(q.correct_choice)) : false
     q.bubble_state = choice ? 'filled' : 'empty'
+    enrichQuestion(q)
 
     if (res.data?.mcq_score != null) {
       activeReviewSheet.value.mcq_score = res.data.mcq_score
@@ -1053,7 +1156,7 @@ const approveCurrentSheet = async () => {
 }
 
 onMounted(() => {
-  fetchData()
+  // custom-data-table automatically triggers getData() upon mount, avoiding duplicate API requests
 })
 </script>
 
@@ -1073,7 +1176,7 @@ onMounted(() => {
   font-weight: 700 !important;
 }
 
-/* ── Modern Dialog Header & Footer Styling (No Dark Background) ── */
+/* ── Modern Dialog Header & Footer Styling ── */
 .dialog-header {
   border-bottom: 1px solid #e2e8f0 !important;
   background-color: #ffffff !important;
@@ -1100,165 +1203,51 @@ onMounted(() => {
   border: 1px solid #a7f3d0;
 }
 
-/* ── Question Box Cards (مربعات الأسئلة المتطورة) ── */
-.review-question-card {
-  background: #ffffff;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 14px;
-  transition: all 0.2s ease-in-out;
-  position: relative;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+/* ── Review Choice & Eraser Buttons Row ── */
+.review-buttons-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-wrap: nowrap !important;
+  gap: 6px !important;
+  padding: 2px 0 !important;
 }
 
-.review-question-card:hover {
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+.review-choice-btn {
+  min-width: 36px !important;
+  height: 30px !important;
+  padding: 0 10px !important;
+  font-weight: 800 !important;
+  border-radius: 8px !important;
+  font-size: 0.85rem !important;
+  letter-spacing: 0.2px;
+  border: 1px solid rgba(var(--v-border-color), 0.25) !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+.review-choice-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(var(--v-theme-primary), 0.5) !important;
+}
+
+.review-btn-divider {
+  width: 1px;
+  height: 20px;
+  background-color: rgba(var(--v-border-color), 0.25);
+  margin: 0 2px;
+}
+
+.review-eraser-btn {
+  height: 30px !important;
+  min-width: 30px !important;
+  padding: 0 6px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(var(--v-border-color), 0.2) !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+.review-eraser-btn:hover:not(:disabled) {
   transform: translateY(-1px);
 }
 
-.card-correct {
-  border-color: #86efac !important;
-  background-color: #fafffc !important;
-}
-
-.card-wrong {
-  border-color: #fca5a5 !important;
-  background-color: #fffafa !important;
-}
-
-.card-ambiguous {
-  border-color: #fcd34d !important;
-  background-color: #fffbeb !important;
-  box-shadow: 0 0 0 1px #f59e0b, 0 4px 12px rgba(245, 158, 11, 0.1);
-}
-
-.card-empty {
-  border-color: #e2e8f0;
-  background-color: #ffffff;
-}
-
-/* Card Inner Elements */
-.card-inner-divider {
-  height: 1px;
-  background-color: #f1f5f9;
-}
-
-.q-number-circle {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: #f1f5f9;
-  color: #334155;
-  font-size: 13px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.card-correct .q-number-circle {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.card-wrong .q-number-circle {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.card-ambiguous .q-number-circle {
-  background: #fef3c7;
-  color: #b45309;
-}
-
-/* Model Answer Tag */
-.model-key-pill {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 2px 8px;
-  font-size: 11px;
-}
-
-.model-key-char {
-  background: #059669;
-  color: white;
-  border-radius: 4px;
-  padding: 1px 7px;
-  font-weight: 800;
-  font-size: 12px;
-}
-
-/* ── Authentic OMR Bubble Circles ── */
-.omr-bubble-interactive {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  font-size: 13px;
-  font-weight: 800;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  outline: none;
-  transition: all 0.15s ease-in-out;
-  border: 1.5px solid #cbd5e1;
-  background: #ffffff;
-  color: #475569;
-  user-select: none;
-}
-
-.omr-bubble-interactive:hover:not(:disabled) {
-  border-color: #2563eb;
-  background: #eff6ff;
-  color: #1d4ed8;
-  transform: scale(1.08);
-}
-
-.bubble-marked-correct {
-  border: 2px solid #059669 !important;
-  background: #10b981 !important;
-  color: #ffffff !important;
-  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
-  transform: scale(1.06);
-}
-
-.bubble-marked-wrong {
-  border: 2px solid #dc2626 !important;
-  background: #ef4444 !important;
-  color: #ffffff !important;
-  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
-  transform: scale(1.06);
-}
-
-.bubble-model-key {
-  border: 2px dashed #059669 !important;
-  background: #ecfdf5 !important;
-  color: #047857 !important;
-}
-
-.bubble-model-key:hover:not(:disabled) {
-  background: #d1fae5 !important;
-  border-color: #047857 !important;
-  transform: scale(1.08);
-}
-
-/* Eraser Button */
-.omr-eraser-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #fecaca;
-  background: #fef2f2;
-  cursor: pointer;
-  transition: all 0.15s ease-in-out;
-}
-
-.omr-eraser-btn:hover {
-  background: #fee2e2;
-  border-color: #ef4444;
-  transform: scale(1.08);
-}
 </style>

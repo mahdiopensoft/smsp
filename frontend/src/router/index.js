@@ -98,6 +98,27 @@ var routes_paths = {
       props: true,
     },
     {
+      path: "omr-submissions/:id",
+      name: "omr-submission-detail-path",
+      component: () => import("../pages/OMRSystem/OMRSubmissionDetailView.vue"),
+      meta: { requiresAuth: true, title: "تفاصيل تصحيح ورقة الإجابة" },
+      props: true,
+    },
+    {
+      path: "omr-submission-detail/:id",
+      name: "omr-submission-detail-alias",
+      component: () => import("../pages/OMRSystem/OMRSubmissionDetailView.vue"),
+      meta: { requiresAuth: true, title: "تفاصيل تصحيح ورقة الإجابة" },
+      props: true,
+    },
+    {
+      path: "omr-submission-detail",
+      name: "omr-submission-detail-query",
+      component: () => import("../pages/OMRSystem/OMRSubmissionDetailView.vue"),
+      meta: { requiresAuth: true, title: "تفاصيل تصحيح ورقة الإجابة" },
+      props: true,
+    },
+    {
       path: "instructions",
       name: "instructions",
       component: shared.InstructionsView,

@@ -58,7 +58,8 @@
         <!-- Search Query Input -->
         <v-col cols="12" sm="6" md="3">
           <v-text-field
-            v-model="searchQuery"
+            v-model="_searchInput"
+            @update:model-value="onSearchInput"
             label="اسم الاختبار أو الرمز"
             placeholder="بحث باسم الاختبار أو رمزه (Code)..."
             prepend-inner-icon="mdi-magnify"
@@ -249,7 +250,7 @@
     </filter-fields>
 
     <!-- Unified Custom Data Table -->
-    <div class="main-card rounded-2xl overflow-hidden mb-6">
+    <div class="main-card rounded-2xl mb-6 overflow-x-auto">
       <custom-data-table
         v-bind="{
           items: tableItems,
@@ -273,7 +274,7 @@
                 <v-icon size="20">mdi-file-document-edit-outline</v-icon>
               </v-avatar>
               <div>
-                <div class="font-weight-black text-body-2 text-on-surface exam-clickable-title">{{ item.title }}</div>
+                <div class="font-weight-black text-body-2 text-on-surface exam-clickable-title text-truncate" style="max-width: 220px;" :title="item.title">{{ item.title }}</div>
                 <div class="text-caption text-medium-emphasis d-flex align-center gap-2 mt-1">
                   <span class="font-mono bg-grey-lighten-4 px-2 py-0.5 rounded border text-caption">{{ item.uniqueCode }}</span>
                   <span>{{ item.created_at }}</span>
@@ -365,57 +366,71 @@
 
           <!-- Actions -->
           <template v-else-if="key === 'actions'">
-            <div class="d-flex align-center justify-center gap-2 flex-wrap">
-              <!-- 1. طباعة وتوليد أوراق التظليل للطلاب مباشرة -->
+            <div class="d-flex align-center justify-center gap-2">
+              <!-- 1. نقل إلى مرحلة الطباعة (المرحلة 2) - الإجراء المباشر والواضح -->
               <v-btn
                 color="primary"
                 variant="flat"
                 rounded="lg"
                 size="small"
-                class="font-weight-bold px-3"
+                class="font-weight-bold px-2.5 shadow-sm"
                 prepend-icon="mdi-printer"
-                @click.stop.prevent="openExamHub(item, 'template')"
-                title="توليد ومعاينة وطباعة أوراق التظليل (البابل شيت) لجميع طلاب الاختبار"
+                @click.stop.prevent="goToPrintRegistry(item)"
+                title="الانتقال إلى المرحلة 2 لطباعة وتصدير أوراق التظليل والأسئلة"
               >
-                طباعة أوراق التظليل
+                نقل للطباعة
               </v-btn>
 
-              <!-- 2. كشف الطلاب ونماذج الأسئلة ومفاتيح الحل -->
-              <v-btn
-                color="info"
-                variant="tonal"
-                rounded="lg"
-                size="small"
-                class="font-weight-bold px-3"
-                prepend-icon="mdi-account-school-outline"
-                @click.stop.prevent="openExamHub(item, 'roster')"
-                title="استعراض كشف الطلاب ونماذج الأسئلة ومفاتيح الحل"
-              >
-                كشف الطلاب والحلول
-              </v-btn>
-
-              <!-- 3. تصميم مواصفات الورقة (أداة مساعدة) -->
+              <!-- 2. فحص وتجهيز الاختبار - معاينة الكشوفات والنماذج -->
               <v-btn
                 color="secondary"
                 variant="tonal"
                 rounded="lg"
                 size="small"
-                class="font-weight-bold px-2"
-                icon="mdi-draw-pen"
-                @click.stop.prevent="openInTemplateDesigner(item)"
-                title="فتح مواصفات الاختبار في مصمم قوالب التظليل OMR"
-              />
+                class="font-weight-bold px-2.5"
+                prepend-icon="mdi-clipboard-check-outline"
+                @click.stop.prevent="openExamHub(item, 'questions')"
+                title="فحص النماذج، كشوفات الطلاب، ومفاتيح الحل"
+              >
+                فحص وتجهيز
+              </v-btn>
 
-              <!-- 4. سجل الطباعة للدفعات -->
-              <v-btn
-                color="medium-emphasis"
-                variant="text"
-                rounded="lg"
-                size="small"
-                icon="mdi-history"
-                @click.stop.prevent="goToPrintRegistry(item)"
-                title="سجل دفعات الطباعة السابقة لهذا الاختبار"
-              />
+              <!-- 3. قائمة الإجراءات الفنية المتقدمة -->
+              <v-menu location="bottom end">
+                <template #activator="{ props: menuProps }">
+                  <v-btn
+                    v-bind="menuProps"
+                    variant="text"
+                    color="medium-emphasis"
+                    rounded="lg"
+                    size="small"
+                    icon="mdi-dots-vertical"
+                    title="خيارات إضافية"
+                  />
+                </template>
+                <v-list density="compact" rounded="lg" elevation="3" class="py-1">
+                  <v-list-item
+                    prepend-icon="mdi-draw-pen"
+                    title="مصمم قوالب التظليل (OMR Designer)"
+                    @click="openInTemplateDesigner(item)"
+                  />
+                  <v-list-item
+                    prepend-icon="mdi-scanner"
+                    title="بدء التصحيح الضوئي (المرحلة 3)"
+                    @click="startGradingExam(item, 'A')"
+                  />
+                  <v-list-item
+                    prepend-icon="mdi-history"
+                    title="أوراق الإجابة المصححة"
+                    @click="viewSubmissions(item)"
+                  />
+                  <v-list-item
+                    prepend-icon="mdi-chart-box-outline"
+                    title="سجل الدرجات والرصد (المرحلة 6)"
+                    @click="viewGradebook(item)"
+                  />
+                </v-list>
+              </v-menu>
             </div>
           </template>
         </template>
@@ -425,8 +440,8 @@
     <!-- ════════════════════════════════════════════════════════════════ -->
     <!-- DIALOG: النافذة الشاملة لإدارة الاختبار، الطلاب، وتوليد القوالب  -->
     <!-- ════════════════════════════════════════════════════════════════ -->
-    <v-dialog v-model="detailsDialog" max-width="1280px" scrollable>
-      <v-card class="rounded-2xl" elevation="4">
+    <v-dialog v-model="detailsDialog" max-width="1360px" scrollable>
+      <v-card class="rounded-2xl" elevation="4" style="height: 94vh; max-height: 94vh; display: flex; flex-direction: column;">
         <!-- Dialog Header -->
         <v-card-title class="pa-4 pa-md-5 border-b d-flex align-center justify-space-between bg-surface flex-wrap gap-2">
           <div class="d-flex align-center">
@@ -450,12 +465,22 @@
             <v-btn
               size="small"
               variant="flat"
+              color="primary"
+              class="font-weight-bold rounded-lg px-3 shadow-sm"
+              prepend-icon="mdi-printer"
+              @click="goToPrintRegistry(activeExam)"
+            >
+              الانتقال للطباعة (المرحلة 2)
+            </v-btn>
+            <v-btn
+              size="small"
+              variant="tonal"
               color="success"
-              class="font-weight-black rounded-lg px-3"
+              class="font-weight-bold rounded-lg px-3"
               prepend-icon="mdi-scanner"
               @click="startGradingExam(activeExam, currentVersionObj?.versionCode || 'A')"
             >
-              بدء التصحيح الضوئي
+              بدء التصحيح الضوئي (المرحلة 3)
             </v-btn>
             <v-btn
               icon="mdi-close"
@@ -475,7 +500,7 @@
               <div
                 class="exam-hub-nav-item"
                 :class="{ 'is-active': hubActiveTab === 'questions' }"
-                @click="hubActiveTab = 'questions'"
+                @click="hubActiveTab = 'questions'; visitedTabs.add('questions')"
                 role="button"
                 tabindex="0"
               >
@@ -492,7 +517,7 @@
               <div
                 class="exam-hub-nav-item"
                 :class="{ 'is-active': hubActiveTab === 'template' }"
-                @click="hubActiveTab = 'template'"
+                @click="hubActiveTab = 'template'; visitedTabs.add('template')"
                 role="button"
                 tabindex="0"
               >
@@ -503,7 +528,7 @@
               <div
                 class="exam-hub-nav-item"
                 :class="{ 'is-active': hubActiveTab === 'roster' }"
-                @click="hubActiveTab = 'roster'"
+                @click="hubActiveTab = 'roster'; visitedTabs.add('roster')"
                 role="button"
                 tabindex="0"
               >
@@ -520,7 +545,7 @@
               <div
                 class="exam-hub-nav-item"
                 :class="{ 'is-active': hubActiveTab === 'keys' }"
-                @click="hubActiveTab = 'keys'"
+                @click="hubActiveTab = 'keys'; visitedTabs.add('keys')"
                 role="button"
                 tabindex="0"
               >
@@ -537,7 +562,7 @@
               <div
                 class="exam-hub-nav-item"
                 :class="{ 'is-active': hubActiveTab === 'submissions' }"
-                @click="hubActiveTab = 'submissions'"
+                @click="hubActiveTab = 'submissions'; visitedTabs.add('submissions')"
                 role="button"
                 tabindex="0"
               >
@@ -554,7 +579,7 @@
           </div>
         </div>
 
-        <v-card-text class="pa-4 pa-md-6 bg-grey-lighten-5">
+        <v-card-text class="pa-3 pa-md-4 bg-grey-lighten-5 flex-grow-1 overflow-y-auto">
           <div v-if="loadingDetails" class="text-center py-12">
             <v-progress-circular indeterminate color="primary" size="44" class="mb-3" />
             <p class="text-body-2 font-weight-bold">جاري جلب تفاصيل الاختبار والطلاب ونماذج الأسئلة...</p>
@@ -570,6 +595,8 @@
               v-model:active-version-tab="activeVersionTab"
               :selected-sheet-layout="bubbleSheetTabRef?.selectedSheetLayout || 'compact_a5'"
               :get-omr-element="() => bubbleSheetTabRef?.getPrintableElement()"
+              @switch-tab="(tab) => { hubActiveTab = tab; visitedTabs.add(tab) }"
+              @seed-students="seedSampleStudents"
             />
 
             <!-- TAB 2: توليد ومعاينة ورقة التظليل -->
@@ -585,8 +612,9 @@
               @refresh-details="() => fetchExamHubDetails(activeExam)"
             />
 
-            <!-- TAB 3: كشف الطلاب والبيانات الامتحانية -->
+            <!-- TAB 3: كشف الطلاب (lazy mount — only when first visited) -->
             <ExamStudentsRosterTab
+              v-if="visitedTabs.has('roster')"
               v-show="hubActiveTab === 'roster'"
               ref="rosterTabRef"
               :active-exam="activeExam"
@@ -598,8 +626,9 @@
               @seed-students="seedSampleStudents"
             />
 
-            <!-- TAB 4: النماذج ومفاتيح الحل -->
+            <!-- TAB 4: مفاتيح الحل (lazy mount — only when first visited) -->
             <ExamAnswerKeysTab
+              v-if="visitedTabs.has('keys')"
               v-show="hubActiveTab === 'keys'"
               ref="answerKeysTabRef"
               :active-exam="activeExam"
@@ -611,8 +640,9 @@
               @start-grading="(code) => startGradingExam(activeExam, code)"
             />
 
-            <!-- TAB 5: أوراق الإجابة المصححة -->
+            <!-- TAB 5: أوراق الإجابة المصححة (lazy mount — only when first visited) -->
             <ExamSubmissionsTab
+              v-if="visitedTabs.has('submissions')"
               v-show="hubActiveTab === 'submissions'"
               ref="submissionsTabRef"
               :active-exam="activeExam"
@@ -635,12 +665,12 @@
               :click="() => detailsDialog = false"
             />
             <custom-btn
-              icon="scanner"
-              label="الانتقال لمختبر التصحيح"
+              icon="tune"
+              label="مختبر المعايرة والتجربة"
               color="primary"
               variant="tonal"
               class="font-weight-bold"
-              :click="() => startGradingExam(activeExam)"
+              :click="() => openScannerLab(activeExam)"
             />
           </div>
         </v-card-actions>
@@ -663,8 +693,17 @@ const router = useRouter()
 const route = useRoute()
 
 const loading = ref(false)
+// Track visited tabs for lazy mounting — tabs only mount when first visited
+const visitedTabs = ref(new Set(['questions', 'template']))
 const exams = ref([])
 const searchQuery = ref('')
+const _searchInput = ref('')
+let _searchDebounceTimer = null
+const onSearchInput = (val) => {
+  _searchInput.value = val
+  if (_searchDebounceTimer) clearTimeout(_searchDebounceTimer)
+  _searchDebounceTimer = setTimeout(() => { searchQuery.value = val }, 300)
+}
 const filterInstitutionType = ref('all')
 const filterStage = ref(null)
 const filterClassTrack = ref(null)
@@ -706,6 +745,14 @@ const instituteSubjectParam = computed(() => {
   return null
 })
 
+let _fetchDebounceTimer = null
+const debouncedFetchExams = () => {
+  if (_fetchDebounceTimer) clearTimeout(_fetchDebounceTimer)
+  _fetchDebounceTimer = setTimeout(() => {
+    fetchExams()
+  }, 180)
+}
+
 const onInstitutionTypeChange = () => {
   filterStage.value = null
   filterClassTrack.value = null
@@ -718,48 +765,48 @@ const onInstitutionTypeChange = () => {
   filterInstituteEducationSystem.value = null
   filterInstituteSpecialization.value = null
   filterInstituteSubject.value = null
-  fetchExams()
+  debouncedFetchExams()
 }
 
 const onStageChange = () => {
   filterClassTrack.value = null
   filterSubject.value = null
-  fetchExams()
+  debouncedFetchExams()
 }
 
 const onClassTrackChange = () => {
   filterSubject.value = null
-  fetchExams()
+  debouncedFetchExams()
 }
 
 const onCollegeChange = () => {
   filterDepartment.value = null
   filterSpecialization.value = null
   filterSemesterSubject.value = null
-  fetchExams()
+  debouncedFetchExams()
 }
 
 const onDepartmentChange = () => {
   filterSpecialization.value = null
   filterSemesterSubject.value = null
-  fetchExams()
+  debouncedFetchExams()
 }
 
 const onSpecializationChange = () => {
   filterSemesterSubject.value = null
-  fetchExams()
+  debouncedFetchExams()
 }
 
 const onInstituteFieldChange = () => {
   filterInstituteEducationSystem.value = null
   filterInstituteSpecialization.value = null
   filterInstituteSubject.value = null
-  fetchExams()
+  debouncedFetchExams()
 }
 
 const onInstituteEducationSystemChange = () => {
   filterInstituteSpecialization.value = null
-  fetchExams()
+  debouncedFetchExams()
 }
 
 const stats = ref({
@@ -796,12 +843,12 @@ const totalStudentsCount = computed(() => {
 })
 
 const headers = computed(() => [
-  { title: "رمز وعنوان الاختبار", key: "exam_info", sortable: true },
-  { title: "المادة والعام", key: "subject_info", sortable: true, align: "center", width: "180px" },
-  { title: "النماذج والأسئلة", key: "versions_info", sortable: false, align: "center", width: "160px" },
-  { title: "كشف الطلاب", key: "students_count", sortable: true, align: "center", width: "140px" },
-  { title: "حالة التصحيح", key: "progress", sortable: false, align: "center", width: "160px" },
-  { title: "الاجراءات", key: "actions", sortable: false, align: "center", width: "320px" },
+  { title: "رمز وعنوان الاختبار", key: "exam_info", sortable: true, width: "230px" },
+  { title: "المادة والعام", key: "subject_info", sortable: true, align: "center", width: "115px" },
+  { title: "النماذج والأسئلة", key: "versions_info", sortable: false, align: "center", width: "115px" },
+  { title: "كشف الطلاب", key: "students_count", sortable: true, align: "center", width: "95px" },
+  { title: "حالة التصحيح", key: "progress", sortable: false, align: "center", width: "95px" },
+  { title: "الاجراءات", key: "actions", sortable: false, align: "center", width: "200px" },
 ])
 
 const filteredExams = computed(() => {
@@ -912,11 +959,12 @@ const updateStats = (data) => {
   }
 }
 
-const openExamHub = async (exam, tab = 'template') => {
+const openExamHub = async (exam, tab = 'questions') => {
   activeExam.value = exam
   detailsDialog.value = true
   loadingDetails.value = true
   hubActiveTab.value = tab
+  visitedTabs.value.add(tab)
   activeVersionTab.value = 0
 
   try {
@@ -926,7 +974,7 @@ const openExamHub = async (exam, tab = 'template') => {
       activeExam.value = { ...activeExam.value, ...resp.data.exam }
     }
     await nextTick()
-    if (rosterTabRef.value?.fetchExamStudents) {
+    if (tab === 'roster' && rosterTabRef.value?.fetchExamStudents) {
       rosterTabRef.value.fetchExamStudents({ page: 1, page_size: 10 })
     }
   } catch (err) {
@@ -980,6 +1028,18 @@ const seedSampleStudents = async () => {
 
 const startGradingExam = (exam, versionCode = 'A') => {
   router.push({
+    path: '/omr-scanner',
+    query: {
+      exam_id: exam.id,
+      exam_code: exam.uniqueCode,
+      exam_title: exam.title,
+      version: versionCode,
+    }
+  })
+}
+
+const openScannerLab = (exam, versionCode = 'A') => {
+  router.push({
     path: '/omr-scanner-lab',
     query: {
       exam_id: exam.id,
@@ -993,6 +1053,16 @@ const startGradingExam = (exam, versionCode = 'A') => {
 const viewSubmissions = (exam) => {
   router.push({
     path: '/omr-submissions',
+    query: {
+      exam_id: exam.id,
+    }
+  })
+}
+
+const viewGradebook = (exam) => {
+  if (!exam?.id) return
+  router.push({
+    path: '/omr-gradebook',
     query: {
       exam_id: exam.id,
     }
@@ -1024,7 +1094,8 @@ onMounted(async () => {
   if (targetId) {
     const targetExam = exams.value.find(e => String(e.id) === String(targetId))
     if (targetExam) {
-      openExamHub(targetExam)
+      const targetTab = route.query.tab || 'questions'
+      openExamHub(targetExam, targetTab)
     }
   }
 })

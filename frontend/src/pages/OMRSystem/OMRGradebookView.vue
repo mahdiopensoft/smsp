@@ -14,30 +14,7 @@
         </div>
       </div>
 
-      <div class="d-flex align-center gap-2 flex-wrap">
-        <!-- الزر المباشر لشاشة سجل الأوراق المصححة -->
-        <v-btn
-          color="indigo-darken-1"
-          variant="flat"
-          class="font-weight-bold text-white px-4 rounded-xl shadow-indigo"
-          prepend-icon="mdi-file-document-check-outline"
-          @click="$router.push(`/omr-submissions${selectedExamId ? '?exam=' + selectedExamId : ''}`)"
-        >
-          سجل الأوراق المصححة (Submissions)
-          <v-chip size="x-small" color="white" variant="outlined" class="ms-2 font-weight-black" v-if="activeExamStats.completed_count">
-            {{ activeExamStats.completed_count }}
-          </v-chip>
-        </v-btn>
-
-        <custom-btn
-          type="add"
-          :click="() => $router.push('/omr-scanner-lab')"
-          label="معمل المسح الضوئي"
-          color="primary"
-          variant="tonal"
-          class="font-weight-bold"
-        />
-
+      <div class="d-flex align-center gap-2">
         <custom-btn
           type="restore"
           :click="() => $router.push('/omr-dashboard')"
@@ -313,150 +290,12 @@
       </v-row>
     </filter-fields>
 
-    <!-- ── Selected Exam Banner & Actions Bar ──────────────────────── -->
-    <v-card v-if="selectedExamObj" class="main-card pa-4 rounded-2xl mb-6 elevation-1 border">
-      <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4">
-        <div class="d-flex align-center gap-3">
-          <v-avatar color="primary" variant="tonal" rounded="lg" size="48">
-            <v-icon size="28">mdi-school-outline</v-icon>
-          </v-avatar>
-          <div>
-            <div class="d-flex align-center gap-2 flex-wrap">
-              <h2 class="text-h6 font-weight-black mb-0">{{ selectedExamObj.title }}</h2>
-              <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
-                {{ selectedExamObj.uniqueCode || 'EXAM' }}
-              </v-chip>
-              <v-chip size="x-small" color="grey" variant="outlined" class="font-weight-bold">
-                الدرجة الكلية: {{ selectedExamObj.max_score }} درجة
-              </v-chip>
-            </div>
-            <p class="text-caption text-medium-emphasis mb-0 mt-1">
-              المادة: <span class="font-weight-bold text-on-surface">{{ selectedExamObj.subject_name || '—' }}</span>
-              • العام: <span class="font-weight-bold text-on-surface">{{ selectedExamObj.year_name || '—' }}</span>
-              • الطلاب: <span class="font-weight-bold text-primary">{{ activeExamStats.total_students || totalRecordsCount }}</span> طالب مسجل في الكشف
-            </p>
-          </div>
-        </div>
-
-        <!-- Action Buttons Bar -->
-        <div class="d-flex align-center gap-2 flex-wrap">
-          <!-- Dispatch to Control Button (Main CTA) -->
-          <v-btn
-            color="success"
-            rounded="lg"
-            class="font-weight-bold px-4"
-            prepend-icon="mdi-send-check"
-            :loading="dispatchingLoading"
-            :disabled="activeExamStats.completed_count === 0 || activeExamStats.is_fully_dispatched"
-            @click="openDispatchDialog"
-          >
-            ترحيل الدرجات للكنترول
-          </v-btn>
-
-          <!-- Rollback Dispatch Button -->
-          <v-btn
-            v-if="activeExamStats.dispatched_count > 0"
-            color="warning"
-            variant="tonal"
-            rounded="lg"
-            class="font-weight-bold px-4"
-            prepend-icon="mdi-undo-variant"
-            :loading="rollbackLoading"
-            @click="confirmRollbackDispatch"
-          >
-            إلغاء الترحيل للتدقيق
-          </v-btn>
-
-          <!-- Psychometrics Button -->
-          <v-btn
-            color="purple-darken-1"
-            variant="tonal"
-            rounded="lg"
-            class="font-weight-bold px-3"
-            prepend-icon="mdi-chart-bell-curve-cumulative"
-            :loading="psychometricsLoading"
-            :disabled="!selectedExamId"
-            @click="openPsychometricsDialog"
-          >
-            التحليل السيكومتري (Item Analysis)
-          </v-btn>
-
-          <!-- Export Excel / CSV -->
-          <v-btn
-            color="primary"
-            variant="tonal"
-            rounded="lg"
-            class="font-weight-bold"
-            prepend-icon="mdi-file-excel-outline"
-            @click="exportToExcel"
-          >
-            تصدير كشف الكنترول (Excel/CSV)
-          </v-btn>
-
-          <!-- Print Official Roster -->
-          <v-btn
-            color="secondary"
-            variant="tonal"
-            rounded="lg"
-            class="font-weight-bold"
-            prepend-icon="mdi-printer-outline"
-            @click="printRosterSheet"
-          >
-            طباعة كشف الكنترول
-          </v-btn>
-
-          <!-- Reload / Refresh -->
-          <v-btn
-            icon="mdi-refresh"
-            variant="text"
-            color="primary"
-            :loading="loadingRecords"
-            @click="loadRoster(selectedExamId)"
-          />
-        </div>
-      </div>
-    </v-card>
-
-    <!-- ── Selected Students Batch Bar (شريط عمليات الطلاب المحددين) ── -->
-    <v-card v-if="selectedStudentIds.length > 0" class="main-card pa-3 mb-4 rounded-xl border elevation-2" color="primary" variant="tonal">
-      <div class="d-flex align-center justify-space-between flex-wrap gap-3">
-        <div class="d-flex align-center gap-2">
-          <v-chip color="primary" variant="flat" class="font-weight-black">
-            {{ selectedStudentIds.length }}
-          </v-chip>
-          <span class="font-weight-bold text-subtitle-2">
-            طالب محدد في الكشف حالياً
-          </span>
-        </div>
-        <div class="d-flex align-center gap-2 flex-wrap">
-          <v-btn
-            size="small"
-            color="primary"
-            class="font-weight-bold px-4"
-            prepend-icon="mdi-bank-transfer-in"
-            :loading="dispatchingLoading"
-            @click="dispatchSelectedToControl"
-          >
-            ترحيل المحدد للكنترول ({{ selectedStudentIds.length }})
-          </v-btn>
-          <v-btn
-            size="small"
-            variant="text"
-            color="error"
-            prepend-icon="mdi-close"
-            @click="selectedStudentIds = []"
-          >
-            إلغاء التحديد
-          </v-btn>
-        </div>
-      </div>
-    </v-card>
-
     <!-- ── Student Gradebook Table (Component with Server-Side Pagination) ── -->
     <div class="main-card rounded-2xl overflow-hidden mb-6 elevation-1">
-      <!-- ── شريط إدارة التحديد والتحكم السريع في الكشف ── -->
-      <div class="d-flex align-center justify-space-between flex-wrap gap-2 px-4 py-3 bg-surface border-b">
-        <div class="d-flex align-center gap-3">
+      <!-- ── شريط إدارة التحديد والتحكم والعمليات الموحد في الكشف ── -->
+      <div class="d-flex align-center justify-space-between flex-wrap gap-3 px-4 py-3 bg-surface border-b">
+        <!-- قسم التحديد والطلاب -->
+        <div class="d-flex align-center gap-3 flex-wrap">
           <v-checkbox-btn
             :model-value="isAllCurrentSelected"
             :indeterminate="isSomeCurrentSelected"
@@ -466,8 +305,9 @@
             @update:model-value="toggleSelectAllCurrent"
           />
           <span class="text-caption font-weight-bold text-on-surface">
-            تحديد الكل في هذه الصفحة
+            تحديد الكل
           </span>
+
           <v-chip
             v-if="selectedStudentIds.length > 0"
             size="small"
@@ -477,6 +317,7 @@
           >
             {{ selectedStudentIds.length }} طالب محدد
           </v-chip>
+
           <v-btn
             v-if="selectedStudentIds.length > 0"
             size="x-small"
@@ -487,24 +328,104 @@
           >
             إلغاء التحديد
           </v-btn>
-        </div>
 
-        <div class="d-flex align-center gap-2">
+          <!-- زر ترحيل درجات الطلاب المحددين فقط عند اختيارهم -->
           <v-btn
             v-if="selectedStudentIds.length > 0"
             color="purple-darken-1"
             variant="flat"
             size="small"
-            class="font-weight-bold text-white rounded-lg px-4"
+            class="font-weight-bold text-white rounded-lg px-3"
             prepend-icon="mdi-bank-transfer"
             :loading="dispatchingLoading"
             @click="dispatchSelectedToControl"
           >
-            ترحيل درجات المحدد ({{ selectedStudentIds.length }}) للكنترول
+            ترحيل المحدد ({{ selectedStudentIds.length }})
           </v-btn>
+
           <span class="text-caption text-medium-emphasis">
-            إجمالي السجلات: {{ tableItems.pagination?.total || tableItems.pagination?.count || totalRecordsCount }} طالب
+            ({{ tableItems.pagination?.total || tableItems.pagination?.count || totalRecordsCount }} طالب مسجل)
           </span>
+        </div>
+
+        <!-- قسم العمليات والترحيل والتقارير عند اختيار اختبار -->
+        <div class="d-flex align-center gap-2 flex-wrap" v-if="selectedExamObj">
+          <!-- زر الترحيل الشامل للاختبار (Primary CTA) -->
+          <v-btn
+            color="success"
+            size="small"
+            rounded="lg"
+            class="font-weight-bold px-4"
+            prepend-icon="mdi-send-check"
+            :loading="dispatchingLoading"
+            :disabled="activeExamStats.completed_count === 0 || activeExamStats.is_fully_dispatched"
+            @click="openDispatchDialog"
+          >
+            ترحيل الدرجات للكنترول
+          </v-btn>
+
+          <!-- زر إلغاء الترحيل (إذا تم ترحيله مسبقاً) -->
+          <v-btn
+            v-if="activeExamStats.dispatched_count > 0"
+            color="warning"
+            variant="tonal"
+            size="small"
+            rounded="lg"
+            class="font-weight-bold px-3"
+            prepend-icon="mdi-undo-variant"
+            :loading="rollbackLoading"
+            @click="confirmRollbackDispatch"
+          >
+            إلغاء الترحيل
+          </v-btn>
+
+          <!-- قائمة خيارات الكشف والتقارير -->
+          <v-menu transition="slide-y-transition" location="bottom end">
+            <template v-slot:activator="{ props }">
+              <v-btn
+                v-bind="props"
+                color="primary"
+                variant="tonal"
+                size="small"
+                rounded="lg"
+                class="font-weight-bold px-3"
+                append-icon="mdi-chevron-down"
+                prepend-icon="mdi-printer-outline"
+              >
+                خيارات الكشف والتقارير
+              </v-btn>
+            </template>
+            <v-list density="compact" rounded="lg" elevation="6" class="py-1">
+              <v-list-item
+                prepend-icon="mdi-file-excel-outline"
+                title="تصدير كشف الكنترول (Excel/CSV)"
+                @click="exportToExcel"
+              />
+              <v-list-item
+                prepend-icon="mdi-printer-outline"
+                title="طباعة كشف الكنترول الرسمي"
+                @click="printRosterSheet"
+              />
+              <v-divider class="my-1" />
+              <v-list-item
+                prepend-icon="mdi-chart-bell-curve-cumulative"
+                title="التحليل السيكومتري (Item Analysis)"
+                :disabled="!selectedExamId"
+                @click="openPsychometricsDialog"
+              />
+            </v-list>
+          </v-menu>
+
+          <!-- إعادة تحميل الكشف -->
+          <v-btn
+            icon="mdi-refresh"
+            variant="text"
+            size="small"
+            color="medium-emphasis"
+            title="إعادة تحميل الكشف"
+            :loading="loadingRecords"
+            @click="loadRoster(selectedExamId)"
+          />
         </div>
       </div>
 
@@ -669,26 +590,93 @@
             <div class="d-flex align-center justify-center gap-1">
               <v-btn
                 v-if="item.submission_id"
-                icon="mdi-file-eye-outline"
                 size="small"
-                variant="text"
                 color="primary"
-                title="معاينة وتدقيق ورقة الإجابة"
-                @click="$router.push(`/omr-submissions/${item.submission_id}`)"
-              />
+                variant="tonal"
+                class="font-weight-bold px-2 rounded-lg"
+                prepend-icon="mdi-file-eye-outline"
+                title="معاينة وتدقيق ورقة الإجابة والتفاصيل"
+                @click.stop="navigateToSubmission(item)"
+              >
+                معاينة الورقة
+              </v-btn>
               <v-btn
                 v-else
-                icon="mdi-pencil-off-outline"
                 size="small"
-                variant="text"
-                color="grey"
-                disabled
-              />
+                color="secondary"
+                variant="tonal"
+                class="font-weight-bold px-2 rounded-lg"
+                prepend-icon="mdi-card-account-details-outline"
+                title="عرض تفاصيل سجل قيد الطالب بالاختبار"
+                @click.stop="openStudentRecordModal(item)"
+              >
+                تفاصيل السجل
+              </v-btn>
             </div>
           </template>
         </template>
       </custom-data-table>
     </div>
+
+    <!-- ── نافذة تفاصيل سجل الطالب في الاختبار (عند عدم وجود ورقة مصححة) ── -->
+    <v-dialog v-model="studentRecordDialog" max-width="560">
+      <v-card class="rounded-2xl pa-5 main-card" v-if="selectedStudentRecord">
+        <div class="d-flex align-center justify-space-between mb-4">
+          <div class="d-flex align-center gap-3">
+            <v-avatar color="primary" variant="tonal" size="44" rounded="lg">
+              <v-icon size="24" color="primary">mdi-account-school-outline</v-icon>
+            </v-avatar>
+            <div>
+              <h3 class="text-h6 font-weight-black mb-0">{{ selectedStudentRecord.student_name }}</h3>
+              <p class="text-caption text-medium-emphasis mb-0">بيانات القيد والتسجيل في الاختبار</p>
+            </div>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" @click="studentRecordDialog = false" />
+        </div>
+
+        <v-list density="compact" class="bg-surface rounded-xl border pa-2 mb-4">
+          <v-list-item title="رقم الجلوس" :subtitle="selectedStudentRecord.seat_number || '—'">
+            <template #prepend><v-icon color="primary" class="me-2">mdi-numeric</v-icon></template>
+          </v-list-item>
+          <v-list-item title="الرقم السري" :subtitle="selectedStudentRecord.secret_number || '—'">
+            <template #prepend><v-icon color="secondary" class="me-2">mdi-shield-key-outline</v-icon></template>
+          </v-list-item>
+          <v-list-item title="النموذج المخصص" :subtitle="`النموذج (${selectedStudentRecord.version_code || 'A'})`">
+            <template #prepend><v-icon color="indigo" class="me-2">mdi-file-document-multiple-outline</v-icon></template>
+          </v-list-item>
+          <v-list-item title="المدرسة / المؤسسة" :subtitle="selectedStudentRecord.school_name || '—'">
+            <template #prepend><v-icon color="teal" class="me-2">mdi-domain</v-icon></template>
+          </v-list-item>
+          <v-list-item title="المديرية / المحافظة" :subtitle="`${selectedStudentRecord.directorate_name || ''} - ${selectedStudentRecord.governorate_name || ''}`">
+            <template #prepend><v-icon color="orange" class="me-2">mdi-map-marker-outline</v-icon></template>
+          </v-list-item>
+          <v-list-item title="حالة التصحيح" subtitle="لم يتم مسح وتصحيح ورقة إجابة لهذا الطالب بعد (حالة الطالب: غائب)">
+            <template #prepend><v-icon color="error" class="me-2">mdi-alert-circle-outline</v-icon></template>
+          </v-list-item>
+        </v-list>
+
+        <v-card-actions class="px-0 pt-2 d-flex justify-end gap-2">
+          <v-btn
+            color="primary"
+            variant="flat"
+            rounded="lg"
+            class="font-weight-bold px-4"
+            prepend-icon="mdi-scanner"
+            @click="goToScannerLabForStudent"
+          >
+            الانتقال لمعمل المسح الضوئي
+          </v-btn>
+          <v-btn
+            variant="tonal"
+            rounded="lg"
+            class="font-weight-bold"
+            @click="studentRecordDialog = false"
+          >
+            إغلاق
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- ── Dispatch Confirmation Modal ──────────────────────────────── -->
     <v-dialog v-model="dispatchDialog" max-width="580" persistent>
@@ -1032,6 +1020,9 @@ export default {
       },
       printRecords: [],
 
+      studentRecordDialog: false,
+      selectedStudentRecord: null,
+
       headers: [
         { title: "تحديد", key: "select", sortable: false, align: "center", width: "60px" },
         { title: "رقم الجلوس", key: "seat_number", sortable: true, align: "center", width: "115px" },
@@ -1046,7 +1037,7 @@ export default {
         { title: "دقة OMR", key: "confidence", sortable: true, align: "center", width: "95px" },
         { title: "حالة التصحيح", key: "status", sortable: true, align: "center", width: "115px" },
         { title: "الترحيل للكنترول", key: "is_dispatched", sortable: true, align: "center", width: "135px" },
-        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "90px" },
+        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "135px" },
       ],
 
       activeExamStats: {
@@ -1803,6 +1794,28 @@ export default {
         absent: 'غائب',
       }
       return map[st] || st
+    },
+
+    navigateToSubmission(item) {
+      if (item && item.submission_id) {
+        this.$router.push(`/omr-submissions/${item.submission_id}`)
+      } else {
+        this.openStudentRecordModal(item)
+      }
+    },
+
+    openStudentRecordModal(item) {
+      this.selectedStudentRecord = item
+      this.studentRecordDialog = true
+    },
+
+    goToScannerLabForStudent() {
+      this.studentRecordDialog = false
+      if (this.selectedExamId) {
+        this.$router.push(`/omr-scanner-lab?examId=${this.selectedExamId}`)
+      } else {
+        this.$router.push('/omr-scanner-lab')
+      }
     },
   },
 }
