@@ -1,56 +1,5 @@
 <template>
   <div class="qb-omr-exams-linking-v4 pa-4 pa-md-6">
-    <!-- ── Page Header (Institutional OpenSoftCore Style) ─────────────── -->
-    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-6">
-      <div class="d-flex align-center">
-        <v-avatar size="48" color="primary" variant="tonal" class="me-3 rounded-xl elevation-1">
-          <v-icon size="26">mdi-link-box-variant-outline</v-icon>
-        </v-avatar>
-        <div>
-          <h1 class="text-h5 font-weight-black text-on-surface mb-0">ربط الاختبارات والتصحيح الضوئي (OMR)</h1>
-          <p class="text-caption text-medium-emphasis mb-0">
-            استعراض كشوفات الطلاب، معاينة النماذج ومفاتيح الحل، وتوليد وطباعة أوراق التظليل الوزارية المعتمدة
-          </p>
-        </div>
-      </div>
-
-      <div class="d-flex align-center gap-2 flex-wrap">
-        <v-btn
-          color="secondary"
-          variant="tonal"
-          rounded="lg"
-          class="font-weight-bold"
-          prepend-icon="mdi-scanner"
-          to="/omr-scanner-lab"
-        >
-          مختبر المسح والتصحيح
-        </v-btn>
-        <v-btn
-          color="secondary"
-          variant="tonal"
-          rounded="lg"
-          class="font-weight-bold"
-          prepend-icon="mdi-card-text-outline"
-          to="/omr-templates"
-        >
-          مكتبة القوالب
-        </v-btn>
-        <v-btn
-          color="primary"
-          variant="flat"
-          rounded="lg"
-          class="font-weight-bold shadow-sm"
-          prepend-icon="mdi-refresh"
-          :loading="loading"
-          @click="fetchExams"
-        >
-          تحديث القائمة
-        </v-btn>
-      </div>
-    </div>
-
-    <!-- ── OMR Workflow Stepper (المرحلة 1: استلام وتجهيز الاختبار) ── -->
-    <omr-workflow-bar :active-step="1" :exam-id="selectedExam?.id" />
 
     <!-- Unified Filter Fields (Standard Tripartite Institution Filters: Schools, Universities, Institutes) -->
     <filter-fields label="خيارات التصفية والبحث المتقدم في الاختبارات" class="main-card border-0 pa-5 rounded-2xl mb-6">

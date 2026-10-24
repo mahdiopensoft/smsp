@@ -1,6 +1,6 @@
 <template>
   <div class="qb-template-builder-v4" dir="rtl">
-    <!-- ── Page Header (Institutional OpenSoftCore Style) ─────────────── -->
+    <!-- ── Page Header ─────────────────────────────────────────── -->
     <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-6">
       <div class="d-flex align-center">
         <v-avatar size="44" color="primary" variant="tonal" class="me-3 rounded-xl">
@@ -158,7 +158,7 @@
       </div>
     </v-card>
 
-    <!-- ── Mode Tabs Switcher (Unified OpenSoftCore Standard) ──────── -->
+    <!-- ── Mode Tabs Switcher ────────────────────────────────────── -->
     <v-card class="mode-tabs-card pa-1 rounded-xl mb-6 elevation-0 border">
       <v-tabs
         v-model="pageMode"

@@ -1,50 +1,5 @@
 <template>
   <div class="qb-omr-dashboard-v4">
-    <!-- ── Page Header (Institutional OpenSoftCore Style) ─────────────── -->
-    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-6">
-      <div class="d-flex align-center">
-        <v-avatar size="44" color="primary" variant="tonal" class="me-3 rounded-xl">
-          <v-icon size="24">mdi-view-dashboard-outline</v-icon>
-        </v-avatar>
-        <div>
-          <h1 class="text-h5 font-weight-black text-on-surface mb-0">لوحة تحكم القراءة والتصحيح</h1>
-          <p class="text-caption text-medium-emphasis mb-0">نظرة عامة شمولية على حالة المعالجة الضوئية والأوراق المرفوعة ونسب الثقة</p>
-        </div>
-      </div>
-
-      <div class="d-flex align-center gap-2 flex-wrap">
-        <custom-btn
-          type="add"
-          :click="() => $router.push('/omr-scanner')"
-          label="بدء مسح ضوئي جديد"
-          class="font-weight-bold"
-        />
-        <custom-btn
-          type="imports"
-          :click="() => $router.push('/omr-templates')"
-          label="مصمم القوالب"
-          color="secondary"
-          variant="tonal"
-          class="font-weight-bold"
-        />
-        <custom-btn
-          type="restore"
-          :click="() => $router.push('/omr-submissions')"
-          label="سجل الأوراق"
-          color="secondary"
-          variant="tonal"
-          class="font-weight-bold"
-        />
-        <custom-btn
-          type="show"
-          :click="() => $router.push('/omr-gradebook')"
-          label="سجل الدرجات والكنترول"
-          color="primary"
-          variant="tonal"
-          class="font-weight-bold"
-        />
-      </div>
-    </div>
 
     <!-- Stat Summary Cards Grid (4 Calm Institutional Cards) -->
     <v-row class="mb-6" dense>

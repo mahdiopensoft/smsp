@@ -1,46 +1,5 @@
 <template>
   <div class="qb-submissions-view-v4">
-    <!-- Header Controls & Actions -->
-    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-4">
-      <div>
-        <h2 class="text-h5 font-weight-black mb-1">أوراق الطلاب المصححة (OMR Submissions)</h2>
-        <span class="text-caption text-medium-emphasis">
-          سجل وإدارة نتائج الأوراق المعالجة ضوئياً ومراجعة درجات الطلاب وتفاصيل الإجابات
-        </span>
-      </div>
-
-      <div class="d-flex align-center gap-3 flex-wrap">
-        <custom-btn
-          label="معمل المسح الضوئي"
-          icon="mdi-scanner"
-          color="indigo"
-          variant="tonal"
-          class="font-weight-bold px-4"
-          :click="() => $router.push('/omr-scanner-lab')"
-        />
-        <custom-btn
-          type="add"
-          icon="mdi-cloud-upload-outline"
-          label="استخراج وتصحيح مباشر"
-          color="primary"
-          class="font-weight-bold px-4"
-          :click="() => $router.push('/omr-full-extraction')"
-        />
-        <custom-btn
-          type="show"
-          icon="mdi-clipboard-check-outline"
-          label="كشف الدرجات والكنترول"
-          color="success"
-          variant="flat"
-          class="font-weight-bold px-4 shadow-emerald"
-          :click="() => $router.push(`/omr-gradebook${filterExam ? '?exam=' + filterExam : ''}`)"
-        />
-      </div>
-    </div>
-
-    <!-- ── OMR Workflow Stepper (المرحلة 4: سجل الأوراق المصححة) ── -->
-    <omr-workflow-bar :active-step="4" :exam-id="filterExam" />
-
     <!-- Filters Control Bar (Theme Compatible) -->
     <filter-fields label="خيارات تصفية أوراق الإجابة ونتائج التصحيح" class="main-card border-0 pa-5 rounded-2xl mb-6">
       <v-row dense class="align-center">

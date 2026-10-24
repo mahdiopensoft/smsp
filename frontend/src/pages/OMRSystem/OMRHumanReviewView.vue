@@ -1,32 +1,5 @@
 <template>
   <div class="qb-human-review-v4 pa-4 pa-md-6">
-    <!-- Header -->
-    <div class="d-flex align-center justify-space-between mb-6">
-      <div class="d-flex align-center">
-        <v-avatar size="44" color="primary" variant="tonal" class="me-3 rounded-xl">
-          <v-icon size="24">mdi-account-eye-outline</v-icon>
-        </v-avatar>
-        <div>
-          <h1 class="text-h5 font-weight-black text-on-surface mb-0">المراجعة والتدقيق البشري</h1>
-          <p class="text-caption text-medium-emphasis mb-0">أوراق الإجابة ذات درجات الثقة المنخفضة أو التظليل الملتبس التي تتطلب تدقيقاً وتحققاً.</p>
-        </div>
-      </div>
-
-      <div>
-        <custom-btn
-          label="تحديث البيانات"
-          icon="refresh"
-          variant="tonal"
-          color="primary"
-          :loading="loading"
-          :click="fetchData"
-        />
-      </div>
-    </div>
-
-    <!-- ── OMR Workflow Stepper (المرحلة 5: المراجعة والتدقيق البشري) ── -->
-    <omr-workflow-bar :active-step="5" :exam-id="selectedExam" />
-
     <!-- Filters Control Bar (Standard filter-fields) -->
     <filter-fields label="خيارات تصفية أوراق المراجعة والتدقيق" class="main-card border-0 pa-5 rounded-2xl mb-6">
       <v-row dense class="align-center">

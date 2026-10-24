@@ -183,7 +183,7 @@ const aiResultsMap = computed(() => {
 
 <template>
   <div class="qb-omr-demo-v4" dir="rtl">
-    <!-- ── Page Header (Institutional OpenSoftCore Style) ─────────────── -->
+    <!-- ── Page Header ─────────────────────────────────────────── -->
     <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-6">
       <div class="d-flex align-center">
         <back-to class="me-3" />

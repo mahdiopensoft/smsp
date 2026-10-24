@@ -1,58 +1,5 @@
 <template>
   <div class="qb-omr-print-registry pa-4 pa-md-6">
-    <!-- ── Page Header ─────────────────────────────────────────── -->
-    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-6">
-      <div class="d-flex align-center">
-        <v-avatar size="48" color="secondary" variant="tonal" class="me-3 rounded-xl elevation-1">
-          <v-icon size="26">mdi-printer-check</v-icon>
-        </v-avatar>
-        <div>
-          <h1 class="text-h5 font-weight-black text-on-surface mb-0">المرحلة 2: طباعة وتصدير أوراق الإجابة (OMR)</h1>
-          <p class="text-caption text-medium-emphasis mb-0">
-            توليد ومعاينة أوراق التظليل لكافة الطلاب مثل فواتير متتالية في المصمم وتصديرها للطباعة وتتبع السجلات
-          </p>
-        </div>
-      </div>
-
-      <div class="d-flex align-center gap-2 flex-wrap">
-        <v-btn
-          v-if="currentView === 'detail'"
-          color="secondary"
-          variant="tonal"
-          rounded="lg"
-          class="font-weight-bold"
-          prepend-icon="mdi-view-dashboard-outline"
-          @click="returnToMaster"
-        >
-          عرض الهيكل وسجل الطباعة
-        </v-btn>
-        <v-btn
-          v-else
-          color="primary"
-          variant="flat"
-          rounded="lg"
-          class="font-weight-bold shadow-sm"
-          prepend-icon="mdi-printer-outline"
-          @click="currentView = 'detail'"
-        >
-          استوديو المعاينة والطباعة المباشر
-        </v-btn>
-        <v-btn
-          color="secondary"
-          variant="tonal"
-          rounded="lg"
-          class="font-weight-bold"
-          prepend-icon="mdi-refresh"
-          :loading="loadingMaster || loadingBatches || loadingExams"
-          @click="refreshData"
-        >
-          تحديث البيانات
-        </v-btn>
-      </div>
-    </div>
-
-    <!-- ── OMR Workflow Stepper (المرحلة 2: طباعة أوراق الإجابة) ── -->
-    <omr-workflow-bar :active-step="2" />
 
     <!-- ══════════════════════════════════════════════════════════════ -->
     <!-- 1. MASTER VIEW: الهيكل الإداري وسجل الطباعة المركزي             -->

@@ -1,33 +1,5 @@
 <template>
   <div class="qb-gradebook-view-v4">
-    <!-- ── Page Header (Institutional OpenSoftCore Style) ─────────────── -->
-    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-4">
-      <div class="d-flex align-center">
-        <v-avatar size="44" color="primary" variant="tonal" class="me-3 rounded-xl">
-          <v-icon size="24">mdi-clipboard-check-multiple-outline</v-icon>
-        </v-avatar>
-        <div>
-          <h1 class="text-h5 font-weight-black text-on-surface mb-0">سجل درجات الاختبارات وترحيل الكنترول</h1>
-          <p class="text-caption text-medium-emphasis mb-0">
-            تدقيق ومراجعة كشوفات الرصد الأكاديمية وترحيل الدرجات المعتمدة رسمياً لنظام الكنترول المركزي
-          </p>
-        </div>
-      </div>
-
-      <div class="d-flex align-center gap-2">
-        <custom-btn
-          type="restore"
-          :click="() => $router.push('/omr-dashboard')"
-          label="لوحة التحكم"
-          color="secondary"
-          variant="tonal"
-          class="font-weight-bold"
-        />
-      </div>
-    </div>
-
-    <!-- ── OMR Workflow Stepper (مسار مراحل التصحيح الآلي والكنترول خطوة بخطوة) ── -->
-    <omr-workflow-bar :active-step="6" :exam-id="selectedExamId" />
 
     <!-- ── 1. Sector Switcher (فصل نوع المؤسسة التعليمية بشكل قاطع) ── -->
     <div class="d-flex align-center justify-space-between flex-wrap gap-3 mb-4">

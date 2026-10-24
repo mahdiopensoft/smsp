@@ -1,55 +1,5 @@
 <template>
   <div class="qb-national-control-console pa-3 pa-md-6">
-    <!-- ── Page Header (Institutional OpenSoftCore Style) ─────────────── -->
-    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-5">
-      <div class="d-flex align-center">
-        <v-avatar size="44" color="primary" variant="tonal" class="me-3 rounded-xl">
-          <v-icon size="24">mdi-scanner</v-icon>
-        </v-avatar>
-        <div>
-          <h1 class="text-h5 font-weight-black text-on-surface mb-0">محطة المسح والتصحيح الآلي للمظاريف والدفعات (OMR)</h1>
-          <p class="text-caption text-medium-emphasis mb-0">
-            مسح ومعالجة رزم ومظاريف أوراق الإجابة، تدقيق مطابقة الحضور والغياب، وترحيل النتائج للكنترول المركزي
-          </p>
-        </div>
-      </div>
-
-      <!-- أزرار الإجراءات السريعة والمحطة -->
-      <div class="d-flex align-center gap-2 flex-wrap">
-        <v-chip color="primary" variant="tonal" size="small" class="font-weight-bold">
-          <v-icon start size="14">mdi-desktop-classic</v-icon>
-          محطة مسح رقم: {{ stationNumber }}
-        </v-chip>
-
-        <v-btn
-          color="secondary"
-          variant="tonal"
-          rounded="lg"
-          size="small"
-          class="font-weight-bold"
-          prepend-icon="mdi-account-check-outline"
-          :to="selectedExamId ? `/omr-human-review?exam=${selectedExamId}` : '/omr-human-review'"
-        >
-          لجنة المراجعة البشرية
-        </v-btn>
-
-        <v-btn
-          color="primary"
-          variant="flat"
-          rounded="lg"
-          size="small"
-          class="font-weight-bold shadow-sm"
-          prepend-icon="mdi-book-education"
-          :to="selectedExamId ? `/omr-gradebook?exam=${selectedExamId}` : '/omr-gradebook'"
-        >
-          سجل درجات الكنترول
-        </v-btn>
-      </div>
-    </div>
-
-    <!-- ── OMR Workflow Stepper (المرحلة 3: المسح والتصحيح الآلي للمظاريف) ── -->
-    <omr-workflow-bar :active-step="3" :exam-id="selectedExamId" />
-
     <!-- ── 1. بيانات المظروف الامتحاني والقاعة (Envelope Manifest & Dispatch Details) ── -->
     <filter-fields
       label="1. بيانات المظروف الامتحاني والقاعة (Envelope Manifest & Dispatch Details)"

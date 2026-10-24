@@ -1,56 +1,5 @@
 <template>
   <div class="qb-omr-lab-v4">
-    <!-- ── Page Header (Institutional OpenSoftCore Style) ─────────────── -->
-    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-6">
-      <div class="d-flex align-center">
-        <v-avatar size="44" color="primary" variant="tonal" class="me-3 rounded-xl">
-          <v-icon size="24">mdi-scanner</v-icon>
-        </v-avatar>
-        <div>
-          <h1 class="text-h5 font-weight-black text-on-surface mb-0">مختبر المسح الضوئي 
-            تصحيح</h1>
-          <p class="text-caption text-medium-emphasis mb-0">معالجة وتصحيح أوراق الإجابة بدقة معيارية مدعومة بالذكاء الاصطناعي</p>
-        </div>
-      </div>
-
-      <div class="d-flex align-center gap-2 flex-wrap">
-        <custom-btn
-          type="restore"
-          :click="() => $router.push('/omr-dashboard')"
-          label="لوحة التحكم"
-          color="secondary"
-          variant="tonal"
-          class="font-weight-bold"
-        />
-        <custom-btn
-          type="imports"
-          :click="() => $router.push('/omr-templates')"
-          label="مكتبة القوالب"
-          color="secondary"
-          variant="tonal"
-          class="font-weight-bold"
-        />
-        <custom-btn
-          type="cancel_filter"
-          :click="() => $router.push('/omr-submissions')"
-          label="سجل الأوراق"
-          color="secondary"
-          variant="tonal"
-          class="font-weight-bold"
-        />
-        <custom-btn
-          type="show"
-          :click="() => $router.push('/omr-gradebook')"
-          label="سجل الدرجات والكنترول"
-          color="primary"
-          variant="tonal"
-          class="font-weight-bold"
-        />
-      </div>
-    </div>
-
-    <!-- ── OMR Workflow Stepper (المرحلة 3: معمل وسحب المسح الضوئي والتصحيح) ── -->
-    <omr-workflow-bar :active-step="3" :exam-id="selectedExamId" />
 
     <!-- ── Step Tabs Navigation Bar (خفيف وسهل) ───────────────────────── -->
     <div class="lab-workflow-bar mb-6">
