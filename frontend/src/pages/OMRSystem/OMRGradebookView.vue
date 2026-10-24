@@ -1657,6 +1657,9 @@ export default {
 
     filteredSchoolsTable() {
       let list = this.schoolsList || []
+      if (this.selectedSchoolId) {
+        list = list.filter(s => s.id === this.selectedSchoolId)
+      }
       if (this.masterSearchQuery && this.masterSearchQuery.trim()) {
         const q = this.masterSearchQuery.trim().toLowerCase()
         list = list.filter(s => (s.name || '').toLowerCase().includes(q) || (s.directorate_name || '').toLowerCase().includes(q))
@@ -2029,10 +2032,15 @@ export default {
     },
 
 
-    async fetchExamsList() {
+    async fetchExamsList(customParams = null) {
       this.loadingExams = true
       try {
-        const res = await gradebookAPI.list()
+        const params = customParams || { institution_type: this.institutionType }
+        if (this.selectedOfficeId && !params.office_id) params.office_id = this.selectedOfficeId
+        if (this.selectedDirectorateId && !params.directorate_id) params.directorate_id = this.selectedDirectorateId
+        if (this.selectedSchoolId && !params.school_id) params.school_id = this.selectedSchoolId
+
+        const res = await gradebookAPI.list(params)
         const data = res.data
         if (data && data.results) {
           this.examsList = data.results
