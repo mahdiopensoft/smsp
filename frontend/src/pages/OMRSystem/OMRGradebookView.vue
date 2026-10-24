@@ -162,13 +162,14 @@
           v-model="filterGovernorate"
           name="Governorate"
           placeholder="المحافظة"
-          cols="3"
+          :cols="isSchoolFilter ? 3 : 4"
           :add="false"
           @update:model-value="onGovernorateChange"
         />
 
-        <!-- المديرية -->
+        <!-- المديرية (تظهر فقط للمدارس) -->
         <auto-list
+          v-if="isSchoolFilter"
           v-model="filterDirectorate"
           name="Directorate"
           :param="filterGovernorate"
@@ -185,8 +186,9 @@
           name="Organization"
           :param="orgParam"
           :placeholder="orgPlaceholder"
-          cols="3"
+          :cols="isSchoolFilter ? 3 : 4"
           :add="false"
+          :disabled="isOrgDisabled"
           @update:model-value="applyFilters"
         />
 
@@ -196,7 +198,7 @@
           name="Exam"
           :param="examFilterParam"
           placeholder="اختر الاختبار الأكاديمي لعرض كشف درجاته..."
-          cols="3"
+          :cols="isSchoolFilter ? 3 : 4"
           :add="false"
           @update:model-value="onExamChange"
         />
@@ -1157,29 +1159,39 @@ export default {
       return null
     },
 
-    orgPlaceholder() {
-      if (!this.filterInstitutionType || this.filterInstitutionType === 'all') {
-        return this.filterDirectorate ? 'المدرسة / المؤسسة (التابعة للمديرية)' : 'المدرسة / المؤسسة التعليمية'
+    isSchoolFilter() {
+      return !this.filterInstitutionType || this.filterInstitutionType === 'all' || this.filterInstitutionType === 'school';
+    },
+
+    isOrgDisabled() {
+      if (this.isSchoolFilter) {
+        return !this.filterGovernorate || !this.filterDirectorate;
       }
+      return !this.filterGovernorate;
+    },
+
+    orgPlaceholder() {
       const typeLabel = this.filterInstitutionType === 'university'
         ? 'الكلية / الجامعة'
         : (this.filterInstitutionType === 'institute' ? 'المعهد / المركز' : 'المدرسة')
-      if (this.filterDirectorate) {
+      if (this.isSchoolFilter) {
+        if (!this.filterGovernorate) return 'اختر المحافظة أولاً...'
+        if (!this.filterDirectorate) return 'اختر المديرية أولاً...'
         return `${typeLabel} (التابعة للمديرية)`
       }
-      if (this.filterGovernorate) {
-        return `${typeLabel} (التابعة للمحافظة)`
-      }
-      return `${typeLabel} (حدد المحافظة للتصفية الهرمية)`
+      if (!this.filterGovernorate) return 'اختر المحافظة أولاً...'
+      return `${typeLabel} (التابعة للمحافظة)`
     },
 
     orgParam() {
       const p = {}
       if (this.filterInstitutionType && this.filterInstitutionType !== 'all') {
         p.institution_type = this.filterInstitutionType
+      } else {
+        p.institution_type = 'school'
       }
       if (this.filterGovernorate) p.governorate = this.filterGovernorate
-      if (this.filterDirectorate) p.directorate = this.filterDirectorate
+      if (this.isSchoolFilter && this.filterDirectorate) p.directorate = this.filterDirectorate
       return Object.keys(p).length > 0 ? p : undefined
     },
 
@@ -1381,6 +1393,7 @@ export default {
       this.filterInstituteCurriculum = null
       this.filterInstituteSubject = null
       this.filterSubject = null
+      this.filterDirectorate = null
       this.filterOrganization = null
       this.selectedExamId = null
       this.selectedExamObj = null

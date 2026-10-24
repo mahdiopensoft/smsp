@@ -177,20 +177,21 @@
         </template>
       </v-row>
 
-      <!-- الصف 2: الهيكلية الجغرافية والمؤسسية + اختيار الاختبار المعتمد (4 أعمدة متساوية cols="3") -->
+      <!-- الصف 2: الهيكلية الجغرافية والمؤسسية + اختيار الاختبار المعتمد (أعمدة ديناميكية) -->
       <v-row dense class="align-center mb-1 mt-1">
         <!-- 1. المحافظة -->
         <auto-list
           v-model="filterGovernorate"
           name="Governorate"
           placeholder="المحافظة *"
-          cols="3"
+          :cols="isSchoolFilter ? 3 : 4"
           :add="false"
           @update:model-value="onGovernorateChange"
         />
 
-        <!-- 2. المديرية -->
+        <!-- 2. المديرية (تظهر للمدارس فقط) -->
         <auto-list
+          v-if="isSchoolFilter"
           v-model="filterDirectorate"
           name="Directorate"
           :param="filterGovernorate"
@@ -207,8 +208,9 @@
           name="Organization"
           :param="orgParam"
           :placeholder="orgPlaceholder"
-          cols="3"
+          :cols="isSchoolFilter ? 3 : 4"
           :add="false"
+          :disabled="isOrgDisabled"
           @update:model-value="onOrganizationChange"
         />
 
@@ -218,7 +220,7 @@
           name="Exam"
           :param="examFilterParam"
           placeholder="الاختبار والمادة الدراسية *"
-          cols="3"
+          :cols="isSchoolFilter ? 3 : 4"
           :add="false"
           @update:model-value="onExamChange"
         />
@@ -928,11 +930,28 @@ export default {
       return Object.keys(p).length > 0 ? p : undefined
     })
 
+    const isSchoolFilter = computed(() => {
+      return !filterInstitutionType.value || filterInstitutionType.value === 'all' || filterInstitutionType.value === 'school'
+    })
+
+    const isOrgDisabled = computed(() => {
+      if (isSchoolFilter.value) {
+        return !filterGovernorate.value || !filterDirectorate.value
+      }
+      return !filterGovernorate.value
+    })
+
     const orgPlaceholder = computed(() => {
-      const lbl = filterInstitutionType.value === 'university'
-        ? 'المركز الامتحاني (الكلية / الجامعة)'
-        : (filterInstitutionType.value === 'institute' ? 'المركز الامتحاني (المعهد / المركز)' : 'المركز الامتحاني (المدرسة)')
-      return filterDirectorate.value ? `${lbl} (التابعة للمديرية)` : (filterGovernorate.value ? `${lbl} (التابعة للمحافظة)` : lbl)
+      const typeLabel = filterInstitutionType.value === 'university'
+        ? 'الكلية / الجامعة'
+        : (filterInstitutionType.value === 'institute' ? 'المعهد / المركز' : 'المدرسة')
+      if (isSchoolFilter.value) {
+        if (!filterGovernorate.value) return 'اختر المحافظة أولاً...'
+        if (!filterDirectorate.value) return 'اختر المديرية أولاً...'
+        return `${typeLabel} (التابعة للمديرية)`
+      }
+      if (!filterGovernorate.value) return 'اختر المحافظة أولاً...'
+      return `${typeLabel} (التابعة للمحافظة)`
     })
 
     const onInstitutionTypeChange = () => {
@@ -947,6 +966,8 @@ export default {
       filterInstituteEducationSystem.value = null
       filterInstituteSpecialization.value = null
       filterInstituteSubject.value = null
+      filterGovernorate.value = null
+      filterDirectorate.value = null
       filterOrganization.value = null
       selectedExamId.value = null
       generateEnvelopeBarcode()
@@ -1012,9 +1033,11 @@ export default {
       const p = {}
       if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
         p.institution_type = filterInstitutionType.value
+      } else {
+        p.institution_type = 'school'
       }
       if (filterGovernorate.value) p.governorate = filterGovernorate.value
-      if (filterDirectorate.value) p.directorate = filterDirectorate.value
+      if (isSchoolFilter.value && filterDirectorate.value) p.directorate = filterDirectorate.value
       return Object.keys(p).length > 0 ? p : undefined
     })
 
@@ -1412,6 +1435,8 @@ export default {
       filterInstituteSubject,
       subjectFilterParam,
       instituteSpecParam,
+      isSchoolFilter,
+      isOrgDisabled,
       orgPlaceholder,
       onInstitutionTypeChange,
       onStageChange,

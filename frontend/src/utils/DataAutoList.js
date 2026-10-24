@@ -129,40 +129,36 @@ export default function dataList(param) {
       label: "المحافظة",
       icon: "map-marker",
       method: async () => {
-        if (!param) {
-          const res = await shared.getData({ path: "api/common/governorate/all/" });
-          if (Array.isArray(res)) return res;
-          if (res?.data && Array.isArray(res.data)) return res.data;
-          if (res?.results && Array.isArray(res.results)) return res.results;
-          return [];
-        }
-        const res = await shared.getData({
-          path: "api/common/governorate/filter/",
-          filters: [{ field: "fk_country", value: param }],
-        });
-        if (Array.isArray(res)) return res;
-        if (res?.data && Array.isArray(res.data)) return res.data;
-        if (res?.results && Array.isArray(res.results)) return res.results;
-        return [];
+        const res = await shared.getData({ path: "api/academic/organizations/governorates/" });
+        let list = [];
+        if (Array.isArray(res)) list = res;
+        else if (res?.data && Array.isArray(res.data)) list = res.data;
+        else if (res?.results && Array.isArray(res.results)) list = res.results;
+        return list.map((item) => ({
+          ...item,
+          name: item.name_ar || item.name || "",
+          name_ar: item.name_ar || item.name || "",
+        }));
       },
-      title: "name",
+      title: "name_ar",
       value: "id",
     },
     GovernorateByCountry: {
       label: "المحافظة",
       icon: "map-marker",
       method: async () => {
-        if (!param) return [];
-        const res = await shared.getData({
-          path: "api/common/governorate/filter/",
-          filters: [{ field: "fk_country", value: param }],
-        });
-        if (Array.isArray(res)) return res;
-        if (res?.data && Array.isArray(res.data)) return res.data;
-        if (res?.results && Array.isArray(res.results)) return res.results;
-        return [];
+        const res = await shared.getData({ path: "api/academic/organizations/governorates/" });
+        let list = [];
+        if (Array.isArray(res)) list = res;
+        else if (res?.data && Array.isArray(res.data)) list = res.data;
+        else if (res?.results && Array.isArray(res.results)) list = res.results;
+        return list.map((item) => ({
+          ...item,
+          name: item.name_ar || item.name || "",
+          name_ar: item.name_ar || item.name || "",
+        }));
       },
-      title: "name",
+      title: "name_ar",
       value: "id",
     },
     Directorate: {
@@ -174,8 +170,7 @@ export default function dataList(param) {
         const govId = (typeof raw === 'object') ? (raw.governorate || raw.governorate_id || raw.fk_governorate || raw.id) : raw;
         if (!govId || govId === '__none__') return [];
         const res = await shared.getData({
-          path: "api/common/directorate/filter/",
-          filters: [{ field: "fk_governorate", value: govId }],
+          path: `api/academic/organizations/directorates/?governorate=${govId}`,
         });
         let list = [];
         if (Array.isArray(res)) list = res;
@@ -184,11 +179,11 @@ export default function dataList(param) {
 
         return list.map((item) => ({
           ...item,
-          name: item.name || item.name_ar || item.name_en || "",
+          name: item.name_ar || item.name || "",
           name_ar: item.name_ar || item.name || "",
         }));
       },
-      title: "name",
+      title: "name_ar",
       value: "id",
     },
     DirectorateByGovernorate: {
@@ -200,8 +195,7 @@ export default function dataList(param) {
         const govId = (typeof raw === 'object') ? (raw.governorate || raw.governorate_id || raw.fk_governorate || raw.id) : raw;
         if (!govId || govId === '__none__') return [];
         const res = await shared.getData({
-          path: "api/common/directorate/filter/",
-          filters: [{ field: "fk_governorate", value: govId }],
+          path: `api/academic/organizations/directorates/?governorate=${govId}`,
         });
         let list = [];
         if (Array.isArray(res)) list = res;
@@ -210,11 +204,11 @@ export default function dataList(param) {
 
         return list.map((item) => ({
           ...item,
-          name: item.name || item.name_ar || item.name_en || "",
+          name: item.name_ar || item.name || "",
           name_ar: item.name_ar || item.name || "",
         }));
       },
-      title: "name",
+      title: "name_ar",
       value: "id",
     },
     Region: {

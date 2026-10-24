@@ -1502,7 +1502,6 @@ watch(filterExamInstitutionType, (newType) => {
     selectedExam.value = null
     dispatchForm.value.title = ''
   }
-  loadOrganizations()
 })
 
 const selectedTargetLevel = ref('ministry')
@@ -2006,9 +2005,18 @@ async function loadEducationalHierarchy() {
 }
 
 async function loadOrganizations(params = {}) {
+  const instType = selectedExam.value?.institution_type || filterExamInstitutionType.value || 'school'
+  if (instType === 'school' && (!params.governorate || !params.directorate)) {
+    allSchoolsList.value = []
+    return
+  }
+  if ((instType === 'university' || instType === 'institute') && !params.governorate) {
+    allSchoolsList.value = []
+    return
+  }
+
   loadingSchools.value = true
   try {
-    const instType = selectedExam.value?.institution_type || filterExamInstitutionType.value || 'school'
     const queryParts = [`institution_type=${instType}`]
     if (params.governorate) queryParts.push(`governorate=${params.governorate}`)
     if (params.directorate) queryParts.push(`directorate=${params.directorate}`)
@@ -2017,6 +2025,7 @@ async function loadOrganizations(params = {}) {
     allSchoolsList.value = Array.isArray(data) ? data : []
   } catch (err) {
     console.error('Error loading organizations:', err)
+    allSchoolsList.value = []
   } finally {
     loadingSchools.value = false
   }
