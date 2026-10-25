@@ -209,6 +209,7 @@
           <!-- 1. تبويب مكاتب التربية بالمحافظات -->
           <v-window-item value="offices" v-if="institutionType === 'school'">
             <custom-data-table
+              v-model="selectedOfficeMasterRows"
               :items="officeMasterTableItems"
               :getData="getOfficeMasterData"
               :headers="officeMasterHeaders"
@@ -216,14 +217,18 @@
               :hasFilter="false"
               :log="false"
               :restore="false"
-              :numbering="false"
-              :showSelect="false"
+              :numbering="true"
+              :showSelect="true"
               :actions="false"
               :search="false"
               class="bg-transparent"
             >
-              <template v-slot:item-slot="{ item, key }">
-                <template v-if="key === 'office_name'">
+              <template v-slot:item-slot="{ item, key, index }">
+                <template v-if="key === 'numbering'">
+                  <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                </template>
+
+                <template v-else-if="key === 'office_name'">
                   <div class="d-flex align-center py-2">
                     <v-avatar color="primary" variant="tonal" size="36" class="me-3 rounded-lg">
                       <v-icon color="primary" size="20">mdi-office-building-outline</v-icon>
@@ -307,6 +312,7 @@
           <!-- 2. تبويب إدارات التربية بالمديريات -->
           <v-window-item value="directorates" v-if="institutionType === 'school'">
             <custom-data-table
+              v-model="selectedDirectorateMasterRows"
               :items="directorateMasterTableItems"
               :getData="getDirectorateMasterData"
               :headers="directorateMasterHeaders"
@@ -314,21 +320,24 @@
               :hasFilter="false"
               :log="false"
               :restore="false"
-              :numbering="false"
-              :showSelect="false"
+              :numbering="true"
+              :showSelect="true"
               :actions="false"
               :search="false"
               class="bg-transparent"
             >
-              <template v-slot:item-slot="{ item, key }">
-                <template v-if="key === 'name'">
+              <template v-slot:item-slot="{ item, key, index }">
+                <template v-if="key === 'numbering'">
+                  <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                </template>
+
+                <template v-else-if="key === 'name'">
                   <div class="d-flex align-center py-2">
                     <v-avatar color="teal" variant="tonal" size="36" class="me-3 rounded-lg">
                       <v-icon color="teal" size="20">mdi-map-marker-radius-outline</v-icon>
                     </v-avatar>
                     <div>
                       <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name }}</div>
-                      <div class="text-caption text-medium-emphasis">{{ item.office_name }}</div>
                     </div>
                   </div>
                 </template>
@@ -405,6 +414,7 @@
           <!-- 3. تبويب المراكز الامتحانية والمدارس / الجامعات / المعاهد -->
           <v-window-item value="schools">
             <custom-data-table
+              v-model="selectedSchoolMasterRows"
               :items="schoolMasterTableItems"
               :getData="getSchoolMasterData"
               :headers="schoolMasterHeaders"
@@ -412,21 +422,24 @@
               :hasFilter="false"
               :log="false"
               :restore="false"
-              :numbering="false"
-              :showSelect="false"
+              :numbering="true"
+              :showSelect="true"
               :actions="false"
               :search="false"
               class="bg-transparent"
             >
-              <template v-slot:item-slot="{ item, key }">
-                <template v-if="key === 'name'">
+              <template v-slot:item-slot="{ item, key, index }">
+                <template v-if="key === 'numbering'">
+                  <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                </template>
+
+                <template v-else-if="key === 'name'">
                   <div class="d-flex align-center py-2">
                     <v-avatar color="indigo" variant="tonal" size="36" class="me-3 rounded-lg">
                       <v-icon color="indigo" size="20">mdi-school-outline</v-icon>
                     </v-avatar>
                     <div>
                       <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name }}</div>
-                      <div class="text-caption text-medium-emphasis">{{ item.directorate_name }} • {{ item.governorate_name }}</div>
                     </div>
                   </div>
                 </template>
@@ -496,6 +509,7 @@
           <!-- 4. تبويب الاختبارات الأكاديمية -->
           <v-window-item value="exams">
             <custom-data-table
+              v-model="selectedExamMasterRows"
               :items="examMasterTableItems"
               :getData="getExamMasterData"
               :headers="examMasterHeaders"
@@ -503,14 +517,18 @@
               :hasFilter="false"
               :log="false"
               :restore="false"
-              :numbering="false"
-              :showSelect="false"
+              :numbering="true"
+              :showSelect="true"
               :actions="false"
               :search="false"
               class="bg-transparent"
             >
-              <template v-slot:item-slot="{ item, key }">
-                <template v-if="key === 'uniqueCode'">
+              <template v-slot:item-slot="{ item, key, index }">
+                <template v-if="key === 'numbering'">
+                  <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                </template>
+
+                <template v-else-if="key === 'uniqueCode'">
                   <span class="font-mono font-weight-bold text-caption px-2 py-1 rounded bg-grey-lighten-4 border">
                     {{ item.uniqueCode }}
                   </span>
@@ -519,7 +537,7 @@
                 <template v-else-if="key === 'title'">
                   <div class="py-2">
                     <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.title }}</div>
-                    <div class="text-caption text-medium-emphasis">المادة: {{ item.subject_name || 'عام' }} • {{ item.directorate_name }}</div>
+                    <div class="text-caption text-medium-emphasis">المادة: {{ item.subject_name || 'عام' }}</div>
                   </div>
                 </template>
 
@@ -576,6 +594,8 @@
           <!-- 5. تبويب سجل الدفعات المطبوعة العام -->
           <v-window-item value="registry">
             <custom-data-table
+              v-model="selectedBatchMasterRows"
+              item-value="batch_id"
               :items="batchMasterTableItems"
               :getData="getBatchMasterData"
               :headers="registryMasterHeaders"
@@ -583,14 +603,18 @@
               :hasFilter="false"
               :log="false"
               :restore="false"
-              :numbering="false"
-              :showSelect="false"
+              :numbering="true"
+              :showSelect="true"
               :actions="false"
               :search="false"
               class="bg-transparent"
             >
-              <template v-slot:item-slot="{ item, key }">
-                <template v-if="key === 'batch_id'">
+              <template v-slot:item-slot="{ item, key, index }">
+                <template v-if="key === 'numbering'">
+                  <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                </template>
+
+                <template v-else-if="key === 'batch_id'">
                   <span class="font-mono font-weight-bold text-caption text-primary">
                     {{ item.batch_id }}
                   </span>
@@ -1281,15 +1305,20 @@
               :hasFilter="false"
               :log="false"
               :restore="false"
-              :numbering="false"
+              :numbering="true"
               :showSelect="false"
               :actions="false"
               :search="false"
               class="bg-transparent"
             >
-              <template v-slot:item-slot="{ item, key }">
+              <template v-slot:item-slot="{ item, key, index }">
+                <!-- Numbering -->
+                <template v-if="key === 'numbering'">
+                  <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                </template>
+
                 <!-- Select Box -->
-                <template v-if="key === 'select_box'">
+                <template v-else-if="key === 'select_box'">
                   <div class="d-flex justify-center">
                     <v-checkbox-btn
                       :model-value="selectedStudentIds.includes(item.id)"
@@ -1324,9 +1353,6 @@
                     <div>
                       <div class="font-weight-bold text-body-2 text-on-surface">
                         {{ item.student_name || 'طالب بدون اسم' }}
-                      </div>
-                      <div class="text-caption text-medium-emphasis mt-0.5">
-                        {{ item.school_name || selectedExam?.directorate || 'المركز الرئيسي' }}
                       </div>
                     </div>
                   </div>
@@ -1455,15 +1481,19 @@
               :hasFilter="false"
               :log="false"
               :restore="false"
-              :numbering="false"
+              :numbering="true"
               :showSelect="false"
               :actions="false"
               :search="false"
               class="bg-transparent"
             >
-              <template v-slot:item-slot="{ item, key }">
+              <template v-slot:item-slot="{ item, key, index }">
+                <template v-if="key === 'numbering'">
+                  <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                </template>
+
                 <!-- Model Code -->
-                <template v-if="key === 'model_code'">
+                <template v-else-if="key === 'model_code'">
                   <v-chip
                     size="small"
                     :color="getModelChipColor(item.versionCode)"
@@ -1686,15 +1716,19 @@
               :hasFilter="false"
               :log="false"
               :restore="false"
-              :numbering="false"
+              :numbering="true"
               :showSelect="false"
               :actions="false"
               :search="false"
               class="bg-transparent"
             >
-              <template v-slot:item-slot="{ item, key }">
+              <template v-slot:item-slot="{ item, key, index }">
+                <template v-if="key === 'numbering'">
+                  <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                </template>
+
                 <!-- Select Box -->
-                <template v-if="key === 'select_box'">
+                <template v-else-if="key === 'select_box'">
                   <div class="d-flex justify-center">
                     <v-checkbox-btn
                       :model-value="selectedPackageStudentIds.includes(item.id)"
@@ -1965,8 +1999,11 @@
           :log="false"
           :restore="false"
         >
-          <template v-slot:item-slot="{ item, key }">
-            <template v-if="key === 'batch_info'">
+          <template v-slot:item-slot="{ item, key, index }">
+            <template v-if="key === 'numbering'">
+              <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+            </template>
+            <template v-else-if="key === 'batch_info'">
               <div class="d-flex align-center py-2">
                 <v-avatar color="secondary" variant="tonal" size="38" class="me-3 rounded-lg">
                   <v-icon size="20">mdi-folder-printer</v-icon>
@@ -2069,8 +2106,11 @@
               :restore="false"
               :actions="false"
             >
-              <template v-slot:item-slot="{ item, key }">
-                <template v-if="key === 'seat_number'">
+              <template v-slot:item-slot="{ item, key, index }">
+                <template v-if="key === 'numbering'">
+                  <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                </template>
+                <template v-else-if="key === 'seat_number'">
                   <span class="font-weight-bold font-mono">{{ item.seat_number }}</span>
                 </template>
                 <template v-else-if="key === 'model_code'">
@@ -2465,6 +2505,13 @@ const filteredBatchesTable = computed(() => {
   }
   return list
 })
+
+// ── Master Tables Selection State ──
+const selectedOfficeMasterRows = ref([])
+const selectedDirectorateMasterRows = ref([])
+const selectedSchoolMasterRows = ref([])
+const selectedExamMasterRows = ref([])
+const selectedBatchMasterRows = ref([])
 
 // ── Master Tables Reactive State for custom-data-table ──
 const officeMasterTableItems = ref({
