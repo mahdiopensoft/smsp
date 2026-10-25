@@ -393,13 +393,27 @@
               />
             </div>
 
-            <!-- شريط تقدم المعالجة والمسح -->
-            <div v-if="isGrading" class="mt-4 pa-4 rounded-xl bg-blue-lighten-5 border">
-              <div class="d-flex align-center justify-space-between text-caption font-weight-black text-primary mb-2">
-                <span>{{ gradingStatus }}</span>
-                <span class="font-mono">{{ gradingProgress }}%</span>
+            <!-- شريط تقدم المعالجة والمسح المطور -->
+            <div v-if="isGrading" class="mt-4 pa-4 rounded-2xl border summary-glass-box">
+              <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-2">
+                <div class="d-flex align-center gap-2">
+                  <v-progress-circular indeterminate size="20" width="2" color="primary" />
+                  <span class="text-body-2 font-weight-black text-primary">{{ gradingStatus }}</span>
+                </div>
+                <div class="d-flex align-center gap-1 font-mono font-weight-black text-primary">
+                  <span class="text-h6">{{ gradingProgress }}</span>
+                  <span class="text-caption">%</span>
+                </div>
               </div>
-              <v-progress-linear :model-value="gradingProgress" height="8" rounded color="primary" striped />
+              <v-progress-linear
+                :model-value="gradingProgress"
+                height="10"
+                rounded
+                color="primary"
+                bg-color="surface-variant"
+                bg-opacity="0.3"
+                striped
+              />
             </div>
 
             <!-- تنبيه الخطأ إن وجد -->
@@ -418,20 +432,41 @@
           <!-- ── 3. ميزان المطابقة اللحظي للمظروف (Instant Envelope Reconciliation) ── -->
           <div v-if="reconciliationCalculated" class="reconciliation-panel mb-5">
             <!-- حالة 1: مطابق ومكتمل 100% -->
-            <v-alert
+            <v-card
               v-if="reconciliationStatus === 'BALANCED'"
-              type="success"
-              variant="tonal"
-              rounded="2xl"
-              class="pa-4 mb-3 border-success"
+              class="pa-4 mb-3 rounded-2xl border"
+              style="background: rgba(var(--v-theme-success), 0.08); border-color: rgba(var(--v-theme-success), 0.35) !important;"
             >
               <div class="d-flex align-center justify-space-between flex-wrap gap-3">
-                <div>
-                  <div class="text-subtitle-1 font-weight-black mb-1">
-                    المظروف مطابق ومكتمل 100% ({{ actualScannedCount + currentEnvelope.absentCount }} / {{ currentEnvelope.expectedCount }})
-                  </div>
-                  <div class="text-caption font-weight-bold opacity-90">
-                    تم استيفاء كامل أوراق القاعة: {{ actualScannedCount }} ورقة إجابة ممسوحة + {{ currentEnvelope.absentCount }} غياب مسجل رسمي بكشف الحضور والغياب. لا يوجد أي عجز أو فقد في الأوراق.
+                <div class="d-flex align-center gap-3">
+                  <v-avatar color="success" variant="tonal" rounded="xl" size="46">
+                    <v-icon size="26" color="success">mdi-check-decagram-outline</v-icon>
+                  </v-avatar>
+                  <div>
+                    <div class="d-flex align-center gap-2 flex-wrap">
+                      <span class="text-subtitle-1 font-weight-black text-success">
+                        المظروف مطابق ومكتمل 100%
+                      </span>
+                      <v-chip size="small" color="success" variant="flat" class="font-weight-black text-white px-2">
+                        {{ actualScannedCount + currentEnvelope.absentCount }} / {{ currentEnvelope.expectedCount }} ورقة
+                      </v-chip>
+                    </div>
+                    <div class="d-flex align-center gap-2 flex-wrap mt-2 text-caption">
+                      <span class="px-2.5 py-1 rounded-lg border bg-surface font-weight-bold">
+                        سعة القاعة المقيدة: <strong class="font-mono text-primary">{{ currentEnvelope.expectedCount }}</strong> طالب
+                      </span>
+                      <span class="font-weight-bold text-medium-emphasis">=</span>
+                      <span class="px-2.5 py-1 rounded-lg border bg-surface font-weight-bold">
+                        أوراق ممسوحة: <strong class="font-mono text-success">{{ actualScannedCount }}</strong>
+                      </span>
+                      <span class="font-weight-bold text-medium-emphasis">+</span>
+                      <span class="px-2.5 py-1 rounded-lg border bg-surface font-weight-bold">
+                        غياب مسجل: <strong class="font-mono text-error">{{ currentEnvelope.absentCount }}</strong>
+                      </span>
+                    </div>
+                    <p class="text-caption text-medium-emphasis mb-0 mt-1 font-weight-medium">
+                      تم استيفاء كامل أوراق القاعة دون أي فقد. المظروف جاهز للاعتماد والترحيل إلى الكنترول المركزي.
+                    </p>
                   </div>
                 </div>
 
@@ -445,25 +480,50 @@
                   :click="commitEnvelopeToControl"
                 />
               </div>
-            </v-alert>
+            </v-card>
 
             <!-- حالة 2: عجز ونقص في الأوراق (Deficit Alert) -->
-            <v-alert
+            <v-card
               v-else-if="reconciliationStatus === 'DEFICIT'"
-              type="error"
-              variant="tonal"
-              rounded="2xl"
-              class="pa-4 mb-3 border-error"
+              class="pa-4 mb-3 rounded-2xl border"
+              style="background: rgba(var(--v-theme-error), 0.08); border-color: rgba(var(--v-theme-error), 0.35) !important;"
             >
               <div class="d-flex align-center justify-space-between flex-wrap gap-3">
-                <div>
-                  <div class="text-subtitle-1 font-weight-black mb-1">
-                    تنبيه عجز: نقص في أوراق المظروف الامتحاني!
-                  </div>
-                  <div class="text-caption font-weight-bold opacity-90">
-                    سعة القاعة المقيدة: {{ currentEnvelope.expectedCount }} طالباً | الأوراق المسحوبة: {{ actualScannedCount }} + الغياب: {{ currentEnvelope.absentCount }} = {{ actualScannedCount + currentEnvelope.absentCount }} ورقة.
-                    <strong class="text-decoration-underline">يوجد عجز بمقدار ({{ discrepancyAmount }}) ورقة مفقودة!</strong>
-                    يرجى فحص سلة الماسح أو المظروف فوراً قبل الاعتماد.
+                <div class="d-flex align-center gap-3">
+                  <v-avatar color="error" variant="tonal" rounded="xl" size="46">
+                    <v-icon size="26" color="error">mdi-alert-octagon-outline</v-icon>
+                  </v-avatar>
+                  <div>
+                    <div class="d-flex align-center gap-2 flex-wrap">
+                      <span class="text-subtitle-1 font-weight-black text-error">
+                        تنبيه عجز: نقص في أوراق المظروف الامتحاني!
+                      </span>
+                      <v-chip size="small" color="error" variant="flat" class="font-weight-black text-white px-2">
+                        عجز بمقدار ({{ discrepancyAmount }}) ورقة مفقودة
+                      </v-chip>
+                    </div>
+
+                    <!-- أرقام المطابقة المنظمة في شريط أنيق -->
+                    <div class="d-flex align-center gap-2 flex-wrap mt-2 text-caption">
+                      <span class="px-2.5 py-1 rounded-lg border bg-surface font-weight-bold">
+                        سعة القاعة المقيدة: <strong class="font-mono text-primary">{{ currentEnvelope.expectedCount }}</strong> طالب
+                      </span>
+                      <span class="font-weight-bold text-medium-emphasis">=</span>
+                      <span class="px-2.5 py-1 rounded-lg border bg-surface font-weight-bold">
+                        الأوراق المسحوبة: <strong class="font-mono text-success">{{ actualScannedCount }}</strong>
+                      </span>
+                      <span class="font-weight-bold text-medium-emphasis">+</span>
+                      <span class="px-2.5 py-1 rounded-lg border bg-surface font-weight-bold">
+                        الغياب: <strong class="font-mono text-error">{{ currentEnvelope.absentCount }}</strong>
+                      </span>
+                      <span class="text-medium-emphasis ms-1 font-weight-medium">
+                        (المجموع: {{ actualScannedCount + currentEnvelope.absentCount }} من أصل {{ currentEnvelope.expectedCount }})
+                      </span>
+                    </div>
+
+                    <p class="text-caption text-medium-emphasis mb-0 mt-1 font-weight-medium">
+                      يرجى فحص سلة مخرجات الماسح الضوئي أو تفريغ محتويات المظروف فوراً قبل الاعتماد.
+                    </p>
                   </div>
                 </div>
 
@@ -476,24 +536,40 @@
                   :click="openDiscrepancyReport"
                 />
               </div>
-            </v-alert>
+            </v-card>
 
             <!-- حالة 3: فائض وزيادة غير مبررة (Surplus Alert) -->
-            <v-alert
+            <v-card
               v-else-if="reconciliationStatus === 'SURPLUS'"
-              type="warning"
-              variant="tonal"
-              rounded="2xl"
-              class="pa-4 mb-3 border-warning"
+              class="pa-4 mb-3 rounded-2xl border"
+              style="background: rgba(var(--v-theme-warning), 0.08); border-color: rgba(var(--v-theme-warning), 0.35) !important;"
             >
               <div class="d-flex align-center justify-space-between flex-wrap gap-3">
-                <div>
-                  <div class="text-subtitle-1 font-weight-black mb-1">
-                    تنبيه فائض: تم مسح أوراق إضافية غير مقيدة في المظروف!
-                  </div>
-                  <div class="text-caption font-weight-bold opacity-90">
-                    سعة القاعة: {{ currentEnvelope.expectedCount }} | الممسوح + الغياب: {{ actualScannedCount + currentEnvelope.absentCount }} (فائض بمقدار {{ Math.abs(discrepancyAmount) }} ورقة).
-                    يرجى التأكد من عدم اختلاط أوراق قاعة أخرى في الرزمة.
+                <div class="d-flex align-center gap-3">
+                  <v-avatar color="warning" variant="tonal" rounded="xl" size="46">
+                    <v-icon size="26" color="warning">mdi-alert-circle-outline</v-icon>
+                  </v-avatar>
+                  <div>
+                    <div class="d-flex align-center gap-2 flex-wrap">
+                      <span class="text-subtitle-1 font-weight-black text-warning">
+                        تنبيه فائض: أوراق إضافية غير مقيدة في المظروف!
+                      </span>
+                      <v-chip size="small" color="warning" variant="flat" class="font-weight-black text-white px-2">
+                        فائض بمقدار {{ Math.abs(discrepancyAmount) }} ورقة
+                      </v-chip>
+                    </div>
+                    <div class="d-flex align-center gap-2 flex-wrap mt-2 text-caption">
+                      <span class="px-2.5 py-1 rounded-lg border bg-surface font-weight-bold">
+                        سعة القاعة: <strong class="font-mono text-primary">{{ currentEnvelope.expectedCount }}</strong>
+                      </span>
+                      <span class="font-weight-bold text-medium-emphasis">|</span>
+                      <span class="px-2.5 py-1 rounded-lg border bg-surface font-weight-bold">
+                        الممسوح + الغياب: <strong class="font-mono text-warning">{{ actualScannedCount + currentEnvelope.absentCount }}</strong>
+                      </span>
+                    </div>
+                    <p class="text-caption text-medium-emphasis mb-0 mt-1 font-weight-medium">
+                      يرجى التأكد من عدم اختلاط أوراق قاعة أخرى في الرزمة الحالية.
+                    </p>
                   </div>
                 </div>
 
@@ -506,59 +582,90 @@
                   :click="openDiscrepancyReport"
                 />
               </div>
-            </v-alert>
+            </v-card>
           </div>
 
           <!-- ── د. نتائج الفرز والتدقيق لأوراق المظروف (Batch Triaging Table) ── -->
           <div v-if="batchResult && batchResult.sheets && batchResult.sheets.length > 0" class="mb-5">
-            <!-- عدادات الفرز الثلاثية -->
-            <v-row dense class="mb-3">
+            <!-- عدادات الفرز الثلاثية المطورة بتصميم شفاف أنيق -->
+            <v-row dense class="mb-4">
+              <!-- كارت 1: أوراق سليمة ومعتمدة -->
               <v-col cols="12" sm="4">
-                <v-card variant="tonal" color="success" class="pa-3 rounded-xl border text-center">
-                  <div class="text-caption font-weight-bold">أوراق سليمة ومعتمدة</div>
-                  <div class="text-h5 font-weight-black font-mono">
-                    {{ successfulSheets.length }}
+                <div class="pa-4 rounded-2xl border summary-glass-box d-flex align-center justify-space-between h-100">
+                  <div>
+                    <div class="text-caption text-medium-emphasis font-weight-bold mb-1">أوراق سليمة ومعتمدة</div>
+                    <div class="text-h4 font-weight-black font-mono text-success">
+                      {{ successfulSheets.length }}
+                    </div>
+                    <div class="text-caption text-medium-emphasis mt-1">رُصدت درجاتها آلياً بنجاح</div>
                   </div>
-                  <div class="text-caption opacity-80">رُصدت درجاتها آلياً بنجاح</div>
-                </v-card>
+                  <v-avatar color="success" variant="tonal" rounded="xl" size="48">
+                    <v-icon size="26" color="success">mdi-check-decagram-outline</v-icon>
+                  </v-avatar>
+                </div>
               </v-col>
 
+              <!-- كارت 2: أوراق تحتاج تدقيق بشري -->
               <v-col cols="12" sm="4">
-                <v-card variant="tonal" color="warning" class="pa-3 rounded-xl border text-center">
-                  <div class="text-caption font-weight-bold">أوراق تحتاج تدقيق بشري</div>
-                  <div class="text-h5 font-weight-black font-mono">
-                    {{ needsReviewSheets.length }}
+                <div class="pa-4 rounded-2xl border summary-glass-box d-flex align-center justify-space-between h-100">
+                  <div>
+                    <div class="text-caption text-medium-emphasis font-weight-bold mb-1">أوراق تحتاج تدقيق بشري</div>
+                    <div class="text-h4 font-weight-black font-mono" :class="needsReviewSheets.length > 0 ? 'text-warning' : 'text-medium-emphasis'">
+                      {{ needsReviewSheets.length }}
+                    </div>
+                    <div class="text-caption text-medium-emphasis mt-1">تظليل مزدوج أو التباس مقعد</div>
                   </div>
-                  <div class="text-caption opacity-80">تظليل مزدوج أو التباس مقعد</div>
-                </v-card>
+                  <v-avatar :color="needsReviewSheets.length > 0 ? 'warning' : 'grey'" variant="tonal" rounded="xl" size="48">
+                    <v-icon size="26" :color="needsReviewSheets.length > 0 ? 'warning' : 'grey'">mdi-account-alert-outline</v-icon>
+                  </v-avatar>
+                </div>
               </v-col>
 
+              <!-- كارت 3: متوسط درجات القاعة -->
               <v-col cols="12" sm="4">
-                <v-card variant="tonal" color="primary" class="pa-3 rounded-xl border text-center">
-                  <div class="text-caption font-weight-bold">متوسط درجات القاعة</div>
-                  <div class="text-h5 font-weight-black font-mono">
-                    {{ currentEnvelopeAvgScore }}%
+                <div class="pa-4 rounded-2xl border summary-glass-box d-flex align-center justify-space-between h-100">
+                  <div>
+                    <div class="text-caption text-medium-emphasis font-weight-bold mb-1">متوسط درجات القاعة</div>
+                    <div class="text-h4 font-weight-black font-mono text-primary">
+                      {{ currentEnvelopeAvgScore }}%
+                    </div>
+                    <div class="text-caption text-medium-emphasis mt-1">المعدل العام للقاعة الحالية</div>
                   </div>
-                  <div class="text-caption opacity-80">المعدل العام للقاعة</div>
-                </v-card>
+                  <v-avatar color="primary" variant="tonal" rounded="xl" size="48">
+                    <v-icon size="26" color="primary">mdi-chart-line</v-icon>
+                  </v-avatar>
+                </div>
               </v-col>
             </v-row>
 
             <!-- جدول أوراق المظروف المصححة فعلياً -->
             <v-card class="rounded-2xl border-0 shadow-sm overflow-hidden bg-surface">
-              <div class="pa-3 border-b d-flex align-center justify-space-between flex-wrap gap-2" style="background: rgba(var(--v-theme-surface-variant), 0.25);">
-                <div class="d-flex align-center gap-2">
-                  <v-icon color="primary" size="20">mdi-format-list-numbered-rtl</v-icon>
-                  <span class="text-subtitle-2 font-weight-black text-on-surface">
-                    الأوراق الممسوحة فعلياً في مظروف: {{ currentEnvelope.envelopeCode }} ({{ displaySheets.length }} ورقة)
-                  </span>
+              <div class="pa-4 border-b d-flex align-center justify-space-between flex-wrap gap-3" style="background: rgba(var(--v-theme-surface-variant), 0.18);">
+                <div class="d-flex align-center gap-3">
+                  <v-avatar color="primary" variant="tonal" rounded="lg" size="38">
+                    <v-icon color="primary" size="20">mdi-format-list-numbered-rtl</v-icon>
+                  </v-avatar>
+                  <div>
+                    <div class="d-flex align-center gap-2 flex-wrap">
+                      <span class="text-subtitle-2 font-weight-black text-on-surface">الأوراق الممسوحة فعلياً بالمظروف:</span>
+                      <span class="font-mono font-weight-black text-primary px-2.5 py-0.5 rounded-lg border bg-surface">
+                        {{ currentEnvelope.envelopeCode }}
+                      </span>
+                      <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold font-mono">
+                        {{ displaySheets.length }} ورقة
+                      </v-chip>
+                    </div>
+                    <p class="text-caption text-medium-emphasis mb-0 mt-0.5">
+                      نتائج الفحص والتحليل الضوئي الفعلي لأوراق إجابات الطلاب
+                    </p>
+                  </div>
                 </div>
 
-                <div class="d-flex align-center gap-2">
+                <div class="d-flex align-center gap-2 flex-wrap">
                   <custom-btn
                     v-if="needsReviewSheets.length > 0"
                     type="show"
-                    :label="`مراجعة وتدقيق ${needsReviewSheets.length} ورقة`"
+                    :label="`مراجعة وتدقيق (${needsReviewSheets.length}) ورقة`"
                     color="warning"
                     variant="tonal"
                     class="font-weight-bold"
