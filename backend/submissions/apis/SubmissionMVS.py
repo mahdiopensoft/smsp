@@ -630,8 +630,8 @@ class SubmissionMVS(AllMVS):
                     needs_review_count += 1
                 total_scores += score_val
 
-                img_url = sub_record.original_image.url if (sub_record.original_image and hasattr(sub_record.original_image, 'url')) else ""
-                annotated_url = sub_record.aligned_image.url if (sub_record.aligned_image and hasattr(sub_record.aligned_image, 'url')) else ""
+                img_url = request.build_absolute_uri(sub_record.original_image.url) if (sub_record.original_image and hasattr(sub_record.original_image, 'url')) else ""
+                annotated_url = request.build_absolute_uri(sub_record.aligned_image.url) if (sub_record.aligned_image and hasattr(sub_record.aligned_image, 'url')) else ""
                 processed_sheets.append({
                     "id": sub_record.id,
                     "filename": img_name,

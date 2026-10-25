@@ -751,75 +751,104 @@
     <!-- ── نافذة معاينة ورقة الطالب (Sheet Details Dialog) ── -->
     <v-dialog v-model="previewDialog" max-width="1100px" scrollable>
       <v-card v-if="activePreviewSheet" class="rounded-2xl overflow-hidden main-card bg-surface">
-        <!-- Dialog Header (Unified with OMRHumanReviewView) -->
+        <!-- Dialog Header -->
         <v-card-title class="d-flex align-center justify-space-between bg-surface px-6 py-4 border-b">
           <div class="d-flex align-center gap-3">
-            <v-avatar color="primary" variant="tonal" rounded="lg" size="44">
-              <v-icon size="24" color="primary">mdi-file-document-check-outline</v-icon>
+            <v-avatar color="primary" variant="tonal" rounded="lg" size="42">
+              <v-icon size="22" color="primary">mdi-file-document-check-outline</v-icon>
             </v-avatar>
             <div>
-              <div class="d-flex align-center gap-2 flex-wrap">
-                <h3 class="text-h6 font-weight-black text-on-surface mb-0">
-                  {{ activePreviewSheet.student_name || 'طالب بدون اسم' }}
-                </h3>
-                <v-chip size="small" color="primary" variant="flat" class="font-weight-bold px-2 unified-table-chip">
-                  رقم الجلوس: {{ activePreviewSheet.seat_number || '—' }}
-                </v-chip>
-                <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold px-2 unified-table-chip">
-                  النموذج: {{ activePreviewSheet.model_code || 'A' }}
-                </v-chip>
-                <v-chip
-                  v-if="activePreviewSheet.status === 'NEEDS_REVIEW' || activePreviewSheet.needs_review"
-                  size="small"
-                  color="warning"
-                  variant="flat"
-                  class="font-weight-bold px-2 text-white unified-table-chip"
-                >
-                  <v-icon start size="14">mdi-alert-circle</v-icon>
-                  يحتاج تدقيق بشري
-                </v-chip>
-                <v-chip
-                  v-else
-                  size="small"
-                  color="success"
-                  variant="flat"
-                  class="font-weight-bold px-2 text-white unified-table-chip"
-                >
-                  <v-icon start size="14">mdi-check-circle</v-icon>
-                  معتمد وسليم
-                </v-chip>
-              </div>
-              <p class="text-caption text-medium-emphasis mb-0 mt-1">
+              <h3 class="text-h6 font-weight-black text-on-surface mb-0">
+                {{ activePreviewSheet.student_name || 'ورقة طالب بدون اسم' }}
+              </h3>
+              <p class="text-caption text-medium-emphasis mb-0 mt-0.5">
                 تفاصيل ورقة إجابة الطالب وتدقيق دوائر الماسح الضوئي (OMR)
               </p>
             </div>
           </div>
-
-          <div class="d-flex align-center gap-3">
-            <div class="d-flex align-center gap-2 px-3 py-1.5 rounded-xl border bg-surface">
-              <v-icon size="18" color="success">mdi-check-decagram</v-icon>
-              <div class="d-flex flex-column text-end">
-                <span class="text-caption text-medium-emphasis" style="font-size: 10px; line-height: 1;">الدرجة الكلية</span>
-                <span class="font-weight-black text-body-1 text-success" style="line-height: 1.2;">
-                  {{ activePreviewSheet.score != null ? activePreviewSheet.score : 0 }} 
-                  <span class="text-caption text-medium-emphasis">/ {{ activePreviewSheet.max_score || 40 }}</span>
-                </span>
-              </div>
-            </div>
-
-            <div class="d-flex align-center gap-2 px-3 py-1.5 rounded-xl border bg-surface">
-              <v-icon size="18" :color="activePreviewSheet.percentage >= 50 ? 'success' : 'error'">mdi-percent</v-icon>
-              <div class="d-flex flex-column text-end">
-                <span class="text-caption text-medium-emphasis" style="font-size: 10px; line-height: 1;">النسبة</span>
-                <span class="font-weight-black text-body-1" :class="activePreviewSheet.percentage >= 50 ? 'text-success' : 'text-error'" style="line-height: 1.2;">
-                  {{ activePreviewSheet.percentage }}%
-                </span>
-              </div>
-            </div>
-
-            <v-btn icon="mdi-close" variant="text" size="small" color="medium-emphasis" @click="previewDialog = false" />
-          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" color="medium-emphasis" @click="previewDialog = false" />
         </v-card-title>
+
+        <!-- ── المربعات الشفافة المنظمة (بيانات الطالب، الاعتماد، الدرجة، إحصاء الأسئلة) ── -->
+        <div class="px-6 pt-4 pb-2 bg-surface">
+          <v-row dense>
+            <!-- مربع 1: رقم الجلوس والنموذج -->
+            <v-col cols="12" sm="6" md="3">
+              <div class="summary-glass-box pa-3 rounded-xl border d-flex flex-column justify-center h-100">
+                <div class="text-caption text-medium-emphasis mb-1">بيانات الطالب والنموذج</div>
+                <div class="d-flex align-center justify-space-between">
+                  <span class="font-mono font-weight-black text-body-2 text-primary">
+                    رقم الجلوس: {{ activePreviewSheet.seat_number || '—' }}
+                  </span>
+                  <v-chip size="x-small" color="indigo" variant="tonal" class="font-weight-bold">
+                    النموذج {{ activePreviewSheet.model_code || 'A' }}
+                  </v-chip>
+                </div>
+              </div>
+            </v-col>
+
+            <!-- مربع 2: حالة الفحص والدوائر -->
+            <v-col cols="12" sm="6" md="3">
+              <div class="summary-glass-box pa-3 rounded-xl border d-flex flex-column justify-center h-100">
+                <div class="d-flex align-center justify-space-between mb-1">
+                  <span class="text-caption text-medium-emphasis">حالة الفحص والاعتماد</span>
+                  <v-chip
+                    size="x-small"
+                    :color="activePreviewSheet.status === 'NEEDS_REVIEW' || activePreviewSheet.needs_review ? 'warning' : 'success'"
+                    variant="flat"
+                    class="font-weight-bold text-white px-2"
+                  >
+                    {{ activePreviewSheet.status === 'NEEDS_REVIEW' || activePreviewSheet.needs_review ? 'يحتاج تدقيق' : 'معتمد وسليم' }}
+                  </v-chip>
+                </div>
+                <div class="text-caption font-weight-bold" :class="activePreviewSheet.score > 0 ? 'text-success' : 'text-medium-emphasis'">
+                  <v-icon start size="14">{{ activePreviewSheet.score > 0 ? 'mdi-check-circle' : 'mdi-circle-outline' }}</v-icon>
+                  {{ activePreviewSheet.score > 0 ? 'تم رصد إجابات مظللة' : 'جميع الدوائر فارغة (لم تُظلل)' }}
+                </div>
+              </div>
+            </v-col>
+
+            <!-- مربع 3: الدرجة الكلية والنسبة -->
+            <v-col cols="12" sm="6" md="3">
+              <div class="summary-glass-box pa-3 rounded-xl border d-flex flex-column justify-center h-100">
+                <div class="text-caption text-medium-emphasis mb-1">الدرجة الكلية والنسبة</div>
+                <div class="d-flex align-center justify-space-between">
+                  <div class="d-flex align-baseline gap-1">
+                    <span class="text-h6 font-weight-black font-mono" :class="activePreviewSheet.score > 0 ? 'text-success' : 'text-medium-emphasis'">
+                      {{ activePreviewSheet.score != null ? activePreviewSheet.score : 0 }}
+                    </span>
+                    <span class="text-caption text-medium-emphasis font-mono">
+                      / {{ activePreviewSheet.max_score || 16 }}
+                    </span>
+                  </div>
+                  <v-chip
+                    size="x-small"
+                    :color="activePreviewSheet.percentage >= 50 ? 'success' : 'grey'"
+                    variant="tonal"
+                    class="font-mono font-weight-bold"
+                  >
+                    {{ activePreviewSheet.percentage }}%
+                  </v-chip>
+                </div>
+              </div>
+            </v-col>
+
+            <!-- مربع 4: تفصيل إحصائيات الأسئلة -->
+            <v-col cols="12" sm="6" md="3">
+              <div class="summary-glass-box pa-3 rounded-xl border d-flex flex-column justify-center h-100">
+                <div class="d-flex align-center justify-space-between mb-1">
+                  <span class="text-caption text-medium-emphasis">إجمالي الأسئلة</span>
+                  <span class="text-caption font-weight-black font-mono">{{ (activePreviewSheet.questions || []).length }} أسئلة</span>
+                </div>
+                <div class="d-flex align-center justify-space-between text-caption font-weight-bold">
+                  <span class="text-success font-mono">صحيحة: {{ previewCounts.correct }}</span>
+                  <span class="text-error font-mono">خاطئة: {{ previewCounts.wrong }}</span>
+                  <span class="text-medium-emphasis font-mono">فارغة: {{ previewCounts.empty }}</span>
+                </div>
+              </div>
+            </v-col>
+          </v-row>
+        </div>
 
         <!-- تبويبات العرض الموحدة (v-tabs) -->
         <v-tabs v-model="previewMode" color="primary" density="comfortable" class="border-b px-4 bg-surface">
@@ -840,35 +869,6 @@
         <v-card-text class="pa-4 bg-surface" style="max-height: 72vh;">
           <!-- ── جدول تفصيل الأسئلة والدوائر بالجدول الموحد (custom-data-table) ── -->
           <div v-if="previewMode === 'questions'">
-            <!-- شريط مؤشرات الدوائر -->
-            <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3">
-              <div class="d-flex align-center gap-2 flex-wrap">
-                <v-chip size="small" variant="tonal" color="primary" class="font-weight-bold">
-                  إجمالي الأسئلة: {{ (activePreviewSheet.questions || []).length }}
-                </v-chip>
-                <v-chip size="small" variant="tonal" color="success" class="font-weight-bold">
-                  صحيحة: {{ previewCounts.correct }}
-                </v-chip>
-                <v-chip size="small" variant="tonal" color="error" class="font-weight-bold">
-                  خاطئة: {{ previewCounts.wrong }}
-                </v-chip>
-                <v-chip size="small" variant="tonal" color="grey" class="font-weight-bold">
-                  فارغة: {{ previewCounts.empty }}
-                </v-chip>
-              </div>
-
-              <v-chip
-                size="small"
-                :color="activePreviewSheet.score > 0 ? 'success' : 'grey-darken-1'"
-                variant="tonal"
-                class="font-weight-bold"
-              >
-                <v-icon start size="16">mdi-check-decagram-outline</v-icon>
-                حالة الدوائر: {{ activePreviewSheet.score > 0 ? 'تم رصد إجابات مظللة' : 'جميع الدوائر فارغة (لم تُظلل)' }}
-              </v-chip>
-            </div>
-
-            <!-- الجدول الموحد للأسئلة -->
             <div class="main-card rounded-2xl overflow-hidden mb-2 border">
               <custom-data-table
                 :items="previewQuestionsTableItems"
@@ -1016,11 +1016,24 @@
             </div>
             <template v-else>
               <v-img 
-                :src="activePreviewSheet.annotated_url || activePreviewSheet.image_url" 
+                :src="resolveImageUrl(activePreviewSheet.annotated_url || activePreviewSheet.image_url)" 
                 max-height="600" 
                 contain 
-                class="rounded-xl border" 
-              />
+                class="rounded-xl border bg-grey-lighten-4" 
+              >
+                <template v-slot:placeholder>
+                  <div class="d-flex align-center justify-center fill-height">
+                    <v-progress-circular indeterminate color="primary" />
+                  </div>
+                </template>
+                <template v-slot:error>
+                  <div class="py-8 text-medium-emphasis">
+                    <v-icon size="36" color="warning" class="mb-2">mdi-alert-circle-outline</v-icon>
+                    <div class="text-caption">تعذر تحميل ملف الصورة من المسار:</div>
+                    <div class="text-caption font-mono text-primary mt-1">{{ resolveImageUrl(activePreviewSheet.annotated_url || activePreviewSheet.image_url) }}</div>
+                  </div>
+                </template>
+              </v-img>
               <div class="text-caption text-medium-emphasis mt-3 font-weight-bold">
                 * الحلقات الملونة توضح مواضع كافة الدوائر التي فحصها المحرك بدقة بالذكاء الاصطناعي ومستوى الكثافة الضوئية.
               </div>
@@ -1033,7 +1046,26 @@
               <v-icon size="48" color="medium-emphasis" class="mb-2">mdi-image-off-outline</v-icon>
               <div class="text-subtitle-1 font-weight-bold">لا توجد صورة أصلية متوفرة</div>
             </div>
-            <v-img v-else :src="activePreviewSheet.image_url" max-height="600" contain class="rounded-xl border" />
+            <v-img 
+              v-else 
+              :src="resolveImageUrl(activePreviewSheet.image_url)" 
+              max-height="600" 
+              contain 
+              class="rounded-xl border bg-grey-lighten-4"
+            >
+              <template v-slot:placeholder>
+                <div class="d-flex align-center justify-center fill-height">
+                  <v-progress-circular indeterminate color="primary" />
+                </div>
+              </template>
+              <template v-slot:error>
+                <div class="py-8 text-medium-emphasis">
+                  <v-icon size="36" color="warning" class="mb-2">mdi-alert-circle-outline</v-icon>
+                  <div class="text-caption">تعذر تحميل الصورة الأصلية من المسار:</div>
+                  <div class="text-caption font-mono text-primary mt-1">{{ resolveImageUrl(activePreviewSheet.image_url) }}</div>
+                </div>
+              </template>
+            </v-img>
           </div>
         </v-card-text>
 
@@ -1068,6 +1100,7 @@
 <script>
 import { ref, computed, watch, onMounted, onUnmounted, reactive } from 'vue'
 import { useRoute } from 'vue-router'
+import settings from '../../../settings'
 import api from '@/services/omr/client.js'
 import { submissionsAPI, gradebookAPI } from '@/services/omr/endpoints'
 
@@ -1391,6 +1424,16 @@ export default {
         getPreviewQuestionsData({ page: previewQuestionsPage.value, page_size: previewQuestionsPageSize.value })
       }
     })
+
+    const resolveImageUrl = (path) => {
+      if (!path) return ''
+      if (path.startsWith('data:') || path.startsWith('http://') || path.startsWith('https://') || path.startsWith('blob:')) {
+        return path
+      }
+      const base = (settings?.url || 'http://localhost:5001/').replace(/\/$/, '')
+      const clean = path.startsWith('/') ? path : `/${path}`
+      return `${base}${clean}`
+    }
 
     // Expected Present Sheets (Real count)
     const expectedPresentSheets = computed(() => {
@@ -1914,6 +1957,7 @@ export default {
       previewQuestionsHeaders,
       previewQuestionsTableItems,
       getPreviewQuestionsData,
+      resolveImageUrl,
     }
   },
 }
@@ -1922,6 +1966,18 @@ export default {
 <style scoped>
 .qb-national-control-console {
   direction: rtl;
+}
+
+/* ── Glassmorphic Summary Boxes ────────────────────────────── */
+.summary-glass-box {
+  background: rgba(var(--v-theme-surface-variant), 0.16);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(var(--v-border-color), 0.28) !important;
+  transition: all 0.2s ease;
+}
+.summary-glass-box:hover {
+  background: rgba(var(--v-theme-surface-variant), 0.26);
+  border-color: rgba(var(--v-theme-primary), 0.35) !important;
 }
 
 /* ── KPI Cards ─────────────────────────────────────────────── */
