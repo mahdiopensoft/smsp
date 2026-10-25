@@ -278,48 +278,47 @@
       </div>
     </filter-fields>
 
-          <!-- ── 2. ملقم الماسح الصناعي عالي السرعة (Industrial ADF Feeder Bay) ── -->
+          <!-- ── 2. ملقم تغذية أوراق المظروف من الماسح الضوئي (Scanner Feed Bay) ── -->
           <v-card class="main-card pa-5 rounded-2xl border-0 shadow-sm mb-5">
-            <div class="d-flex align-center justify-space-between flex-wrap gap-3 mb-3">
-              <div class="d-flex align-center gap-2">
-                <v-icon color="success" size="22">mdi-scanner</v-icon>
-                <span class="text-subtitle-1 font-weight-black text-on-surface">
-                  2. تغذية حزمة أوراق المظروف من الماسح الضوئي (High-Speed Scanner Feed)
-                </span>
+            <div class="d-flex align-center justify-space-between flex-wrap gap-3 mb-4">
+              <div class="d-flex align-center gap-3">
+                <v-avatar size="40" color="primary" variant="tonal" class="rounded-xl">
+                  <v-icon size="22" color="primary">mdi-tray-arrow-down</v-icon>
+                </v-avatar>
+                <div>
+                  <h3 class="text-subtitle-1 font-weight-black mb-0">
+                    2. تغذية حزمة أوراق المظروف من الماسح الضوئي
+                  </h3>
+                  <span class="text-caption text-medium-emphasis">
+                    معالجة رزم المظاريف عبر السحب المباشر أو المجلد الساخن المراقب
+                  </span>
+                </div>
               </div>
 
-              <!-- خيارات ربط الماسح والمراقبة -->
+              <!-- خيارات ربط الماسح والمراقبة باستخدام custom-btn -->
               <div class="d-flex align-center gap-2 flex-wrap">
-                <v-btn
-                  :color="hotFolderActive ? 'success' : 'grey-darken-1'"
+                <custom-btn
+                  :color="hotFolderActive ? 'success' : 'grey'"
                   :variant="hotFolderActive ? 'flat' : 'tonal'"
-                  rounded="lg"
-                  size="small"
+                  :label="hotFolderActive ? 'مجلد الماسح متصل ومراقب' : 'ربط مجلد الماسح (Hot-Folder)'"
+                  icon="mdi-folder-sync-outline"
                   class="font-weight-bold"
-                  prepend-icon="mdi-folder-sync"
-                  @click="toggleHotFolder"
-                >
-                  {{ hotFolderActive ? 'مجلد الماسح متصل ومراقب تلقائياً' : 'ربط مجلد الماسح المباشر (Hot-Folder)' }}
-                </v-btn>
+                  :click="toggleHotFolder"
+                />
 
-                <v-btn
-                  color="secondary"
-                  variant="tonal"
-                  rounded="lg"
-                  size="small"
+                <custom-btn
+                  type="imports"
+                  label="استعراض ملفات الماسح"
                   class="font-weight-bold"
-                  prepend-icon="mdi-folder-open-outline"
-                  @click="$refs.fileInput.click()"
-                >
-                  استعراض ملفات الماسح
-                </v-btn>
+                  :click="() => $refs.fileInput.click()"
+                />
               </div>
             </div>
 
-            <!-- مساحة إفلات وتلقيم حزمة أوراق المظروف -->
+            <!-- مساحة إفلات وتلقيم حزمة أوراق المظروف (تصميم النظام الموحد مثل استيراد الأسئلة) -->
             <div
-              class="national-dropzone pa-7 text-center rounded-2xl cursor-pointer"
-              :class="{ 'is-dragging': isDragging, 'has-files': batchFiles.length > 0 }"
+              class="upload-dropzone pa-8 rounded-2xl text-center d-flex flex-column align-center justify-center transition-all cursor-pointer"
+              :class="{ 'is-dragover': isDragging, 'has-file': batchFiles.length > 0 }"
               @dragover.prevent="isDragging = true"
               @dragleave.prevent="isDragging = false"
               @drop.prevent="handleDrop"
@@ -334,79 +333,64 @@
                 @change="handleFileSelect"
               />
 
-              <div v-if="batchFiles.length === 0" class="py-2">
-                <div class="mb-3 mx-auto d-flex align-center justify-center">
-                  <v-avatar size="64" color="primary" variant="tonal" class="rounded-2xl elevation-1">
-                    <v-icon size="36" color="primary">mdi-scanner</v-icon>
-                  </v-avatar>
-                </div>
-                <div class="text-h6 font-weight-black text-on-surface mb-2">
-                  قم بإفلات حزمة أوراق المظروف هنا (ملف PDF متعدد الصفحات أو صور الماسح)
-                </div>
-                <div class="text-body-2 text-medium-emphasis mb-4 mx-auto" style="max-width: 650px;">
-                  الماسحات الصناعية (Kodak / Fujitsu / Canon) تخرج ملف PDF للمظروف بالكامل أو حزمة صور بدقة 300 DPI
-                </div>
-
-                <!-- شارات الصيغ المدعومة من الماسح -->
-                <div class="d-flex align-center justify-center gap-2 flex-wrap mb-4">
-                  <v-chip size="small" variant="tonal" color="primary" prepend-icon="mdi-file-pdf-box" class="font-weight-bold">
-                    ملف PDF مدمج للمظروف
-                  </v-chip>
-                  <v-chip size="small" variant="tonal" color="indigo" prepend-icon="mdi-folder-zip-outline" class="font-weight-bold">
-                    أرشيف مضغوط ZIP
-                  </v-chip>
-                  <v-chip size="small" variant="tonal" color="teal" prepend-icon="mdi-image-multiple-outline" class="font-weight-bold">
-                    حزم صور TIFF / JPG / PNG (300 DPI)
-                  </v-chip>
-                </div>
-
-                <v-btn
-                  color="primary"
-                  variant="flat"
-                  rounded="lg"
-                  size="default"
-                  prepend-icon="mdi-tray-arrow-down"
-                  class="font-weight-black px-6 elevation-1"
-                  @click.stop="$refs.fileInput.click()"
-                >
-                  استعراض واختيار ملفات المظروف
-                </v-btn>
-              </div>
-
-              <div v-else class="text-center py-2">
-                <v-avatar size="56" color="success" variant="tonal" class="mb-3 rounded-2xl elevation-1">
-                  <v-icon size="32" color="success">mdi-file-document-check-outline</v-icon>
+              <template v-if="batchFiles.length === 0">
+                <v-avatar size="72" color="primary" variant="tonal" class="mb-4 rounded-2xl">
+                  <v-icon size="36" color="primary">mdi-cloud-upload-outline</v-icon>
                 </v-avatar>
-                <div class="text-h6 font-weight-black text-success mb-1">
-                  تم تجهيز {{ batchFiles.length }} ورقة/ملف تابعة للمظروف الحالي
+                <h4 class="text-h6 font-weight-black mb-2">اسحب وأفلت حزمة أوراق المظروف هنا</h4>
+                <p class="text-body-2 text-medium-emphasis mb-3">
+                  ملف PDF متعدد الصفحات أو حزمة صور الماسح الضوئي بدقة 300 DPI
+                </p>
+                <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold mb-4">
+                  الصيغ المدعومة: PDF متعدد الصفحات، أرشيف ZIP، أو صور (JPG, PNG, TIFF)
+                </v-chip>
+                <custom-btn
+                  type="imports"
+                  label="استعراض واختيار ملفات المظروف"
+                  class="font-weight-bold px-6"
+                  :click="(e) => { if(e) e.stopPropagation(); $refs.fileInput.click(); }"
+                />
+              </template>
+
+              <template v-else>
+                <v-avatar size="72" color="success" variant="tonal" class="mb-4 rounded-2xl">
+                  <v-icon size="36" color="success">mdi-file-check-outline</v-icon>
+                </v-avatar>
+                <h4 class="text-h6 font-weight-black text-success mb-1">
+                  تم تجهيز {{ batchFiles.length }} ورقة / ملف تابعة للمظروف
+                </h4>
+                <p class="text-caption text-medium-emphasis font-weight-bold mb-4">
+                  الحجم الإجمالي للحزمة: {{ formatTotalSize() }} — المظروف جاهز لبدء المسح والتصحيح
+                </p>
+                <div class="d-flex align-center justify-center gap-3">
+                  <custom-btn
+                    type="del"
+                    label="إلغاء الملفات"
+                    class="font-weight-bold"
+                    :click="(e) => { if(e) e.stopPropagation(); clearFiles(); }"
+                  />
+                  <custom-btn
+                    type="add"
+                    label="إضافة أوراق أخرى"
+                    class="font-weight-bold"
+                    :click="(e) => { if(e) e.stopPropagation(); $refs.fileInput.click(); }"
+                  />
                 </div>
-                <div class="text-caption text-medium-emphasis mb-3">
-                  الحجم الإجمالي للحزمة: {{ formatTotalSize() }} — المظروف جاهز لبدء المسح والتصحيح الضوئي
-                </div>
-                <div class="d-flex justify-center gap-2">
-                  <v-btn size="small" variant="tonal" color="error" class="font-weight-bold" prepend-icon="mdi-trash-can-outline" @click.stop="clearFiles">
-                    إلغاء وتفريغ الحزمة
-                  </v-btn>
-                  <v-btn size="small" variant="tonal" color="primary" class="font-weight-bold" prepend-icon="mdi-plus-box-multiple-outline" @click.stop="$refs.fileInput.click()">
-                    إضافة أوراق أخرى للمظروف
-                  </v-btn>
-                </div>
-              </div>
+              </template>
             </div>
 
-            <!-- زر بدء التصحيح والمسح -->
-            <div v-if="batchFiles.length > 0 && !isGrading" class="mt-4 text-center">
-              <v-btn
+            <!-- زر بدء التصحيح والمسح الموحد -->
+            <div v-if="batchFiles.length > 0 && !isGrading" class="mt-5 text-center">
+              <custom-btn
+                type="ok"
+                :label="`بدء المسح والتصحيح الآلي للمظروف (${batchFiles.length} ورقة) الآن`"
                 color="primary"
-                size="large"
-                rounded="xl"
-                class="px-8 font-weight-black elevation-2"
-                prepend-icon="mdi-cog-play"
+                variant="flat"
+                class="font-weight-black px-8"
+                style="height: 44px; min-width: 280px;"
                 :disabled="!selectedExamId"
-                @click="startBatchGrading"
-              >
-                بدء المسح والتصحيح الآلي للمظروف ({{ batchFiles.length }} ورقة) الآن
-              </v-btn>
+                :click="startBatchGrading"
+              />
             </div>
 
             <!-- شريط تقدم المعالجة والمسح -->
