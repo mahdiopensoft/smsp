@@ -833,14 +833,14 @@
           <v-btn icon="mdi-close" variant="text" size="small" color="medium-emphasis" @click="previewDialog = false" />
         </v-card-title>
 
-        <!-- ── شريط بيانات ورقة الطالب خفيف كشرائح بسيطة ومختصرة ── -->
+        <!-- ── شريط بيانات ورقة الطالب خفيف كشرائح مستطيلة منتظمة (ليست بيضاوية) ── -->
         <div class="d-flex align-center flex-wrap gap-2 px-6 py-2.5 bg-surface border-b">
-          <v-chip size="small" variant="tonal" color="primary" class="font-weight-bold">
+          <v-chip size="small" variant="tonal" color="primary" rounded="md" class="font-weight-bold">
             <v-icon start size="14">mdi-card-account-details-outline</v-icon>
             رقم الجلوس: {{ activePreviewSheet.seat_number || '—' }}
           </v-chip>
 
-          <v-chip size="small" variant="tonal" color="indigo" class="font-weight-bold">
+          <v-chip size="small" variant="tonal" color="indigo" rounded="md" class="font-weight-bold">
             <v-icon start size="14">mdi-file-document-outline</v-icon>
             النموذج: {{ activePreviewSheet.model_code || 'A' }}
           </v-chip>
@@ -848,6 +848,7 @@
           <v-chip
             size="small"
             variant="tonal"
+            rounded="md"
             :color="activePreviewSheet.status === 'NEEDS_REVIEW' || activePreviewSheet.needs_review ? 'warning' : 'success'"
             class="font-weight-bold"
           >
@@ -860,6 +861,7 @@
           <v-chip
             size="small"
             variant="tonal"
+            rounded="md"
             :color="activePreviewSheet.percentage >= 50 ? 'success' : 'primary'"
             class="font-weight-bold"
           >
@@ -867,22 +869,22 @@
             الدرجة: {{ activePreviewSheet.score != null ? activePreviewSheet.score : 0 }} / {{ activePreviewSheet.max_score || 16 }} ({{ activePreviewSheet.percentage }}%)
           </v-chip>
 
-          <v-chip size="small" variant="tonal" color="info" class="font-weight-bold">
+          <v-chip size="small" variant="tonal" color="info" rounded="md" class="font-weight-bold">
             <v-icon start size="14">mdi-format-list-numbered</v-icon>
             الأسئلة: {{ (activePreviewSheet.questions || []).length }}
           </v-chip>
 
-          <v-chip size="small" variant="tonal" color="success" class="font-weight-bold">
+          <v-chip size="small" variant="tonal" color="success" rounded="md" class="font-weight-bold">
             <v-icon start size="14">mdi-check</v-icon>
             صحيحة: {{ previewCounts.correct }}
           </v-chip>
 
-          <v-chip size="small" variant="tonal" color="error" class="font-weight-bold">
+          <v-chip size="small" variant="tonal" color="error" rounded="md" class="font-weight-bold">
             <v-icon start size="14">mdi-close</v-icon>
             خاطئة: {{ previewCounts.wrong }}
           </v-chip>
 
-          <v-chip size="small" variant="tonal" color="grey" class="font-weight-bold">
+          <v-chip size="small" variant="tonal" color="grey" rounded="md" class="font-weight-bold">
             <v-icon start size="14">mdi-circle-outline</v-icon>
             لم يُجب (فارغة): {{ previewCounts.empty }}
           </v-chip>
