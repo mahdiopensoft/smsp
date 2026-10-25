@@ -749,7 +749,7 @@
 
 
     <!-- ── نافذة معاينة ورقة الطالب (Sheet Details Dialog) ── -->
-    <v-dialog v-model="previewDialog" max-width="650px">
+    <v-dialog v-model="previewDialog" max-width="750px">
       <v-card v-if="activePreviewSheet" class="rounded-2xl pa-5">
         <div class="d-flex align-center justify-space-between pb-3 border-b mb-4">
           <div class="d-flex align-center gap-2">
@@ -829,41 +829,68 @@
           <v-img :src="activePreviewSheet.image_url" max-height="450" contain class="rounded-lg" />
         </div>
 
-        <!-- عرض جدول تفصيل الأسئلة والدوائر -->
-        <div v-else-if="previewMode === 'questions'" class="border rounded-xl mb-4 overflow-hidden" style="max-height: 400px; overflow-y: auto;">
-          <v-table density="compact">
-            <thead>
-              <tr style="background: rgba(var(--v-theme-surface-variant), 0.35);">
-                <th class="text-right">السؤال</th>
-                <th class="text-center">إجابة الطالب المكتشفة</th>
-                <th class="text-center">حالة الدائرة</th>
-                <th class="text-center">الإجابة المعتمدة</th>
-                <th class="text-center">الدرجة</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(q, qidx) in (activePreviewSheet.questions || [])" :key="qidx">
-                <td class="font-weight-bold font-mono">س {{ q.question_id || q.q || (qidx + 1) }}</td>
-                <td class="text-center">
-                  <v-chip v-if="q.marked_choice || q.marked" size="x-small" color="primary" class="font-weight-bold font-mono">
-                    {{ q.marked_choice || q.marked }}
+        <!-- عرض جدول تفصيل الأسئلة والدوائر بالجدول الموحد -->
+        <div v-else-if="previewMode === 'questions'" class="main-card rounded-2xl overflow-hidden mb-4 border">
+          <custom-data-table
+            :items="previewQuestionsTableItems"
+            :getData="getPreviewQuestionsData"
+            :headers="previewQuestionsHeaders"
+            :hasFilter="false"
+            :log="false"
+            :restore="false"
+            :numbering="false"
+            :showSelect="false"
+            :actions="false"
+            :search="false"
+            class="bg-transparent"
+          >
+            <template v-slot:item-slot="{ item, key }">
+              <template v-if="key === 'question_id'">
+                <div class="text-center py-1">
+                  <span class="font-weight-black text-body-2 text-primary bg-blue-lighten-5 px-3 py-1 rounded-pill border">
+                    س {{ item.question_id }}
+                  </span>
+                </div>
+              </template>
+              <template v-else-if="key === 'marked_choice'">
+                <div class="text-center">
+                  <v-chip v-if="item.marked_choice" size="small" color="primary" class="font-weight-bold font-mono">
+                    {{ item.marked_choice }}
                   </v-chip>
-                  <span v-else class="text-caption text-grey">فارغ (لم يُظلل)</span>
-                </td>
-                <td class="text-center">
-                  <v-chip v-if="q.marked_choice || q.marked" size="x-small" color="success" variant="tonal">مظللة</v-chip>
-                  <v-chip v-else size="x-small" color="grey" variant="tonal">دائرة فارغة</v-chip>
-                </td>
-                <td class="text-center font-mono font-weight-bold text-success">{{ q.correct_choice || '—' }}</td>
-                <td class="text-center font-mono font-weight-bold">{{ q.score_awarded || q.marks_awarded || 0 }}</td>
-              </tr>
-              <tr v-if="!(activePreviewSheet.questions && activePreviewSheet.questions.length)">
-                <td colspan="5" class="text-center py-4 text-medium-emphasis">
-                  تم فحص الورقة والتحقق من سلامة كافة أبعادها، جميع الأسئلة بدون تظليل.
-                </td>
-              </tr>
-            </tbody>
-          </v-table>
+                  <span v-else class="text-caption text-grey font-weight-medium">فارغ (لم يُظلل)</span>
+                </div>
+              </template>
+              <template v-else-if="key === 'bubble_status'">
+                <div class="text-center">
+                  <v-chip v-if="item.marked_choice" size="small" color="success" variant="tonal" class="font-weight-bold">
+                    <v-icon start size="14">mdi-circle</v-icon>
+                    مظللة
+                  </v-chip>
+                  <v-chip v-else size="small" color="grey" variant="tonal" class="font-weight-bold">
+                    <v-icon start size="14">mdi-circle-outline</v-icon>
+                    دائرة فارغة
+                  </v-chip>
+                </div>
+              </template>
+              <template v-else-if="key === 'correct_choice'">
+                <div class="text-center">
+                  <span class="font-mono font-weight-bold text-success">{{ item.correct_choice }}</span>
+                </div>
+              </template>
+              <template v-else-if="key === 'score'">
+                <div class="text-center">
+                  <v-chip 
+                    size="small" 
+                    :color="item.score > 0 ? 'success' : 'grey-lighten-2'" 
+                    :class="item.score > 0 ? 'text-white font-weight-black font-mono' : 'text-grey-darken-2 font-weight-black font-mono'"
+                    variant="flat"
+                  >
+                    {{ item.score }}
+                  </v-chip>
+                </div>
+              </template>
+            </template>
+          </custom-data-table>
         </div>
 
         <div class="d-flex justify-end gap-2">
@@ -1119,6 +1146,69 @@ export default {
     const previewDialog = ref(false)
     const activePreviewSheet = ref(null)
     const previewMode = ref('annotated')
+
+    const previewQuestionsHeaders = ref([
+      { title: 'السؤال', key: 'question_id', sortable: false, width: '90px', align: 'center' },
+      { title: 'إجابة الطالب المكتشفة', key: 'marked_choice', sortable: false, align: 'center' },
+      { title: 'حالة الدائرة', key: 'bubble_status', sortable: false, width: '130px', align: 'center' },
+      { title: 'الإجابة المعتمدة', key: 'correct_choice', sortable: false, width: '120px', align: 'center' },
+      { title: 'الدرجة', key: 'score', sortable: false, width: '90px', align: 'center' },
+    ])
+
+    const previewQuestionsPage = ref(1)
+    const previewQuestionsPageSize = ref(10)
+    const previewQuestionsTableItems = ref({
+      results: [],
+      count: 0,
+      pagination: {
+        count: 0,
+        total: 0,
+        num_pages: 1,
+        current_page: 1,
+        page_size: 10,
+      },
+    })
+
+    const getPreviewQuestionsData = async (params = {}) => {
+      const p = params?.params || params || {}
+      const page = Number(p.page) || previewQuestionsPage.value || 1
+      const pageSize = Number(p.page_size || p.perPage) || previewQuestionsPageSize.value || 10
+      previewQuestionsPage.value = page
+      previewQuestionsPageSize.value = pageSize
+
+      const rawQuestions = activePreviewSheet.value?.questions || []
+      const all = rawQuestions.map((q, idx) => ({
+        ...q,
+        question_id: q.question_id || q.q || (idx + 1),
+        marked_choice: q.marked_choice || q.marked || null,
+        correct_choice: q.correct_choice || '—',
+        score: q.score_awarded ?? q.marks_awarded ?? 0,
+      }))
+
+      const total = all.length
+      const numPages = Math.ceil(total / pageSize) || 1
+      const validPage = Math.min(Math.max(1, page), numPages)
+      const start = (validPage - 1) * pageSize
+
+      previewQuestionsTableItems.value = {
+        results: all.slice(start, start + pageSize),
+        count: total,
+        pagination: {
+          count: total,
+          total: total,
+          num_pages: numPages,
+          current_page: validPage,
+          page_size: pageSize,
+        },
+      }
+      return previewQuestionsTableItems.value
+    }
+
+    watch(previewMode, (mode) => {
+      if (mode === 'questions') {
+        getPreviewQuestionsData({ page: previewQuestionsPage.value, page_size: previewQuestionsPageSize.value })
+      }
+    })
 
     // Expected Present Sheets (Real count)
     const expectedPresentSheets = computed(() => {
@@ -1534,6 +1624,8 @@ export default {
     const openSheetPreview = (sheet) => {
       activePreviewSheet.value = sheet
       previewMode.value = sheet.annotated_url ? 'annotated' : (sheet.image_url ? 'original' : 'questions')
+      previewQuestionsPage.value = 1
+      getPreviewQuestionsData({ page: 1, page_size: previewQuestionsPageSize.value })
       previewDialog.value = true
     }
 
@@ -1636,6 +1728,9 @@ export default {
       activePreviewSheet,
       previewMode,
       openSheetPreview,
+      previewQuestionsHeaders,
+      previewQuestionsTableItems,
+      getPreviewQuestionsData,
     }
   },
 }
