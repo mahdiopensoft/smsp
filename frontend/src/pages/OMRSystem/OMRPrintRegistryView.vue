@@ -1439,66 +1439,63 @@
               </div>
             </v-expand-transition>
 
-            <!-- السطر الثاني: شريط البحث والتصفية الموحد المدمج -->
+            <!-- السطر الثاني: شريط الفلاتر والبحث الموحد (فلاتر منسدلة أنيقة) -->
             <div class="d-flex align-center justify-space-between flex-wrap gap-2 pt-3">
-              <!-- تصفية النماذج والحالة في مجموعة مدمجة -->
+              <!-- الفلاتر المنسدلة -->
               <div class="d-flex align-center gap-2 flex-wrap">
-                <!-- تصفية النماذج -->
-                <v-btn-toggle
-                  v-model="rosterModelFilter"
-                  mandatory
-                  density="compact"
-                  rounded="xl"
-                  color="primary"
-                  variant="tonal"
-                  class="border"
-                >
-                  <v-btn value="all" size="small" class="font-weight-bold px-3">
-                    كافة النماذج ({{ examDetails.registered_students?.length || 0 }})
-                  </v-btn>
-                  <v-btn value="A" size="small" color="primary" class="font-weight-bold px-2.5">
-                    نموذج A ({{ modelCounts.A }})
-                  </v-btn>
-                  <v-btn value="B" size="small" color="deep-purple" class="font-weight-bold px-2.5">
-                    نموذج B ({{ modelCounts.B }})
-                  </v-btn>
-                  <v-btn value="C" size="small" color="amber-darken-3" class="font-weight-bold px-2.5">
-                    نموذج C ({{ modelCounts.C }})
-                  </v-btn>
-                  <v-btn value="D" size="small" color="teal" class="font-weight-bold px-2.5">
-                    نموذج D ({{ modelCounts.D }})
-                  </v-btn>
-                </v-btn-toggle>
+                <!-- فلتر النموذج كمنسدلة -->
+                <div style="min-width: 190px; max-width: 230px;">
+                  <v-select
+                    v-model="rosterModelFilter"
+                    :items="modelFilterSelectOptions"
+                    item-title="title"
+                    item-value="value"
+                    label="النموذج"
+                    density="compact"
+                    variant="outlined"
+                    rounded="lg"
+                    hide-details
+                    prepend-inner-icon="mdi-layers-outline"
+                  />
+                </div>
 
-                <!-- تصفية حالة الطباعة -->
-                <v-btn-toggle
-                  v-model="rosterPrintFilter"
-                  mandatory
-                  density="compact"
-                  rounded="xl"
-                  color="primary"
-                  variant="tonal"
-                  class="border"
+                <!-- فلتر حالة الطباعة كمنسدلة -->
+                <div style="min-width: 190px; max-width: 230px;">
+                  <v-select
+                    v-model="rosterPrintFilter"
+                    :items="printStatusFilterOptions"
+                    item-title="title"
+                    item-value="value"
+                    label="حالة الطباعة"
+                    density="compact"
+                    variant="outlined"
+                    rounded="lg"
+                    hide-details
+                    prepend-inner-icon="mdi-printer-outline"
+                  />
+                </div>
+
+                <!-- زر تفريغ الفلاتر -->
+                <v-btn
+                  v-if="rosterModelFilter !== 'all' || rosterPrintFilter !== 'all' || rosterSearch"
+                  variant="text"
+                  color="error"
+                  size="small"
+                  class="font-weight-bold"
+                  prepend-icon="mdi-filter-off-outline"
+                  @click="resetRosterFilters"
                 >
-                  <v-btn value="all" size="small" class="font-weight-bold px-3">
-                    الكل
-                  </v-btn>
-                  <v-btn value="unprinted" size="small" color="secondary" class="font-weight-bold px-2.5">
-                    جاهز للطباعة ({{ unprintedCount }})
-                  </v-btn>
-                  <v-btn value="printed" size="small" color="success" class="font-weight-bold px-2.5">
-                    المطبوعة ({{ printedCount }})
-                  </v-btn>
-                </v-btn-toggle>
+                  إلغاء التصفية
+                </v-btn>
               </div>
 
-              <!-- حقل البحث السريع بالاسم أو رقم الجلوس -->
-              <div style="min-width: 250px; max-width: 320px;">
+              <!-- حقل البحث السريع بالاسم أو رقم الجلوس أو السري -->
+              <div style="min-width: 260px; max-width: 340px;">
                 <v-text-field
                   v-model="rosterSearch"
                   density="compact"
                   variant="outlined"
-                  rounded="xl"
+                  rounded="lg"
                   placeholder="بحث بالاسم أو رقم الجلوس أو السري..."
                   prepend-inner-icon="mdi-magnify"
                   hide-details
@@ -1878,37 +1875,27 @@
 
               <!-- حقول التصفية والبحث -->
               <div class="d-flex align-center gap-2 flex-wrap">
-                <v-btn-toggle
-                  v-model="packageModelFilter"
-                  mandatory
-                  density="compact"
-                  rounded="lg"
-                  color="primary"
-                  variant="tonal"
-                  class="border"
-                >
-                  <v-btn value="all" size="small" class="font-weight-bold">
-                    كافة النماذج ({{ examDetails?.registered_students?.length || 0 }})
-                  </v-btn>
-                  <v-btn value="A" size="small" color="primary" class="font-weight-bold">
-                    A ({{ modelCounts.A }})
-                  </v-btn>
-                  <v-btn value="B" size="small" color="deep-purple" class="font-weight-bold">
-                    B ({{ modelCounts.B }})
-                  </v-btn>
-                  <v-btn value="C" size="small" color="amber-darken-3" class="font-weight-bold">
-                    C ({{ modelCounts.C }})
-                  </v-btn>
-                  <v-btn value="D" size="small" color="teal" class="font-weight-bold">
-                    D ({{ modelCounts.D }})
-                  </v-btn>
-                </v-btn-toggle>
+                <div style="min-width: 190px; max-width: 230px;">
+                  <v-select
+                    v-model="packageModelFilter"
+                    :items="modelFilterSelectOptions"
+                    item-title="title"
+                    item-value="value"
+                    label="النموذج"
+                    density="compact"
+                    variant="outlined"
+                    rounded="lg"
+                    hide-details
+                    prepend-inner-icon="mdi-layers-outline"
+                  />
+                </div>
 
                 <div style="min-width: 220px; max-width: 280px;">
                   <v-text-field
                     v-model="packageSearch"
                     density="compact"
                     variant="outlined"
+                    rounded="lg"
                     placeholder="بحث برقم الجلوس أو اسم الطالب..."
                     prepend-inner-icon="mdi-magnify"
                     hide-details
@@ -3621,15 +3608,40 @@ const versionCodeOptions = computed(() => {
 })
 
 const modelFilterSelectOptions = computed(() => {
-  const total = examDetails.value?.registered_students?.length || 0
+  const students = examDetails.value?.registered_students || []
+  const total = students.length
   const list = [
-    { title: `كل النماذج (${total})`, value: 'all' }
+    { title: `كافة النماذج (${total})`, value: 'all' }
   ]
-  ;(examDetails.value?.versions || []).forEach(v => {
-    list.push({ title: `النموذج ${v.versionCode}`, value: v.versionCode })
-  })
+  const versions = examDetails.value?.versions || []
+  if (versions.length > 0) {
+    versions.forEach(v => {
+      const count = students.filter(s => (s.model_code || 'A') === v.versionCode).length
+      list.push({ title: `نموذج ${v.versionCode} (${count})`, value: v.versionCode })
+    })
+  } else {
+    ['A', 'B', 'C', 'D'].forEach(code => {
+      const count = students.filter(s => (s.model_code || 'A') === code).length
+      list.push({ title: `نموذج ${code} (${count})`, value: code })
+    })
+  }
   return list
 })
+
+const printStatusFilterOptions = computed(() => {
+  const students = examDetails.value?.registered_students || []
+  return [
+    { title: `كافة الحالات (${students.length})`, value: 'all' },
+    { title: `جاهز للطباعة (${unprintedCount.value})`, value: 'unprinted' },
+    { title: `المطبوعة (${printedCount.value})`, value: 'printed' },
+  ]
+})
+
+const resetRosterFilters = () => {
+  rosterModelFilter.value = 'all'
+  rosterPrintFilter.value = 'all'
+  rosterSearch.value = ''
+}
 
 const questionsModelSelectOptions = computed(() => {
   if (!examDetails.value?.versions?.length) return []
