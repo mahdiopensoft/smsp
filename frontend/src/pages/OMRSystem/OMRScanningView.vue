@@ -833,85 +833,69 @@
           <v-btn icon="mdi-close" variant="text" size="small" color="medium-emphasis" @click="previewDialog = false" />
         </v-card-title>
 
-        <!-- ── المربعات الشفافة المنظمة (بيانات الطالب، الاعتماد، الدرجة، إحصاء الأسئلة) ── -->
-        <div class="px-6 pt-4 pb-2 bg-surface">
-          <v-row dense>
-            <!-- مربع 1: رقم الجلوس والنموذج -->
-            <v-col cols="12" sm="6" md="3">
-              <div class="summary-glass-box pa-3 rounded-xl border d-flex flex-column justify-center h-100">
-                <div class="text-caption text-medium-emphasis mb-1">بيانات الطالب والنموذج</div>
-                <div class="d-flex align-center justify-space-between">
-                  <span class="font-mono font-weight-black text-body-2 text-primary">
-                    رقم الجلوس: {{ activePreviewSheet.seat_number || '—' }}
-                  </span>
-                  <v-chip size="x-small" color="indigo" variant="tonal" class="font-weight-bold">
-                    النموذج {{ activePreviewSheet.model_code || 'A' }}
-                  </v-chip>
-                </div>
-              </div>
-            </v-col>
+        <!-- ── شريط بيانات ورقة الطالب خفيف كشرائح بسيطة (Chips عادية بدون مربعات) ── -->
+        <div class="d-flex align-center flex-wrap gap-2 px-6 py-2.5 bg-surface border-b">
+          <v-chip size="small" variant="tonal" color="primary" class="font-weight-bold">
+            <v-icon start size="14">mdi-card-account-details-outline</v-icon>
+            رقم الجلوس: {{ activePreviewSheet.seat_number || '—' }}
+          </v-chip>
 
-            <!-- مربع 2: حالة الفحص والدوائر -->
-            <v-col cols="12" sm="6" md="3">
-              <div class="summary-glass-box pa-3 rounded-xl border d-flex flex-column justify-center h-100">
-                <div class="d-flex align-center justify-space-between mb-1">
-                  <span class="text-caption text-medium-emphasis">حالة الفحص والاعتماد</span>
-                  <v-chip
-                    size="x-small"
-                    :color="activePreviewSheet.status === 'NEEDS_REVIEW' || activePreviewSheet.needs_review ? 'warning' : 'success'"
-                    variant="flat"
-                    class="font-weight-bold text-white px-2"
-                  >
-                    {{ activePreviewSheet.status === 'NEEDS_REVIEW' || activePreviewSheet.needs_review ? 'يحتاج تدقيق' : 'معتمد وسليم' }}
-                  </v-chip>
-                </div>
-                <div class="text-caption font-weight-bold" :class="activePreviewSheet.score > 0 ? 'text-success' : 'text-medium-emphasis'">
-                  <v-icon start size="14">{{ activePreviewSheet.score > 0 ? 'mdi-check-circle' : 'mdi-circle-outline' }}</v-icon>
-                  {{ activePreviewSheet.score > 0 ? 'تم رصد إجابات مظللة' : 'جميع الدوائر فارغة (لم تُظلل)' }}
-                </div>
-              </div>
-            </v-col>
+          <v-chip size="small" variant="tonal" color="indigo" class="font-weight-bold">
+            <v-icon start size="14">mdi-file-document-outline</v-icon>
+            النموذج: {{ activePreviewSheet.model_code || 'A' }}
+          </v-chip>
 
-            <!-- مربع 3: الدرجة الكلية والنسبة -->
-            <v-col cols="12" sm="6" md="3">
-              <div class="summary-glass-box pa-3 rounded-xl border d-flex flex-column justify-center h-100">
-                <div class="text-caption text-medium-emphasis mb-1">الدرجة الكلية والنسبة</div>
-                <div class="d-flex align-center justify-space-between">
-                  <div class="d-flex align-baseline gap-1">
-                    <span class="text-h6 font-weight-black font-mono" :class="activePreviewSheet.score > 0 ? 'text-success' : 'text-medium-emphasis'">
-                      {{ activePreviewSheet.score != null ? activePreviewSheet.score : 0 }}
-                    </span>
-                    <span class="text-caption text-medium-emphasis font-mono">
-                      / {{ activePreviewSheet.max_score || 16 }}
-                    </span>
-                  </div>
-                  <v-chip
-                    size="x-small"
-                    :color="activePreviewSheet.percentage >= 50 ? 'success' : 'grey'"
-                    variant="tonal"
-                    class="font-mono font-weight-bold"
-                  >
-                    {{ activePreviewSheet.percentage }}%
-                  </v-chip>
-                </div>
-              </div>
-            </v-col>
+          <v-chip
+            size="small"
+            variant="tonal"
+            :color="activePreviewSheet.status === 'NEEDS_REVIEW' || activePreviewSheet.needs_review ? 'warning' : 'success'"
+            class="font-weight-bold"
+          >
+            <v-icon start size="14">
+              {{ activePreviewSheet.status === 'NEEDS_REVIEW' || activePreviewSheet.needs_review ? 'mdi-alert-circle-outline' : 'mdi-check-circle-outline' }}
+            </v-icon>
+            {{ activePreviewSheet.status === 'NEEDS_REVIEW' || activePreviewSheet.needs_review ? 'يحتاج تدقيق' : 'معتمد وسليم' }}
+          </v-chip>
 
-            <!-- مربع 4: تفصيل إحصائيات الأسئلة -->
-            <v-col cols="12" sm="6" md="3">
-              <div class="summary-glass-box pa-3 rounded-xl border d-flex flex-column justify-center h-100">
-                <div class="d-flex align-center justify-space-between mb-1">
-                  <span class="text-caption text-medium-emphasis">إجمالي الأسئلة</span>
-                  <span class="text-caption font-weight-black font-mono">{{ (activePreviewSheet.questions || []).length }} أسئلة</span>
-                </div>
-                <div class="d-flex align-center justify-space-between text-caption font-weight-bold">
-                  <span class="text-success font-mono">صحيحة: {{ previewCounts.correct }}</span>
-                  <span class="text-error font-mono">خاطئة: {{ previewCounts.wrong }}</span>
-                  <span class="text-medium-emphasis font-mono">فارغة: {{ previewCounts.empty }}</span>
-                </div>
-              </div>
-            </v-col>
-          </v-row>
+          <v-chip
+            size="small"
+            variant="tonal"
+            :color="activePreviewSheet.score > 0 ? 'success' : 'grey'"
+            class="font-weight-bold"
+          >
+            <v-icon start size="14">{{ activePreviewSheet.score > 0 ? 'mdi-circle-slice-8' : 'mdi-circle-outline' }}</v-icon>
+            {{ activePreviewSheet.score > 0 ? 'تم رصد إجابات مظللة' : 'جميع الدوائر فارغة (لم تُظلل)' }}
+          </v-chip>
+
+          <v-chip
+            size="small"
+            variant="tonal"
+            :color="activePreviewSheet.percentage >= 50 ? 'success' : 'primary'"
+            class="font-weight-bold"
+          >
+            <v-icon start size="14">mdi-counter</v-icon>
+            الدرجة: {{ activePreviewSheet.score != null ? activePreviewSheet.score : 0 }} / {{ activePreviewSheet.max_score || 16 }} ({{ activePreviewSheet.percentage }}%)
+          </v-chip>
+
+          <v-chip size="small" variant="tonal" color="info" class="font-weight-bold">
+            <v-icon start size="14">mdi-format-list-numbered</v-icon>
+            إجمالي الأسئلة: {{ (activePreviewSheet.questions || []).length }}
+          </v-chip>
+
+          <v-chip size="small" variant="tonal" color="success" class="font-weight-bold">
+            <v-icon start size="14">mdi-check</v-icon>
+            صحيحة: {{ previewCounts.correct }}
+          </v-chip>
+
+          <v-chip size="small" variant="tonal" color="error" class="font-weight-bold">
+            <v-icon start size="14">mdi-close</v-icon>
+            خاطئة: {{ previewCounts.wrong }}
+          </v-chip>
+
+          <v-chip size="small" variant="tonal" color="grey" class="font-weight-bold">
+            <v-icon start size="14">mdi-circle-outline</v-icon>
+            فارغة: {{ previewCounts.empty }}
+          </v-chip>
         </div>
 
         <!-- تبويبات العرض الموحدة (v-tabs) -->
