@@ -341,6 +341,7 @@ class ExamGradebookMVS(ViewSet):
         تجميع إحصائيات الرصد والكنترول حسب مكاتب التربية والتعليم بالمحافظات (المستوى 30 الحقيقي).
         """
         search = request.query_params.get('search', '').strip()
+        subj_filter = request.query_params.get('subject') or request.query_params.get('subject_id')
 
         offices = CoreOrg.objects.filter(company_level=30, is_deleted=False).order_by('branch_no', 'id')
         if search:
@@ -359,8 +360,15 @@ class ExamGradebookMVS(ViewSet):
                 Q(student_profile__directorate__name_ar__in=clean_dir_names) |
                 Q(student_profile__directorate__name_ar__in=dir_names)
             )
+            if subj_filter and subj_filter != 'all':
+                if str(subj_filter).isdigit():
+                    regs = regs.filter(examVersion__exam__subject_id=int(subj_filter))
+                else:
+                    regs = regs.filter(Q(examVersion__exam__subject__name_ar__icontains=subj_filter) | Q(examVersion__exam__subject__name_en__icontains=subj_filter))
+
             tot = regs.count()
             exams_cnt = regs.values('examVersion__exam_id').distinct().count()
+            subjs = [s for s in regs.values_list('examVersion__exam__subject__name_ar', flat=True).distinct() if s]
             comp = Submission.objects.filter(
                 is_deleted=False, 
                 status=Submission.Status.COMPLETED, 
@@ -376,6 +384,8 @@ class ExamGradebookMVS(ViewSet):
                 "directorates_count": child_dirs.count(),
                 "schools_count": child_schools.count(),
                 "exams_count": exams_cnt,
+                "subjects": subjs,
+                "subject_name": subjs[0] if len(subjs) == 1 else (", ".join(subjs[:2]) + ("..." if len(subjs) > 2 else "") if subjs else "—"),
                 "total_students": tot,
                 "completed_count": comp,
                 "absent_count": max(0, tot - comp),
@@ -398,6 +408,7 @@ class ExamGradebookMVS(ViewSet):
         """
         search = request.query_params.get('search', '').strip()
         office_id = request.query_params.get('office_id') or request.query_params.get('office')
+        subj_filter = request.query_params.get('subject') or request.query_params.get('subject_id')
 
         dirs_qs = CoreOrg.objects.filter(company_level=40, is_deleted=False)
         if office_id:
@@ -416,8 +427,15 @@ class ExamGradebookMVS(ViewSet):
                 Q(student_profile__directorate__name_ar__icontains=clean_dir_name) |
                 Q(student_profile__directorate__name_ar__icontains=d.name_ar)
             )
+            if subj_filter and subj_filter != 'all':
+                if str(subj_filter).isdigit():
+                    regs = regs.filter(examVersion__exam__subject_id=int(subj_filter))
+                else:
+                    regs = regs.filter(Q(examVersion__exam__subject__name_ar__icontains=subj_filter) | Q(examVersion__exam__subject__name_en__icontains=subj_filter))
+
             tot = regs.count()
             exams_cnt = regs.values('examVersion__exam_id').distinct().count()
+            subjs = [s for s in regs.values_list('examVersion__exam__subject__name_ar', flat=True).distinct() if s]
             comp = Submission.objects.filter(
                 is_deleted=False, 
                 status=Submission.Status.COMPLETED, 
@@ -435,6 +453,8 @@ class ExamGradebookMVS(ViewSet):
                 "governorate_name": parent_office.name_ar.replace('مكتب التربية والتعليم - ', '') if parent_office else "—",
                 "schools_count": child_schools.count(),
                 "exams_count": exams_cnt,
+                "subjects": subjs,
+                "subject_name": subjs[0] if len(subjs) == 1 else (", ".join(subjs[:2]) + ("..." if len(subjs) > 2 else "") if subjs else "—"),
                 "total_students": tot,
                 "completed_count": comp,
                 "absent_count": max(0, tot - comp),
@@ -459,12 +479,19 @@ class ExamGradebookMVS(ViewSet):
         office_id = request.query_params.get('office_id') or request.query_params.get('office')
         directorate_id = request.query_params.get('directorate_id') or request.query_params.get('directorate')
         institution_type = request.query_params.get('institution_type')
+        subj_filter = request.query_params.get('subject') or request.query_params.get('subject_id')
 
         regs_qs = StudentExamRegistration.objects.filter(
             is_deleted=False, 
             examVersion__exam__is_deleted=False,
             student_profile__organization__isnull=False
         )
+        if subj_filter and subj_filter != 'all':
+            if str(subj_filter).isdigit():
+                regs_qs = regs_qs.filter(examVersion__exam__subject_id=int(subj_filter))
+            else:
+                regs_qs = regs_qs.filter(Q(examVersion__exam__subject__name_ar__icontains=subj_filter) | Q(examVersion__exam__subject__name_en__icontains=subj_filter))
+
         if search:
             regs_qs = regs_qs.filter(
                 Q(student_profile__organization__name_ar__icontains=search) |
@@ -571,6 +598,64 @@ class ExamGradebookMVS(ViewSet):
             if not dir_name:
                 dir_name, gov_name = student_geo_map.get(org_id, ("—", "—"))
 
+            # تفاصيل المواد والاختبارات التابعة للمدرسة ونماذجها المقيدة للطلاب
+            school_regs = regs_qs.filter(student_profile__organization_id=org_id).select_related(
+                'examVersion', 'examVersion__exam', 'examVersion__exam__subject'
+            )
+            school_subjs = [sb for sb in school_regs.values_list('examVersion__exam__subject__name_ar', flat=True).distinct() if sb]
+
+            exam_groups = {}
+            for reg in school_regs:
+                ev = reg.examVersion
+                ex = ev.exam if ev else None
+                if not ex:
+                    continue
+                eid = ex.id
+                if eid not in exam_groups:
+                    sub_name = ex.subject.name_ar if ex.subject else "عام"
+                    exam_groups[eid] = {
+                        "id": eid,
+                        "title": ex.title,
+                        "code": ex.uniqueCode,
+                        "subject": sub_name,
+                        "models_mode": getattr(ex, 'models_mode', 'uniform'),
+                        "versions_dict": {},
+                        "students_count": 0,
+                    }
+                v_code = ev.versionCode or "A"
+                exam_groups[eid]["versions_dict"][v_code] = exam_groups[eid]["versions_dict"].get(v_code, 0) + 1
+                exam_groups[eid]["students_count"] += 1
+
+            formatted_exams = []
+            for eid, edata in exam_groups.items():
+                v_list = [
+                    {"code": code, "students_count": count}
+                    for code, count in sorted(edata["versions_dict"].items())
+                ]
+                v_parts = []
+                for code, count in sorted(edata["versions_dict"].items()):
+                    if count == 1:
+                        c_str = "طالب واحد"
+                    elif count == 2:
+                        c_str = "طالبان"
+                    elif 3 <= count <= 10:
+                        c_str = f"{count} طلاب"
+                    else:
+                        c_str = f"{count} طالب"
+                    v_parts.append(f"نموذج {code} ({c_str})")
+                versions_summary = "، ".join(v_parts) if v_parts else "كافة النماذج"
+
+                formatted_exams.append({
+                    "id": eid,
+                    "title": edata["title"],
+                    "code": edata["code"],
+                    "subject": edata["subject"],
+                    "models_mode": edata["models_mode"],
+                    "students_count": edata["students_count"],
+                    "versions": v_list,
+                    "versions_summary": versions_summary,
+                })
+
             results.append({
                 "id": org_id,
                 "name": name,
@@ -578,7 +663,11 @@ class ExamGradebookMVS(ViewSet):
                 "directorate_name": dir_name or "—",
                 "governorate_name": gov_name or "—",
                 "total_students": tot,
-                "exams_count": s['exams_count'],
+                "exams_count": len(formatted_exams),
+                "subjects": school_subjs,
+                "subject_name": school_subjs[0] if len(school_subjs) == 1 else (", ".join(school_subjs[:2]) + ("..." if len(school_subjs) > 2 else "") if school_subjs else "—"),
+                "primary_subject": school_subjs[0] if school_subjs else "—",
+                "exams": formatted_exams,
                 "completed_count": comp,
                 "absent_count": max(0, tot - comp),
                 "completion_rate": round((comp / max(1, tot)) * 100, 1) if tot > 0 else 0.0,
@@ -593,6 +682,26 @@ class ExamGradebookMVS(ViewSet):
             "count": len(results),
             "results": results
         })
+
+    @action(detail=False, methods=['get'], url_path='subjects')
+    def available_subjects(self, request):
+        """
+        قائمة المواد الدراسية المعتمدة بالاختبارات المصدرة لفلترة شاشات الطباعة والرصد.
+        """
+        from exams.models.Exam import Exam
+        subjects_qs = Exam.objects.filter(is_deleted=False, subject__isnull=False).values(
+            'subject_id', 'subject__name_ar', 'subject__name_en'
+        ).distinct()
+        results = [
+            {
+                "id": s['subject_id'],
+                "name": s['subject__name_ar'] or s['subject__name_en'],
+                "name_ar": s['subject__name_ar'] or '',
+                "name_en": s['subject__name_en'] or ''
+            }
+            for s in subjects_qs if (s['subject__name_ar'] or s['subject__name_en'])
+        ]
+        return Response({"success": True, "results": results})
 
     def retrieve(self, request, pk=None):
         """

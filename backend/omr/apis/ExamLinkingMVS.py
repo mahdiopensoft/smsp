@@ -50,10 +50,20 @@ class ExamLinkingMVS(ViewSet):
                 (Q(subject__name_ar__in=school_subj_names) if school_subj_names else Q())
             )
 
-        # فلترة الاختبارات حسب المركز الامتحاني / المدرسة
-        school_id = request.query_params.get('school_id') or request.query_params.get('school')
+        # فلترة الاختبارات حسب المركز الامتحاني / المدرسة والمحافظة والمديرية والمادة
+        school_id = request.query_params.get('school_id') or request.query_params.get('school') or request.query_params.get('organization')
         directorate_id = request.query_params.get('directorate_id') or request.query_params.get('directorate')
-        office_id = request.query_params.get('office_id') or request.query_params.get('office')
+        office_id = request.query_params.get('office_id') or request.query_params.get('office') or request.query_params.get('governorate') or request.query_params.get('governorate_id')
+        subj_filter = request.query_params.get('subject') or request.query_params.get('subject_id')
+
+        if subj_filter and subj_filter != 'all':
+            if str(subj_filter).isdigit():
+                qs = qs.filter(subject_id=int(subj_filter))
+            else:
+                qs = qs.filter(Q(subject__name_ar__icontains=subj_filter) | Q(subject__name_en__icontains=subj_filter))
+
+        filtered_dir_name = None
+        filtered_sch_name = None
 
         if school_id and school_id != 'all':
             matched_school_names = []
@@ -70,6 +80,9 @@ class ExamLinkingMVS(ViewSet):
                     pass
             else:
                 matched_school_names.append(str(school_id).strip())
+
+            if matched_school_names:
+                filtered_sch_name = matched_school_names[0]
 
             exam_ids_for_school = StudentExamRegistration.objects.filter(
                 is_deleted=False
@@ -88,10 +101,12 @@ class ExamLinkingMVS(ViewSet):
                 if core_dir:
                     clean_name = core_dir.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip()
                     dir_names.extend([core_dir.name_ar, clean_name])
+                    filtered_dir_name = clean_name
                     child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization=core_dir.id, is_deleted=False)
                     child_school_names = list(child_schools.values_list('name_ar', flat=True))
             else:
-                dir_names.append(str(directorate_id).strip())
+                filtered_dir_name = str(directorate_id).replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip()
+                dir_names.append(filtered_dir_name)
 
             dir_exam_ids = StudentExamRegistration.objects.filter(is_deleted=False).filter(
                 Q(student_profile__directorate__name_ar__in=dir_names) |
@@ -179,12 +194,60 @@ class ExamLinkingMVS(ViewSet):
         exams = list(qs[:100])
         exam_ids = [e.id for e in exams]
 
-        # ── Batch fetch versions + question counts (2 queries total, not N*M) ──
+        # ── خريطة الهيكل الإداري والمؤسسي المعتمد CoreOrg (محافظات ومديريات ومدارس) ──
+        core_schools = CoreOrg.objects.filter(company_level=50, is_deleted=False).select_related(
+            'fk_parent_organization', 'fk_parent_organization__fk_parent_organization'
+        )
+        core_map = {}
+        for cs in core_schools:
+            d_name = cs.fk_parent_organization.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip() if cs.fk_parent_organization else ''
+            g_name = cs.fk_parent_organization.fk_parent_organization.name_ar.replace('مكتب التربية والتعليم - ', '').strip() if (cs.fk_parent_organization and cs.fk_parent_organization.fk_parent_organization) else ''
+            if 'امانه' in g_name.replace('أ', 'ا').lower() or 'أمانة' in g_name:
+                g_name = 'أمانة العاصمة'
+            core_map[cs.name_ar.strip()] = {'directorate': d_name, 'governorate': g_name}
+
+        # ── Batch fetch scopes & regional assignments ──
+        scopes_by_exam = {}
+        try:
+            from exams.models.ExamTargetScope import ExamTargetScope
+            for ts in ExamTargetScope.objects.filter(exam_id__in=exam_ids, is_deleted=False).select_related('governorate', 'directorate', 'organization'):
+                eid = ts.exam_id
+                if eid not in scopes_by_exam:
+                    scopes_by_exam[eid] = {'governorates': set(), 'directorates': set(), 'schools': set()}
+                if ts.governorate:
+                    g = ts.governorate.name_ar.replace('مكتب التربية والتعليم - ', '').strip()
+                    if 'امانه' in g.replace('أ', 'ا').lower() or 'أمانة' in g: g = 'أمانة العاصمة'
+                    scopes_by_exam[eid]['governorates'].add(g)
+                if ts.directorate:
+                    scopes_by_exam[eid]['directorates'].add(ts.directorate.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip())
+                if ts.organization:
+                    scopes_by_exam[eid]['schools'].add(ts.organization.name_ar.strip())
+        except Exception:
+            pass
+
+        assignments_by_exam = {}
+        try:
+            from exams.models.ExamModelRegionAssignment import ExamModelRegionAssignment
+            for mra in ExamModelRegionAssignment.objects.filter(exam_id__in=exam_ids, is_deleted=False).select_related('governorate', 'directorate', 'organization'):
+                eid = mra.exam_id
+                if eid not in assignments_by_exam:
+                    assignments_by_exam[eid] = {}
+                gidx = mra.model_group_index or 0
+                if gidx not in assignments_by_exam[eid]:
+                    assignments_by_exam[eid][gidx] = []
+                r_name = mra.directorate.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip() if mra.directorate else (mra.organization.name_ar.strip() if mra.organization else (mra.governorate.name_ar.replace('مكتب التربية والتعليم - ', '').strip() if mra.governorate else ''))
+                if r_name and r_name not in assignments_by_exam[eid][gidx]:
+                    assignments_by_exam[eid][gidx].append(r_name)
+        except Exception:
+            pass
+
+        # ── Batch fetch versions + question counts + model groups ──
         versions_by_exam = {}
+        groups_by_exam = {}
         try:
             all_versions = list(ExamVersion.objects.filter(
                 exam_id__in=exam_ids, is_deleted=False
-            ).values('id', 'exam_id', 'versionCode').order_by('exam_id', 'versionCode'))
+            ).values('id', 'exam_id', 'versionCode', 'model_group_index', 'difficulty_profile', 'difficulty_distribution').order_by('exam_id', 'model_group_index', 'versionCode'))
 
             version_ids = [v['id'] for v in all_versions]
             q_counts = dict(
@@ -195,11 +258,30 @@ class ExamLinkingMVS(ViewSet):
             )
             for v in all_versions:
                 v['q_count'] = q_counts.get(v['id'], 0)
-                versions_by_exam.setdefault(v['exam_id'], []).append(v)
+                eid = v['exam_id']
+                versions_by_exam.setdefault(eid, []).append(v)
+
+                # Group tracking
+                gidx = v.get('model_group_index') or 0
+                if eid not in groups_by_exam:
+                    groups_by_exam[eid] = {}
+                if gidx not in groups_by_exam[eid]:
+                    diff_p = v.get('difficulty_profile') or 'mixed'
+                    diff_ar = 'صعب' if diff_p == 'hard' else ('سهل' if diff_p == 'easy' else ('متوسط' if diff_p == 'medium' else ('متوازن' if diff_p == 'balanced' else 'متنوع')))
+                    groups_by_exam[eid][gidx] = {
+                        'group_index': gidx,
+                        'name': f"مجموعة {gidx + 1}",
+                        'difficulty_profile': diff_p,
+                        'difficulty_profile_ar': diff_ar,
+                        'difficulty_distribution': v.get('difficulty_distribution') or {},
+                        'versions': [],
+                        'target_regions': [],
+                    }
+                groups_by_exam[eid][gidx]['versions'].append(v['versionCode'])
         except Exception:
             pass
 
-        # ── Batch fetch submission counts (1 query, not 4*N) ──
+        # ── Batch fetch submission counts ──
         sub_totals = {}
         sub_completed = {}
         sub_needs_review = {}
@@ -215,13 +297,44 @@ class ExamLinkingMVS(ViewSet):
         except Exception:
             pass
 
-        # ── Batch fetch registered student counts (1 query, not N) ──
+        # ── Batch fetch registered student counts and institutions ──
         reg_counts = {}
+        regs_geo_by_exam = {}
         try:
             for row in (StudentExamRegistration.objects.filter(
                 examVersion__exam_id__in=exam_ids, is_deleted=False
-            ).values('examVersion__exam_id').annotate(c=Count('id'))):
-                reg_counts[row['examVersion__exam_id']] = row['c']
+            ).values(
+                'examVersion__exam_id',
+                'student_profile__organization__name_ar',
+                'student_profile__directorate__name_ar',
+                'student_profile__directorate__fk_governorate__name_ar'
+            )):
+                eid = row['examVersion__exam_id']
+                reg_counts[eid] = reg_counts.get(eid, 0) + 1
+
+                if eid not in regs_geo_by_exam:
+                    regs_geo_by_exam[eid] = {'schools': set(), 'directorates': set(), 'governorates': set()}
+
+                sch = row.get('student_profile__organization__name_ar')
+                if sch:
+                    clean_sch = sch.strip()
+                    regs_geo_by_exam[eid]['schools'].add(clean_sch)
+                    if clean_sch in core_map:
+                        if core_map[clean_sch]['directorate']:
+                            regs_geo_by_exam[eid]['directorates'].add(core_map[clean_sch]['directorate'])
+                        if core_map[clean_sch]['governorate']:
+                            regs_geo_by_exam[eid]['governorates'].add(core_map[clean_sch]['governorate'])
+
+                d_name = row.get('student_profile__directorate__name_ar')
+                if d_name:
+                    regs_geo_by_exam[eid]['directorates'].add(
+                        d_name.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip()
+                    )
+                g_name = row.get('student_profile__directorate__fk_governorate__name_ar')
+                if g_name:
+                    g = g_name.replace('مكتب التربية والتعليم - ', '').strip()
+                    if 'امانه' in g.replace('أ', 'ا').lower() or 'أمانة' in g: g = 'أمانة العاصمة'
+                    regs_geo_by_exam[eid]['governorates'].add(g)
         except Exception:
             pass
 
@@ -229,6 +342,95 @@ class ExamLinkingMVS(ViewSet):
         for exam in exams:
             versions_data = versions_by_exam.get(exam.id, [])
             max_q = max((v['q_count'] for v in versions_data), default=0)
+
+            # ── 1. المحافظة (محددة ومفصولة بدقة) ──
+            govs = set()
+            if exam.governorate:
+                g = exam.governorate.name_ar.replace('مكتب التربية والتعليم - ', '').strip()
+                if 'امانه' in g.replace('أ', 'ا').lower() or 'أمانة' in g: g = 'أمانة العاصمة'
+                govs.add(g)
+            if exam.id in scopes_by_exam:
+                govs.update(scopes_by_exam[exam.id]['governorates'])
+            if exam.id in regs_geo_by_exam:
+                govs.update(regs_geo_by_exam[exam.id]['governorates'])
+            gov_list = sorted([g for g in govs if g])
+            primary_gov = gov_list[0] if gov_list else "كافة المحافظات"
+
+            # ── 2. المديرية (محددة ومفصولة بدقة) ──
+            dirs = set()
+            if exam.directorate:
+                d = exam.directorate.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip()
+                dirs.add(d)
+            if exam.id in scopes_by_exam:
+                dirs.update(scopes_by_exam[exam.id]['directorates'])
+            if exam.id in regs_geo_by_exam:
+                dirs.update(regs_geo_by_exam[exam.id]['directorates'])
+            dir_list = sorted([d for d in dirs if d])
+            primary_dir = "، ".join(dir_list[:2]) if dir_list else "كافة المديريات"
+
+            # ── 3. المركز الامتحاني / المدرسة (محددة ومفصولة بدقة) ──
+            schs = set()
+            if exam.id in scopes_by_exam:
+                schs.update(scopes_by_exam[exam.id]['schools'])
+            if exam.id in regs_geo_by_exam:
+                schs.update(regs_geo_by_exam[exam.id]['schools'])
+            sch_list = sorted([s for s in schs if s])
+
+            # خريطة المدارس والمراكز التابعة لكل مديرية في هذا الاختبار
+            schools_by_dir = {}
+            for s in sch_list:
+                d = core_map.get(s, {}).get('directorate') or primary_dir
+                schools_by_dir.setdefault(d, []).append(s)
+
+            # ── ضبط العرض التلقائي بدقة حسب الفلتر النشط ──
+            if filtered_dir_name and filtered_dir_name in schools_by_dir:
+                active_dir = filtered_dir_name
+                matching_schs = schools_by_dir[filtered_dir_name]
+                active_sch = matching_schs[0]
+                active_sch_count = len(matching_schs)
+                active_sch_list = matching_schs
+            elif filtered_sch_name and filtered_sch_name in sch_list:
+                active_sch = filtered_sch_name
+                active_sch_count = 1
+                active_sch_list = [filtered_sch_name]
+                active_dir = core_map.get(filtered_sch_name, {}).get('directorate') or primary_dir
+            else:
+                active_dir = primary_dir
+                active_sch = sch_list[0] if sch_list else "جميع مراكز المديرية"
+                active_sch_count = len(sch_list)
+                active_sch_list = sch_list
+
+            # ── 4. مجموعات النماذج والتوزيع المناطقي ──
+            model_groups = []
+            is_advanced_mode = getattr(exam, 'models_mode', 'uniform') == 'advanced'
+
+            # مجموعات الصعوبة تظهر فقط إذا كان الاختبار قد تم إنشاؤه بنمط متقدم ومناطقي (Advanced Mode)
+            if is_advanced_mode and groups_by_exam.get(exam.id):
+                exam_groups_dict = groups_by_exam.get(exam.id, {})
+                assign_dict = assignments_by_exam.get(exam.id, {})
+                cfg_groups = []
+                if exam.model_groups_config and isinstance(exam.model_groups_config, list):
+                    cfg_groups = exam.model_groups_config
+
+                for gidx, gdata in sorted(exam_groups_dict.items()):
+                    target_regs = list(assign_dict.get(gidx, []))
+                    if not target_regs and gidx < len(cfg_groups):
+                        cfg = cfg_groups[gidx]
+                        if isinstance(cfg, dict):
+                            if 'regions' in cfg and isinstance(cfg['regions'], list):
+                                target_regs.extend(cfg['regions'])
+                            elif 'directorates' in cfg and isinstance(cfg['directorates'], list):
+                                target_regs.extend(cfg['directorates'])
+
+                    gdata['target_regions'] = target_regs
+                    gdata['target_regions_str'] = "، ".join(target_regs) if target_regs else "كافة المراكز المعتمدة للاختبار"
+                    gdata['models_str'] = "، ".join(gdata['versions'])
+                    model_groups.append(gdata)
+
+            scope_parts = []
+            if primary_gov and primary_gov != "كافة المحافظات": scope_parts.append(primary_gov)
+            if active_dir and active_dir != "كافة المديريات": scope_parts.append(active_dir)
+            scope_geo = " • ".join(scope_parts) if scope_parts else "عام لجميع المحافظات"
 
             results.append({
                 "id": exam.id,
@@ -240,8 +442,25 @@ class ExamLinkingMVS(ViewSet):
                 "subject_name": getattr(exam.subject, 'name_ar', None) if exam.subject else None,
                 "year_id": exam.year_id,
                 "year_name": (exam.year.hijri_year + "هـ - " + exam.year.gregorian_year + "م") if (exam.year and getattr(exam.year, 'hijri_year', None) and getattr(exam.year, 'gregorian_year', None)) else (getattr(exam.year, 'gregorian_year', None) or (str(exam.year) if exam.year else None)),
-                "governorate": exam.governorate.name_ar if exam.governorate else None,
-                "directorate": exam.directorate.name_ar if exam.directorate else None,
+                # الأعمدة الثلاثة المستقلة والمفصولة تماماً (المحدثة ديناميكياً حسب الفلتر)
+                "governorate": primary_gov,
+                "governorates_list": gov_list,
+                "governorates_count": len(gov_list),
+                "directorate": active_dir,
+                "directorates_list": dir_list,
+                "directorates_count": len(dir_list),
+                "school_center": active_sch,
+                "primary_school": active_sch,
+                "schools": active_sch_list,
+                "schools_list": active_sch_list,
+                "schools_count": active_sch_count,
+                "all_schools_count": len(sch_list),
+                "all_schools_list": sch_list,
+                "schools_by_directorate": schools_by_dir,
+                # النماذج والتوزيع المناطقي المتقدم (فقط عند Advanced Mode)
+                "models_mode": getattr(exam, 'models_mode', 'uniform') or 'uniform',
+                "model_groups": model_groups,
+                "scope_geo": scope_geo,
                 "created_at": exam.created_at.strftime("%Y-%m-%d %H:%M") if exam.created_at else "",
                 "versions_count": len(versions_data),
                 "versions": [{"id": v['id'], "versionCode": v['versionCode'], "questions_count": v['q_count']} for v in versions_data],
@@ -260,6 +479,25 @@ class ExamLinkingMVS(ViewSet):
             "count": len(results),
             "results": results
         })
+
+    @action(detail=False, methods=['get'], url_path='subjects')
+    def available_subjects(self, request):
+        """
+        قائمة المواد الدراسية المعتمدة بالاختبارات المصدرة لفلترة شاشات الطباعة والرصد.
+        """
+        subjects_qs = Exam.objects.filter(is_deleted=False, subject__isnull=False).values(
+            'subject_id', 'subject__name_ar', 'subject__name_en'
+        ).distinct()
+        results = [
+            {
+                "id": s['subject_id'],
+                "name": s['subject__name_ar'] or s['subject__name_en'],
+                "name_ar": s['subject__name_ar'] or '',
+                "name_en": s['subject__name_en'] or ''
+            }
+            for s in subjects_qs if (s['subject__name_ar'] or s['subject__name_en'])
+        ]
+        return Response({"success": True, "results": results})
 
     def retrieve(self, request, pk=None):
         """

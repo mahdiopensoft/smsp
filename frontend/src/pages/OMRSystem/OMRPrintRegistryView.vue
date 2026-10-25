@@ -43,7 +43,7 @@
 
         <v-row dense class="align-center">
           <!-- نوع المؤسسة التعليمية كفلتر منسدل أساسي -->
-          <v-col cols="12" sm="6" :md="institutionType === 'school' ? 3 : 4">
+          <v-col cols="12" sm="6" :md="institutionType === 'school' ? 2 : 4">
             <v-select
               v-model="institutionType"
               :items="sectorOptions"
@@ -65,13 +65,13 @@
 
           <!-- التعليم العام (مدرسي) -->
           <template v-if="institutionType === 'school'">
-            <v-col cols="12" sm="6" md="3">
+            <v-col cols="12" sm="6" md="2">
               <v-autocomplete
                 v-model="selectedOfficeId"
                 :items="officesList"
                 item-title="office_name"
                 item-value="id"
-                label="مكتب التربية والتعليم (المحافظة)"
+                label="مكتب التربية (المحافظة)"
                 placeholder="اختر مكتب التربية بالمحافظة..."
                 clearable
                 density="compact"
@@ -83,13 +83,13 @@
               />
             </v-col>
 
-            <v-col cols="12" sm="6" md="3">
+            <v-col cols="12" sm="6" md="2">
               <v-autocomplete
                 v-model="selectedDirectorateId"
                 :items="directoratesOptions"
                 item-title="name"
                 item-value="id"
-                label="إدارة التربية والتعليم (المديرية)"
+                label="إدارة التربية (المديرية)"
                 placeholder="اختر إدارة التربية بالمديرية..."
                 clearable
                 density="compact"
@@ -118,11 +118,29 @@
                 @update:model-value="onSchoolFilterChange"
               />
             </v-col>
+
+            <v-col cols="12" sm="6" md="3">
+              <v-autocomplete
+                v-model="selectedSubjectId"
+                :items="subjectsList"
+                item-title="name"
+                item-value="id"
+                label="المادة الدراسية"
+                placeholder="تصفية حسب المادة..."
+                clearable
+                density="compact"
+                variant="outlined"
+                rounded="lg"
+                hide-details
+                prepend-inner-icon="mdi-book-education-outline"
+                @update:model-value="onSubjectFilterChange"
+              />
+            </v-col>
           </template>
 
           <!-- التعليم الجامعي -->
           <template v-else-if="institutionType === 'university'">
-            <v-col cols="12" sm="6" md="8">
+            <v-col cols="12" sm="6" md="4">
               <v-autocomplete
                 v-model="selectedSchoolId"
                 :items="schoolsOptions"
@@ -139,11 +157,29 @@
                 @update:model-value="onSchoolFilterChange"
               />
             </v-col>
+
+            <v-col cols="12" sm="6" md="4">
+              <v-autocomplete
+                v-model="selectedSubjectId"
+                :items="subjectsList"
+                item-title="name"
+                item-value="id"
+                label="المادة الدراسية"
+                placeholder="تصفية حسب المادة..."
+                clearable
+                density="compact"
+                variant="outlined"
+                rounded="lg"
+                hide-details
+                prepend-inner-icon="mdi-book-education-outline"
+                @update:model-value="onSubjectFilterChange"
+              />
+            </v-col>
           </template>
 
           <!-- التعليم الفني والمهني (معاهد) -->
           <template v-else-if="institutionType === 'institute'">
-            <v-col cols="12" sm="6" md="8">
+            <v-col cols="12" sm="6" md="4">
               <v-autocomplete
                 v-model="selectedSchoolId"
                 :items="schoolsOptions"
@@ -158,6 +194,24 @@
                 hide-details
                 prepend-inner-icon="mdi-tools"
                 @update:model-value="onSchoolFilterChange"
+              />
+            </v-col>
+
+            <v-col cols="12" sm="6" md="4">
+              <v-autocomplete
+                v-model="selectedSubjectId"
+                :items="subjectsList"
+                item-title="name"
+                item-value="id"
+                label="المادة الدراسية"
+                placeholder="تصفية حسب المادة..."
+                clearable
+                density="compact"
+                variant="outlined"
+                rounded="lg"
+                hide-details
+                prepend-inner-icon="mdi-book-education-outline"
+                @update:model-value="onSubjectFilterChange"
               />
             </v-col>
           </template>
@@ -200,7 +254,7 @@
               variant="outlined"
               hide-details
               clearable
-              class="bg-white rounded-lg"
+              class="rounded-lg"
             />
           </div>
         </div>
@@ -488,11 +542,56 @@
                   </div>
                 </template>
 
+                <template v-else-if="key === 'subject_name'">
+                  <div class="d-flex align-center justify-center flex-wrap gap-1 py-1" style="min-width: 150px;">
+                    <template v-if="item.subjects && item.subjects.length > 0">
+                      <v-chip
+                        v-for="(subj, sIdx) in item.subjects.slice(0, 2)"
+                        :key="sIdx"
+                        size="x-small"
+                        color="teal"
+                        variant="tonal"
+                        class="font-weight-bold"
+                      >
+                        {{ subj }}
+                      </v-chip>
+                      <v-tooltip v-if="item.subjects.length > 2" location="top">
+                        <template #activator="{ props: tProps }">
+                          <v-chip
+                            v-bind="tProps"
+                            size="x-small"
+                            color="primary"
+                            variant="flat"
+                            class="font-weight-bold cursor-pointer"
+                            @click.stop="openSchoolExamsDialog(item)"
+                          >
+                            +{{ item.subjects.length - 2 }}
+                          </v-chip>
+                        </template>
+                        <span>{{ item.subjects.slice(2).join('، ') }}</span>
+                      </v-tooltip>
+                    </template>
+                    <span v-else class="text-caption text-medium-emphasis">{{ item.subject_name || '—' }}</span>
+                  </div>
+                </template>
+
                 <template v-else-if="key === 'exams_count'">
                   <div class="d-flex justify-center align-center">
-                    <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
-                      {{ item.exams_count }} اختبار
-                    </v-chip>
+                    <v-tooltip location="top" text="انقر لمعاينة قائمة الاختبارات والمواد لهذا المركز">
+                      <template #activator="{ props }">
+                        <v-chip
+                          v-bind="props"
+                          size="small"
+                          color="primary"
+                          variant="tonal"
+                          class="font-weight-bold cursor-pointer elevation-0"
+                          prepend-icon="mdi-format-list-bulleted"
+                          @click.stop="openSchoolExamsDialog(item)"
+                        >
+                          {{ item.exams_count }} اختبار
+                        </v-chip>
+                      </template>
+                    </v-tooltip>
                   </div>
                 </template>
 
@@ -530,7 +629,20 @@
                 </template>
 
                 <template v-else-if="key === 'actions'">
-                  <div class="d-flex align-center justify-center gap-2">
+                  <div class="d-flex align-center justify-center gap-1">
+                    <v-tooltip location="top" text="استعراض تفاصيل الاختبارات والمواد">
+                      <template #activator="{ props }">
+                        <v-btn
+                          v-bind="props"
+                          size="small"
+                          color="secondary"
+                          variant="tonal"
+                          icon="mdi-format-list-text"
+                          rounded="lg"
+                          @click.stop="openSchoolExamsDialog(item)"
+                        />
+                      </template>
+                    </v-tooltip>
                     <v-btn
                       size="small"
                       color="primary"
@@ -540,7 +652,7 @@
                       prepend-icon="mdi-printer-check"
                       @click="openSchoolStudio(item)"
                     >
-                      سحب وطباعة أوراق الطلاب
+                      سحب وطباعة
                     </v-btn>
                   </div>
                 </template>
@@ -760,6 +872,17 @@
               العودة للهيكل الإداري
             </v-btn>
             <v-btn
+              v-if="selectedExam"
+              variant="text"
+              color="primary"
+              size="small"
+              class="font-weight-bold"
+              :prepend-icon="showHierarchyFilters ? 'mdi-chevron-up' : 'mdi-tune'"
+              @click="showHierarchyFilters = !showHierarchyFilters"
+            >
+              {{ showHierarchyFilters ? 'إخفاء محدد الاختبار' : 'تغيير الاختبار أو المدرسة' }}
+            </v-btn>
+            <v-btn
               variant="tonal"
               color="error"
               size="small"
@@ -785,178 +908,198 @@
           </div>
         </div>
 
-        <v-row dense class="align-center">
-          <!-- نوع المؤسسة التعليمية كفلتر منسدل أساسي -->
-          <v-col cols="12" sm="6" :md="institutionType === 'school' ? 4 : 3" :lg="institutionType === 'school' ? 2 : 3">
-            <v-select
-              v-model="institutionType"
-              :items="sectorOptions"
-              item-title="title"
-              item-value="value"
-              label="نوع المؤسسة التعليمية"
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              hide-details
-              :prepend-inner-icon="institutionType === 'university' ? 'mdi-domain' : (institutionType === 'institute' ? 'mdi-tools' : 'mdi-school')"
-              @update:model-value="onSectorChange"
-            >
-              <template #item="{ props, item }">
-                <v-list-item v-bind="props" :prepend-icon="item.raw?.icon" />
+        <v-expand-transition>
+          <div v-show="!selectedExam || showHierarchyFilters">
+            <v-row dense class="align-center">
+              <!-- نوع المؤسسة التعليمية كفلتر منسدل أساسي -->
+              <v-col cols="12" sm="6" :md="institutionType === 'school' ? 4 : 3" :lg="institutionType === 'school' ? 2 : 3">
+                <v-select
+                  v-model="institutionType"
+                  :items="sectorOptions"
+                  item-title="title"
+                  item-value="value"
+                  label="نوع المؤسسة التعليمية"
+                  density="compact"
+                  variant="outlined"
+                  rounded="lg"
+                  hide-details
+                  :prepend-inner-icon="institutionType === 'university' ? 'mdi-domain' : (institutionType === 'institute' ? 'mdi-tools' : 'mdi-school')"
+                  @update:model-value="onSectorChange"
+                >
+                  <template #item="{ props, item }">
+                    <v-list-item v-bind="props" :prepend-icon="item.raw?.icon" />
+                  </template>
+                </v-select>
+              </v-col>
+
+              <!-- التعليم العام (المدرسي): محافظة -> مديرية -> مدرسة/مركز -->
+              <template v-if="institutionType === 'school'">
+                <v-col cols="12" sm="6" md="4" lg="2">
+                  <v-autocomplete
+                    v-model="selectedOfficeId"
+                    :items="officesList"
+                    item-title="office_name"
+                    item-value="id"
+                    label="مكتب التربية (المحافظة)"
+                    placeholder="كل المحافظات..."
+                    clearable
+                    density="compact"
+                    variant="outlined"
+                    rounded="lg"
+                    hide-details
+                    prepend-inner-icon="mdi-office-building-outline"
+                    @update:model-value="onStudioOfficeChange"
+                  />
+                </v-col>
+
+                <v-col cols="12" sm="6" md="4" lg="2">
+                  <v-autocomplete
+                    v-model="selectedDirectorateId"
+                    :items="directoratesOptions"
+                    item-title="name"
+                    item-value="id"
+                    label="إدارة التربية (المديرية)"
+                    placeholder="كل المديريات..."
+                    clearable
+                    density="compact"
+                    variant="outlined"
+                    rounded="lg"
+                    hide-details
+                    prepend-inner-icon="mdi-map-marker-radius-outline"
+                    @update:model-value="onStudioDirectorateChange"
+                  />
+                </v-col>
+
+                <v-col cols="12" sm="6" md="6" lg="3">
+                  <v-autocomplete
+                    v-model="selectedSchoolId"
+                    :items="schoolsOptions"
+                    item-title="name"
+                    item-value="id"
+                    label="المدرسة / المركز الامتحاني"
+                    placeholder="كل المراكز والمدارس..."
+                    clearable
+                    density="compact"
+                    variant="outlined"
+                    rounded="lg"
+                    hide-details
+                    prepend-inner-icon="mdi-school-outline"
+                    @update:model-value="onStudioSchoolChange"
+                  />
+                </v-col>
               </template>
-            </v-select>
-          </v-col>
 
-          <!-- التعليم العام (المدرسي): محافظة -> مديرية -> مدرسة/مركز -->
-          <template v-if="institutionType === 'school'">
-            <v-col cols="12" sm="6" md="4" lg="2">
-              <v-autocomplete
-                v-model="selectedOfficeId"
-                :items="officesList"
-                item-title="office_name"
-                item-value="id"
-                label="مكتب التربية (المحافظة)"
-                placeholder="كل المحافظات..."
-                clearable
-                density="compact"
-                variant="outlined"
-                rounded="lg"
-                hide-details
-                prepend-inner-icon="mdi-office-building-outline"
-                @update:model-value="onStudioOfficeChange"
-              />
-            </v-col>
-
-            <v-col cols="12" sm="6" md="4" lg="2">
-              <v-autocomplete
-                v-model="selectedDirectorateId"
-                :items="directoratesOptions"
-                item-title="name"
-                item-value="id"
-                label="إدارة التربية (المديرية)"
-                placeholder="كل المديريات..."
-                clearable
-                density="compact"
-                variant="outlined"
-                rounded="lg"
-                hide-details
-                prepend-inner-icon="mdi-map-marker-radius-outline"
-                @update:model-value="onStudioDirectorateChange"
-              />
-            </v-col>
-
-            <v-col cols="12" sm="6" md="6" lg="3">
-              <v-autocomplete
-                v-model="selectedSchoolId"
-                :items="schoolsOptions"
-                item-title="name"
-                item-value="id"
-                label="المدرسة / المركز الامتحاني"
-                placeholder="كل المراكز والمدارس..."
-                clearable
-                density="compact"
-                variant="outlined"
-                rounded="lg"
-                hide-details
-                prepend-inner-icon="mdi-school-outline"
-                @update:model-value="onStudioSchoolChange"
-              />
-            </v-col>
-          </template>
-
-          <!-- التعليم الجامعي: جامعة/كلية -->
-          <template v-else-if="institutionType === 'university'">
-            <v-col cols="12" sm="6" md="4" lg="4">
-              <v-autocomplete
-                v-model="selectedSchoolId"
-                :items="schoolsOptions"
-                item-title="name"
-                item-value="id"
-                label="الجامعة / الكلية"
-                placeholder="اختر الكلية أو الجامعة..."
-                clearable
-                density="compact"
-                variant="outlined"
-                rounded="lg"
-                hide-details
-                prepend-inner-icon="mdi-domain"
-                @update:model-value="onStudioSchoolChange"
-              />
-            </v-col>
-          </template>
-
-          <!-- التعليم الفني (معاهد): معهد/مركز -->
-          <template v-else-if="institutionType === 'institute'">
-            <v-col cols="12" sm="6" md="4" lg="4">
-              <v-autocomplete
-                v-model="selectedSchoolId"
-                :items="schoolsOptions"
-                item-title="name"
-                item-value="id"
-                label="المعهد / المركز الفني"
-                placeholder="اختر المعهد أو المركز..."
-                clearable
-                density="compact"
-                variant="outlined"
-                rounded="lg"
-                hide-details
-                prepend-inner-icon="mdi-tools"
-                @update:model-value="onStudioSchoolChange"
-              />
-            </v-col>
-          </template>
-
-          <!-- منسدلة اختيار الاختبار المعتمد المطلوب طباعة وثائقه -->
-          <v-col cols="12" :sm="institutionType === 'school' ? 6 : 12" :md="institutionType === 'school' ? 6 : 5" :lg="institutionType === 'school' ? 3 : 5">
-            <v-autocomplete
-              v-model="selectedExamId"
-              :items="examsList"
-              item-title="title"
-              item-value="id"
-              label="الاختبار المعتمد المطلوب طباعته"
-              placeholder="ابحث بالاختبار أو المادة أو الرمز..."
-              prepend-inner-icon="mdi-file-document-check-outline"
-              variant="outlined"
-              density="compact"
-              rounded="lg"
-              hide-details
-              clearable
-              :loading="loadingExams"
-              @update:model-value="onExamSelected"
-            >
-              <template #item="{ props: iProps, item }">
-                <v-list-item
-                  v-bind="iProps"
-                  :title="item.raw.title"
-                  :subtitle="`المادة: ${item.raw.subject_name || 'عام'} | النماذج: ${item.raw.versions_count || 1} | الطلاب: ${item.raw.registered_students_count || 0}`"
-                />
+              <!-- التعليم الجامعي: جامعة/كلية -->
+              <template v-else-if="institutionType === 'university'">
+                <v-col cols="12" sm="6" md="4" lg="4">
+                  <v-autocomplete
+                    v-model="selectedSchoolId"
+                    :items="schoolsOptions"
+                    item-title="name"
+                    item-value="id"
+                    label="الجامعة / الكلية"
+                    placeholder="اختر الكلية أو الجامعة..."
+                    clearable
+                    density="compact"
+                    variant="outlined"
+                    rounded="lg"
+                    hide-details
+                    prepend-inner-icon="mdi-domain"
+                    @update:model-value="onStudioSchoolChange"
+                  />
+                </v-col>
               </template>
-            </v-autocomplete>
-          </v-col>
-        </v-row>
+
+              <!-- التعليم الفني (معاهد): معهد/مركز -->
+              <template v-else-if="institutionType === 'institute'">
+                <v-col cols="12" sm="6" md="4" lg="4">
+                  <v-autocomplete
+                    v-model="selectedSchoolId"
+                    :items="schoolsOptions"
+                    item-title="name"
+                    item-value="id"
+                    label="المعهد / المركز الفني"
+                    placeholder="اختر المعهد أو المركز..."
+                    clearable
+                    density="compact"
+                    variant="outlined"
+                    rounded="lg"
+                    hide-details
+                    prepend-inner-icon="mdi-tools"
+                    @update:model-value="onStudioSchoolChange"
+                  />
+                </v-col>
+              </template>
+
+              <!-- منسدلة اختيار الاختبار المعتمد المطلوب طباعة وثائقه -->
+              <v-col cols="12" :sm="institutionType === 'school' ? 6 : 12" :md="institutionType === 'school' ? 6 : 5" :lg="institutionType === 'school' ? 3 : 5">
+                <v-autocomplete
+                  v-model="selectedExamId"
+                  :items="examsList"
+                  item-title="title"
+                  item-value="id"
+                  label="الاختبار المعتمد المطلوب طباعته"
+                  placeholder="ابحث بالاختبار أو المادة أو الرمز..."
+                  prepend-inner-icon="mdi-file-document-check-outline"
+                  variant="outlined"
+                  density="compact"
+                  rounded="lg"
+                  hide-details
+                  clearable
+                  :loading="loadingExams"
+                  @update:model-value="onExamSelected"
+                >
+                  <template #item="{ props: iProps, item }">
+                    <v-list-item
+                      v-bind="iProps"
+                      :title="item.raw.title"
+                      :subtitle="`المادة: ${item.raw.subject_name || 'عام'} | النماذج: ${item.raw.versions_count || 1} | الطلاب: ${item.raw.registered_students_count || 0}`"
+                    />
+                  </template>
+                </v-autocomplete>
+              </v-col>
+            </v-row>
+          </div>
+        </v-expand-transition>
       </div>
 
     <!-- ── بطاقة معلومات الاختبار المحدد (تصميم مؤسسي متوازن وأنيق) ── -->
-    <div v-if="selectedExam" class="active-exam-banner mb-4 pa-4 bg-white border rounded-xl elevation-1">
+    <div v-if="selectedExam" class="main-card mb-4 pa-4 bg-surface border rounded-2xl elevation-2">
       <!-- السطر الأول: العنوان والهوية والاعتماد -->
       <div class="d-flex align-center justify-space-between flex-wrap gap-3 pb-3 border-b">
         <div class="d-flex align-center gap-3">
-          <div class="exam-icon-badge rounded-lg d-flex align-center justify-center border" style="width: 40px; height: 40px; flex-shrink: 0;">
-            <v-icon size="22" color="primary">mdi-file-document-check-outline</v-icon>
-          </div>
+          <v-avatar color="primary" variant="tonal" size="44" class="rounded-xl flex-shrink-0">
+            <v-icon size="24" color="primary">mdi-file-document-check-outline</v-icon>
+          </v-avatar>
           <div>
-            <h2 class="text-subtitle-1 font-weight-black text-on-surface mb-0" style="font-size: 0.98rem !important;">
-              {{ selectedExam.title }}
-            </h2>
+            <div class="d-flex align-center gap-2 flex-wrap">
+              <h2 class="text-subtitle-1 font-weight-black text-on-surface mb-0">
+                {{ selectedExam.title }}
+              </h2>
+              <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold">
+                معتمد للطباعة
+              </v-chip>
+            </div>
+            <div class="d-flex align-center gap-2 text-caption text-medium-emphasis flex-wrap mt-1">
+              <span class="font-mono font-weight-bold text-primary">{{ selectedExam.uniqueCode }}</span>
+              <span>•</span>
+              <span v-if="selectedExam.subject_name">المادة: <strong class="text-on-surface font-weight-bold">{{ selectedExam.subject_name }}</strong></span>
+              <span>•</span>
+              <span>العام الدراسي: <strong class="text-on-surface font-weight-bold">{{ selectedExam.year_name || '2025-2026' }}</strong></span>
+              <template v-if="selectedSchoolName">
+                <span>•</span>
+                <span>المركز: <strong class="text-teal font-weight-bold">{{ selectedSchoolName }}</strong></span>
+              </template>
+            </div>
           </div>
         </div>
 
-        <div class="d-flex align-center gap-2">
-          <span class="exam-code-tag font-mono font-weight-bold text-caption px-2.5 py-1 rounded-lg border">
-            {{ selectedExam.uniqueCode }}
-          </span>
-          <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold" prepend-icon="mdi-check-decagram-outline">
-            معتمد للطباعة
+        <div class="d-flex align-center gap-2 flex-wrap">
+          <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold" prepend-icon="mdi-layers-outline">
+            {{ selectedExam.versions_count || examDetails?.versions?.length || 4 }} نماذج (A, B, C, D)
+          </v-chip>
+          <v-chip size="small" color="success" variant="tonal" class="font-weight-black" prepend-icon="mdi-account-group-outline">
+            {{ examDetails?.registered_students?.length || selectedExam.registered_students_count || 0 }} طالب
           </v-chip>
           <v-btn
             size="small"
@@ -970,39 +1113,6 @@
           >
             تخصيص القالب
           </v-btn>
-        </div>
-      </div>
-
-      <!-- السطر الثاني: التفاصيل والمقاييس التشغيلية -->
-      <div class="d-flex align-center justify-space-between flex-wrap gap-3 pt-3">
-        <div class="d-flex align-center gap-3 text-caption text-medium-emphasis flex-wrap">
-          <span v-if="selectedExam.subject_name" class="d-flex align-center gap-1">
-            <v-icon size="15" color="primary">mdi-book-open-page-variant-outline</v-icon>
-            المادة: <strong class="text-on-surface font-weight-bold">{{ selectedExam.subject_name }}</strong>
-          </span>
-          <span class="text-disabled">•</span>
-          <span class="d-flex align-center gap-1">
-            <v-icon size="15" color="primary">mdi-calendar-range-outline</v-icon>
-            العام الدراسي: <strong class="text-on-surface font-weight-bold">{{ selectedExam.year_name || '2025-2026' }}</strong>
-          </span>
-        </div>
-
-        <div class="d-flex align-center gap-2 flex-wrap">
-          <div class="exam-stat-chip px-3 py-1.5 rounded-lg border d-flex align-center gap-2">
-            <v-icon size="16" color="primary">mdi-layers-outline</v-icon>
-            <span class="text-caption text-medium-emphasis">النماذج:</span>
-            <span class="text-caption font-weight-black text-primary">
-              {{ selectedExam.versions_count || examDetails?.versions?.length || 1 }} نماذج (A, B, C, D)
-            </span>
-          </div>
-
-          <div class="exam-stat-chip px-3 py-1.5 rounded-lg border d-flex align-center gap-2">
-            <v-icon size="16" color="success">mdi-account-group-outline</v-icon>
-            <span class="text-caption text-medium-emphasis">الطلاب المشمولين:</span>
-            <span class="text-caption font-weight-black text-success">
-              {{ examDetails?.registered_students?.length || selectedExam.registered_students_count || 0 }} طالب
-            </span>
-          </div>
         </div>
       </div>
     </div>
@@ -1096,18 +1206,19 @@
         <!-- ════════════════════════════════════════════════════════════ -->
         <div v-if="isTabVisited('sheets')" v-show="activeTab === 'sheets'">
           <!-- Controls Toolbar (شريط الفلاتر والبحث السريع وأوامر الطباعة) -->
-          <div class="main-card rounded-2xl pa-4 mb-4 border bg-white shadow-sm">
-            <!-- Row 1: Actions, Batch Print, Header Override -->
-            <div class="d-flex align-center justify-space-between flex-wrap gap-2 pb-3 border-b">
-              <!-- Action Buttons -->
+          <!-- ── شريط العمليات والطباعة والتصفية الموحد (Control Center) ── -->
+          <div class="main-card rounded-2xl pa-4 mb-4 border bg-surface elevation-1">
+            <!-- السطر الأول: أوامر الطباعة السريعة وخيارات الإنتاج -->
+            <div class="d-flex align-center justify-space-between flex-wrap gap-3 pb-3 border-b">
+              <!-- أزرار الطباعة والإنتاج -->
               <div class="d-flex align-center gap-2 flex-wrap">
-                <!-- Main Batch Print Button -->
+                <!-- زر الطباعة الرئيسي الفوري -->
                 <v-btn
                   color="success"
                   variant="flat"
-                  rounded="lg"
+                  rounded="xl"
                   size="default"
-                  class="font-weight-black shadow-sm px-4"
+                  class="font-weight-black shadow-sm px-5"
                   prepend-icon="mdi-printer-check"
                   :loading="printingBatch"
                   :disabled="!targetBatchStudents.length"
@@ -1116,12 +1227,12 @@
                   طباعة أوراق التظليل {{ selectedStudentIds.length > 0 ? `المحددة (${selectedStudentIds.length})` : `للكل (${filteredRosterStudents.length})` }}
                 </v-btn>
 
-                <!-- Control Audit Roster -->
+                <!-- كشف تسليم الكنترول -->
                 <v-btn
                   variant="tonal"
                   color="primary"
-                  rounded="lg"
-                  class="font-weight-bold px-3"
+                  rounded="xl"
+                  class="font-weight-bold px-4"
                   prepend-icon="mdi-clipboard-text-outline"
                   title="طباعة كشف تسليم الكنترول الرسمي"
                   @click="printAuditRoster"
@@ -1129,96 +1240,132 @@
                   كشف تسليم الكنترول
                 </v-btn>
 
-                <!-- Blank Sheet Quick Print -->
-                <v-menu location="bottom end">
-                  <template #activator="{ props: bProps }">
+                <!-- قائمة خيارات الطباعة المتقدمة (تجمع: ورقة فارغة، مقاس A5/A4، تعديل الترويسة) -->
+                <v-menu location="bottom end" :close-on-content-click="false">
+                  <template #activator="{ props: mProps }">
                     <v-btn
-                      v-bind="bProps"
-                      variant="outlined"
+                      v-bind="mProps"
+                      variant="tonal"
                       color="secondary"
-                      rounded="lg"
+                      rounded="xl"
                       class="font-weight-bold px-3"
-                      prepend-icon="mdi-file-outline"
+                      prepend-icon="mdi-cog-outline"
+                      append-icon="mdi-chevron-down"
                     >
-                      ورقة فارغة
+                      خيارات الطباعة وإعدادات الورق
                     </v-btn>
                   </template>
-                  <v-list density="compact" rounded="lg">
+
+                  <v-card min-width="280" class="rounded-xl border elevation-4 pa-2 bg-surface">
+                    <div class="text-caption font-weight-black text-primary px-3 py-2 border-b mb-1 d-flex align-center gap-1">
+                      <v-icon size="16">mdi-tune</v-icon>
+                      إعدادات الورقة ونماذج الطباعة
+                    </div>
+
+                    <!-- تبديل المقاس A5 / A4 -->
+                    <div class="px-3 py-2">
+                      <div class="text-caption text-medium-emphasis mb-1 font-weight-bold">مقاس الورقة:</div>
+                      <v-btn-toggle
+                        v-model="selectedSheetLayout"
+                        mandatory
+                        density="compact"
+                        color="primary"
+                        variant="outlined"
+                        rounded="lg"
+                        class="w-100"
+                      >
+                        <v-btn value="compact_a5" class="font-weight-bold flex-1" size="small" prepend-icon="mdi-card-outline">
+                          A5 الوزارية
+                        </v-btn>
+                        <v-btn value="full_a4" class="font-weight-bold flex-1" size="small" prepend-icon="mdi-file-document-outline">
+                          A4 الشاملة
+                        </v-btn>
+                      </v-btn-toggle>
+                    </div>
+
+                    <v-divider class="my-1" />
+
+                    <!-- تعديل الترويسة -->
                     <v-list-item
-                      v-for="ver in ['A', 'B', 'C', 'D']"
-                      :key="`blank-opt-${ver}`"
-                      :title="`طباعة ورقة عامة فارغة - نموذج ${ver}`"
-                      prepend-icon="mdi-printer-outline"
-                      @click="printBlankSheetVersion(ver)"
+                      rounded="lg"
+                      prepend-icon="mdi-pencil-outline"
+                      title="تعديل بيانات الترويسة فورياً"
+                      subtitle="اسم المركز، المديرية، والمحافظة"
+                      @click="showAdjustmentsPanel = !showAdjustmentsPanel"
                     />
-                  </v-list>
+
+                    <v-divider class="my-1" />
+
+                    <!-- ورقة عامة فارغة -->
+                    <div class="px-3 py-1">
+                      <div class="text-caption text-medium-emphasis font-weight-bold mb-1">طباعة ورقة عامة فارغة:</div>
+                      <div class="d-flex gap-1">
+                        <v-btn
+                          v-for="ver in ['A', 'B', 'C', 'D']"
+                          :key="`blank-opt-${ver}`"
+                          size="x-small"
+                          variant="tonal"
+                          color="primary"
+                          class="font-weight-bold flex-1"
+                          @click="printBlankSheetVersion(ver)"
+                        >
+                          نموذج {{ ver }}
+                        </v-btn>
+                      </div>
+                    </div>
+                  </v-card>
                 </v-menu>
-
-                <!-- Header Override Button -->
-                <v-btn
-                  variant="tonal"
-                  color="secondary"
-                  rounded="lg"
-                  size="small"
-                  class="font-weight-bold"
-                  prepend-icon="mdi-pencil-outline"
-                  title="تعديل بيانات الترويسة فورياً"
-                  @click="showAdjustmentsPanel = !showAdjustmentsPanel"
-                >
-                  تعديل الترويسة
-                </v-btn>
-
-                <!-- Layout Mode Toggle (A5 vs A4) -->
-                <v-btn-toggle
-                  v-model="selectedSheetLayout"
-                  mandatory
-                  density="compact"
-                  color="primary"
-                  variant="outlined"
-                  rounded="lg"
-                >
-                  <v-btn value="compact_a5" class="font-weight-bold px-2.5" prepend-icon="mdi-card-outline">
-                    A5 الوزارية
-                  </v-btn>
-                  <v-btn value="full_a4" class="font-weight-bold px-2.5" prepend-icon="mdi-file-document-outline">
-                    A4 الشاملة
-                  </v-btn>
-                </v-btn-toggle>
               </div>
 
-              <!-- Selection Tools -->
+              <!-- أدوات التحديد السريع -->
               <div class="d-flex align-center gap-2">
+                <v-chip
+                  v-if="selectedStudentIds.length > 0"
+                  size="small"
+                  color="primary"
+                  variant="flat"
+                  class="font-weight-bold"
+                >
+                  محدد: {{ selectedStudentIds.length }} طالب
+                </v-chip>
+
                 <v-btn
                   v-if="filteredRosterStudents.length > 0"
                   size="small"
                   variant="tonal"
                   color="primary"
+                  rounded="lg"
                   class="font-weight-bold"
-                  prepend-icon="mdi-checkbox-multiple-marked-outline"
+                  :prepend-icon="selectedStudentIds.length === filteredRosterStudents.length ? 'mdi-checkbox-blank-outline' : 'mdi-checkbox-multiple-marked-outline'"
                   @click="selectAllRosterStudents"
                 >
-                  {{ selectedStudentIds.length === filteredRosterStudents.length ? 'إلغاء تحديد الكل' : 'تحديد كل المعروضين' }}
+                  {{ selectedStudentIds.length === filteredRosterStudents.length ? 'إلغاء التحديد' : 'تحديد كل المعروضين' }}
                 </v-btn>
+
                 <v-btn
                   v-if="selectedStudentIds.length > 0"
                   size="small"
                   variant="tonal"
                   color="success"
+                  rounded="lg"
                   class="font-weight-bold"
                   prepend-icon="mdi-check-all"
                   @click="markSelectedAsPrinted"
                 >
-                  تحديد كمطبوع ({{ selectedStudentIds.length }})
+                  تحديد كمطبوع
                 </v-btn>
               </div>
             </div>
 
             <!-- Live Adjustments Panel -->
             <v-expand-transition>
-              <div v-if="showAdjustmentsPanel" class="pa-4 my-3 bg-grey-lighten-4 rounded-xl border">
-                <div class="text-caption font-weight-black text-primary mb-3 d-flex align-center gap-1">
-                  <v-icon size="16">mdi-auto-fix</v-icon>
-                  تعديل بيانات الترويسة فورياً (تنعكس التعديلات لحظياً على كافة أوراق الطلاب المطبوعة)
+              <div v-if="showAdjustmentsPanel" class="pa-4 my-3 bg-surface border rounded-xl">
+                <div class="text-caption font-weight-black text-primary mb-3 d-flex align-center justify-space-between">
+                  <div class="d-flex align-center gap-1">
+                    <v-icon size="16">mdi-auto-fix</v-icon>
+                    تعديل بيانات الترويسة فورياً (تنعكس التعديلات لحظياً على كافة أوراق الطلاب المطبوعة)
+                  </div>
+                  <v-btn icon="mdi-close" variant="text" size="x-small" @click="showAdjustmentsPanel = false" />
                 </div>
                 <v-row dense>
                   <v-col cols="12" sm="4">
@@ -1276,7 +1423,7 @@
                       :placeholder="selectedExam?.year_name || '2026'"
                     />
                   </v-col>
-                  <v-col cols="12" sm="3" class="d-flex align-center">
+                  <v-col cols="12" sm="3" class="d-flex align-center justify-end">
                     <v-btn
                       size="small"
                       variant="text"
@@ -1292,65 +1439,67 @@
               </div>
             </v-expand-transition>
 
-            <!-- Row 2: Model Filters Button-Toggle & Fast Search (مطابق لـ omr-human-review) -->
+            <!-- السطر الثاني: شريط البحث والتصفية الموحد المدمج -->
             <div class="d-flex align-center justify-space-between flex-wrap gap-2 pt-3">
-              <!-- Filter Toggles -->
+              <!-- تصفية النماذج والحالة في مجموعة مدمجة -->
               <div class="d-flex align-center gap-2 flex-wrap">
+                <!-- تصفية النماذج -->
                 <v-btn-toggle
                   v-model="rosterModelFilter"
                   mandatory
                   density="compact"
-                  rounded="lg"
+                  rounded="xl"
                   color="primary"
                   variant="tonal"
                   class="border"
                 >
-                  <v-btn value="all" size="small" class="font-weight-bold">
+                  <v-btn value="all" size="small" class="font-weight-bold px-3">
                     كافة النماذج ({{ examDetails.registered_students?.length || 0 }})
                   </v-btn>
-                  <v-btn value="A" size="small" color="primary" class="font-weight-bold">
+                  <v-btn value="A" size="small" color="primary" class="font-weight-bold px-2.5">
                     نموذج A ({{ modelCounts.A }})
                   </v-btn>
-                  <v-btn value="B" size="small" color="deep-purple" class="font-weight-bold">
+                  <v-btn value="B" size="small" color="deep-purple" class="font-weight-bold px-2.5">
                     نموذج B ({{ modelCounts.B }})
                   </v-btn>
-                  <v-btn value="C" size="small" color="amber-darken-3" class="font-weight-bold">
+                  <v-btn value="C" size="small" color="amber-darken-3" class="font-weight-bold px-2.5">
                     نموذج C ({{ modelCounts.C }})
                   </v-btn>
-                  <v-btn value="D" size="small" color="teal" class="font-weight-bold">
+                  <v-btn value="D" size="small" color="teal" class="font-weight-bold px-2.5">
                     نموذج D ({{ modelCounts.D }})
                   </v-btn>
                 </v-btn-toggle>
 
-                <!-- Status Toggle -->
+                <!-- تصفية حالة الطباعة -->
                 <v-btn-toggle
                   v-model="rosterPrintFilter"
                   mandatory
                   density="compact"
-                  rounded="lg"
+                  rounded="xl"
                   color="primary"
                   variant="tonal"
                   class="border"
                 >
-                  <v-btn value="all" size="small" class="font-weight-bold">
+                  <v-btn value="all" size="small" class="font-weight-bold px-3">
                     الكل
                   </v-btn>
-                  <v-btn value="unprinted" size="small" color="secondary" class="font-weight-bold">
+                  <v-btn value="unprinted" size="small" color="secondary" class="font-weight-bold px-2.5">
                     جاهز للطباعة ({{ unprintedCount }})
                   </v-btn>
-                  <v-btn value="printed" size="small" color="success" class="font-weight-bold">
+                  <v-btn value="printed" size="small" color="success" class="font-weight-bold px-2.5">
                     المطبوعة ({{ printedCount }})
                   </v-btn>
                 </v-btn-toggle>
               </div>
 
-              <!-- Search input -->
-              <div style="min-width: 240px; max-width: 300px;">
+              <!-- حقل البحث السريع بالاسم أو رقم الجلوس -->
+              <div style="min-width: 250px; max-width: 320px;">
                 <v-text-field
                   v-model="rosterSearch"
                   density="compact"
                   variant="outlined"
-                  placeholder="بحث برقم الجلوس أو الاسم..."
+                  rounded="xl"
+                  placeholder="بحث بالاسم أو رقم الجلوس أو السري..."
                   prepend-inner-icon="mdi-magnify"
                   hide-details
                   clearable
@@ -1495,7 +1644,7 @@
         <!-- ════════════════════════════════════════════════════════════ -->
         <div v-if="isTabVisited('questions')" v-show="activeTab === 'questions'" class="questions-paper-viewport mb-6">
           <!-- شريط الإجراءات والمقاس الوزاري المعتمد -->
-          <div class="main-card pa-3 px-4 rounded-2xl mb-4 bg-white border elevation-1">
+          <div class="main-card pa-3 px-4 rounded-2xl mb-4 bg-surface border elevation-1">
             <div class="d-flex align-center justify-space-between flex-wrap gap-2">
               <div class="d-flex align-center gap-2 flex-wrap">
                 <v-btn
@@ -1698,7 +1847,7 @@
         <!-- ════════════════════════════════════════════════════════════ -->
         <div v-if="isTabVisited('package')" v-show="activeTab === 'package'" class="exam-package-viewport mb-6">
           <!-- شريط الإجراءات والبحث وفلاتر حزم الطلاب (منظم وموحد) -->
-          <div class="main-card pa-3 px-4 rounded-2xl mb-4 bg-white border elevation-1">
+          <div class="main-card pa-3 px-4 rounded-2xl mb-4 bg-surface border elevation-1">
             <div class="d-flex align-center justify-space-between flex-wrap gap-2">
               <div class="d-flex align-center gap-2 flex-wrap">
                 <v-btn
@@ -2329,6 +2478,171 @@
         />
       </div>
     </div>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- 3. نافذة تفاصيل اختبارات ومواد المدرسة / المركز الامتحاني      -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <v-dialog v-model="schoolExamsDialog" width="1180px" max-width="95vw" scrollable>
+      <v-card rounded="2xl" class="border elevation-6 overflow-hidden main-card">
+        <v-card-title class="d-flex align-center justify-space-between bg-surface pa-4 px-6 border-b">
+          <div class="d-flex align-center gap-3">
+            <v-avatar color="primary" variant="tonal" size="44" class="rounded-xl flex-shrink-0">
+              <v-icon color="primary" size="24">mdi-school</v-icon>
+            </v-avatar>
+            <div>
+              <div class="text-subtitle-1 font-weight-black text-on-surface">{{ selectedSchoolDialogItem?.name }}</div>
+              <div class="text-caption text-medium-emphasis d-flex align-center gap-2 flex-wrap mt-0.5">
+                <span>{{ selectedSchoolDialogItem?.directorate_name }} • {{ selectedSchoolDialogItem?.governorate_name }}</span>
+                <span>|</span>
+                <span>إجمالي الطلاب: <strong class="text-primary">{{ selectedSchoolDialogItem?.total_students || 0 }} طالب</strong></span>
+                <span>|</span>
+                <span>عدد الاختبارات: <strong class="text-teal">{{ selectedSchoolDialogItem?.exams?.length || selectedSchoolDialogItem?.exams_count || 0 }} اختبار</strong></span>
+              </div>
+            </div>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" @click="schoolExamsDialog = false" />
+        </v-card-title>
+
+        <v-card-text class="pa-4 pa-md-5 bg-surface">
+          <div v-if="!selectedSchoolDialogItem?.exams || selectedSchoolDialogItem.exams.length === 0" class="text-center py-8">
+            <v-icon size="48" color="grey">mdi-file-document-outline</v-icon>
+            <div class="text-body-1 text-medium-emphasis mt-2">لا توجد اختبارات مسجلة لهذه المدرسة حالياً</div>
+          </div>
+
+          <div v-else class="d-flex flex-column gap-3">
+            <v-alert
+              type="info"
+              variant="tonal"
+              density="compact"
+              rounded="xl"
+              class="mb-2 text-caption font-weight-medium"
+            >
+              <template v-slot:prepend>
+                <v-icon size="20" color="info">mdi-information-outline</v-icon>
+              </template>
+              كل صف أدناه يمثل <strong>اختباراً مستقلاً معتمداً</strong> مقيد به طلاب المدرسة، وموضح أمامه <strong>النماذج الامتحانية (A, B, C...)</strong> وتوزيع الطلاب عليها، مع إمكانية طباعة وثائق أي اختبار مباشرة.
+            </v-alert>
+
+            <!-- ── الجدول الموحد للاختبارات والمواد المعتمدة للمدرسة (custom-data-table) ── -->
+            <div class="main-card rounded-2xl overflow-hidden border">
+              <custom-data-table
+                :items="schoolExamsTableItems"
+                :getData="getSchoolExamsData"
+                :headers="schoolExamsHeaders"
+                :hasFilter="false"
+                :log="false"
+                :restore="false"
+                :showSelect="false"
+                :actions="false"
+                :search="false"
+              >
+                <template v-slot:item-slot="{ item, key }">
+                  <template v-if="key === 'code'">
+                    <div class="d-flex justify-center align-center">
+                      <v-chip size="small" color="primary" variant="tonal" class="font-mono font-weight-bold px-2">
+                        {{ item.code }}
+                      </v-chip>
+                    </div>
+                  </template>
+
+                  <template v-else-if="key === 'title'">
+                    <div class="d-flex align-center gap-2.5 py-1.5">
+                      <v-avatar color="teal" variant="tonal" size="32" class="rounded-lg flex-shrink-0">
+                        <v-icon color="teal" size="18">mdi-book-education-outline</v-icon>
+                      </v-avatar>
+                      <div class="text-truncate">
+                        <div class="font-weight-bold text-body-2 text-on-surface text-truncate" :title="item.title">
+                          {{ item.title }}
+                        </div>
+                        <div class="d-flex align-center gap-1.5 mt-0.5">
+                          <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold px-1.5">
+                            اختبار مستقل
+                          </v-chip>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+
+                  <template v-else-if="key === 'subject'">
+                    <div class="d-flex justify-center align-center">
+                      <v-chip size="small" color="teal" variant="flat" class="font-weight-bold px-2.5">
+                        <v-icon size="13" start>mdi-book-outline</v-icon>
+                        {{ item.subject || 'عام' }}
+                      </v-chip>
+                    </div>
+                  </template>
+
+                  <template v-else-if="key === 'students_count'">
+                    <div class="d-flex justify-center align-center">
+                      <v-chip size="small" color="primary" variant="tonal" class="font-weight-black px-2.5">
+                        <v-icon size="13" start>mdi-account-group-outline</v-icon>
+                        {{ item.students_count || 0 }} طالب
+                      </v-chip>
+                    </div>
+                  </template>
+
+                  <template v-else-if="key === 'versions'">
+                    <div v-if="item.versions && item.versions.length > 0" class="d-flex align-center justify-center gap-1.5 flex-wrap py-1">
+                      <v-chip
+                        v-for="v in item.versions"
+                        :key="v.code"
+                        size="x-small"
+                        color="indigo"
+                        variant="tonal"
+                        class="font-weight-bold"
+                      >
+                        <v-icon size="11" start>mdi-file-document-check-outline</v-icon>
+                        نموذج {{ v.code }} ({{ v.students_count }} طالب)
+                      </v-chip>
+                    </div>
+                    <div v-else class="text-center text-caption text-medium-emphasis">—</div>
+                  </template>
+
+                  <template v-else-if="key === 'actions'">
+                    <div class="d-flex justify-center align-center">
+                      <v-btn
+                        size="small"
+                        color="primary"
+                        variant="flat"
+                        rounded="lg"
+                        prepend-icon="mdi-printer"
+                        class="font-weight-bold px-3"
+                        @click="selectExamFromSchoolDialog(item, selectedSchoolDialogItem)"
+                      >
+                        طباعة
+                      </v-btn>
+                    </div>
+                  </template>
+                </template>
+              </custom-data-table>
+            </div>
+          </div>
+        </v-card-text>
+
+        <v-divider />
+        <v-card-actions class="pa-4 bg-surface d-flex justify-space-between align-center flex-wrap gap-2">
+          <div class="text-caption text-medium-emphasis d-flex align-center gap-1">
+            <v-icon size="16" color="primary">mdi-cursor-default-click-outline</v-icon>
+            يمكنك اختيار اختبار معين للطباعة أو فتح استوديو الطباعة الشامل للمركز
+          </div>
+          <div class="d-flex gap-2">
+            <v-btn variant="tonal" color="grey" rounded="lg" class="font-weight-bold px-4" @click="schoolExamsDialog = false">
+              إغلاق
+            </v-btn>
+            <v-btn
+              color="primary"
+              variant="flat"
+              rounded="lg"
+              prepend-icon="mdi-printer-check"
+              class="font-weight-bold px-4"
+              @click="openSchoolStudio(selectedSchoolDialogItem); schoolExamsDialog = false;"
+            >
+              فتح استوديو الطباعة الشامل للمركز
+            </v-btn>
+          </div>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -2362,6 +2676,13 @@ const selectedDirectorateId = ref(null)
 const selectedDirectorateName = ref('')
 const selectedSchoolId = ref(null)
 const selectedSchoolName = ref('')
+const selectedSubjectId = ref(null)
+const selectedSubjectName = ref('')
+const subjectsList = ref([])
+
+// Dialog for School Exams List
+const schoolExamsDialog = ref(false)
+const selectedSchoolDialogItem = ref(null)
 
 const officesList = ref([])
 const directoratesList = ref([])
@@ -2396,15 +2717,25 @@ const directorateMasterHeaders = [
 ]
 
 const schoolMasterHeaders = [
-  { title: "المدرسة / المركز الامتحاني", key: "name", sortable: true, align: "start", width: "340px", minWidth: "320px" },
-  { title: "نوع المؤسسة", key: "institution_type", sortable: true, align: "center", width: "110px" },
-  { title: "المحافظة والمديرية", key: "directorate_name", sortable: true, align: "center", width: "180px" },
-  { title: "الاختبارات", key: "exams_count", sortable: true, align: "center", width: "95px" },
+  { title: "المدرسة / المركز الامتحاني", key: "name", sortable: true, align: "start", width: "320px", minWidth: "280px" },
+  { title: "نوع المؤسسة", key: "institution_type", sortable: true, align: "center", width: "105px" },
+  { title: "المحافظة والمديرية", key: "directorate_name", sortable: true, align: "center", width: "170px" },
+  { title: "المادة الدراسية", key: "subject_name", sortable: true, align: "center", width: "160px" },
+  { title: "الاختبارات", key: "exams_count", sortable: true, align: "center", width: "105px" },
   { title: "إجمالي الطلاب", key: "total_students", sortable: true, align: "center", width: "110px" },
-  { title: "أوراق مطبوعة", key: "printed_count", sortable: true, align: "center", width: "120px" },
-  { title: "نسبة الطباعة", key: "printed_rate", sortable: true, align: "center", width: "130px" },
-  { title: "حالة الطباعة", key: "print_status", sortable: true, align: "center", width: "120px" },
+  { title: "أوراق مطبوعة", key: "printed_count", sortable: true, align: "center", width: "115px" },
+  { title: "نسبة الطباعة", key: "printed_rate", sortable: true, align: "center", width: "120px" },
+  { title: "حالة الطباعة", key: "print_status", sortable: true, align: "center", width: "115px" },
   { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "190px" },
+]
+
+const schoolExamsHeaders = [
+  { title: "رمز الاختبار", key: "code", sortable: true, align: "center", width: "135px" },
+  { title: "عنوان الاختبار والمواصفات", key: "title", sortable: true, align: "start" },
+  { title: "المادة الدراسية", key: "subject", sortable: true, align: "center", width: "120px" },
+  { title: "طلاب المركز", key: "students_count", sortable: true, align: "center", width: "105px" },
+  { title: "النماذج المخصصة للطلاب وتوزيعها", key: "versions", sortable: false, align: "center", width: "230px" },
+  { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "110px" },
 ]
 
 const examMasterHeaders = [
@@ -2483,6 +2814,9 @@ const schoolsOptions = computed(() => {
 // Filtered Master Tables Computeds
 const filteredOfficesTable = computed(() => {
   let list = officesList.value || []
+  if (selectedSubjectId.value) {
+    list = list.filter(o => (o.exams_count || 0) > 0)
+  }
   if (masterSearchQuery.value) {
     const q = masterSearchQuery.value.toLowerCase().trim()
     list = list.filter(o => 
@@ -2497,6 +2831,9 @@ const filteredDirectoratesTable = computed(() => {
   let list = directoratesList.value || []
   if (selectedOfficeId.value) {
     list = list.filter(d => d.office_id === selectedOfficeId.value)
+  }
+  if (selectedSubjectId.value) {
+    list = list.filter(d => (d.exams_count || 0) > 0)
   }
   if (masterSearchQuery.value) {
     const q = masterSearchQuery.value.toLowerCase().trim()
@@ -2528,12 +2865,23 @@ const filteredSchoolsTable = computed(() => {
       (oGov && s.governorate_name && s.governorate_name.includes(oGov))
     )
   }
+  if (selectedSubjectId.value) {
+    const sObj = subjectsList.value.find(s => s.id === selectedSubjectId.value)
+    const sName = sObj?.name?.trim()
+    list = list.filter(s => {
+      if (s.subjects && Array.isArray(s.subjects)) {
+        return s.subjects.some(sub => sub === sName || (sName && sub.includes(sName)))
+      }
+      return s.subject_name === sName || (sName && s.subject_name && s.subject_name.includes(sName))
+    })
+  }
   if (masterSearchQuery.value) {
     const q = masterSearchQuery.value.toLowerCase().trim()
     list = list.filter(s => 
       (s.name && s.name.toLowerCase().includes(q)) ||
       (s.directorate_name && s.directorate_name.toLowerCase().includes(q)) ||
-      (s.governorate_name && s.governorate_name.toLowerCase().includes(q))
+      (s.governorate_name && s.governorate_name.toLowerCase().includes(q)) ||
+      (s.subject_name && s.subject_name.toLowerCase().includes(q))
     )
   }
   return list
@@ -2545,6 +2893,9 @@ const filteredMasterExamsTable = computed(() => {
     list = list.filter(e => e.directorate_id === selectedDirectorateId.value)
   } else if (selectedOfficeId.value) {
     list = list.filter(e => e.governorate_id === selectedOfficeId.value || e.office_id === selectedOfficeId.value)
+  }
+  if (selectedSubjectId.value) {
+    list = list.filter(e => e.subject_id === selectedSubjectId.value || e.subject === selectedSubjectId.value)
   }
   if (masterSearchQuery.value) {
     const q = masterSearchQuery.value.toLowerCase().trim()
@@ -2653,6 +3004,40 @@ const getSchoolMasterData = async (params = {}) => {
   return schoolMasterTableItems.value
 }
 
+const schoolExamsPage = ref(1)
+const schoolExamsPageSize = ref(10)
+const schoolExamsTableItems = ref({
+  results: [],
+  count: 0,
+  pagination: { count: 0, total: 0, num_pages: 1, current_page: 1 },
+})
+
+const getSchoolExamsData = async (params = {}) => {
+  const p = params?.params || params || {}
+  const page = Number(p.page) || schoolExamsPage.value || 1
+  const pageSize = Number(p.page_size) || schoolExamsPageSize.value || 10
+  schoolExamsPage.value = page
+  schoolExamsPageSize.value = pageSize
+
+  const all = selectedSchoolDialogItem.value?.exams || []
+  const total = all.length
+  const numPages = Math.ceil(total / pageSize) || 1
+  const validPage = Math.min(Math.max(1, page), numPages)
+  const start = (validPage - 1) * pageSize
+
+  schoolExamsTableItems.value = {
+    results: all.slice(start, start + pageSize),
+    count: total,
+    pagination: {
+      count: total,
+      total: total,
+      num_pages: numPages,
+      current_page: validPage,
+    },
+  }
+  return schoolExamsTableItems.value
+}
+
 const examMasterTableItems = ref({
   results: [],
   count: 0,
@@ -2732,11 +3117,21 @@ watch(masterTab, (tab) => {
 })
 
 // Master Methods
+const loadSubjects = async () => {
+  try {
+    const res = await gradebookAPI.getSubjects()
+    subjectsList.value = res.data?.results || []
+  } catch (err) {
+    console.error('Failed to load subjects:', err)
+  }
+}
+
 const loadMasterData = async () => {
   loadingMaster.value = true
   try {
     const params = {
       institution_type: institutionType.value !== 'all' ? institutionType.value : undefined,
+      subject: selectedSubjectId.value || undefined,
     }
     const [officesRes, directoratesRes, schoolsRes, examsRes] = await Promise.all([
       gradebookAPI.getByOffice(params).catch(() => ({ data: { results: [] } })),
@@ -2768,6 +3163,8 @@ const resetHierarchyFilters = async () => {
   selectedDirectorateName.value = ''
   selectedSchoolId.value = null
   selectedSchoolName.value = ''
+  selectedSubjectId.value = null
+  selectedSubjectName.value = ''
   masterSearchQuery.value = ''
   await loadMasterData()
 }
@@ -2780,11 +3177,52 @@ const onSectorChange = (val) => {
   selectedDirectorateName.value = ''
   selectedSchoolId.value = null
   selectedSchoolName.value = ''
+  selectedSubjectId.value = null
+  selectedSubjectName.value = ''
   if (currentView.value === 'master') {
     loadMasterData()
   } else {
     fetchExamsList()
   }
+}
+
+const onSubjectFilterChange = async (subjId) => {
+  selectedSubjectId.value = subjId
+  if (subjId) {
+    const s = subjectsList.value.find(item => item.id === subjId)
+    selectedSubjectName.value = s?.name || ''
+  } else {
+    selectedSubjectName.value = ''
+  }
+  await loadMasterData()
+}
+
+const openSchoolExamsDialog = (schoolItem) => {
+  selectedSchoolDialogItem.value = schoolItem
+  schoolExamsPage.value = 1
+  getSchoolExamsData({ page: 1, page_size: schoolExamsPageSize.value })
+  schoolExamsDialog.value = true
+}
+
+watch(selectedSchoolDialogItem, () => {
+  if (schoolExamsDialog.value) {
+    getSchoolExamsData({ page: 1, page_size: schoolExamsPageSize.value })
+  }
+})
+
+const selectExamFromSchoolDialog = async (exam, school) => {
+  schoolExamsDialog.value = false
+  selectedExamId.value = exam.id
+  if (school) {
+    selectedSchoolId.value = school.id
+    selectedSchoolName.value = school.name
+    if (school.directorate_name) selectedDirectorateName.value = school.directorate_name
+    if (school.governorate_name) selectedOfficeName.value = school.governorate_name
+  }
+  currentView.value = 'detail'
+  await loadExamDetails(exam.id, {
+    school_id: school?.id || undefined,
+  })
 }
 
 const onOfficeFilterChange = (officeId) => {
@@ -2897,6 +3335,7 @@ const openExamStudio = async (exam) => {
 
 const returnToMaster = async () => {
   currentView.value = 'master'
+  showHierarchyFilters.value = false
   await loadMasterData()
 }
 
@@ -3139,6 +3578,7 @@ const selectedExam = computed(() => {
 })
 
 // Exam Details State
+const showHierarchyFilters = ref(false)
 const loadingExamDetails = ref(false)
 const examDetails = ref(null)
 const seedingStudents = ref(false)
@@ -3858,6 +4298,7 @@ const loadExamDetails = async (examId, customParams = {}) => {
     }
     const resp = await api.get(`/api/omr/exam-linking/${examId}/`, { params })
     examDetails.value = resp.data
+    showHierarchyFilters.value = false
     if (resp.data.registered_students && resp.data.registered_students.length > 0) {
       selectedStudentId.value = resp.data.registered_students[0].id
       sheetGenerationMode.value = 'all_students'
@@ -4296,8 +4737,11 @@ const refreshData = async () => {
 }
 
 onMounted(async () => {
-  await loadMasterData()
-  await fetchBatches()
+  await Promise.all([
+    loadSubjects(),
+    loadMasterData(),
+    fetchBatches(),
+  ])
 
   const qExam = route.query.exam || route.query.exam_id
   if (qExam) {
@@ -4379,27 +4823,27 @@ onMounted(async () => {
 /* ── Lightweight Navigation Bar ── */
 /* Active Exam Banner Styling */
 .active-exam-banner {
-  border-color: #e2e8f0 !important;
-  background-color: #ffffff;
+  border-color: rgba(var(--v-border-color), var(--v-border-opacity, 0.12)) !important;
+  background-color: rgb(var(--v-theme-surface)) !important;
   transition: all 0.2s ease;
 }
 
 .exam-icon-badge {
-  background-color: #f0f7ff !important;
-  border-color: #dbeafe !important;
+  background-color: rgba(var(--v-theme-primary), 0.1) !important;
+  border-color: rgba(var(--v-theme-primary), 0.2) !important;
 }
 
 .exam-code-tag {
   letter-spacing: 0.5px;
   font-size: 0.72rem !important;
-  border-color: #e2e8f0 !important;
-  background-color: #f8fafc !important;
-  color: #334155 !important;
+  border-color: rgba(var(--v-border-color), var(--v-border-opacity, 0.12)) !important;
+  background-color: rgba(var(--v-theme-surface), 0.8) !important;
+  color: rgb(var(--v-theme-primary)) !important;
 }
 
 .exam-stat-chip {
-  border-color: #e2e8f0 !important;
-  background-color: #f8fafc !important;
+  border-color: rgba(var(--v-border-color), var(--v-border-opacity, 0.12)) !important;
+  background-color: rgba(var(--v-theme-surface), 0.8) !important;
   min-width: 110px;
 }
 
@@ -4410,8 +4854,8 @@ onMounted(async () => {
 .registry-nav-container {
   display: flex;
   align-items: center;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: rgb(var(--v-theme-surface));
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity, 0.12));
   border-radius: 12px;
   padding: 6px;
   gap: 6px;
@@ -4429,7 +4873,7 @@ onMounted(async () => {
   cursor: pointer;
   font-size: 0.84rem;
   font-weight: 600;
-  color: #64748b;
+  color: rgba(var(--v-theme-on-surface), 0.7);
   background: transparent;
   transition: all 0.2s ease;
   user-select: none;
@@ -4437,19 +4881,19 @@ onMounted(async () => {
 }
 
 .registry-nav-item:hover {
-  background: #f8fafc;
-  color: #334155;
+  background: rgba(var(--v-theme-on-surface), 0.06);
+  color: rgb(var(--v-theme-on-surface));
 }
 
 .registry-nav-item.is-active {
-  background: #eff6ff;
-  color: #2563eb;
+  background: rgba(var(--v-theme-primary), 0.12);
+  color: rgb(var(--v-theme-primary));
   font-weight: 800;
-  border: 1px solid #bfdbfe;
+  border: 1px solid rgba(var(--v-theme-primary), 0.25);
 }
 
 .registry-nav-item.is-active .nav-icon {
-  color: #2563eb;
+  color: rgb(var(--v-theme-primary));
 }
 
 @media (max-width: 1024px) {

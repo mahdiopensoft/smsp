@@ -21,6 +21,40 @@
           />
         </v-col>
 
+        <!-- 1. المحافظة -->
+        <auto-list
+          v-model="filterGovernorate"
+          name="Governorate"
+          placeholder="المحافظة (الكل)"
+          cols="3"
+          :add="false"
+          @update:model-value="onGovernorateChange"
+        />
+
+        <!-- 2. المديرية (تظهر للمدارس أو عام) -->
+        <auto-list
+          v-if="isSchoolFilter"
+          v-model="filterDirectorate"
+          name="Directorate"
+          :param="filterGovernorate"
+          placeholder="المديرية (الكل)"
+          cols="3"
+          :add="false"
+          @update:model-value="onDirectorateChange"
+        />
+
+        <!-- 3. المركز الامتحاني / المدرسة -->
+        <auto-list
+          v-model="filterOrganization"
+          name="Organization"
+          :param="orgParam"
+          :placeholder="orgPlaceholder"
+          cols="3"
+          :add="false"
+          :disabled="isOrgDisabled"
+          @update:model-value="fetchExams"
+        />
+
         <!-- Institution Type Selector (مدارس / جامعات / معاهد / الكل) موحد كـ auto-list -->
         <auto-list
           v-model="filterInstitutionType"
@@ -235,8 +269,90 @@
 
           <!-- Subject & Year -->
           <template v-else-if="key === 'subject_info'">
-            <div class="font-weight-bold text-body-2">{{ item.subject_name }}</div>
+            <div class="font-weight-bold text-body-2 text-primary">{{ item.subject_name }}</div>
             <div class="text-caption text-medium-emphasis">{{ item.year_name }} ({{ item.institution_type_display }})</div>
+          </template>
+
+          <!-- 1. المحافظة (مستقلة ومفصولة تماماً) -->
+          <template v-else-if="key === 'governorate'">
+            <div class="d-flex align-center justify-center">
+              <v-tooltip v-if="item.governorates_count > 1" location="top">
+                <template #activator="{ props: tProps }">
+                  <v-chip v-bind="tProps" size="small" color="primary" variant="tonal" class="font-weight-bold">
+                    <v-icon size="13" start>mdi-map-marker</v-icon>
+                    {{ activeDisplayGovernorate(item) }}
+                    <span class="ms-1 text-caption font-weight-black">
+                      (+{{ item.governorates_count - 1 }})
+                    </span>
+                  </v-chip>
+                </template>
+                <span>المحافظات المشمولة: {{ item.governorates_list.join('، ') }}</span>
+              </v-tooltip>
+              <v-chip v-else size="small" color="primary" variant="tonal" class="font-weight-bold">
+                <v-icon size="13" start>mdi-map-marker</v-icon>
+                {{ activeDisplayGovernorate(item) }}
+              </v-chip>
+            </div>
+          </template>
+
+          <!-- 2. المديرية (مستقلة ومفصولة تماماً) -->
+          <template v-else-if="key === 'directorate'">
+            <div class="d-flex align-center justify-center">
+              <v-tooltip v-if="item.directorates_count > 1" location="top">
+                <template #activator="{ props: tProps }">
+                  <v-chip v-bind="tProps" size="small" color="teal" variant="tonal" class="font-weight-bold">
+                    <v-icon size="13" start>mdi-city-variant-outline</v-icon>
+                    {{ activeDisplayDirectorate(item) }}
+                    <span class="ms-1 text-caption font-weight-black">
+                      (+{{ item.directorates_count - 1 }})
+                    </span>
+                  </v-chip>
+                </template>
+                <span>المديريات المشمولة: {{ item.directorates_list.join('، ') }}</span>
+              </v-tooltip>
+              <v-chip v-else size="small" color="teal" variant="tonal" class="font-weight-bold">
+                <v-icon size="13" start>mdi-city-variant-outline</v-icon>
+                {{ activeDisplayDirectorate(item) }}
+              </v-chip>
+            </div>
+          </template>
+
+          <!-- 3. المركز الامتحاني / المدرسة (مستقلة ومفصولة تماماً ومطابقة للفلتر) -->
+          <template v-else-if="key === 'school_center'">
+            <div class="py-1">
+              <div class="d-flex align-center gap-1.5">
+                <v-icon size="15" color="indigo" class="flex-shrink-0">mdi-school-outline</v-icon>
+                <span class="font-weight-bold text-slate-700 text-truncate" style="max-width: 175px;" :title="item.school_center">
+                  {{ item.school_center }}
+                </span>
+                <v-tooltip v-if="item.schools_count > 1 || (item.all_schools_count && item.all_schools_count > 1)" location="top">
+                  <template #activator="{ props: tProps }">
+                    <v-chip v-bind="tProps" size="x-small" color="indigo" variant="tonal" class="font-weight-black cursor-pointer">
+                      +{{ (item.schools_count > 1 ? item.schools_count : item.all_schools_count) - 1 }}
+                    </v-chip>
+                  </template>
+                  <div>
+                    <div v-if="item.schools_list && item.schools_list.length > 1" class="font-weight-bold mb-1">
+                      المراكز في النطاق المحدد: {{ item.schools_list.join('، ') }}
+                    </div>
+                    <div class="text-caption">
+                      إجمالي كافة المراكز المقيدة للاختبار: {{ (item.all_schools_list || item.schools_list || []).join('، ') }}
+                    </div>
+                  </div>
+                </v-tooltip>
+              </div>
+              <div class="text-caption text-medium-emphasis mt-0.5">
+                <span v-if="item.all_schools_count && item.all_schools_count > item.schools_count">
+                  مركز بالمديرية (إجمالي: {{ item.all_schools_count }} مراكز)
+                </span>
+                <span v-else-if="item.schools_count > 1">
+                  إجمالي: {{ item.schools_count }} مراكز امتحانية
+                </span>
+                <span v-else>
+                  مركز امتحاني معتمد
+                </span>
+              </div>
+            </div>
           </template>
 
           <!-- Versions & Questions (Clickable to open Keys Tab) -->
@@ -246,7 +362,7 @@
               @click.stop="openExamHub(item, 'keys')"
               title="انقر لمعاينة نماذج الأسئلة ومفاتيح الحل المعتمدة"
             >
-              <div class="d-flex justify-center gap-1 mb-1">
+              <div class="d-flex justify-center gap-1 mb-1 flex-wrap">
                 <v-chip
                   v-for="v in item.versions"
                   :key="v.id"
@@ -258,6 +374,35 @@
                   {{ v.versionCode }}
                 </v-chip>
               </div>
+
+              <!-- مجموعات النماذج والتوزيع المناطقي -->
+              <div v-if="item.model_groups && item.model_groups.length > 1" class="d-flex justify-center mb-1">
+                <v-tooltip location="top">
+                  <template #activator="{ props: tProps }">
+                    <v-chip
+                      v-bind="tProps"
+                      size="x-small"
+                      color="deep-purple"
+                      variant="flat"
+                      class="font-weight-bold cursor-pointer"
+                    >
+                      <v-icon size="11" start>mdi-layers-triple</v-icon>
+                      {{ item.model_groups.length }} مجموعات صعوبة
+                    </v-chip>
+                  </template>
+                  <div>
+                    <div class="font-weight-black border-b pb-1 mb-1">جدول توزيع النماذج ومستويات الصعوبة:</div>
+                    <div v-for="g in item.model_groups" :key="g.group_index" class="mb-1 text-caption">
+                      <strong>{{ g.name }} (نماذج: {{ g.models_str }}):</strong>
+                      <span class="ms-1 font-weight-bold text-amber-lighten-2">صعوبة: {{ g.difficulty_profile_ar }}</span>
+                      <span v-if="g.target_regions && g.target_regions.length > 0" class="ms-1">
+                        ({{ g.target_regions_str }})
+                      </span>
+                    </div>
+                  </div>
+                </v-tooltip>
+              </div>
+
               <div class="text-caption font-weight-bold text-primary">
                 {{ item.total_questions }} سؤال (مفاتيح الحل)
               </div>
@@ -703,7 +848,61 @@ const debouncedFetchExams = () => {
   }, 180)
 }
 
+const filterGovernorate = ref(null)
+const filterDirectorate = ref(null)
+const filterOrganization = ref(null)
+
+const isSchoolFilter = computed(() => {
+  return !filterInstitutionType.value || filterInstitutionType.value === 'all' || filterInstitutionType.value === 'school'
+})
+
+const isOrgDisabled = computed(() => {
+  if (isSchoolFilter.value) {
+    return !filterGovernorate.value || !filterDirectorate.value
+  }
+  return !filterGovernorate.value
+})
+
+const orgPlaceholder = computed(() => {
+  const typeLabel = filterInstitutionType.value === 'university'
+    ? 'الكلية / الجامعة'
+    : (filterInstitutionType.value === 'institute' ? 'المعهد / المركز' : 'المدرسة / المركز الامتحاني')
+  if (isSchoolFilter.value) {
+    if (!filterGovernorate.value) return 'المدرسة / المركز (اختر المحافظة أولاً)'
+    if (!filterDirectorate.value) return 'المدرسة / المركز (اختر المديرية أولاً)'
+    return `${typeLabel} (التابعة للمديرية)`
+  }
+  if (!filterGovernorate.value) return 'المؤسسة (اختر المحافظة أولاً)'
+  return `${typeLabel} (التابعة للمحافظة)`
+})
+
+const orgParam = computed(() => {
+  const p = {}
+  if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
+    p.institution_type = filterInstitutionType.value
+  } else {
+    p.institution_type = 'school'
+  }
+  if (filterGovernorate.value) p.governorate = filterGovernorate.value
+  if (isSchoolFilter.value && filterDirectorate.value) p.directorate = filterDirectorate.value
+  return Object.keys(p).length > 0 ? p : undefined
+})
+
+const onGovernorateChange = () => {
+  filterDirectorate.value = null
+  filterOrganization.value = null
+  debouncedFetchExams()
+}
+
+const onDirectorateChange = () => {
+  filterOrganization.value = null
+  debouncedFetchExams()
+}
+
 const onInstitutionTypeChange = () => {
+  filterGovernorate.value = null
+  filterDirectorate.value = null
+  filterOrganization.value = null
   filterStage.value = null
   filterClassTrack.value = null
   filterSubject.value = null
@@ -793,13 +992,28 @@ const totalStudentsCount = computed(() => {
 })
 
 const headers = computed(() => [
-  { title: "رمز وعنوان الاختبار", key: "exam_info", sortable: true, width: "230px" },
-  { title: "المادة والعام", key: "subject_info", sortable: true, align: "center", width: "115px" },
-  { title: "النماذج والأسئلة", key: "versions_info", sortable: false, align: "center", width: "115px" },
+  { title: "رمز وعنوان الاختبار", key: "exam_info", sortable: true, width: "220px" },
+  { title: "المادة والعام", key: "subject_info", sortable: true, align: "center", width: "120px" },
+  { title: "المحافظة", key: "governorate", sortable: true, align: "center", width: "130px" },
+  { title: "المديرية", key: "directorate", sortable: true, align: "center", width: "145px" },
+  { title: "المركز الامتحاني / المدرسة", key: "school_center", sortable: true, width: "190px" },
+  { title: "النماذج ومجموعاتها", key: "versions_info", sortable: false, align: "center", width: "140px" },
   { title: "كشف الطلاب", key: "students_count", sortable: true, align: "center", width: "95px" },
   { title: "حالة التصحيح", key: "progress", sortable: false, align: "center", width: "95px" },
-  { title: "الاجراءات", key: "actions", sortable: false, align: "center", width: "200px" },
+  { title: "الاجراءات", key: "actions", sortable: false, align: "center", width: "195px" },
 ])
+
+const activeDisplayGovernorate = (item) => {
+  return item.governorate || 'كافة المحافظات'
+}
+
+const activeDisplayDirectorate = (item) => {
+  return item.directorate || 'كافة المديريات'
+}
+
+const activeDisplaySchool = (item) => {
+  return item.school_center || item.primary_school || 'جميع مراكز المديرية'
+}
 
 const filteredExams = computed(() => {
   let list = exams.value
@@ -811,7 +1025,14 @@ const filteredExams = computed(() => {
     list = list.filter(e =>
       (e.title && e.title.toLowerCase().includes(q)) ||
       (e.uniqueCode && e.uniqueCode.toLowerCase().includes(q)) ||
-      (e.subject_name && e.subject_name.toLowerCase().includes(q))
+      (e.subject_name && e.subject_name.toLowerCase().includes(q)) ||
+      (e.governorate && e.governorate.toLowerCase().includes(q)) ||
+      (e.directorate && e.directorate.toLowerCase().includes(q)) ||
+      (e.primary_school && e.primary_school.toLowerCase().includes(q)) ||
+      (e.school_center && e.school_center.toLowerCase().includes(q)) ||
+      (e.schools_list && e.schools_list.some(s => s.toLowerCase().includes(q))) ||
+      (e.directorates_list && e.directorates_list.some(d => d.toLowerCase().includes(q))) ||
+      (e.governorates_list && e.governorates_list.some(g => g.toLowerCase().includes(q)))
     )
   }
   return list
@@ -866,6 +1087,10 @@ const tableItems = computed(() => examsTableItems.value)
 
 const resetFilters = () => {
   searchQuery.value = ''
+  _searchInput.value = ''
+  filterGovernorate.value = null
+  filterDirectorate.value = null
+  filterOrganization.value = null
   filterInstitutionType.value = 'all'
   filterStage.value = null
   filterClassTrack.value = null
@@ -885,6 +1110,15 @@ const fetchExams = async () => {
   loading.value = true
   try {
     const params = {}
+    if (filterGovernorate.value) {
+      params.governorate = filterGovernorate.value
+    }
+    if (filterDirectorate.value) {
+      params.directorate = filterDirectorate.value
+    }
+    if (filterOrganization.value) {
+      params.school = filterOrganization.value
+    }
     if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
       params.institution_type = filterInstitutionType.value
     }
