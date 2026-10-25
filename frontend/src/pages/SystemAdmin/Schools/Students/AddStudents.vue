@@ -179,7 +179,7 @@
 
         <v-row dense class="mb-4">
           <!-- المحافظة -->
-          <v-col cols="12" sm="6" md="4">
+          <v-col cols="12" sm="6" :md="studentType === 'school' ? 4 : 6">
             <auto-list
               v-model="selectedGovernorate"
               name="Governorate"
@@ -191,8 +191,8 @@
             />
           </v-col>
 
-          <!-- المديرية -->
-          <v-col cols="12" sm="6" md="4">
+          <!-- المديرية (تظهر فقط للمدارس) -->
+          <v-col v-if="studentType === 'school'" cols="12" sm="6" md="4">
             <auto-list
               v-model="data.directorate"
               name="Directorate"
@@ -202,19 +202,21 @@
               cols="12"
               :add="false"
               :disabled="!selectedGovernorate"
+              @update:model-value="onDirectorateChange"
             />
           </v-col>
 
           <!-- المؤسسة التعليمية (مدرسة / كلية / معهد) -->
-          <v-col cols="12" sm="6" md="4">
+          <v-col cols="12" sm="6" :md="studentType === 'school' ? 4 : 6">
             <auto-list
               v-model="data.organization"
               name="Organization"
               :param="organizationParam"
-              :placeholder="orgFieldLabel"
+              :placeholder="orgPlaceholder"
               :label="orgFieldLabel"
               cols="12"
               :add="false"
+              :disabled="isOrgDisabled"
             />
           </v-col>
         </v-row>
@@ -426,16 +428,33 @@ export default {
     };
   },
   computed: {
+    isOrgDisabled() {
+      if (this.studentType === 'school') {
+        return !this.selectedGovernorate || !this.data.directorate;
+      }
+      return !this.selectedGovernorate;
+    },
     orgFieldLabel() {
       if (this.studentType === 'university') return 'الكلية / الجامعة التابعة لها';
       if (this.studentType === 'institute') return 'المعهد / المركز المهني التابع له';
       return 'المدرسة التابع لها';
     },
+    orgPlaceholder() {
+      if (this.studentType === 'university') {
+        return this.selectedGovernorate ? 'اختر الكلية / الجامعة' : 'اختر المحافظة أولاً...';
+      }
+      if (this.studentType === 'institute') {
+        return this.selectedGovernorate ? 'اختر المعهد / المركز' : 'اختر المحافظة أولاً...';
+      }
+      if (!this.selectedGovernorate) return 'اختر المحافظة أولاً...';
+      if (!this.data.directorate) return 'اختر المديرية أولاً...';
+      return 'اختر المدرسة';
+    },
     organizationParam() {
       return {
         institution_type: this.studentType,
         governorate: this.selectedGovernorate || undefined,
-        directorate: this.data.directorate || undefined,
+        directorate: this.studentType === 'school' ? (this.data.directorate || undefined) : undefined,
       };
     },
   },
@@ -472,6 +491,10 @@ export default {
   },
   methods: {
     onStudentTypeChange(newType) {
+      this.data.organization = null;
+      if (newType !== 'school') {
+        this.data.directorate = null;
+      }
       // تفريغ الحقول التخصصية عند تغيير نوع المؤسسة لمنع تداخل البيانات
       if (newType === 'school') {
         this.data.university_college = null;
@@ -502,6 +525,10 @@ export default {
     onGovernorateChange(val) {
       this.selectedGovernorate = val;
       this.data.directorate = null;
+      this.data.organization = null;
+    },
+
+    onDirectorateChange() {
       this.data.organization = null;
     },
 

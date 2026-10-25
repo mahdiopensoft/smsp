@@ -15,6 +15,8 @@ from academic.urls_schools import router_schools
 from academic.urls_universities import router_universities
 from academic.urls_institutes import router_institutes
 
+from academic.apis.common.OrganizationMVS import OrganizationMVS
+
 router = DefaultRouter()
 
 # دمج كافة المسارات الفرعية في الراوتر الرئيسي لضمان التوافقية بنسبة 100%
@@ -24,5 +26,9 @@ router.registry.extend(router_universities.registry)
 router.registry.extend(router_institutes.registry)
 
 urlpatterns = [
+    # مسارات مخصصة لهيكلية ومكاتب وإدارات المؤسسات التعليمية لضمان مطابقتها قبل راوتر الـ retrieve
+    path('organizations/educational-hierarchy/', OrganizationMVS.as_view({'get': 'educational_hierarchy'})),
+    path('organizations/governorates/', OrganizationMVS.as_view({'get': 'educational_governorates'})),
+    path('organizations/directorates/', OrganizationMVS.as_view({'get': 'educational_directorates'})),
     path('', include(router.urls)),
 ]

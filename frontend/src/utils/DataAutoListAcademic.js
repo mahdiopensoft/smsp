@@ -18,6 +18,18 @@ export default function DataAutoListAcademic(param) {
       value: "id",
     },
 
+    SectionGender: {
+      label: "نوع الشعبة",
+      icon: "gender-male-female",
+      method: () => Promise.resolve([
+        { id: 1, value: 1, name: "بنين", name_ar: "بنين", title: "بنين", text: "بنين", label: "بنين" },
+        { id: 2, value: 2, name: "بنات", name_ar: "بنات", title: "بنات", text: "بنات", label: "بنات" },
+        { id: 3, value: 3, name: "مشترك", name_ar: "مشترك", title: "مشترك", text: "مشترك", label: "مشترك" },
+      ]),
+      title: "name",
+      value: "id",
+    },
+
     // ═══════════════════════════════════════════════════════════════════════════════
     // 🏫 قوائم المدارس المستقلة (Independent School Lists)
     // ═══════════════════════════════════════════════════════════════════════════════
@@ -742,32 +754,60 @@ export default function DataAutoListAcademic(param) {
       icon: "domain",
       method: (p) => {
         const raw = (p !== undefined && p !== null) ? p : param;
+        if (!raw) {
+          return Promise.resolve([]);
+        }
+
         const queryParams = {};
-        if (raw) {
-          if (typeof raw === 'object') {
-            if (raw.institution_type === '__none__') {
-              return Promise.resolve([]);
-            }
-            if (raw.institution_type && raw.institution_type !== 'all') {
-              queryParams.institution_type = raw.institution_type;
-            }
-            if (raw.governorate) {
-              queryParams.governorate = raw.governorate;
-            }
-            if (raw.directorate) {
-              queryParams.directorate = raw.directorate;
-            }
-            if (raw.is_active !== undefined) {
-              queryParams.is_active = raw.is_active;
-            }
-            if (raw.parent) {
-              queryParams.parent = raw.parent;
-            }
-          } else if (typeof raw === 'string') {
-            if (raw === '__none__') return Promise.resolve([]);
-            if (raw !== 'all') queryParams.institution_type = raw;
+        let instType = 'school';
+
+        if (typeof raw === 'object') {
+          if (raw.institution_type === '__none__') {
+            return Promise.resolve([]);
+          }
+          if (raw.institution_type && raw.institution_type !== 'all') {
+            instType = raw.institution_type;
+            queryParams.institution_type = raw.institution_type;
+          }
+          const govVal = raw.governorate || raw.governorate_id || raw.fk_governorate;
+          if (govVal) {
+            queryParams.governorate = govVal;
+          }
+          const dirVal = raw.directorate || raw.directorate_id || raw.fk_directorate;
+          if (dirVal) {
+            queryParams.directorate = dirVal;
+          }
+          if (raw.is_active !== undefined) {
+            queryParams.is_active = raw.is_active;
+          }
+          if (raw.parent) {
+            queryParams.parent = raw.parent;
+          }
+        } else if (typeof raw === 'string') {
+          if (raw === '__none__') return Promise.resolve([]);
+          if (raw !== 'all') {
+            instType = raw;
+            queryParams.institution_type = raw;
           }
         }
+
+        // قاعدة النظام الصارمة:
+        // المدارس: تشترط اختيار المحافظة والمديرية معاً
+        // الجامعات والمعاهد: تشترط اختيار المحافظة فقط
+        if (instType === 'school') {
+          if (!queryParams.governorate || !queryParams.directorate) {
+            return Promise.resolve([]);
+          }
+        } else if (instType === 'university' || instType === 'institute') {
+          if (!queryParams.governorate) {
+            return Promise.resolve([]);
+          }
+        } else {
+          if (!queryParams.governorate) {
+            return Promise.resolve([]);
+          }
+        }
+
         return shared.getData({
           path: "api/academic/organizations/all/",
           params: Object.keys(queryParams).length ? queryParams : undefined,
@@ -889,10 +929,24 @@ export default function DataAutoListAcademic(param) {
     Institute: {
       label: "المعهد / المركز التعليمي",
       icon: "domain",
-      method: () =>
-        shared.getData({
+      method: (p) => {
+        const raw = (p !== undefined && p !== null) ? p : param;
+        const queryParams = { institution_type: 'institute' };
+        let gov = null;
+        if (raw && typeof raw === 'object') {
+          if (raw.governorate) gov = raw.governorate;
+        } else if (raw) {
+          gov = raw;
+        }
+        if (!gov) {
+          return Promise.resolve([]);
+        }
+        queryParams.governorate = gov;
+        return shared.getData({
           path: "api/academic/organizations/all/",
-        }),
+          params: queryParams,
+        });
+      },
       title: "name_ar",
       value: "id",
     },

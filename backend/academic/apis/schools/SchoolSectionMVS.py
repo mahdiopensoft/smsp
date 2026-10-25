@@ -21,9 +21,29 @@ class SchoolSectionMVS(AllMVS):
     def get_queryset(self):
         qs = super().get_queryset()
 
+        gov_id = self.request.query_params.get('governorate') or self.request.query_params.get('governorate_id')
+        dir_id = self.request.query_params.get('directorate') or self.request.query_params.get('directorate_id')
         org_id = self.request.query_params.get('organization') or self.request.query_params.get('organization_id')
+
         if org_id:
             qs = qs.filter(organization_id=org_id)
+        elif dir_id:
+            try:
+                d_int = int(dir_id)
+                from OpenSoftCoreV41.common.models.Branch import Organization as CoreOrg
+                child_school_ids = list(CoreOrg.objects.filter(fk_parent_organization_id=d_int, is_deleted=False).values_list('id', flat=True))
+                qs = qs.filter(Q(organization_id__in=child_school_ids) | Q(organization__parent_id=d_int))
+            except (ValueError, TypeError):
+                qs = qs.filter(organization__parent_id=dir_id)
+        elif gov_id:
+            try:
+                g_int = int(gov_id)
+                from OpenSoftCoreV41.common.models.Branch import Organization as CoreOrg
+                dir_ids = list(CoreOrg.objects.filter(fk_parent_organization_id=g_int, company_level=40, is_deleted=False).values_list('id', flat=True))
+                child_school_ids = list(CoreOrg.objects.filter(fk_parent_organization_id__in=dir_ids, is_deleted=False).values_list('id', flat=True))
+                qs = qs.filter(Q(organization_id__in=child_school_ids) | Q(organization__parent__parent_id=g_int) | Q(organization__parent_id__in=dir_ids))
+            except (ValueError, TypeError):
+                qs = qs.filter(organization__parent__parent_id=gov_id)
 
         class_track_id = self.request.query_params.get('class_track') or self.request.query_params.get('class_track_id')
         if class_track_id:

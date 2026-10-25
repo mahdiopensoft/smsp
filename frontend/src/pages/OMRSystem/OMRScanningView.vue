@@ -121,20 +121,21 @@
         </template>
       </v-row>
 
-      <!-- الصف 2: الهيكلية الجغرافية والمؤسسية + اختيار الاختبار المعتمد (4 أعمدة متساوية cols="3") -->
+      <!-- الصف 2: الهيكلية الجغرافية والمؤسسية + اختيار الاختبار المعتمد (أعمدة ديناميكية) -->
       <v-row dense class="align-center mb-1 mt-1">
         <!-- 1. المحافظة -->
         <auto-list
           v-model="filterGovernorate"
           name="Governorate"
           placeholder="المحافظة *"
-          cols="3"
+          :cols="isSchoolFilter ? 3 : 4"
           :add="false"
           @update:model-value="onGovernorateChange"
         />
 
-        <!-- 2. المديرية -->
+        <!-- 2. المديرية (تظهر للمدارس فقط) -->
         <auto-list
+          v-if="isSchoolFilter"
           v-model="filterDirectorate"
           name="Directorate"
           :param="filterGovernorate"
@@ -151,8 +152,9 @@
           name="Organization"
           :param="orgParam"
           :placeholder="orgPlaceholder"
-          cols="3"
+          :cols="isSchoolFilter ? 3 : 4"
           :add="false"
+          :disabled="isOrgDisabled"
           @update:model-value="onOrganizationChange"
         />
 
@@ -162,7 +164,7 @@
           name="Exam"
           :param="examFilterParam"
           placeholder="الاختبار والمادة الدراسية *"
-          cols="3"
+          :cols="isSchoolFilter ? 3 : 4"
           :add="false"
           @update:model-value="onExamChange"
         />
@@ -177,7 +179,7 @@
             label="رقم القاعة *"
             variant="outlined"
             density="compact"
-            prepend-inner-icon="mdi-door-open"
+            prepend-inner-icon="mdi-map-marker-outline"
             hide-details
             placeholder="مثال: قاعة 03"
             @update:model-value="generateEnvelopeBarcode"
@@ -191,7 +193,7 @@
             label="باركود / كود المظروف الامتحاني *"
             variant="outlined"
             density="compact"
-            prepend-inner-icon="mdi-barcode-scan"
+            prepend-inner-icon="mdi-barcode"
             hide-details
             append-inner-icon="mdi-refresh"
             @click:append-inner="generateEnvelopeBarcode"
@@ -208,7 +210,7 @@
             label="سعة القاعة المقيدة (الطلاب المقيدون) *"
             variant="outlined"
             density="compact"
-            prepend-inner-icon="mdi-counter"
+            prepend-inner-icon="mdi-account-group-outline"
             hide-details
           />
         </v-col>
@@ -223,7 +225,7 @@
             label="عدد الغائبين (وفق حافظة الكشف) *"
             variant="outlined"
             density="compact"
-            prepend-inner-icon="mdi-account-cancel-outline"
+            prepend-inner-icon="mdi-account-remove-outline"
             color="warning"
             hide-details
           />
@@ -231,53 +233,49 @@
       </v-row>
 
       <!-- ── التلخيص السريع لحافظة المظروف والمعادلة المتوقعة ── -->
-      <v-sheet
-        rounded="xl"
-        class="pa-3 mt-3 border bg-surface"
+      <div
+        class="pa-3 mt-3 rounded-xl border bg-surface d-flex align-center justify-space-between flex-wrap gap-3"
       >
-        <div class="d-flex align-center justify-space-between flex-wrap gap-3">
-          <!-- شريط المعادلة الأفقي المترابط -->
-          <div class="d-flex align-center gap-2 flex-nowrap overflow-x-auto py-1">
-            <div class="d-flex align-center gap-1 text-caption font-weight-black text-primary text-no-wrap me-2">
-              <v-icon size="20" color="primary">mdi-scale-balance</v-icon>
-              <span>معادلة المطابقة المتوقعة:</span>
-            </div>
-
-            <!-- المقيدون -->
-            <div class="formula-box d-flex align-center gap-1.5 px-3 py-1.5 rounded-lg border">
-              <span class="text-caption text-medium-emphasis font-weight-bold">المقيدون:</span>
-              <span class="text-body-2 font-weight-black text-primary font-mono">{{ currentEnvelope.expectedCount }}</span>
-            </div>
-
-            <v-icon size="18" color="medium-emphasis" class="mx-0.5">mdi-equal</v-icon>
-
-            <!-- الحاضرون -->
-            <div class="formula-box d-flex align-center gap-1.5 px-3 py-1.5 rounded-lg border">
-              <span class="text-caption text-medium-emphasis font-weight-bold">ورقة حاضرة:</span>
-              <span class="text-body-2 font-weight-black text-success font-mono">{{ expectedPresentSheets }}</span>
-            </div>
-
-            <v-icon size="18" color="medium-emphasis" class="mx-0.5">mdi-plus</v-icon>
-
-            <!-- الغياب -->
-            <div class="formula-box d-flex align-center gap-1.5 px-3 py-1.5 rounded-lg border">
-              <span class="text-caption text-medium-emphasis font-weight-bold">طالب غائب:</span>
-              <span class="text-body-2 font-weight-black text-warning font-mono">{{ currentEnvelope.absentCount }}</span>
-            </div>
+        <!-- شريط المعادلة الأفقي المتماسك بالرموز الرياضية الطبيعية -->
+        <div class="d-flex align-center gap-2 flex-nowrap overflow-x-auto py-1">
+          <div class="d-flex align-center gap-1.5 text-caption font-weight-black text-primary text-no-wrap me-2">
+            <v-icon size="18" color="primary">mdi-calculator-variant-outline</v-icon>
+            <span>معادلة المطابقة المتوقعة:</span>
           </div>
 
-          <!-- هدف السحب من الماسح -->
-          <v-chip
-            size="default"
-            color="info"
-            variant="flat"
-            class="font-weight-black font-mono px-3 elevation-1"
-            prepend-icon="mdi-tray-arrow-down"
-          >
-            المطلوب سحبه من الماسح: {{ expectedPresentSheets }} ورقة
-          </v-chip>
+          <!-- المقيدون -->
+          <div class="formula-box d-flex align-center gap-1.5 px-3 py-1.5 rounded-lg border">
+            <span class="text-caption text-medium-emphasis font-weight-bold">المقيدون:</span>
+            <span class="text-body-2 font-weight-black text-primary font-mono">{{ currentEnvelope.expectedCount }}</span>
+          </div>
+
+          <span class="text-h6 font-weight-black text-medium-emphasis mx-1">=</span>
+
+          <!-- الحاضرون -->
+          <div class="formula-box d-flex align-center gap-1.5 px-3 py-1.5 rounded-lg border">
+            <span class="text-caption text-medium-emphasis font-weight-bold">ورقة حاضرة:</span>
+            <span class="text-body-2 font-weight-black text-success font-mono">{{ expectedPresentSheets }}</span>
+          </div>
+
+          <span class="text-h6 font-weight-black text-medium-emphasis mx-1">+</span>
+
+          <!-- الغياب -->
+          <div class="formula-box d-flex align-center gap-1.5 px-3 py-1.5 rounded-lg border">
+            <span class="text-caption text-medium-emphasis font-weight-bold">طالب غائب:</span>
+            <span class="text-body-2 font-weight-black text-warning font-mono">{{ currentEnvelope.absentCount }}</span>
+          </div>
         </div>
-      </v-sheet>
+
+        <!-- هدف السحب من الماسح -->
+        <v-chip
+          size="default"
+          color="primary"
+          variant="tonal"
+          class="font-weight-black font-mono px-3"
+        >
+          المطلوب سحبه من الماسح: {{ expectedPresentSheets }} ورقة
+        </v-chip>
+      </div>
     </filter-fields>
 
           <!-- ── 2. ملقم الماسح الصناعي عالي السرعة (Industrial ADF Feeder Bay) ── -->
@@ -989,11 +987,28 @@ export default {
       return Object.keys(p).length > 0 ? p : undefined
     })
 
+    const isSchoolFilter = computed(() => {
+      return !filterInstitutionType.value || filterInstitutionType.value === 'all' || filterInstitutionType.value === 'school'
+    })
+
+    const isOrgDisabled = computed(() => {
+      if (isSchoolFilter.value) {
+        return !filterGovernorate.value || !filterDirectorate.value
+      }
+      return !filterGovernorate.value
+    })
+
     const orgPlaceholder = computed(() => {
-      const lbl = filterInstitutionType.value === 'university'
-        ? 'المركز الامتحاني (الكلية / الجامعة)'
-        : (filterInstitutionType.value === 'institute' ? 'المركز الامتحاني (المعهد / المركز)' : 'المركز الامتحاني (المدرسة)')
-      return filterDirectorate.value ? `${lbl} (التابعة للمديرية)` : (filterGovernorate.value ? `${lbl} (التابعة للمحافظة)` : lbl)
+      const typeLabel = filterInstitutionType.value === 'university'
+        ? 'الكلية / الجامعة'
+        : (filterInstitutionType.value === 'institute' ? 'المعهد / المركز' : 'المدرسة')
+      if (isSchoolFilter.value) {
+        if (!filterGovernorate.value) return 'اختر المحافظة أولاً...'
+        if (!filterDirectorate.value) return 'اختر المديرية أولاً...'
+        return `${typeLabel} (التابعة للمديرية)`
+      }
+      if (!filterGovernorate.value) return 'اختر المحافظة أولاً...'
+      return `${typeLabel} (التابعة للمحافظة)`
     })
 
     const onInstitutionTypeChange = () => {
@@ -1008,6 +1023,8 @@ export default {
       filterInstituteEducationSystem.value = null
       filterInstituteSpecialization.value = null
       filterInstituteSubject.value = null
+      filterGovernorate.value = null
+      filterDirectorate.value = null
       filterOrganization.value = null
       selectedExamId.value = null
       generateEnvelopeBarcode()
@@ -1073,9 +1090,11 @@ export default {
       const p = {}
       if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
         p.institution_type = filterInstitutionType.value
+      } else {
+        p.institution_type = 'school'
       }
       if (filterGovernorate.value) p.governorate = filterGovernorate.value
-      if (filterDirectorate.value) p.directorate = filterDirectorate.value
+      if (isSchoolFilter.value && filterDirectorate.value) p.directorate = filterDirectorate.value
       return Object.keys(p).length > 0 ? p : undefined
     })
 
@@ -1585,6 +1604,8 @@ export default {
       filterInstituteSubject,
       subjectFilterParam,
       instituteSpecParam,
+      isSchoolFilter,
+      isOrgDisabled,
       orgPlaceholder,
       onInstitutionTypeChange,
       onStageChange,
