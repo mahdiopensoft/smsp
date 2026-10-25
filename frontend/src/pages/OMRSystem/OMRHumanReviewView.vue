@@ -13,7 +13,7 @@
           @update:model-value="onInstitutionTypeChange"
         />
 
-        <!-- 🏫 School Filters -->
+        <!-- فلاتر المدارس -->
         <template v-if="filterInstitutionType === 'school' || filterInstitutionType === 'all'">
           <auto-list
             v-if="filterInstitutionType === 'school'"
@@ -36,7 +36,7 @@
           />
         </template>
 
-        <!-- 🎓 University Filters -->
+        <!-- فلاتر الجامعات -->
         <template v-if="filterInstitutionType === 'university'">
           <auto-list
             v-model="filterCollege"
@@ -75,7 +75,7 @@
           />
         </template>
 
-        <!-- 🏢 Institute Filters -->
+        <!-- فلاتر المعاهد -->
         <template v-if="filterInstitutionType === 'institute'">
           <auto-list
             v-model="filterInstituteField"
@@ -632,7 +632,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, getCurrentInstance } from 'vue'
+import { ref, computed, watch, onMounted, getCurrentInstance } from 'vue'
 import { humanReviewAPI } from '@/services/omr/endpoints.js'
 
 const { proxy } = getCurrentInstance()
