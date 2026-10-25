@@ -1,7 +1,7 @@
 <template>
   <div class="student-card-settings">
     <!-- Student Card Toggle -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4 d-flex justify-space-between align-center">
+    <div class="pa-4 rounded-xl border bg-surface mb-4 d-flex justify-space-between align-center">
       <div>
         <label class="text-subtitle-2 font-weight-bold d-block">بطاقة بيانات الطالب الرسمية المدمجة</label>
         <span class="text-caption text-medium-emphasis">تتضمن الترويسة والشعار والهوية المؤسسية والدوائر الأمنية</span>
@@ -16,7 +16,7 @@
 
     <template v-if="config.student_fields.enabled">
       <!-- ── Fast Institution Identity Switcher (School vs University) ── -->
-      <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+      <div class="pa-4 rounded-xl border bg-surface mb-4">
         <div class="d-flex align-center justify-space-between mb-2">
           <label class="text-subtitle-2 font-weight-bold d-flex align-center gap-2">
             <v-icon color="primary" size="20">mdi-domain-switch</v-icon>
@@ -50,7 +50,7 @@
       </div>
 
       <!-- Institutional Header & Seal -->
-      <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+      <div class="pa-4 rounded-xl border bg-surface mb-4">
         <label class="text-subtitle-2 font-weight-bold mb-2 d-block">
           {{ currentInstitutionType === 'university' ? 'الترويسة والشعار — التعليم الجامعي والأكاديمي' : 'الترويسة والشعار — التعليم الأساسي والثانوي' }}
         </label>
@@ -83,7 +83,7 @@
       </div>
 
       <!-- Exam & Subject Information -->
-      <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+      <div class="pa-4 rounded-xl border bg-surface mb-4">
         <label class="text-subtitle-2 font-weight-bold mb-2 d-block">بيانات المادة وموقع الاختبار</label>
         <v-text-field
           v-model="config.header.exam_name"
@@ -141,7 +141,7 @@
       </div>
 
       <!-- Student Identifier & Serial Box -->
-      <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+      <div class="pa-4 rounded-xl border bg-surface mb-4">
         <label class="text-subtitle-2 font-weight-bold mb-2 d-block">
           {{ currentInstitutionType === 'university' ? 'صندوق الرقم الأكاديمي / القيد' : 'صندوق رقم الجلوس والرقم التسلسلي' }}
         </label>
@@ -170,7 +170,7 @@
       </div>
 
       <!-- Absence & Violations Section -->
-      <div class="pa-4 rounded-xl border bg-grey-lighten-5">
+      <div class="pa-4 rounded-xl border bg-surface">
         <div class="d-flex align-center justify-space-between mb-2">
           <label class="text-subtitle-2 font-weight-bold">دوائر الملاحظة ولجنة النظام والمراقبة</label>
           <v-chip size="x-small" color="warning" variant="tonal" class="font-weight-bold">5 حالات معتمدة</v-chip>

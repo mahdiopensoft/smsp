@@ -1,7 +1,7 @@
 <template>
   <div class="page-layout-settings">
     <!-- Preset Template Selector -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">النموذج القياسي المعتمد (Preset Pattern)</label>
         <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold">موصى به</v-chip>
@@ -24,7 +24,7 @@
     </div>
 
     <!-- Document Output & Layout Mode (For Yemeni Ministry 50) -->
-    <div v-if="isYemeniPreset" class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div v-if="isYemeniPreset" class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">نوع مخرج ونموذج الورقة المعيارية</label>
         <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold">تنسيق مخصص</v-chip>
@@ -54,7 +54,7 @@
     </div>
 
     <!-- Paper Size & Dimensions -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <label class="text-subtitle-2 font-weight-bold mb-2 d-block">مقاس الورقة القياسي</label>
       <v-btn-toggle
         v-model="config.paper.size"
@@ -101,7 +101,7 @@
     </div>
 
     <!-- Target Print DPI & Colors -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">دقة المسح الضوئي والطباعة</label>
         <v-chip size="small" color="success" variant="tonal" class="font-weight-bold">
@@ -127,7 +127,7 @@
     </div>
 
     <!-- Direction -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5">
+    <div class="pa-4 rounded-xl border bg-surface">
       <label class="text-subtitle-2 font-weight-bold mb-2 d-block">اتجاه القراءة وترتيب الأعمدة</label>
       <v-btn-toggle
         v-model="config.questions.layout.layout_direction"

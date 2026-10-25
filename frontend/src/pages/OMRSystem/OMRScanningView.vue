@@ -5,14 +5,8 @@
       label="1. بيانات المظروف الامتحاني والقاعة (Envelope Manifest & Dispatch Details)"
       class="main-card border-0 pa-5 rounded-2xl mb-5 shadow-sm"
     >
-      <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-4 w-100">
-        <div class="d-flex align-center gap-2">
-          <v-icon color="primary" size="22">mdi-card-bulleted-settings-outline</v-icon>
-          <span class="text-subtitle-1 font-weight-black text-on-surface">
-            1. بيانات المظروف الامتحاني والقاعة (Envelope Manifest & Dispatch Details)
-          </span>
-        </div>
-        <v-chip color="primary" variant="tonal" size="small" class="font-weight-bold">
+      <div class="d-flex align-center justify-end mb-3">
+        <v-chip color="primary" variant="tonal" size="small" class="font-weight-bold" prepend-icon="mdi-shield-check">
           حالة الاستلام: مظروف رسمي مشمع ومفروز
         </v-chip>
       </div>
@@ -237,19 +231,30 @@
       </v-row>
 
       <!-- التلخيص السريع لحافظة المظروف والمعادلة المتوقعة -->
-      <div class="d-flex align-center justify-space-between flex-wrap gap-2 mt-3 pt-3 border-t text-caption font-weight-bold">
-        <div class="d-flex align-center gap-3">
+      <v-sheet
+        rounded="xl"
+        class="pa-3 mt-3 border d-flex align-center justify-space-between flex-wrap gap-2"
+        style="background: rgba(var(--v-theme-primary), 0.04);"
+      >
+        <div class="d-flex align-center gap-2 flex-wrap text-caption font-weight-bold">
+          <v-icon size="18" color="primary">mdi-scale-balance</v-icon>
           <span class="text-medium-emphasis">معادلة المطابقة المتوقعة:</span>
-          <span class="text-primary font-weight-black">{{ currentEnvelope.expectedCount }} مقيد</span>
+          <v-chip size="small" color="primary" variant="tonal" class="font-weight-black font-mono">
+            {{ currentEnvelope.expectedCount }} مقيد
+          </v-chip>
           <span class="text-medium-emphasis">=</span>
-          <span class="text-success font-weight-black">{{ expectedPresentSheets }} ورقة إجابة حاضرة</span>
+          <v-chip size="small" color="success" variant="tonal" class="font-weight-black font-mono">
+            {{ expectedPresentSheets }} ورقة حاضرة
+          </v-chip>
           <span class="text-medium-emphasis">+</span>
-          <span class="text-warning font-weight-black">{{ currentEnvelope.absentCount }} طالب غائب مسجل</span>
+          <v-chip size="small" color="warning" variant="tonal" class="font-weight-black font-mono">
+            {{ currentEnvelope.absentCount }} طالب غائب
+          </v-chip>
         </div>
-        <v-chip size="x-small" color="info" variant="tonal" class="font-weight-bold">
+        <v-chip size="small" color="info" variant="flat" class="font-weight-black font-mono px-3" prepend-icon="mdi-tray-arrow-down">
           المطلوب سحبه من الماسح: {{ expectedPresentSheets }} ورقة
         </v-chip>
-      </div>
+      </v-sheet>
     </filter-fields>
 
           <!-- ── 2. ملقم الماسح الصناعي عالي السرعة (Industrial ADF Feeder Bay) ── -->
@@ -380,18 +385,20 @@
             <!-- حالة 1: مطابق ومكتمل 100% -->
             <v-card
               v-if="reconciliationStatus === 'BALANCED'"
-              class="pa-4 pa-md-5 rounded-2xl border-0 elevation-1 bg-green-lighten-5 border-success text-green-darken-4"
+              variant="tonal"
+              color="success"
+              class="pa-4 pa-md-5 rounded-2xl border border-success mb-3"
             >
               <div class="d-flex align-center justify-space-between flex-wrap gap-3">
                 <div class="d-flex align-center gap-3">
-                  <v-avatar size="48" color="success" class="elevation-1">
+                  <v-avatar size="48" color="success" variant="flat" class="elevation-1">
                     <v-icon size="28" color="white">mdi-check-decagram</v-icon>
                   </v-avatar>
                   <div>
-                    <div class="text-h6 font-weight-black text-green-darken-4 mb-0">
+                    <div class="text-h6 font-weight-black mb-0">
                       المظروف مطابق ومكتمل 100% ({{ actualScannedCount + currentEnvelope.absentCount }} / {{ currentEnvelope.expectedCount }})
                     </div>
-                    <div class="text-caption text-green-darken-3 font-weight-bold mt-1">
+                    <div class="text-caption font-weight-bold mt-1 opacity-90">
                       تم استيفاء كامل أوراق القاعة: {{ actualScannedCount }} ورقة إجابة ممسوحة + {{ currentEnvelope.absentCount }} غياب مسجل رسمي بكشف الحضور والغياب.
                       لا يوجد أي عجز أو فقد في الأوراق.
                     </div>
@@ -417,18 +424,20 @@
             <!-- حالة 2: عجز ونقص في الأوراق (Deficit Alert) -->
             <v-card
               v-else-if="reconciliationStatus === 'DEFICIT'"
-              class="pa-4 pa-md-5 rounded-2xl border-0 elevation-1 bg-red-lighten-5 border-error text-red-darken-4"
+              variant="tonal"
+              color="error"
+              class="pa-4 pa-md-5 rounded-2xl border border-error mb-3"
             >
               <div class="d-flex align-center justify-space-between flex-wrap gap-3">
                 <div class="d-flex align-center gap-3">
-                  <v-avatar size="48" color="error" class="elevation-1">
+                  <v-avatar size="48" color="error" variant="flat" class="elevation-1">
                     <v-icon size="28" color="white">mdi-alert-octagon</v-icon>
                   </v-avatar>
                   <div>
-                    <div class="text-h6 font-weight-black text-red-darken-4 mb-0">
+                    <div class="text-h6 font-weight-black mb-0">
                       تنبيه عجز: نقص في أوراق المظروف الامتحاني!
                     </div>
-                    <div class="text-caption text-red-darken-3 font-weight-bold mt-1">
+                    <div class="text-caption font-weight-bold mt-1 opacity-90">
                       سعة القاعة المقيدة: {{ currentEnvelope.expectedCount }} طالباً | الأوراق المسحوبة: {{ actualScannedCount }} + الغياب: {{ currentEnvelope.absentCount }} = {{ actualScannedCount + currentEnvelope.absentCount }} ورقة.
                       <strong class="text-decoration-underline">يوجد عجز بمقدار ({{ discrepancyAmount }}) ورقة مفقودة!</strong>
                       يرجى فحص سلة الماسح أو المظروف فوراً قبل الاعتماد.
@@ -438,7 +447,7 @@
 
                 <v-btn
                   color="error"
-                  variant="tonal"
+                  variant="flat"
                   rounded="lg"
                   size="small"
                   class="font-weight-bold"
@@ -453,25 +462,27 @@
             <!-- حالة 3: فائض وزيادة غير مبررة (Surplus Alert) -->
             <v-card
               v-else-if="reconciliationStatus === 'SURPLUS'"
-              class="pa-4 pa-md-5 rounded-2xl border-0 elevation-1 bg-amber-lighten-5 border-warning text-amber-darken-4"
+              variant="tonal"
+              color="warning"
+              class="pa-4 pa-md-5 rounded-2xl border border-warning mb-3"
             >
               <div class="d-flex align-center justify-space-between flex-wrap gap-3">
                 <div class="d-flex align-center gap-3">
-                  <v-avatar size="48" color="warning" class="elevation-1">
+                  <v-avatar size="48" color="warning" variant="flat" class="elevation-1">
                     <v-icon size="28" color="white">mdi-alert-circle</v-icon>
                   </v-avatar>
                   <div>
-                    <div class="text-h6 font-weight-black text-amber-darken-4 mb-0">
+                    <div class="text-h6 font-weight-black mb-0">
                       تنبيه فائض: تم مسح أوراق إضافية غير مقيدة في المظروف!
                     </div>
-                    <div class="text-caption text-amber-darken-3 font-weight-bold mt-1">
+                    <div class="text-caption font-weight-bold mt-1 opacity-90">
                       سعة القاعة: {{ currentEnvelope.expectedCount }} | الممسوح + الغياب: {{ actualScannedCount + currentEnvelope.absentCount }} (فائض بمقدار {{ Math.abs(discrepancyAmount) }} ورقة).
                       يرجى التأكد من عدم اختلاط أوراق قاعة أخرى في الرزمة.
                     </div>
                   </div>
                 </div>
 
-                <v-btn color="warning" variant="tonal" rounded="lg" size="small" class="font-weight-bold" @click="openDiscrepancyReport">
+                <v-btn color="warning" variant="flat" rounded="lg" size="small" class="font-weight-bold" @click="openDiscrepancyReport">
                   مراجعة الرزمة
                 </v-btn>
               </div>
@@ -483,42 +494,42 @@
             <!-- عدادات الفرز الثلاثية -->
             <v-row dense class="mb-3">
               <v-col cols="12" sm="4">
-                <v-card class="pa-3 rounded-xl border text-center bg-green-lighten-5">
-                  <div class="text-caption font-weight-bold text-green-darken-3">أوراق سليمة ومعتمدة</div>
-                  <div class="text-h5 font-weight-black text-green-darken-3 font-mono">
+                <v-card variant="tonal" color="success" class="pa-3 rounded-xl border text-center">
+                  <div class="text-caption font-weight-bold">أوراق سليمة ومعتمدة</div>
+                  <div class="text-h5 font-weight-black font-mono">
                     {{ successfulSheets.length }}
                   </div>
-                  <div class="text-caption text-green-darken-2">رُصدت درجاتها آلياً بنجاح</div>
+                  <div class="text-caption opacity-80">رُصدت درجاتها آلياً بنجاح</div>
                 </v-card>
               </v-col>
 
               <v-col cols="12" sm="4">
-                <v-card class="pa-3 rounded-xl border text-center bg-amber-lighten-5">
-                  <div class="text-caption font-weight-bold text-amber-darken-4">أوراق تحتاج تدقيق بشري</div>
-                  <div class="text-h5 font-weight-black text-amber-darken-4 font-mono">
+                <v-card variant="tonal" color="warning" class="pa-3 rounded-xl border text-center">
+                  <div class="text-caption font-weight-bold">أوراق تحتاج تدقيق بشري</div>
+                  <div class="text-h5 font-weight-black font-mono">
                     {{ needsReviewSheets.length }}
                   </div>
-                  <div class="text-caption text-amber-darken-3">تظليل مزدوج أو التباس مقعد</div>
+                  <div class="text-caption opacity-80">تظليل مزدوج أو التباس مقعد</div>
                 </v-card>
               </v-col>
 
               <v-col cols="12" sm="4">
-                <v-card class="pa-3 rounded-xl border text-center bg-grey-lighten-4">
-                  <div class="text-caption font-weight-bold text-medium-emphasis">متوسط درجات القاعة</div>
-                  <div class="text-h5 font-weight-black text-primary font-mono">
+                <v-card variant="tonal" color="primary" class="pa-3 rounded-xl border text-center">
+                  <div class="text-caption font-weight-bold">متوسط درجات القاعة</div>
+                  <div class="text-h5 font-weight-black font-mono">
                     {{ currentEnvelopeAvgScore }}%
                   </div>
-                  <div class="text-caption text-medium-emphasis">المعدل العام للقاعة</div>
+                  <div class="text-caption opacity-80">المعدل العام للقاعة</div>
                 </v-card>
               </v-col>
             </v-row>
 
             <!-- جدول أوراق المظروف المصححة فعلياً -->
-            <v-card class="rounded-2xl border-0 shadow-sm overflow-hidden">
-              <div class="pa-3 border-b bg-grey-lighten-5 d-flex align-center justify-space-between flex-wrap gap-2">
+            <v-card class="rounded-2xl border-0 shadow-sm overflow-hidden bg-surface">
+              <div class="pa-3 border-b d-flex align-center justify-space-between flex-wrap gap-2" style="background: rgba(var(--v-theme-surface-variant), 0.25);">
                 <div class="d-flex align-center gap-2">
                   <v-icon color="primary" size="20">mdi-format-list-numbered-rtl</v-icon>
-                  <span class="text-subtitle-2 font-weight-black">
+                  <span class="text-subtitle-2 font-weight-black text-on-surface">
                     الأوراق الممسوحة فعلياً في مظروف: {{ currentEnvelope.envelopeCode }} ({{ displaySheets.length }} ورقة)
                   </span>
                 </div>
@@ -551,9 +562,9 @@
                 </div>
               </div>
 
-              <v-table density="compact" hover>
+              <v-table density="compact" hover class="bg-surface">
                 <thead>
-                  <tr class="bg-grey-lighten-4">
+                  <tr style="background: rgba(var(--v-theme-surface-variant), 0.35);">
                     <th class="text-right font-weight-black">رقم الجلوس</th>
                     <th class="text-right font-weight-black">اسم الطالب</th>
                     <th class="text-center font-weight-black">نموذج الأسئلة</th>
@@ -617,12 +628,12 @@
 
           <!-- ── هـ. كشف الطلاب المقيدين رسمياً في القاعة (عند عدم وجود أوراق ممسوحة بعد) ── -->
           <div v-else class="mb-5">
-            <v-card class="rounded-2xl border-0 shadow-sm overflow-hidden">
-              <div class="pa-4 border-b bg-grey-lighten-5 d-flex align-center justify-space-between flex-wrap gap-2">
+            <v-card class="rounded-2xl border-0 shadow-sm overflow-hidden bg-surface">
+              <div class="pa-4 border-b d-flex align-center justify-space-between flex-wrap gap-2" style="background: rgba(var(--v-theme-surface-variant), 0.25);">
                 <div class="d-flex align-center gap-2">
                   <v-icon color="primary" size="22">mdi-clipboard-list-outline</v-icon>
                   <div>
-                    <span class="text-subtitle-2 font-weight-black">
+                    <span class="text-subtitle-2 font-weight-black text-on-surface">
                       حافظة كشف الطلاب المقيدين في القاعة (السجل الرسمي للطلاب): {{ currentEnvelope.envelopeCode }}
                     </span>
                     <div class="text-caption text-medium-emphasis">
@@ -637,9 +648,9 @@
               </div>
 
               <div v-if="registeredStudents.length > 0">
-                <v-table density="compact" hover>
+                <v-table density="compact" hover class="bg-surface">
                   <thead>
-                    <tr class="bg-grey-lighten-4">
+                    <tr style="background: rgba(var(--v-theme-surface-variant), 0.35);">
                       <th class="text-right font-weight-black">م</th>
                       <th class="text-right font-weight-black">رقم الجلوس</th>
                       <th class="text-right font-weight-black">اسم الطالب الثلاثي/الرباعي</th>
@@ -689,7 +700,7 @@
           <v-btn icon="mdi-close" variant="text" size="small" @click="previewDialog = false" />
         </div>
 
-        <div class="pa-3 rounded-xl bg-grey-lighten-4 mb-4">
+        <div class="pa-3 rounded-xl mb-4 border" style="background: rgba(var(--v-theme-surface-variant), 0.25);">
           <div class="d-flex justify-space-between flex-wrap gap-2 mb-2">
             <div>
               <span class="text-caption text-medium-emphasis">الطالب:</span>
@@ -737,7 +748,7 @@
         </div>
 
         <!-- عرض صورة التدقيق والدوائر المكتشفة -->
-        <div v-if="previewMode === 'annotated'" class="text-center pa-2 border rounded-xl bg-grey-lighten-5 mb-4 position-relative" style="max-height: 480px; overflow-y: auto;">
+        <div v-if="previewMode === 'annotated'" class="text-center pa-2 border rounded-xl mb-4 position-relative" style="max-height: 480px; overflow-y: auto; background: rgba(var(--v-theme-surface-variant), 0.15);">
           <div v-if="!activePreviewSheet.annotated_url && !activePreviewSheet.image_url" class="py-8 text-medium-emphasis">
             لا توجد صورة متوفرة للمعاينة
           </div>
@@ -753,7 +764,7 @@
         </div>
 
         <!-- عرض الصورة الأصلية -->
-        <div v-else-if="previewMode === 'original'" class="text-center pa-2 border rounded-xl bg-grey-lighten-5 mb-4" style="max-height: 480px; overflow-y: auto;">
+        <div v-else-if="previewMode === 'original'" class="text-center pa-2 border rounded-xl mb-4" style="max-height: 480px; overflow-y: auto; background: rgba(var(--v-theme-surface-variant), 0.15);">
           <v-img :src="activePreviewSheet.image_url" max-height="450" contain class="rounded-lg" />
         </div>
 
@@ -761,7 +772,7 @@
         <div v-else-if="previewMode === 'questions'" class="border rounded-xl mb-4 overflow-hidden" style="max-height: 400px; overflow-y: auto;">
           <v-table density="compact">
             <thead>
-              <tr class="bg-grey-lighten-4">
+              <tr style="background: rgba(var(--v-theme-surface-variant), 0.35);">
                 <th class="text-right">السؤال</th>
                 <th class="text-center">إجابة الطالب المكتشفة</th>
                 <th class="text-center">حالة الدائرة</th>
@@ -1445,24 +1456,25 @@ export default {
 
 /* ── Dropzone ──────────────────────────────────────────────── */
 .national-dropzone {
-  border: 2px dashed #cbd5e1;
-  background: #f8fafc;
+  border: 2px dashed rgba(var(--v-theme-primary), 0.35);
+  background: rgba(var(--v-theme-primary), 0.04);
+  color: rgb(var(--v-theme-on-surface));
   transition: all 0.2s ease-in-out;
 }
 
 .national-dropzone:hover {
-  border-color: #0284c7;
-  background: #f0f9ff;
+  border-color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.08);
 }
 
 .national-dropzone.is-dragging {
-  border-color: #0369a1;
-  background: #e0f2fe;
+  border-color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.14);
 }
 
 .national-dropzone.has-files {
-  border-color: #10b981;
-  background: #f0fdf4;
+  border-color: rgb(var(--v-theme-success));
+  background: rgba(var(--v-theme-success), 0.08);
 }
 
 /* ── Governorate Cards (Video Wall) ────────────────────────── */

@@ -336,7 +336,7 @@
           </div>
         </div>
 
-        <div class="pa-4 bg-grey-lighten-4 rounded-xl d-flex justify-center overflow-auto" style="max-height: 600px;">
+        <div class="pa-4 bg-surface rounded-xl d-flex justify-center overflow-auto" style="max-height: 600px;">
           <div class="sheet-wrapper" :style="previewWrapperStyle">
             <!-- Mode 1: Yemeni Audit Report Sheet (A4 Full) -->
             <YemeniAuditReportSheet

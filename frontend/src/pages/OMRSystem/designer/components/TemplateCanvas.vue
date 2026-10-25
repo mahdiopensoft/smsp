@@ -1,7 +1,7 @@
 <template>
   <div class="template-canvas-container d-flex flex-column h-100">
     <!-- ── Canvas Control Toolbar ────────────────────────────────── -->
-    <div class="canvas-toolbar pa-3 px-4 rounded-xl border bg-white mb-3 d-flex justify-space-between align-center flex-wrap gap-2 elevation-1">
+    <div class="canvas-toolbar pa-3 px-4 rounded-xl border bg-surface mb-3 d-flex justify-space-between align-center flex-wrap gap-2 elevation-1">
       <div class="d-flex align-center gap-2 flex-wrap">
         <!-- View Mode -->
         <v-btn-toggle
@@ -22,7 +22,7 @@
         </v-btn-toggle>
 
         <!-- Proportional Zoom -->
-        <div class="d-flex align-center bg-grey-lighten-4 rounded-lg px-1 border">
+        <div class="d-flex align-center rounded-lg px-1 border" style="background: rgba(var(--v-theme-surface-variant), 0.3);">
           <v-btn icon size="small" variant="text" :disabled="zoomLevel <= 0.4" @click="zoomOut">
             <v-icon size="18">mdi-magnify-minus-outline</v-icon>
           </v-btn>

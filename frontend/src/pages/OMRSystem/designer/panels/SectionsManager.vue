@@ -3,7 +3,7 @@
     <!-- ══════════════════════════════════════════════════════════════ -->
     <!-- 1. Question Architecture Overview & Live Summary               -->
     <!-- ══════════════════════════════════════════════════════════════ -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-3">
         <label class="text-subtitle-2 font-weight-bold d-flex align-center gap-2">
           <v-icon color="primary" size="20">mdi-format-list-numbered-rtl</v-icon>
@@ -170,7 +170,7 @@
     <!-- ══════════════════════════════════════════════════════════════ -->
     <!-- 2. Detailed Sections List (Add / Edit / Delete / Reorder)       -->
     <!-- ══════════════════════════════════════════════════════════════ -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-3 flex-wrap gap-2">
         <label class="text-subtitle-2 font-weight-bold d-flex align-center gap-2">
           <v-icon color="info" size="20">mdi-view-headline</v-icon>
@@ -349,7 +349,7 @@
     <!-- ══════════════════════════════════════════════════════════════ -->
     <!-- 3. Layout Columns & Sizing                                     -->
     <!-- ══════════════════════════════════════════════════════════════ -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">عدد الأعمدة الهندسية (Columns Count)</label>
         <v-chip size="small" color="info" variant="flat" class="font-weight-bold">
@@ -373,7 +373,7 @@
     </div>
 
     <!-- Row Spacing Slider -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">التباعد الرأسي بين الأسئلة (Row Spacing)</label>
         <div class="d-flex align-center gap-2">
@@ -397,7 +397,7 @@
     </div>
 
     <!-- Bubble Radius Slider -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">نصف قطر الدائرة (Bubble Radius)</label>
         <v-chip size="small" color="primary" variant="flat" class="font-weight-bold">
@@ -416,7 +416,7 @@
     </div>
 
     <!-- MCQ Choice Labels Format -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">نمط خيارات الاختيار من متعدد (MCQ)</label>
         <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
@@ -439,7 +439,7 @@
     </div>
 
     <!-- True / False Choice Scheme -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">نمط خيارات الصواب والخطأ (True / False)</label>
         <v-chip size="small" color="success" variant="tonal" class="font-weight-bold">
@@ -463,7 +463,7 @@
     </div>
 
     <!-- Choices Count per Question -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5">
+    <div class="pa-4 rounded-xl border bg-surface">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">عدد خيارات أسئلة الاختيار من متعدد</label>
         <v-chip size="small" color="info" variant="flat" class="font-weight-bold">

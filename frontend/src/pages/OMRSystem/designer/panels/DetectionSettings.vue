@@ -1,7 +1,7 @@
 <template>
   <div class="detection-settings">
     <!-- Engine Selector Box -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-3">
         <label class="text-subtitle-2 font-weight-bold d-flex align-center gap-2">
           <v-icon color="primary" size="20">mdi-cog-sync-outline</v-icon>
@@ -39,7 +39,7 @@
     </div>
 
     <!-- Bubble Shading Thresholds Box -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <label class="text-subtitle-2 font-weight-bold d-flex align-center gap-2 mb-3">
         <v-icon color="indigo" size="20">mdi-contrast-box</v-icon>
         عتبات التعرف على التظليل وكثافة الحبر
@@ -91,7 +91,7 @@
     </div>
 
     <!-- AI Neural Verification Switch -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between">
         <div>
           <label class="text-subtitle-2 font-weight-bold d-flex align-center gap-2">
@@ -112,7 +112,7 @@
     </div>
 
     <!-- Alignment Tolerance -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex justify-space-between align-center mb-2">
         <label class="text-subtitle-2 font-weight-bold d-flex align-center gap-2">
           <v-icon color="warning" size="20">mdi-target</v-icon>
