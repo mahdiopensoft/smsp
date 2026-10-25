@@ -866,7 +866,7 @@
           tabindex="0"
         >
           <v-icon size="17" class="nav-icon">mdi-history</v-icon>
-          <span>سجل الدفعات المطبوعة ({{ batches.length }})</span>
+          <span>سجل الدفعات المطبوعة ({{ (batches && batches.length) || 0 }})</span>
         </div>
       </div>
     </div>
@@ -3684,6 +3684,23 @@ const packageTableItems = ref({
   },
 })
 
+const filteredPackageStudents = computed(() => {
+  if (!examDetails.value?.registered_students) return []
+  let list = examDetails.value.registered_students
+  if (packageModelFilter.value && packageModelFilter.value !== 'all') {
+    list = list.filter(s => (s.model_code || 'A') === packageModelFilter.value)
+  }
+  if (packageSearch.value && packageSearch.value.trim()) {
+    const q = packageSearch.value.trim().toLowerCase()
+    list = list.filter(s =>
+      String(s.seat_number || '').toLowerCase().includes(q) ||
+      String(s.student_name || '').toLowerCase().includes(q) ||
+      String(s.school_name || '').toLowerCase().includes(q)
+    )
+  }
+  return list
+})
+
 const getPackageData = async (params = {}) => {
   const p = params?.params || params || {}
   const page = p.page || 1
@@ -3715,23 +3732,6 @@ const togglePackageStudentSelection = (studentId) => {
     selectedPackageStudentIds.value.push(studentId)
   }
 }
-
-const filteredPackageStudents = computed(() => {
-  if (!examDetails.value?.registered_students) return []
-  let list = examDetails.value.registered_students
-  if (packageModelFilter.value && packageModelFilter.value !== 'all') {
-    list = list.filter(s => (s.model_code || 'A') === packageModelFilter.value)
-  }
-  if (packageSearch.value && packageSearch.value.trim()) {
-    const q = packageSearch.value.trim().toLowerCase()
-    list = list.filter(s =>
-      String(s.seat_number || '').toLowerCase().includes(q) ||
-      String(s.student_name || '').toLowerCase().includes(q) ||
-      String(s.school_name || '').toLowerCase().includes(q)
-    )
-  }
-  return list
-})
 
 const openPreviewPackage = (student) => {
   previewPackageStudent.value = student
