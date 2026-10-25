@@ -208,336 +208,427 @@
         <v-window v-model="masterTab">
           <!-- 1. تبويب مكاتب التربية بالمحافظات -->
           <v-window-item value="offices" v-if="institutionType === 'school'">
-            <v-data-table
+            <custom-data-table
+              :items="officeMasterTableItems"
+              :getData="getOfficeMasterData"
               :headers="officeMasterHeaders"
-              :items="filteredOfficesTable"
-              :loading="loadingMaster"
-              density="comfortable"
-              hover
-              class="elevation-0"
-              no-data-text="لا توجد مكاتب تربية مسجلة"
+              :customLoading="loadingMaster"
+              :hasFilter="false"
+              :log="false"
+              :restore="false"
+              :numbering="false"
+              :showSelect="false"
+              :actions="false"
+              :search="false"
+              class="bg-transparent"
             >
-              <template #item.office_name="{ item }">
-                <div class="d-flex align-center py-2">
-                  <v-avatar color="primary" variant="tonal" size="36" class="me-3 rounded-lg">
-                    <v-icon color="primary" size="20">mdi-office-building-outline</v-icon>
-                  </v-avatar>
-                  <div>
-                    <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.office_name }}</div>
-                    <div class="text-caption text-medium-emphasis">المحافظة: {{ item.governorate_name }}</div>
+              <template v-slot:item-slot="{ item, key }">
+                <template v-if="key === 'office_name'">
+                  <div class="d-flex align-center py-2">
+                    <v-avatar color="primary" variant="tonal" size="36" class="me-3 rounded-lg">
+                      <v-icon color="primary" size="20">mdi-office-building-outline</v-icon>
+                    </v-avatar>
+                    <div>
+                      <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.office_name }}</div>
+                      <div class="text-caption text-medium-emphasis">المحافظة: {{ item.governorate_name }}</div>
+                    </div>
                   </div>
-                </div>
-              </template>
+                </template>
 
-              <template #item.printed_count="{ item }">
-                <span class="font-weight-bold text-primary">{{ item.printed_count || 0 }} ورقة</span>
-              </template>
+                <template v-else-if="key === 'directorates_count'">
+                  <span class="font-weight-bold text-subtitle-2">{{ item.directorates_count ?? 0 }}</span>
+                </template>
 
-              <template #item.printed_rate="{ item }">
-                <div class="d-flex align-center gap-2">
-                  <v-progress-linear
-                    :model-value="item.printed_rate || 0"
-                    :color="(item.printed_rate >= 100) ? 'success' : (item.printed_rate > 0 ? 'warning' : 'primary')"
-                    height="8"
-                    rounded
-                    class="flex-grow-1"
-                  />
-                  <span class="text-caption font-weight-bold">{{ item.printed_rate || 0 }}%</span>
-                </div>
-              </template>
+                <template v-else-if="key === 'schools_count'">
+                  <span class="font-weight-bold text-subtitle-2">{{ item.schools_count ?? 0 }}</span>
+                </template>
 
-              <template #item.print_status="{ item }">
-                <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
-                  {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
-                </v-chip>
-              </template>
+                <template v-else-if="key === 'exams_count'">
+                  <span class="font-weight-bold text-subtitle-2">{{ item.exams_count ?? 0 }}</span>
+                </template>
 
-              <template #item.actions="{ item }">
-                <div class="d-flex align-center justify-center gap-2">
-                  <v-btn
-                    size="small"
-                    color="primary"
-                    variant="tonal"
-                    rounded="lg"
-                    class="font-weight-bold"
-                    prepend-icon="mdi-arrow-down-right"
-                    @click="drillDownToOffice(item)"
-                  >
-                    المديريات
-                  </v-btn>
-                  <v-btn
-                    size="small"
-                    color="primary"
-                    variant="flat"
-                    rounded="lg"
-                    class="font-weight-bold"
-                    prepend-icon="mdi-printer-outline"
-                    @click="openOfficeStudio(item)"
-                  >
-                    استوديو الطباعة
-                  </v-btn>
-                </div>
+                <template v-else-if="key === 'total_students'">
+                  <span class="font-weight-bold text-subtitle-2">{{ item.total_students ?? 0 }}</span>
+                </template>
+
+                <template v-else-if="key === 'printed_count'">
+                  <span class="font-weight-bold text-primary">{{ item.printed_count || 0 }} ورقة</span>
+                </template>
+
+                <template v-else-if="key === 'printed_rate'">
+                  <div class="d-flex align-center gap-2">
+                    <v-progress-linear
+                      :model-value="item.printed_rate || 0"
+                      :color="(item.printed_rate >= 100) ? 'success' : (item.printed_rate > 0 ? 'warning' : 'primary')"
+                      height="8"
+                      rounded
+                      class="flex-grow-1"
+                    />
+                    <span class="text-caption font-weight-bold">{{ item.printed_rate || 0 }}%</span>
+                  </div>
+                </template>
+
+                <template v-else-if="key === 'print_status'">
+                  <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
+                    {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
+                  </v-chip>
+                </template>
+
+                <template v-else-if="key === 'actions'">
+                  <div class="d-flex align-center justify-center gap-2">
+                    <v-btn
+                      size="small"
+                      color="primary"
+                      variant="tonal"
+                      rounded="lg"
+                      class="font-weight-bold"
+                      prepend-icon="mdi-arrow-down-right"
+                      @click="drillDownToOffice(item)"
+                    >
+                      المديريات
+                    </v-btn>
+                    <v-btn
+                      size="small"
+                      color="primary"
+                      variant="flat"
+                      rounded="lg"
+                      class="font-weight-bold"
+                      prepend-icon="mdi-printer-outline"
+                      @click="openOfficeStudio(item)"
+                    >
+                      استوديو الطباعة
+                    </v-btn>
+                  </div>
+                </template>
               </template>
-            </v-data-table>
+            </custom-data-table>
           </v-window-item>
 
           <!-- 2. تبويب إدارات التربية بالمديريات -->
           <v-window-item value="directorates" v-if="institutionType === 'school'">
-            <v-data-table
+            <custom-data-table
+              :items="directorateMasterTableItems"
+              :getData="getDirectorateMasterData"
               :headers="directorateMasterHeaders"
-              :items="filteredDirectoratesTable"
-              :loading="loadingMaster"
-              density="comfortable"
-              hover
-              class="elevation-0"
-              no-data-text="لا توجد إدارات تربية مسجلة"
+              :customLoading="loadingMaster"
+              :hasFilter="false"
+              :log="false"
+              :restore="false"
+              :numbering="false"
+              :showSelect="false"
+              :actions="false"
+              :search="false"
+              class="bg-transparent"
             >
-              <template #item.name="{ item }">
-                <div class="d-flex align-center py-2">
-                  <v-avatar color="teal" variant="tonal" size="36" class="me-3 rounded-lg">
-                    <v-icon color="teal" size="20">mdi-map-marker-radius-outline</v-icon>
-                  </v-avatar>
-                  <div>
-                    <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name }}</div>
-                    <div class="text-caption text-medium-emphasis">{{ item.office_name }}</div>
+              <template v-slot:item-slot="{ item, key }">
+                <template v-if="key === 'name'">
+                  <div class="d-flex align-center py-2">
+                    <v-avatar color="teal" variant="tonal" size="36" class="me-3 rounded-lg">
+                      <v-icon color="teal" size="20">mdi-map-marker-radius-outline</v-icon>
+                    </v-avatar>
+                    <div>
+                      <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name }}</div>
+                      <div class="text-caption text-medium-emphasis">{{ item.office_name }}</div>
+                    </div>
                   </div>
-                </div>
-              </template>
+                </template>
 
-              <template #item.printed_count="{ item }">
-                <span class="font-weight-bold text-teal">{{ item.printed_count || 0 }} ورقة</span>
-              </template>
+                <template v-else-if="key === 'office_name'">
+                  <span class="text-body-2 font-weight-medium">{{ item.office_name || '-' }}</span>
+                </template>
 
-              <template #item.printed_rate="{ item }">
-                <div class="d-flex align-center gap-2">
-                  <v-progress-linear
-                    :model-value="item.printed_rate || 0"
-                    :color="(item.printed_rate >= 100) ? 'success' : (item.printed_rate > 0 ? 'warning' : 'teal')"
-                    height="8"
-                    rounded
-                    class="flex-grow-1"
-                  />
-                  <span class="text-caption font-weight-bold">{{ item.printed_rate || 0 }}%</span>
-                </div>
-              </template>
+                <template v-else-if="key === 'schools_count'">
+                  <span class="font-weight-bold text-subtitle-2">{{ item.schools_count ?? 0 }}</span>
+                </template>
 
-              <template #item.print_status="{ item }">
-                <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
-                  {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
-                </v-chip>
-              </template>
+                <template v-else-if="key === 'exams_count'">
+                  <span class="font-weight-bold text-subtitle-2">{{ item.exams_count ?? 0 }}</span>
+                </template>
 
-              <template #item.actions="{ item }">
-                <div class="d-flex align-center justify-center gap-2">
-                  <v-btn
-                    size="small"
-                    color="teal"
-                    variant="tonal"
-                    rounded="lg"
-                    class="font-weight-bold"
-                    prepend-icon="mdi-school"
-                    @click="drillDownToDirectorate(item)"
-                  >
-                    المراكز والمدارس
-                  </v-btn>
-                  <v-btn
-                    size="small"
-                    color="teal"
-                    variant="flat"
-                    rounded="lg"
-                    class="font-weight-bold"
-                    prepend-icon="mdi-printer-outline"
-                    @click="openDirectorateStudio(item)"
-                  >
-                    استوديو الطباعة
-                  </v-btn>
-                </div>
+                <template v-else-if="key === 'total_students'">
+                  <span class="font-weight-bold text-subtitle-2">{{ item.total_students ?? 0 }}</span>
+                </template>
+
+                <template v-else-if="key === 'printed_count'">
+                  <span class="font-weight-bold text-teal">{{ item.printed_count || 0 }} ورقة</span>
+                </template>
+
+                <template v-else-if="key === 'printed_rate'">
+                  <div class="d-flex align-center gap-2">
+                    <v-progress-linear
+                      :model-value="item.printed_rate || 0"
+                      :color="(item.printed_rate >= 100) ? 'success' : (item.printed_rate > 0 ? 'warning' : 'teal')"
+                      height="8"
+                      rounded
+                      class="flex-grow-1"
+                    />
+                    <span class="text-caption font-weight-bold">{{ item.printed_rate || 0 }}%</span>
+                  </div>
+                </template>
+
+                <template v-else-if="key === 'print_status'">
+                  <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
+                    {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
+                  </v-chip>
+                </template>
+
+                <template v-else-if="key === 'actions'">
+                  <div class="d-flex align-center justify-center gap-2">
+                    <v-btn
+                      size="small"
+                      color="teal"
+                      variant="tonal"
+                      rounded="lg"
+                      class="font-weight-bold"
+                      prepend-icon="mdi-school"
+                      @click="drillDownToDirectorate(item)"
+                    >
+                      المراكز والمدارس
+                    </v-btn>
+                    <v-btn
+                      size="small"
+                      color="teal"
+                      variant="flat"
+                      rounded="lg"
+                      class="font-weight-bold"
+                      prepend-icon="mdi-printer-outline"
+                      @click="openDirectorateStudio(item)"
+                    >
+                      استوديو الطباعة
+                    </v-btn>
+                  </div>
+                </template>
               </template>
-            </v-data-table>
+            </custom-data-table>
           </v-window-item>
 
           <!-- 3. تبويب المراكز الامتحانية والمدارس / الجامعات / المعاهد -->
           <v-window-item value="schools">
-            <v-data-table
+            <custom-data-table
+              :items="schoolMasterTableItems"
+              :getData="getSchoolMasterData"
               :headers="schoolMasterHeaders"
-              :items="filteredSchoolsTable"
-              :loading="loadingMaster"
-              density="comfortable"
-              hover
-              class="elevation-0"
-              no-data-text="لا توجد مدارس أو مراكز امتحانية مسجلة"
+              :customLoading="loadingMaster"
+              :hasFilter="false"
+              :log="false"
+              :restore="false"
+              :numbering="false"
+              :showSelect="false"
+              :actions="false"
+              :search="false"
+              class="bg-transparent"
             >
-              <template #item.name="{ item }">
-                <div class="d-flex align-center py-2">
-                  <v-avatar color="indigo" variant="tonal" size="36" class="me-3 rounded-lg">
-                    <v-icon color="indigo" size="20">mdi-school-outline</v-icon>
-                  </v-avatar>
-                  <div>
-                    <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name }}</div>
-                    <div class="text-caption text-medium-emphasis">{{ item.directorate_name }} • {{ item.governorate_name }}</div>
+              <template v-slot:item-slot="{ item, key }">
+                <template v-if="key === 'name'">
+                  <div class="d-flex align-center py-2">
+                    <v-avatar color="indigo" variant="tonal" size="36" class="me-3 rounded-lg">
+                      <v-icon color="indigo" size="20">mdi-school-outline</v-icon>
+                    </v-avatar>
+                    <div>
+                      <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name }}</div>
+                      <div class="text-caption text-medium-emphasis">{{ item.directorate_name }} • {{ item.governorate_name }}</div>
+                    </div>
                   </div>
-                </div>
-              </template>
+                </template>
 
-              <template #item.institution_type="{ item }">
-                <v-chip size="x-small" :color="item.institution_type === 'university' ? 'purple' : (item.institution_type === 'institute' ? 'amber' : 'primary')" variant="tonal" class="font-weight-bold">
-                  {{ item.institution_type === 'university' ? 'جامعي' : (item.institution_type === 'institute' ? 'مهني/معهد' : 'مدرسي') }}
-                </v-chip>
-              </template>
+                <template v-else-if="key === 'institution_type'">
+                  <v-chip size="x-small" :color="item.institution_type === 'university' ? 'purple' : (item.institution_type === 'institute' ? 'amber' : 'primary')" variant="tonal" class="font-weight-bold">
+                    {{ item.institution_type === 'university' ? 'جامعي' : (item.institution_type === 'institute' ? 'مهني/معهد' : 'مدرسي') }}
+                  </v-chip>
+                </template>
 
-              <template #item.exams_count="{ item }">
-                <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
-                  {{ item.exams_count }} اختبار
-                </v-chip>
-              </template>
+                <template v-else-if="key === 'directorate_name'">
+                  <span class="text-body-2">{{ item.directorate_name }} • {{ item.governorate_name }}</span>
+                </template>
 
-              <template #item.total_students="{ item }">
-                <span class="font-weight-bold text-subtitle-2">{{ item.total_students }} طالب</span>
-              </template>
+                <template v-else-if="key === 'exams_count'">
+                  <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
+                    {{ item.exams_count }} اختبار
+                  </v-chip>
+                </template>
 
-              <template #item.printed_count="{ item }">
-                <span class="font-weight-bold text-indigo">{{ item.printed_count || 0 }} ورقة</span>
-              </template>
+                <template v-else-if="key === 'total_students'">
+                  <span class="font-weight-bold text-subtitle-2">{{ item.total_students }} طالب</span>
+                </template>
 
-              <template #item.printed_rate="{ item }">
-                <div class="d-flex align-center gap-2">
-                  <v-progress-linear
-                    :model-value="item.printed_rate || 0"
-                    :color="(item.printed_rate >= 100) ? 'success' : (item.printed_rate > 0 ? 'warning' : 'indigo')"
-                    height="8"
-                    rounded
-                    class="flex-grow-1"
-                  />
-                  <span class="text-caption font-weight-bold">{{ item.printed_rate || 0 }}%</span>
-                </div>
-              </template>
+                <template v-else-if="key === 'printed_count'">
+                  <span class="font-weight-bold text-indigo">{{ item.printed_count || 0 }} ورقة</span>
+                </template>
 
-              <template #item.print_status="{ item }">
-                <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
-                  {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
-                </v-chip>
-              </template>
+                <template v-else-if="key === 'printed_rate'">
+                  <div class="d-flex align-center gap-2">
+                    <v-progress-linear
+                      :model-value="item.printed_rate || 0"
+                      :color="(item.printed_rate >= 100) ? 'success' : (item.printed_rate > 0 ? 'warning' : 'indigo')"
+                      height="8"
+                      rounded
+                      class="flex-grow-1"
+                    />
+                    <span class="text-caption font-weight-bold">{{ item.printed_rate || 0 }}%</span>
+                  </div>
+                </template>
 
-              <template #item.actions="{ item }">
-                <div class="d-flex align-center justify-center gap-2">
-                  <v-btn
-                    size="small"
-                    color="primary"
-                    variant="flat"
-                    rounded="lg"
-                    class="font-weight-bold"
-                    prepend-icon="mdi-printer-check"
-                    @click="openSchoolStudio(item)"
-                  >
-                    سحب وطباعة أوراق الطلاب
-                  </v-btn>
-                </div>
+                <template v-else-if="key === 'print_status'">
+                  <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
+                    {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
+                  </v-chip>
+                </template>
+
+                <template v-else-if="key === 'actions'">
+                  <div class="d-flex align-center justify-center gap-2">
+                    <v-btn
+                      size="small"
+                      color="primary"
+                      variant="flat"
+                      rounded="lg"
+                      class="font-weight-bold"
+                      prepend-icon="mdi-printer-check"
+                      @click="openSchoolStudio(item)"
+                    >
+                      سحب وطباعة أوراق الطلاب
+                    </v-btn>
+                  </div>
+                </template>
               </template>
-            </v-data-table>
+            </custom-data-table>
           </v-window-item>
 
           <!-- 4. تبويب الاختبارات الأكاديمية -->
           <v-window-item value="exams">
-            <v-data-table
+            <custom-data-table
+              :items="examMasterTableItems"
+              :getData="getExamMasterData"
               :headers="examMasterHeaders"
-              :items="filteredMasterExamsTable"
-              :loading="loadingMaster"
-              density="comfortable"
-              hover
-              class="elevation-0"
-              no-data-text="لا توجد اختبارات مسجلة في هذا النطاق"
+              :customLoading="loadingMaster"
+              :hasFilter="false"
+              :log="false"
+              :restore="false"
+              :numbering="false"
+              :showSelect="false"
+              :actions="false"
+              :search="false"
+              class="bg-transparent"
             >
-              <template #item.uniqueCode="{ item }">
-                <span class="font-mono font-weight-bold text-caption px-2 py-1 rounded bg-grey-lighten-4 border">
-                  {{ item.uniqueCode }}
-                </span>
-              </template>
+              <template v-slot:item-slot="{ item, key }">
+                <template v-if="key === 'uniqueCode'">
+                  <span class="font-mono font-weight-bold text-caption px-2 py-1 rounded bg-grey-lighten-4 border">
+                    {{ item.uniqueCode }}
+                  </span>
+                </template>
 
-              <template #item.title="{ item }">
-                <div class="py-2">
-                  <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.title }}</div>
-                  <div class="text-caption text-medium-emphasis">المادة: {{ item.subject_name || 'عام' }} • {{ item.directorate_name }}</div>
-                </div>
-              </template>
+                <template v-else-if="key === 'title'">
+                  <div class="py-2">
+                    <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.title }}</div>
+                    <div class="text-caption text-medium-emphasis">المادة: {{ item.subject_name || 'عام' }} • {{ item.directorate_name }}</div>
+                  </div>
+                </template>
 
-              <template #item.printed_count="{ item }">
-                <span class="font-weight-bold text-primary">{{ item.printed_count || 0 }} ورقة</span>
-              </template>
+                <template v-else-if="key === 'schools_count'">
+                  <span class="font-weight-bold text-subtitle-2">{{ item.schools_count ?? 0 }}</span>
+                </template>
 
-              <template #item.printed_rate="{ item }">
-                <div class="d-flex align-center gap-2">
-                  <v-progress-linear
-                    :model-value="item.printed_rate || 0"
-                    :color="(item.printed_rate >= 100) ? 'success' : (item.printed_rate > 0 ? 'warning' : 'primary')"
-                    height="8"
-                    rounded
-                    class="flex-grow-1"
-                  />
-                  <span class="text-caption font-weight-bold">{{ item.printed_rate || 0 }}%</span>
-                </div>
-              </template>
+                <template v-else-if="key === 'total_registered'">
+                  <span class="font-weight-bold text-subtitle-2">{{ item.total_registered || item.total_students || 0 }}</span>
+                </template>
 
-              <template #item.print_status="{ item }">
-                <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
-                  {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
-                </v-chip>
-              </template>
+                <template v-else-if="key === 'printed_count'">
+                  <span class="font-weight-bold text-primary">{{ item.printed_count || 0 }} ورقة</span>
+                </template>
 
-              <template #item.actions="{ item }">
-                <div class="d-flex align-center justify-center gap-2">
-                  <v-btn
-                    size="small"
-                    color="primary"
-                    variant="tonal"
-                    rounded="lg"
-                    class="font-weight-bold"
-                    prepend-icon="mdi-printer-eye"
-                    @click="openExamStudio(item)"
-                  >
-                    استوديو الطباعة
-                  </v-btn>
-                </div>
+                <template v-else-if="key === 'printed_rate'">
+                  <div class="d-flex align-center gap-2">
+                    <v-progress-linear
+                      :model-value="item.printed_rate || 0"
+                      :color="(item.printed_rate >= 100) ? 'success' : (item.printed_rate > 0 ? 'warning' : 'primary')"
+                      height="8"
+                      rounded
+                      class="flex-grow-1"
+                    />
+                    <span class="text-caption font-weight-bold">{{ item.printed_rate || 0 }}%</span>
+                  </div>
+                </template>
+
+                <template v-else-if="key === 'print_status'">
+                  <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
+                    {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
+                  </v-chip>
+                </template>
+
+                <template v-else-if="key === 'actions'">
+                  <div class="d-flex align-center justify-center gap-2">
+                    <v-btn
+                      size="small"
+                      color="primary"
+                      variant="tonal"
+                      rounded="lg"
+                      class="font-weight-bold"
+                      prepend-icon="mdi-printer-eye"
+                      @click="openExamStudio(item)"
+                    >
+                      استوديو الطباعة
+                    </v-btn>
+                  </div>
+                </template>
               </template>
-            </v-data-table>
+            </custom-data-table>
           </v-window-item>
 
           <!-- 5. تبويب سجل الدفعات المطبوعة العام -->
           <v-window-item value="registry">
-            <v-data-table
+            <custom-data-table
+              :items="batchMasterTableItems"
+              :getData="getBatchMasterData"
               :headers="registryMasterHeaders"
-              :items="filteredBatchesTable"
-              :loading="loadingBatches"
-              density="comfortable"
-              hover
-              class="elevation-0"
-              no-data-text="لا توجد دفعات طباعة مسجلة"
+              :customLoading="loadingBatches"
+              :hasFilter="false"
+              :log="false"
+              :restore="false"
+              :numbering="false"
+              :showSelect="false"
+              :actions="false"
+              :search="false"
+              class="bg-transparent"
             >
-              <template #item.batch_id="{ item }">
-                <span class="font-mono font-weight-bold text-caption text-primary">
-                  {{ item.batch_id }}
-                </span>
-              </template>
+              <template v-slot:item-slot="{ item, key }">
+                <template v-if="key === 'batch_id'">
+                  <span class="font-mono font-weight-bold text-caption text-primary">
+                    {{ item.batch_id }}
+                  </span>
+                </template>
 
-              <template #item.total_sheets="{ item }">
-                <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
-                  {{ item.total_sheets }} ورقة
-                </v-chip>
-              </template>
+                <template v-else-if="key === 'exam_title'">
+                  <span class="text-body-2 font-weight-medium">{{ item.exam_title }}</span>
+                </template>
 
-              <template #item.actions="{ item }">
-                <v-btn
-                  size="small"
-                  color="secondary"
-                  variant="tonal"
-                  rounded="lg"
-                  class="font-weight-bold"
-                  prepend-icon="mdi-eye-outline"
-                  @click="viewBatchDetails(item)"
-                >
-                  تفاصيل الدفعة
-                </v-btn>
+                <template v-else-if="key === 'total_sheets'">
+                  <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
+                    {{ item.total_sheets }} ورقة
+                  </v-chip>
+                </template>
+
+                <template v-else-if="key === 'printed_at'">
+                  <span class="text-caption text-medium-emphasis">{{ item.printed_at || '-' }}</span>
+                </template>
+
+                <template v-else-if="key === 'printed_by_name'">
+                  <span class="text-body-2">{{ item.printed_by_name || '-' }}</span>
+                </template>
+
+                <template v-else-if="key === 'actions'">
+                  <v-btn
+                    size="small"
+                    color="secondary"
+                    variant="tonal"
+                    rounded="lg"
+                    class="font-weight-bold"
+                    prepend-icon="mdi-eye-outline"
+                    @click="viewBatchDetails(item)"
+                  >
+                    تفاصيل الدفعة
+                  </v-btn>
+                </template>
               </template>
-            </v-data-table>
+            </custom-data-table>
           </v-window-item>
         </v-window>
       </div>
@@ -2371,6 +2462,160 @@ const filteredBatchesTable = computed(() => {
   return list
 })
 
+// ── Master Tables Reactive State for custom-data-table ──
+const officeMasterTableItems = ref({
+  results: [],
+  count: 0,
+  pagination: { count: 0, total: 0, num_pages: 1, current_page: 1 },
+})
+
+const getOfficeMasterData = async (params = {}) => {
+  const p = params?.params || params || {}
+  const page = p.page || 1
+  const pageSize = p.page_size || 20
+  const all = filteredOfficesTable.value || []
+  const start = (page - 1) * pageSize
+  officeMasterTableItems.value = {
+    results: all.slice(start, start + pageSize),
+    count: all.length,
+    pagination: {
+      count: all.length,
+      total: all.length,
+      num_pages: Math.ceil(all.length / pageSize) || 1,
+      current_page: page,
+    },
+  }
+  return officeMasterTableItems.value
+}
+
+const directorateMasterTableItems = ref({
+  results: [],
+  count: 0,
+  pagination: { count: 0, total: 0, num_pages: 1, current_page: 1 },
+})
+
+const getDirectorateMasterData = async (params = {}) => {
+  const p = params?.params || params || {}
+  const page = p.page || 1
+  const pageSize = p.page_size || 20
+  const all = filteredDirectoratesTable.value || []
+  const start = (page - 1) * pageSize
+  directorateMasterTableItems.value = {
+    results: all.slice(start, start + pageSize),
+    count: all.length,
+    pagination: {
+      count: all.length,
+      total: all.length,
+      num_pages: Math.ceil(all.length / pageSize) || 1,
+      current_page: page,
+    },
+  }
+  return directorateMasterTableItems.value
+}
+
+const schoolMasterTableItems = ref({
+  results: [],
+  count: 0,
+  pagination: { count: 0, total: 0, num_pages: 1, current_page: 1 },
+})
+
+const getSchoolMasterData = async (params = {}) => {
+  const p = params?.params || params || {}
+  const page = p.page || 1
+  const pageSize = p.page_size || 20
+  const all = filteredSchoolsTable.value || []
+  const start = (page - 1) * pageSize
+  schoolMasterTableItems.value = {
+    results: all.slice(start, start + pageSize),
+    count: all.length,
+    pagination: {
+      count: all.length,
+      total: all.length,
+      num_pages: Math.ceil(all.length / pageSize) || 1,
+      current_page: page,
+    },
+  }
+  return schoolMasterTableItems.value
+}
+
+const examMasterTableItems = ref({
+  results: [],
+  count: 0,
+  pagination: { count: 0, total: 0, num_pages: 1, current_page: 1 },
+})
+
+const getExamMasterData = async (params = {}) => {
+  const p = params?.params || params || {}
+  const page = p.page || 1
+  const pageSize = p.page_size || 20
+  const all = filteredMasterExamsTable.value || []
+  const start = (page - 1) * pageSize
+  examMasterTableItems.value = {
+    results: all.slice(start, start + pageSize),
+    count: all.length,
+    pagination: {
+      count: all.length,
+      total: all.length,
+      num_pages: Math.ceil(all.length / pageSize) || 1,
+      current_page: page,
+    },
+  }
+  return examMasterTableItems.value
+}
+
+const batchMasterTableItems = ref({
+  results: [],
+  count: 0,
+  pagination: { count: 0, total: 0, num_pages: 1, current_page: 1 },
+})
+
+const getBatchMasterData = async (params = {}) => {
+  const p = params?.params || params || {}
+  const page = p.page || 1
+  const pageSize = p.page_size || 20
+  const all = filteredBatchesTable.value || []
+  const start = (page - 1) * pageSize
+  batchMasterTableItems.value = {
+    results: all.slice(start, start + pageSize),
+    count: all.length,
+    pagination: {
+      count: all.length,
+      total: all.length,
+      num_pages: Math.ceil(all.length / pageSize) || 1,
+      current_page: page,
+    },
+  }
+  return batchMasterTableItems.value
+}
+
+watch(filteredOfficesTable, () => {
+  getOfficeMasterData()
+}, { immediate: true })
+
+watch(filteredDirectoratesTable, () => {
+  getDirectorateMasterData()
+}, { immediate: true })
+
+watch(filteredSchoolsTable, () => {
+  getSchoolMasterData()
+}, { immediate: true })
+
+watch(filteredMasterExamsTable, () => {
+  getExamMasterData()
+}, { immediate: true })
+
+watch(filteredBatchesTable, () => {
+  getBatchMasterData()
+}, { immediate: true })
+
+watch(masterTab, (tab) => {
+  if (tab === 'offices') getOfficeMasterData()
+  else if (tab === 'directorates') getDirectorateMasterData()
+  else if (tab === 'schools') getSchoolMasterData()
+  else if (tab === 'exams') getExamMasterData()
+  else if (tab === 'registry') getBatchMasterData()
+})
+
 // Master Methods
 const loadMasterData = async () => {
   loadingMaster.value = true
@@ -2388,6 +2633,11 @@ const loadMasterData = async () => {
     directoratesList.value = directoratesRes.data?.results || []
     schoolsList.value = schoolsRes.data?.results || []
     masterExamsList.value = examsRes.data?.results || []
+    getOfficeMasterData()
+    getDirectorateMasterData()
+    getSchoolMasterData()
+    getExamMasterData()
+    getBatchMasterData()
   } catch (err) {
     console.error('Failed to load master data:', err)
   } finally {
