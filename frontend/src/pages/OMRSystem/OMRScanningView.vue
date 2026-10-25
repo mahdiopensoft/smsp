@@ -418,110 +418,95 @@
           <!-- ── 3. ميزان المطابقة اللحظي للمظروف (Instant Envelope Reconciliation) ── -->
           <div v-if="reconciliationCalculated" class="reconciliation-panel mb-5">
             <!-- حالة 1: مطابق ومكتمل 100% -->
-            <v-card
+            <v-alert
               v-if="reconciliationStatus === 'BALANCED'"
+              type="success"
               variant="tonal"
-              color="success"
-              class="pa-4 pa-md-5 rounded-2xl border border-success mb-3"
+              rounded="2xl"
+              class="pa-4 mb-3 border-success"
             >
               <div class="d-flex align-center justify-space-between flex-wrap gap-3">
-                <div class="d-flex align-center gap-3">
-                  <v-avatar size="48" color="success" variant="flat" class="elevation-1">
-                    <v-icon size="28" color="white">mdi-check-decagram</v-icon>
-                  </v-avatar>
-                  <div>
-                    <div class="text-h6 font-weight-black mb-0">
-                      المظروف مطابق ومكتمل 100% ({{ actualScannedCount + currentEnvelope.absentCount }} / {{ currentEnvelope.expectedCount }})
-                    </div>
-                    <div class="text-caption font-weight-bold mt-1 opacity-90">
-                      تم استيفاء كامل أوراق القاعة: {{ actualScannedCount }} ورقة إجابة ممسوحة + {{ currentEnvelope.absentCount }} غياب مسجل رسمي بكشف الحضور والغياب.
-                      لا يوجد أي عجز أو فقد في الأوراق.
-                    </div>
+                <div>
+                  <div class="text-subtitle-1 font-weight-black mb-1">
+                    المظروف مطابق ومكتمل 100% ({{ actualScannedCount + currentEnvelope.absentCount }} / {{ currentEnvelope.expectedCount }})
+                  </div>
+                  <div class="text-caption font-weight-bold opacity-90">
+                    تم استيفاء كامل أوراق القاعة: {{ actualScannedCount }} ورقة إجابة ممسوحة + {{ currentEnvelope.absentCount }} غياب مسجل رسمي بكشف الحضور والغياب. لا يوجد أي عجز أو فقد في الأوراق.
                   </div>
                 </div>
 
-                <div class="d-flex align-center gap-2">
-                  <v-btn
-                    color="success"
-                    variant="flat"
-                    rounded="xl"
-                    class="font-weight-black shadow-sm px-5"
-                    prepend-icon="mdi-check-all"
-                    :disabled="isCommitted"
-                    @click="commitEnvelopeToControl"
-                  >
-                    {{ isCommitted ? 'تم اعتماد وترحيل المظروف بنجاح' : 'اعتماد وترحيل المظروف للكنترول المركزي' }}
-                  </v-btn>
-                </div>
+                <custom-btn
+                  type="done"
+                  :label="isCommitted ? 'تم اعتماد وترحيل المظروف' : 'اعتماد وترحيل المظروف للكنترول'"
+                  color="success"
+                  variant="flat"
+                  class="font-weight-bold"
+                  :disabled="isCommitted"
+                  :click="commitEnvelopeToControl"
+                />
               </div>
-            </v-card>
+            </v-alert>
 
             <!-- حالة 2: عجز ونقص في الأوراق (Deficit Alert) -->
-            <v-card
+            <v-alert
               v-else-if="reconciliationStatus === 'DEFICIT'"
+              type="error"
               variant="tonal"
-              color="error"
-              class="pa-4 pa-md-5 rounded-2xl border border-error mb-3"
+              rounded="2xl"
+              class="pa-4 mb-3 border-error"
             >
               <div class="d-flex align-center justify-space-between flex-wrap gap-3">
-                <div class="d-flex align-center gap-3">
-                  <v-avatar size="48" color="error" variant="flat" class="elevation-1">
-                    <v-icon size="28" color="white">mdi-alert-octagon</v-icon>
-                  </v-avatar>
-                  <div>
-                    <div class="text-h6 font-weight-black mb-0">
-                      تنبيه عجز: نقص في أوراق المظروف الامتحاني!
-                    </div>
-                    <div class="text-caption font-weight-bold mt-1 opacity-90">
-                      سعة القاعة المقيدة: {{ currentEnvelope.expectedCount }} طالباً | الأوراق المسحوبة: {{ actualScannedCount }} + الغياب: {{ currentEnvelope.absentCount }} = {{ actualScannedCount + currentEnvelope.absentCount }} ورقة.
-                      <strong class="text-decoration-underline">يوجد عجز بمقدار ({{ discrepancyAmount }}) ورقة مفقودة!</strong>
-                      يرجى فحص سلة الماسح أو المظروف فوراً قبل الاعتماد.
-                    </div>
+                <div>
+                  <div class="text-subtitle-1 font-weight-black mb-1">
+                    تنبيه عجز: نقص في أوراق المظروف الامتحاني!
+                  </div>
+                  <div class="text-caption font-weight-bold opacity-90">
+                    سعة القاعة المقيدة: {{ currentEnvelope.expectedCount }} طالباً | الأوراق المسحوبة: {{ actualScannedCount }} + الغياب: {{ currentEnvelope.absentCount }} = {{ actualScannedCount + currentEnvelope.absentCount }} ورقة.
+                    <strong class="text-decoration-underline">يوجد عجز بمقدار ({{ discrepancyAmount }}) ورقة مفقودة!</strong>
+                    يرجى فحص سلة الماسح أو المظروف فوراً قبل الاعتماد.
                   </div>
                 </div>
 
-                <v-btn
+                <custom-btn
+                  type="del"
+                  label="تحرير محضر عجز مظروف"
                   color="error"
                   variant="flat"
-                  rounded="lg"
-                  size="small"
                   class="font-weight-bold"
-                  prepend-icon="mdi-file-document-alert-outline"
-                  @click="openDiscrepancyReport"
-                >
-                  تحرير محضر عجز مظروف
-                </v-btn>
+                  :click="openDiscrepancyReport"
+                />
               </div>
-            </v-card>
+            </v-alert>
 
             <!-- حالة 3: فائض وزيادة غير مبررة (Surplus Alert) -->
-            <v-card
+            <v-alert
               v-else-if="reconciliationStatus === 'SURPLUS'"
+              type="warning"
               variant="tonal"
-              color="warning"
-              class="pa-4 pa-md-5 rounded-2xl border border-warning mb-3"
+              rounded="2xl"
+              class="pa-4 mb-3 border-warning"
             >
               <div class="d-flex align-center justify-space-between flex-wrap gap-3">
-                <div class="d-flex align-center gap-3">
-                  <v-avatar size="48" color="warning" variant="flat" class="elevation-1">
-                    <v-icon size="28" color="white">mdi-alert-circle</v-icon>
-                  </v-avatar>
-                  <div>
-                    <div class="text-h6 font-weight-black mb-0">
-                      تنبيه فائض: تم مسح أوراق إضافية غير مقيدة في المظروف!
-                    </div>
-                    <div class="text-caption font-weight-bold mt-1 opacity-90">
-                      سعة القاعة: {{ currentEnvelope.expectedCount }} | الممسوح + الغياب: {{ actualScannedCount + currentEnvelope.absentCount }} (فائض بمقدار {{ Math.abs(discrepancyAmount) }} ورقة).
-                      يرجى التأكد من عدم اختلاط أوراق قاعة أخرى في الرزمة.
-                    </div>
+                <div>
+                  <div class="text-subtitle-1 font-weight-black mb-1">
+                    تنبيه فائض: تم مسح أوراق إضافية غير مقيدة في المظروف!
+                  </div>
+                  <div class="text-caption font-weight-bold opacity-90">
+                    سعة القاعة: {{ currentEnvelope.expectedCount }} | الممسوح + الغياب: {{ actualScannedCount + currentEnvelope.absentCount }} (فائض بمقدار {{ Math.abs(discrepancyAmount) }} ورقة).
+                    يرجى التأكد من عدم اختلاط أوراق قاعة أخرى في الرزمة.
                   </div>
                 </div>
 
-                <v-btn color="warning" variant="flat" rounded="lg" size="small" class="font-weight-bold" @click="openDiscrepancyReport">
-                  مراجعة الرزمة
-                </v-btn>
+                <custom-btn
+                  type="show"
+                  label="مراجعة الرزمة"
+                  color="warning"
+                  variant="flat"
+                  class="font-weight-bold"
+                  :click="openDiscrepancyReport"
+                />
               </div>
-            </v-card>
+            </v-alert>
           </div>
 
           <!-- ── د. نتائج الفرز والتدقيق لأوراق المظروف (Batch Triaging Table) ── -->
@@ -570,30 +555,24 @@
                 </div>
 
                 <div class="d-flex align-center gap-2">
-                  <v-btn
+                  <custom-btn
                     v-if="needsReviewSheets.length > 0"
-                    color="amber-darken-3"
-                    variant="flat"
-                    rounded="lg"
-                    size="small"
+                    type="show"
+                    :label="`مراجعة وتدقيق ${needsReviewSheets.length} ورقة`"
+                    color="warning"
+                    variant="tonal"
                     class="font-weight-bold"
-                    prepend-icon="mdi-account-search"
-                    :to="`/omr-human-review?exam=${selectedExamId}`"
-                  >
-                    تحويل {{ needsReviewSheets.length }} ورقة للمراجعة البشرية ←
-                  </v-btn>
+                    :click="() => $router.push(`/omr-human-review?exam=${selectedExamId}`)"
+                  />
 
-                  <v-btn
+                  <custom-btn
+                    type="add"
+                    label="المظروف التالي"
                     color="success"
                     variant="tonal"
-                    rounded="lg"
-                    size="small"
                     class="font-weight-bold"
-                    prepend-icon="mdi-arrow-right-circle"
-                    @click="prepareNextEnvelope"
-                  >
-                    فتح ومسح المظروف التالي >>
-                  </v-btn>
+                    :click="prepareNextEnvelope"
+                  />
                 </div>
               </div>
 
@@ -652,7 +631,6 @@
                       color="warning"
                       variant="flat"
                       class="font-weight-bold"
-                      prepend-icon="mdi-alert-circle-outline"
                     >
                       تدقيق بشري
                     </v-chip>
@@ -662,7 +640,6 @@
                       color="success"
                       variant="flat"
                       class="font-weight-bold"
-                      prepend-icon="mdi-check"
                     >
                       معتمد وسليم
                     </v-chip>
@@ -670,13 +647,11 @@
 
                   <!-- المعاينة -->
                   <template v-else-if="key === 'actions'">
-                    <v-btn
-                      size="small"
-                      variant="text"
-                      color="primary"
-                      icon="mdi-eye-outline"
-                      title="معاينة ورقة الطالب"
-                      @click="openSheetPreview(item)"
+                    <custom-btn
+                      is-icon
+                      type="show"
+                      label="معاينة الورقة الضوئية"
+                      :click="() => openSheetPreview(item)"
                     />
                   </template>
                 </template>
@@ -754,7 +729,7 @@
 
                     <!-- حالة المسح والتصحيح -->
                     <template v-else-if="key === 'scan_status'">
-                      <v-chip size="small" color="blue-grey" variant="tonal" class="font-weight-bold" prepend-icon="mdi-scanner">
+                      <v-chip size="small" color="blue-grey" variant="tonal" class="font-weight-bold">
                         بانتظار سحب الورقة
                       </v-chip>
                     </template>
@@ -763,9 +738,11 @@
               </div>
 
               <div v-else class="pa-8 text-center">
-                <v-icon size="44" color="grey-lighten-1">mdi-account-search-outline</v-icon>
-                <div class="text-subtitle-1 font-weight-bold mt-2">لا توجد بيانات طلاب مقيدين مسجلة في هذا الاختبار</div>
-                <div class="text-caption text-medium-emphasis">يرجى التحقق من اختيار الاختبار والمدرسة من الفلاتر أعلاه</div>
+                <v-avatar size="64" color="primary" variant="tonal" class="mb-3 rounded-2xl">
+                  <v-icon size="32" color="primary">mdi-account-group-outline</v-icon>
+                </v-avatar>
+                <div class="text-subtitle-1 font-weight-bold">لا توجد بيانات طلاب مقيدين مسجلة في هذا الاختبار</div>
+                <div class="text-caption text-medium-emphasis">يرجى التحقق من اختيار الاختبار والمركز الامتحاني من الفلاتر أعلاه</div>
               </div>
             </v-card>
           </div>
@@ -776,10 +753,12 @@
       <v-card v-if="activePreviewSheet" class="rounded-2xl pa-5">
         <div class="d-flex align-center justify-space-between pb-3 border-b mb-4">
           <div class="d-flex align-center gap-2">
-            <v-icon color="primary" size="24">mdi-file-document-check-outline</v-icon>
+            <v-avatar size="36" color="primary" variant="tonal" class="rounded-lg">
+              <v-icon color="primary" size="20">mdi-file-document-check-outline</v-icon>
+            </v-avatar>
             <span class="text-h6 font-weight-black">تفاصيل ورقة إجابة الطالب</span>
           </div>
-          <v-btn icon="mdi-close" variant="text" size="small" @click="previewDialog = false" />
+          <custom-btn is-icon type="close" :click="() => previewDialog = false" />
         </div>
 
         <div class="pa-3 rounded-xl mb-4 border" style="background: rgba(var(--v-theme-surface-variant), 0.25);">
@@ -812,19 +791,19 @@
         <!-- أزرار التبديل بين صورة التدقيق والصورة الأصلية وجدول الأسئلة -->
         <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3">
           <v-btn-toggle v-model="previewMode" mandatory density="compact" color="primary" rounded="lg">
-            <v-btn value="annotated" prepend-icon="mdi-bullseye-arrow" size="small">
+            <v-btn value="annotated" prepend-icon="mdi-check-circle-outline" size="small">
               ورقة فحص وتدقيق الدوائر (الذكاء الاصطناعي)
             </v-btn>
             <v-btn value="original" prepend-icon="mdi-image-outline" size="small">
               الورقة الممسوحة الأصلية
             </v-btn>
-            <v-btn value="questions" prepend-icon="mdi-format-list-checks" size="small">
+            <v-btn value="questions" prepend-icon="mdi-format-list-numbered" size="small">
               جدول الدوائر والأسئلة ({{ (activePreviewSheet.questions || []).length }})
             </v-btn>
           </v-btn-toggle>
 
           <v-chip size="small" :color="activePreviewSheet.score > 0 ? 'success' : 'grey-darken-1'" variant="tonal" class="font-weight-bold">
-            <v-icon start size="16">mdi-check-decagram</v-icon>
+            <v-icon start size="16">mdi-check-decagram-outline</v-icon>
             حالة الدوائر: {{ activePreviewSheet.score > 0 ? 'تم رصد إجابات' : 'جميع الدوائر فارغة (لم تُظلل)' }}
           </v-chip>
         </div>
@@ -888,20 +867,21 @@
         </div>
 
         <div class="d-flex justify-end gap-2">
-          <v-btn
+          <custom-btn
             v-if="activePreviewSheet.status === 'NEEDS_REVIEW' || activePreviewSheet.needs_review"
+            type="show"
+            label="الانتقال للمراجعة البشرية"
             color="warning"
             variant="flat"
-            rounded="lg"
             class="font-weight-bold"
-            prepend-icon="mdi-account-search"
-            :to="`/omr-human-review?exam=${selectedExamId}`"
-          >
-            الانتقال للمراجعة البشرية
-          </v-btn>
-          <v-btn color="secondary" variant="tonal" rounded="lg" @click="previewDialog = false">
-            إغلاق
-          </v-btn>
+            :click="() => $router.push(`/omr-human-review?exam=${selectedExamId}`)"
+          />
+          <custom-btn
+            type="cancel"
+            label="إغلاق"
+            class="font-weight-bold"
+            :click="() => previewDialog = false"
+          />
         </div>
       </v-card>
     </v-dialog>
@@ -1684,30 +1664,29 @@ export default {
   white-space: nowrap;
 }
 
-/* ── Dropzone ──────────────────────────────────────────────── */
-.national-dropzone {
-  border: 2px dashed rgba(var(--v-theme-primary), 0.35);
-  background: rgba(var(--v-theme-primary), 0.03);
-  color: rgb(var(--v-theme-on-surface));
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+/* ── Upload Dropzone (Standard System Design) ──────────────── */
+.upload-dropzone {
+  background: rgba(var(--v-theme-surface-variant), 0.15);
+  border: 2px dashed rgba(var(--v-border-color), 0.25);
+  cursor: pointer;
+  min-height: 240px;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
 }
 
-.national-dropzone:hover {
-  border-color: rgb(var(--v-theme-primary));
-  background: rgba(var(--v-theme-primary), 0.07);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(var(--v-theme-primary), 0.08);
+.upload-dropzone:hover, .upload-dropzone.is-dragover {
+  border-color: rgba(var(--v-theme-primary), 0.6);
+  background: rgba(var(--v-theme-primary), 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(var(--v-theme-primary), 0.08);
 }
 
-.national-dropzone.is-dragging {
-  border-color: rgb(var(--v-theme-primary));
-  background: rgba(var(--v-theme-primary), 0.12);
-  transform: scale(1.005);
-}
-
-.national-dropzone.has-files {
+.upload-dropzone.has-file {
+  border-style: solid;
   border-color: rgba(var(--v-theme-success), 0.5);
   background: rgba(var(--v-theme-success), 0.04);
+  box-shadow: 0 8px 24px rgba(var(--v-theme-success), 0.08);
+  cursor: default;
 }
 
 /* ── Governorate Cards (Video Wall) ────────────────────────── */
