@@ -225,58 +225,72 @@
             >
               <template v-slot:item-slot="{ item, key, index }">
                 <template v-if="key === 'numbering'">
-                  <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'office_name'">
-                  <div class="d-flex align-center py-2">
-                    <v-avatar color="primary" variant="tonal" size="36" class="me-3 rounded-lg">
+                  <div class="d-flex align-center py-2" style="min-width: 280px;">
+                    <v-avatar color="primary" variant="tonal" size="36" class="me-3 rounded-lg flex-shrink-0">
                       <v-icon color="primary" size="20">mdi-office-building-outline</v-icon>
                     </v-avatar>
                     <div>
-                      <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.office_name }}</div>
+                      <div class="font-weight-bold text-subtitle-2 text-on-surface text-wrap">{{ item.office_name }}</div>
                       <div class="text-caption text-medium-emphasis">المحافظة: {{ item.governorate_name }}</div>
                     </div>
                   </div>
                 </template>
 
                 <template v-else-if="key === 'directorates_count'">
-                  <span class="font-weight-bold text-subtitle-2">{{ item.directorates_count ?? 0 }}</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.directorates_count ?? 0 }}</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'schools_count'">
-                  <span class="font-weight-bold text-subtitle-2">{{ item.schools_count ?? 0 }}</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.schools_count ?? 0 }}</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'exams_count'">
-                  <span class="font-weight-bold text-subtitle-2">{{ item.exams_count ?? 0 }}</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.exams_count ?? 0 }}</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'total_students'">
-                  <span class="font-weight-bold text-subtitle-2">{{ item.total_students ?? 0 }}</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.total_students ?? 0 }}</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'printed_count'">
-                  <span class="font-weight-bold text-primary">{{ item.printed_count || 0 }} ورقة</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-primary">{{ item.printed_count || 0 }} ورقة</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'printed_rate'">
-                  <div class="d-flex align-center gap-2">
+                  <div class="d-flex align-center justify-center gap-2 px-1">
                     <v-progress-linear
                       :model-value="item.printed_rate || 0"
                       :color="(item.printed_rate >= 100) ? 'success' : (item.printed_rate > 0 ? 'warning' : 'primary')"
                       height="8"
                       rounded
-                      class="flex-grow-1"
+                      style="min-width: 60px; max-width: 80px;"
                     />
                     <span class="text-caption font-weight-bold">{{ item.printed_rate || 0 }}%</span>
                   </div>
                 </template>
 
                 <template v-else-if="key === 'print_status'">
-                  <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
-                    {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
-                  </v-chip>
+                  <div class="d-flex justify-center align-center">
+                    <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
+                      {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
+                    </v-chip>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'actions'">
@@ -328,57 +342,71 @@
             >
               <template v-slot:item-slot="{ item, key, index }">
                 <template v-if="key === 'numbering'">
-                  <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'name'">
-                  <div class="d-flex align-center py-2">
-                    <v-avatar color="teal" variant="tonal" size="36" class="me-3 rounded-lg">
+                  <div class="d-flex align-center py-2" style="min-width: 280px;">
+                    <v-avatar color="teal" variant="tonal" size="36" class="me-3 rounded-lg flex-shrink-0">
                       <v-icon color="teal" size="20">mdi-map-marker-radius-outline</v-icon>
                     </v-avatar>
                     <div>
-                      <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name }}</div>
+                      <div class="font-weight-bold text-subtitle-2 text-on-surface text-wrap">{{ item.name }}</div>
                     </div>
                   </div>
                 </template>
 
                 <template v-else-if="key === 'office_name'">
-                  <span class="text-body-2 font-weight-medium">{{ item.office_name || '-' }}</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="text-body-2 font-weight-medium">{{ item.office_name || '-' }}</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'schools_count'">
-                  <span class="font-weight-bold text-subtitle-2">{{ item.schools_count ?? 0 }}</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.schools_count ?? 0 }}</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'exams_count'">
-                  <span class="font-weight-bold text-subtitle-2">{{ item.exams_count ?? 0 }}</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.exams_count ?? 0 }}</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'total_students'">
-                  <span class="font-weight-bold text-subtitle-2">{{ item.total_students ?? 0 }}</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.total_students ?? 0 }}</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'printed_count'">
-                  <span class="font-weight-bold text-teal">{{ item.printed_count || 0 }} ورقة</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-teal">{{ item.printed_count || 0 }} ورقة</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'printed_rate'">
-                  <div class="d-flex align-center gap-2">
+                  <div class="d-flex align-center justify-center gap-2 px-1">
                     <v-progress-linear
                       :model-value="item.printed_rate || 0"
                       :color="(item.printed_rate >= 100) ? 'success' : (item.printed_rate > 0 ? 'warning' : 'teal')"
                       height="8"
                       rounded
-                      class="flex-grow-1"
+                      style="min-width: 60px; max-width: 80px;"
                     />
                     <span class="text-caption font-weight-bold">{{ item.printed_rate || 0 }}%</span>
                   </div>
                 </template>
 
                 <template v-else-if="key === 'print_status'">
-                  <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
-                    {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
-                  </v-chip>
+                  <div class="d-flex justify-center align-center">
+                    <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
+                      {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
+                    </v-chip>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'actions'">
@@ -430,61 +458,75 @@
             >
               <template v-slot:item-slot="{ item, key, index }">
                 <template v-if="key === 'numbering'">
-                  <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'name'">
-                  <div class="d-flex align-center py-2">
-                    <v-avatar color="indigo" variant="tonal" size="36" class="me-3 rounded-lg">
+                  <div class="d-flex align-center py-2" style="min-width: 280px;">
+                    <v-avatar color="indigo" variant="tonal" size="36" class="me-3 rounded-lg flex-shrink-0">
                       <v-icon color="indigo" size="20">mdi-school-outline</v-icon>
                     </v-avatar>
                     <div>
-                      <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name }}</div>
+                      <div class="font-weight-bold text-subtitle-2 text-on-surface text-wrap">{{ item.name }}</div>
                     </div>
                   </div>
                 </template>
 
                 <template v-else-if="key === 'institution_type'">
-                  <v-chip size="x-small" :color="item.institution_type === 'university' ? 'purple' : (item.institution_type === 'institute' ? 'amber' : 'primary')" variant="tonal" class="font-weight-bold">
-                    {{ item.institution_type === 'university' ? 'جامعي' : (item.institution_type === 'institute' ? 'مهني/معهد' : 'مدرسي') }}
-                  </v-chip>
+                  <div class="d-flex justify-center align-center">
+                    <v-chip size="x-small" :color="item.institution_type === 'university' ? 'purple' : (item.institution_type === 'institute' ? 'amber' : 'primary')" variant="tonal" class="font-weight-bold">
+                      {{ item.institution_type === 'university' ? 'جامعي' : (item.institution_type === 'institute' ? 'مهني/معهد' : 'مدرسي') }}
+                    </v-chip>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'directorate_name'">
-                  <span class="text-body-2">{{ item.directorate_name }} • {{ item.governorate_name }}</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="text-body-2">{{ item.directorate_name }} • {{ item.governorate_name }}</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'exams_count'">
-                  <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
-                    {{ item.exams_count }} اختبار
-                  </v-chip>
+                  <div class="d-flex justify-center align-center">
+                    <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
+                      {{ item.exams_count }} اختبار
+                    </v-chip>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'total_students'">
-                  <span class="font-weight-bold text-subtitle-2">{{ item.total_students }} طالب</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.total_students }} طالب</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'printed_count'">
-                  <span class="font-weight-bold text-indigo">{{ item.printed_count || 0 }} ورقة</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-indigo">{{ item.printed_count || 0 }} ورقة</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'printed_rate'">
-                  <div class="d-flex align-center gap-2">
+                  <div class="d-flex align-center justify-center gap-2 px-1">
                     <v-progress-linear
                       :model-value="item.printed_rate || 0"
                       :color="(item.printed_rate >= 100) ? 'success' : (item.printed_rate > 0 ? 'warning' : 'indigo')"
                       height="8"
                       rounded
-                      class="flex-grow-1"
+                      style="min-width: 60px; max-width: 80px;"
                     />
                     <span class="text-caption font-weight-bold">{{ item.printed_rate || 0 }}%</span>
                   </div>
                 </template>
 
                 <template v-else-if="key === 'print_status'">
-                  <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
-                    {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
-                  </v-chip>
+                  <div class="d-flex justify-center align-center">
+                    <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
+                      {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
+                    </v-chip>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'actions'">
@@ -525,51 +567,63 @@
             >
               <template v-slot:item-slot="{ item, key, index }">
                 <template v-if="key === 'numbering'">
-                  <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'uniqueCode'">
-                  <span class="font-mono font-weight-bold text-caption px-2 py-1 rounded bg-grey-lighten-4 border">
-                    {{ item.uniqueCode }}
-                  </span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-mono font-weight-bold text-caption px-2 py-1 rounded bg-grey-lighten-4 border">
+                      {{ item.uniqueCode }}
+                    </span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'title'">
-                  <div class="py-2">
-                    <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.title }}</div>
+                  <div class="py-2" style="min-width: 280px;">
+                    <div class="font-weight-bold text-subtitle-2 text-on-surface text-wrap">{{ item.title }}</div>
                     <div class="text-caption text-medium-emphasis">المادة: {{ item.subject_name || 'عام' }}</div>
                   </div>
                 </template>
 
                 <template v-else-if="key === 'schools_count'">
-                  <span class="font-weight-bold text-subtitle-2">{{ item.schools_count ?? 0 }}</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.schools_count ?? 0 }}</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'total_registered'">
-                  <span class="font-weight-bold text-subtitle-2">{{ item.total_registered || item.total_students || 0 }}</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.total_registered || item.total_students || 0 }}</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'printed_count'">
-                  <span class="font-weight-bold text-primary">{{ item.printed_count || 0 }} ورقة</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-primary">{{ item.printed_count || 0 }} ورقة</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'printed_rate'">
-                  <div class="d-flex align-center gap-2">
+                  <div class="d-flex align-center justify-center gap-2 px-1">
                     <v-progress-linear
                       :model-value="item.printed_rate || 0"
                       :color="(item.printed_rate >= 100) ? 'success' : (item.printed_rate > 0 ? 'warning' : 'primary')"
                       height="8"
                       rounded
-                      class="flex-grow-1"
+                      style="min-width: 60px; max-width: 80px;"
                     />
                     <span class="text-caption font-weight-bold">{{ item.printed_rate || 0 }}%</span>
                   </div>
                 </template>
 
                 <template v-else-if="key === 'print_status'">
-                  <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
-                    {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
-                  </v-chip>
+                  <div class="d-flex justify-center align-center">
+                    <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
+                      {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
+                    </v-chip>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'actions'">
@@ -611,31 +665,41 @@
             >
               <template v-slot:item-slot="{ item, key, index }">
                 <template v-if="key === 'numbering'">
-                  <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'batch_id'">
-                  <span class="font-mono font-weight-bold text-caption text-primary">
-                    {{ item.batch_id }}
-                  </span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-mono font-weight-bold text-caption text-primary">
+                      {{ item.batch_id }}
+                    </span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'exam_title'">
-                  <span class="text-body-2 font-weight-medium">{{ item.exam_title }}</span>
+                  <span class="text-body-2 font-weight-medium text-wrap">{{ item.exam_title }}</span>
                 </template>
 
                 <template v-else-if="key === 'total_sheets'">
-                  <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
-                    {{ item.total_sheets }} ورقة
-                  </v-chip>
+                  <div class="d-flex justify-center align-center">
+                    <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
+                      {{ item.total_sheets }} ورقة
+                    </v-chip>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'printed_at'">
-                  <span class="text-caption text-medium-emphasis">{{ item.printed_at || '-' }}</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="text-caption text-medium-emphasis">{{ item.printed_at || '-' }}</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'printed_by_name'">
-                  <span class="text-body-2">{{ item.printed_by_name || '-' }}</span>
+                  <div class="d-flex justify-center align-center">
+                    <span class="text-body-2">{{ item.printed_by_name || '-' }}</span>
+                  </div>
                 </template>
 
                 <template v-else-if="key === 'actions'">
@@ -2308,10 +2372,10 @@ const loadingBatches = ref(false)
 
 // Master Table Headers
 const officeMasterHeaders = [
-  { title: "مكتب التربية والتعليم (المحافظة)", key: "office_name", sortable: true, align: "start" },
-  { title: "المديريات", key: "directorates_count", sortable: true, align: "center", width: "100px" },
-  { title: "المراكز والمدارس", key: "schools_count", sortable: true, align: "center", width: "130px" },
-  { title: "الاختبارات", key: "exams_count", sortable: true, align: "center", width: "100px" },
+  { title: "مكتب التربية والتعليم (المحافظة)", key: "office_name", sortable: true, align: "start", width: "340px", minWidth: "320px" },
+  { title: "المديريات", key: "directorates_count", sortable: true, align: "center", width: "95px" },
+  { title: "المراكز والمدارس", key: "schools_count", sortable: true, align: "center", width: "125px" },
+  { title: "الاختبارات", key: "exams_count", sortable: true, align: "center", width: "95px" },
   { title: "إجمالي الطلاب", key: "total_students", sortable: true, align: "center", width: "110px" },
   { title: "أوراق مطبوعة", key: "printed_count", sortable: true, align: "center", width: "120px" },
   { title: "نسبة الإنجاز", key: "printed_rate", sortable: true, align: "center", width: "130px" },
@@ -2320,10 +2384,10 @@ const officeMasterHeaders = [
 ]
 
 const directorateMasterHeaders = [
-  { title: "إدارة التربية والتعليم (المديرية)", key: "name", sortable: true, align: "start" },
+  { title: "إدارة التربية والتعليم (المديرية)", key: "name", sortable: true, align: "start", width: "340px", minWidth: "320px" },
   { title: "المكتب التابع له", key: "office_name", sortable: true, align: "center", width: "180px" },
-  { title: "المراكز والمدارس", key: "schools_count", sortable: true, align: "center", width: "130px" },
-  { title: "الاختبارات", key: "exams_count", sortable: true, align: "center", width: "100px" },
+  { title: "المراكز والمدارس", key: "schools_count", sortable: true, align: "center", width: "125px" },
+  { title: "الاختبارات", key: "exams_count", sortable: true, align: "center", width: "95px" },
   { title: "إجمالي الطلاب", key: "total_students", sortable: true, align: "center", width: "110px" },
   { title: "أوراق مطبوعة", key: "printed_count", sortable: true, align: "center", width: "120px" },
   { title: "نسبة الإنجاز", key: "printed_rate", sortable: true, align: "center", width: "130px" },
@@ -2332,10 +2396,10 @@ const directorateMasterHeaders = [
 ]
 
 const schoolMasterHeaders = [
-  { title: "المدرسة / المركز الامتحاني", key: "name", sortable: true, align: "start" },
+  { title: "المدرسة / المركز الامتحاني", key: "name", sortable: true, align: "start", width: "340px", minWidth: "320px" },
   { title: "نوع المؤسسة", key: "institution_type", sortable: true, align: "center", width: "110px" },
-  { title: "المحافظة والمديرية", key: "directorate_name", sortable: true, align: "center", width: "160px" },
-  { title: "الاختبارات", key: "exams_count", sortable: true, align: "center", width: "100px" },
+  { title: "المحافظة والمديرية", key: "directorate_name", sortable: true, align: "center", width: "180px" },
+  { title: "الاختبارات", key: "exams_count", sortable: true, align: "center", width: "95px" },
   { title: "إجمالي الطلاب", key: "total_students", sortable: true, align: "center", width: "110px" },
   { title: "أوراق مطبوعة", key: "printed_count", sortable: true, align: "center", width: "120px" },
   { title: "نسبة الطباعة", key: "printed_rate", sortable: true, align: "center", width: "130px" },
@@ -2344,9 +2408,9 @@ const schoolMasterHeaders = [
 ]
 
 const examMasterHeaders = [
-  { title: "رمز الاختبار", key: "uniqueCode", sortable: true, align: "center", width: "160px" },
-  { title: "عنوان الاختبار والمادة", key: "title", sortable: true, align: "start" },
-  { title: "المدارس المشاركة", key: "schools_count", sortable: true, align: "center", width: "120px" },
+  { title: "رمز الاختبار", key: "uniqueCode", sortable: true, align: "center", width: "140px" },
+  { title: "عنوان الاختبار والمادة", key: "title", sortable: true, align: "start", width: "340px", minWidth: "300px" },
+  { title: "المدارس المشاركة", key: "schools_count", sortable: true, align: "center", width: "125px" },
   { title: "المقيدون", key: "total_registered", sortable: true, align: "center", width: "110px" },
   { title: "أوراق مطبوعة", key: "printed_count", sortable: true, align: "center", width: "120px" },
   { title: "نسبة الطباعة", key: "printed_rate", sortable: true, align: "center", width: "130px" },
@@ -2355,8 +2419,8 @@ const examMasterHeaders = [
 ]
 
 const registryMasterHeaders = [
-  { title: "رقم الدفعة", key: "batch_id", sortable: true, align: "start", width: "170px" },
-  { title: "عنوان الاختبار", key: "exam_title", sortable: true, align: "start" },
+  { title: "رقم الدفعة", key: "batch_id", sortable: true, align: "center", width: "170px" },
+  { title: "عنوان الاختبار", key: "exam_title", sortable: true, align: "start", width: "300px", minWidth: "260px" },
   { title: "عدد الأوراق", key: "total_sheets", sortable: true, align: "center", width: "110px" },
   { title: "تاريخ الطباعة", key: "printed_at", sortable: true, align: "center", width: "160px" },
   { title: "المسؤول", key: "printed_by_name", sortable: true, align: "center", width: "140px" },
@@ -4258,6 +4322,31 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* ── Custom Data Table Cell Width & Centering Fixes ── */
+:deep(.custom-data-table td),
+:deep(.custom-data-table .v-data-table__td) {
+  max-width: none !important;
+  white-space: normal !important;
+  word-break: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+:deep(.custom-data-table th),
+:deep(.custom-data-table .v-data-table__th) {
+  white-space: nowrap !important;
+}
+
+:deep(.custom-data-table .class-numbering-child-2 th:nth-child(2)),
+:deep(.custom-data-table .class-numbering-child-2 td:nth-child(2)),
+:deep(.class-numbering-child-2 th:nth-child(2)),
+:deep(.class-numbering-child-2 td:nth-child(2)) {
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 50px !important;
+  text-align: center !important;
+}
+
 .font-mono {
   font-family: monospace, monospace;
 }
