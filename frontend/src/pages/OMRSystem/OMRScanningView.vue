@@ -833,7 +833,7 @@
           <v-btn icon="mdi-close" variant="text" size="small" color="medium-emphasis" @click="previewDialog = false" />
         </v-card-title>
 
-        <!-- ── شريط بيانات ورقة الطالب خفيف كشرائح بسيطة (Chips عادية بدون مربعات) ── -->
+        <!-- ── شريط بيانات ورقة الطالب خفيف كشرائح بسيطة ومختصرة ── -->
         <div class="d-flex align-center flex-wrap gap-2 px-6 py-2.5 bg-surface border-b">
           <v-chip size="small" variant="tonal" color="primary" class="font-weight-bold">
             <v-icon start size="14">mdi-card-account-details-outline</v-icon>
@@ -860,16 +860,6 @@
           <v-chip
             size="small"
             variant="tonal"
-            :color="activePreviewSheet.score > 0 ? 'success' : 'grey'"
-            class="font-weight-bold"
-          >
-            <v-icon start size="14">{{ activePreviewSheet.score > 0 ? 'mdi-circle-slice-8' : 'mdi-circle-outline' }}</v-icon>
-            {{ activePreviewSheet.score > 0 ? 'تم رصد إجابات مظللة' : 'جميع الدوائر فارغة (لم تُظلل)' }}
-          </v-chip>
-
-          <v-chip
-            size="small"
-            variant="tonal"
             :color="activePreviewSheet.percentage >= 50 ? 'success' : 'primary'"
             class="font-weight-bold"
           >
@@ -879,7 +869,7 @@
 
           <v-chip size="small" variant="tonal" color="info" class="font-weight-bold">
             <v-icon start size="14">mdi-format-list-numbered</v-icon>
-            إجمالي الأسئلة: {{ (activePreviewSheet.questions || []).length }}
+            الأسئلة: {{ (activePreviewSheet.questions || []).length }}
           </v-chip>
 
           <v-chip size="small" variant="tonal" color="success" class="font-weight-bold">
@@ -894,7 +884,7 @@
 
           <v-chip size="small" variant="tonal" color="grey" class="font-weight-bold">
             <v-icon start size="14">mdi-circle-outline</v-icon>
-            فارغة: {{ previewCounts.empty }}
+            لم يُجب (فارغة): {{ previewCounts.empty }}
           </v-chip>
         </div>
 
