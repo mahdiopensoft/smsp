@@ -7,30 +7,11 @@
     <div v-if="currentView === 'master'" class="master-view-container">
       <!-- شريط التصفية الهيكلي الموحد (مرتب وبدون تكرار) -->
       <div class="main-card pa-4 rounded-2xl mb-4 bg-surface border elevation-1">
-        <!-- شريط الفلاتر العلوي: نوع المؤسسة التعليمية بين الفلاتر + أزرار الإجراءات -->
-        <div class="d-flex align-center justify-space-between flex-wrap gap-3 mb-3 pb-3 border-b">
-          <div class="d-flex align-center gap-2 flex-wrap">
-            <span class="text-caption font-weight-black text-medium-emphasis">نوع المؤسسة التعليمية:</span>
-            <v-btn-toggle
-              v-model="institutionType"
-              mandatory
-              color="primary"
-              variant="outlined"
-              density="compact"
-              rounded="xl"
-              class="bg-surface border"
-              @update:model-value="onSectorChange"
-            >
-              <v-btn value="school" class="px-3 font-weight-bold" prepend-icon="mdi-school">
-                التعليم العام (المدرسي)
-              </v-btn>
-              <v-btn value="university" class="px-3 font-weight-bold" prepend-icon="mdi-domain">
-                التعليم الجامعي (كليات وجامعات)
-              </v-btn>
-              <v-btn value="institute" class="px-3 font-weight-bold" prepend-icon="mdi-tools">
-                التعليم الفني والمهني (معاهد)
-              </v-btn>
-            </v-btn-toggle>
+        <!-- شريط الفلاتر الهيكلية العلوي: عنوان وأزرار الإجراءات -->
+        <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3 pb-2 border-b">
+          <div class="d-flex align-center gap-2">
+            <v-icon color="primary" size="20">mdi-filter-variant</v-icon>
+            <span class="text-subtitle-2 font-weight-black text-on-surface">فلاتر الهيكل الإداري والمؤسسي:</span>
           </div>
 
           <div class="d-flex align-center gap-2">
@@ -61,9 +42,30 @@
         </div>
 
         <v-row dense class="align-center">
+          <!-- نوع المؤسسة التعليمية كفلتر منسدل أساسي -->
+          <v-col cols="12" sm="6" :md="institutionType === 'school' ? 3 : 4">
+            <v-select
+              v-model="institutionType"
+              :items="sectorOptions"
+              item-title="title"
+              item-value="value"
+              label="نوع المؤسسة التعليمية"
+              density="compact"
+              variant="outlined"
+              rounded="lg"
+              hide-details
+              :prepend-inner-icon="institutionType === 'university' ? 'mdi-domain' : (institutionType === 'institute' ? 'mdi-tools' : 'mdi-school')"
+              @update:model-value="onSectorChange"
+            >
+              <template #item="{ props, item }">
+                <v-list-item v-bind="props" :prepend-icon="item.raw?.icon" />
+              </template>
+            </v-select>
+          </v-col>
+
           <!-- التعليم العام (مدرسي) -->
           <template v-if="institutionType === 'school'">
-            <v-col cols="12" md="4">
+            <v-col cols="12" sm="6" md="3">
               <v-autocomplete
                 v-model="selectedOfficeId"
                 :items="officesList"
@@ -74,13 +76,14 @@
                 clearable
                 density="compact"
                 variant="outlined"
+                rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-office-building-outline"
                 @update:model-value="onOfficeFilterChange"
               />
             </v-col>
 
-            <v-col cols="12" md="4">
+            <v-col cols="12" sm="6" md="3">
               <v-autocomplete
                 v-model="selectedDirectorateId"
                 :items="directoratesOptions"
@@ -91,13 +94,14 @@
                 clearable
                 density="compact"
                 variant="outlined"
+                rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-map-marker-radius-outline"
                 @update:model-value="onDirectorateFilterChange"
               />
             </v-col>
 
-            <v-col cols="12" md="4">
+            <v-col cols="12" sm="6" md="3">
               <v-autocomplete
                 v-model="selectedSchoolId"
                 :items="schoolsOptions"
@@ -108,6 +112,7 @@
                 clearable
                 density="compact"
                 variant="outlined"
+                rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-school-outline"
                 @update:model-value="onSchoolFilterChange"
@@ -117,7 +122,7 @@
 
           <!-- التعليم الجامعي -->
           <template v-else-if="institutionType === 'university'">
-            <v-col cols="12" md="6">
+            <v-col cols="12" sm="6" md="8">
               <v-autocomplete
                 v-model="selectedSchoolId"
                 :items="schoolsOptions"
@@ -128,6 +133,7 @@
                 clearable
                 density="compact"
                 variant="outlined"
+                rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-domain"
                 @update:model-value="onSchoolFilterChange"
@@ -137,7 +143,7 @@
 
           <!-- التعليم الفني والمهني (معاهد) -->
           <template v-else-if="institutionType === 'institute'">
-            <v-col cols="12" md="6">
+            <v-col cols="12" sm="6" md="8">
               <v-autocomplete
                 v-model="selectedSchoolId"
                 :items="schoolsOptions"
@@ -148,6 +154,7 @@
                 clearable
                 density="compact"
                 variant="outlined"
+                rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-tools"
                 @update:model-value="onSchoolFilterChange"
@@ -547,28 +554,6 @@
             <v-icon color="primary" size="20">mdi-filter-variant</v-icon>
             <span class="text-subtitle-2 font-weight-black text-on-surface">فلاتر الهيكل واختيار الاختبار:</span>
 
-            <!-- مبدل نوع المؤسسة التعليمية بين الفلاتر -->
-            <v-btn-toggle
-              v-model="institutionType"
-              mandatory
-              color="primary"
-              variant="outlined"
-              density="compact"
-              rounded="xl"
-              class="bg-surface border"
-              @update:model-value="onSectorChange"
-            >
-              <v-btn value="school" class="px-3 font-weight-bold" prepend-icon="mdi-school">
-                التعليم العام (المدرسي)
-              </v-btn>
-              <v-btn value="university" class="px-3 font-weight-bold" prepend-icon="mdi-domain">
-                التعليم الجامعي (كليات وجامعات)
-              </v-btn>
-              <v-btn value="institute" class="px-3 font-weight-bold" prepend-icon="mdi-tools">
-                التعليم الفني والمهني (معاهد)
-              </v-btn>
-            </v-btn-toggle>
-
             <v-chip
               v-if="selectedSchoolName"
               size="small"
@@ -622,15 +607,36 @@
         </div>
 
         <v-row dense class="align-center">
+          <!-- نوع المؤسسة التعليمية كفلتر منسدل أساسي -->
+          <v-col cols="12" sm="6" :md="institutionType === 'school' ? 4 : 3" :lg="institutionType === 'school' ? 2 : 3">
+            <v-select
+              v-model="institutionType"
+              :items="sectorOptions"
+              item-title="title"
+              item-value="value"
+              label="نوع المؤسسة التعليمية"
+              density="compact"
+              variant="outlined"
+              rounded="lg"
+              hide-details
+              :prepend-inner-icon="institutionType === 'university' ? 'mdi-domain' : (institutionType === 'institute' ? 'mdi-tools' : 'mdi-school')"
+              @update:model-value="onSectorChange"
+            >
+              <template #item="{ props, item }">
+                <v-list-item v-bind="props" :prepend-icon="item.raw?.icon" />
+              </template>
+            </v-select>
+          </v-col>
+
           <!-- التعليم العام (المدرسي): محافظة -> مديرية -> مدرسة/مركز -->
           <template v-if="institutionType === 'school'">
-            <v-col cols="12" sm="6" md="3">
+            <v-col cols="12" sm="6" md="4" lg="2">
               <v-autocomplete
                 v-model="selectedOfficeId"
                 :items="officesList"
                 item-title="office_name"
                 item-value="id"
-                label="مكتب التربية والتعليم (المحافظة)"
+                label="مكتب التربية (المحافظة)"
                 placeholder="كل المحافظات..."
                 clearable
                 density="compact"
@@ -642,13 +648,13 @@
               />
             </v-col>
 
-            <v-col cols="12" sm="6" md="3">
+            <v-col cols="12" sm="6" md="4" lg="2">
               <v-autocomplete
                 v-model="selectedDirectorateId"
                 :items="directoratesOptions"
                 item-title="name"
                 item-value="id"
-                label="إدارة التربية والتعليم (المديرية)"
+                label="إدارة التربية (المديرية)"
                 placeholder="كل المديريات..."
                 clearable
                 density="compact"
@@ -660,7 +666,7 @@
               />
             </v-col>
 
-            <v-col cols="12" sm="6" md="3">
+            <v-col cols="12" sm="6" md="6" lg="3">
               <v-autocomplete
                 v-model="selectedSchoolId"
                 :items="schoolsOptions"
@@ -681,7 +687,7 @@
 
           <!-- التعليم الجامعي: جامعة/كلية -->
           <template v-else-if="institutionType === 'university'">
-            <v-col cols="12" sm="6" md="4">
+            <v-col cols="12" sm="6" md="4" lg="4">
               <v-autocomplete
                 v-model="selectedSchoolId"
                 :items="schoolsOptions"
@@ -702,7 +708,7 @@
 
           <!-- التعليم الفني (معاهد): معهد/مركز -->
           <template v-else-if="institutionType === 'institute'">
-            <v-col cols="12" sm="6" md="4">
+            <v-col cols="12" sm="6" md="4" lg="4">
               <v-autocomplete
                 v-model="selectedSchoolId"
                 :items="schoolsOptions"
@@ -722,7 +728,7 @@
           </template>
 
           <!-- منسدلة اختيار الاختبار المعتمد المطلوب طباعة وثائقه -->
-          <v-col cols="12" :sm="institutionType === 'school' ? 6 : 6" :md="institutionType === 'school' ? 3 : (institutionType === 'university' ? 8 : 8)">
+          <v-col cols="12" :sm="institutionType === 'school' ? 6 : 12" :md="institutionType === 'school' ? 6 : 5" :lg="institutionType === 'school' ? 3 : 5">
             <v-autocomplete
               v-model="selectedExamId"
               :items="examsList"
@@ -2145,6 +2151,11 @@ const route = useRoute()
 const currentView = ref(route.query.exam ? 'detail' : 'master')
 const masterTab = ref('schools')
 const institutionType = ref('school')
+const sectorOptions = [
+  { title: 'التعليم العام (المدرسي)', value: 'school', icon: 'mdi-school' },
+  { title: 'التعليم الجامعي (كليات وجامعات)', value: 'university', icon: 'mdi-domain' },
+  { title: 'التعليم الفني والمهني (معاهد)', value: 'institute', icon: 'mdi-tools' },
+]
 const loadingMaster = ref(false)
 const masterSearchQuery = ref('')
 
@@ -2382,6 +2393,18 @@ const loadMasterData = async () => {
   } finally {
     loadingMaster.value = false
   }
+}
+
+const resetHierarchyFilters = async () => {
+  institutionType.value = 'school'
+  selectedOfficeId.value = null
+  selectedOfficeName.value = ''
+  selectedDirectorateId.value = null
+  selectedDirectorateName.value = ''
+  selectedSchoolId.value = null
+  selectedSchoolName.value = ''
+  masterSearchQuery.value = ''
+  await loadMasterData()
 }
 
 const onSectorChange = (val) => {
