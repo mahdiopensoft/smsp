@@ -749,167 +749,317 @@
 
 
     <!-- ── نافذة معاينة ورقة الطالب (Sheet Details Dialog) ── -->
-    <v-dialog v-model="previewDialog" max-width="750px">
-      <v-card v-if="activePreviewSheet" class="rounded-2xl pa-5">
-        <div class="d-flex align-center justify-space-between pb-3 border-b mb-4">
-          <div class="d-flex align-center gap-2">
-            <v-avatar size="36" color="primary" variant="tonal" class="rounded-lg">
-              <v-icon color="primary" size="20">mdi-file-document-check-outline</v-icon>
+    <v-dialog v-model="previewDialog" max-width="1100px" scrollable>
+      <v-card v-if="activePreviewSheet" class="rounded-2xl overflow-hidden main-card bg-surface">
+        <!-- Dialog Header (Unified with OMRHumanReviewView) -->
+        <v-card-title class="d-flex align-center justify-space-between bg-surface px-6 py-4 border-b">
+          <div class="d-flex align-center gap-3">
+            <v-avatar color="primary" variant="tonal" rounded="lg" size="44">
+              <v-icon size="24" color="primary">mdi-file-document-check-outline</v-icon>
             </v-avatar>
-            <span class="text-h6 font-weight-black">تفاصيل ورقة إجابة الطالب</span>
+            <div>
+              <div class="d-flex align-center gap-2 flex-wrap">
+                <h3 class="text-h6 font-weight-black text-on-surface mb-0">
+                  {{ activePreviewSheet.student_name || 'طالب بدون اسم' }}
+                </h3>
+                <v-chip size="small" color="primary" variant="flat" class="font-weight-bold px-2 unified-table-chip">
+                  رقم الجلوس: {{ activePreviewSheet.seat_number || '—' }}
+                </v-chip>
+                <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold px-2 unified-table-chip">
+                  النموذج: {{ activePreviewSheet.model_code || 'A' }}
+                </v-chip>
+                <v-chip
+                  v-if="activePreviewSheet.status === 'NEEDS_REVIEW' || activePreviewSheet.needs_review"
+                  size="small"
+                  color="warning"
+                  variant="flat"
+                  class="font-weight-bold px-2 text-white unified-table-chip"
+                >
+                  <v-icon start size="14">mdi-alert-circle</v-icon>
+                  يحتاج تدقيق بشري
+                </v-chip>
+                <v-chip
+                  v-else
+                  size="small"
+                  color="success"
+                  variant="flat"
+                  class="font-weight-bold px-2 text-white unified-table-chip"
+                >
+                  <v-icon start size="14">mdi-check-circle</v-icon>
+                  معتمد وسليم
+                </v-chip>
+              </div>
+              <p class="text-caption text-medium-emphasis mb-0 mt-1">
+                تفاصيل ورقة إجابة الطالب وتدقيق دوائر الماسح الضوئي (OMR)
+              </p>
+            </div>
           </div>
-          <custom-btn is-icon type="close" :click="() => previewDialog = false" />
-        </div>
 
-        <div class="pa-3 rounded-xl mb-4 border" style="background: rgba(var(--v-theme-surface-variant), 0.25);">
-          <div class="d-flex justify-space-between flex-wrap gap-2 mb-2">
-            <div>
-              <span class="text-caption text-medium-emphasis">الطالب:</span>
-              <span class="font-weight-bold ms-2">{{ activePreviewSheet.student_name }}</span>
+          <div class="d-flex align-center gap-3">
+            <div class="d-flex align-center gap-2 px-3 py-1.5 rounded-xl border bg-surface">
+              <v-icon size="18" color="success">mdi-check-decagram</v-icon>
+              <div class="d-flex flex-column text-end">
+                <span class="text-caption text-medium-emphasis" style="font-size: 10px; line-height: 1;">الدرجة الكلية</span>
+                <span class="font-weight-black text-body-1 text-success" style="line-height: 1.2;">
+                  {{ activePreviewSheet.score != null ? activePreviewSheet.score : 0 }} 
+                  <span class="text-caption text-medium-emphasis">/ {{ activePreviewSheet.max_score || 40 }}</span>
+                </span>
+              </div>
             </div>
-            <div>
-              <span class="text-caption text-medium-emphasis">رقم الجلوس:</span>
-              <span class="font-mono font-weight-bold ms-2 text-primary">{{ activePreviewSheet.seat_number }}</span>
+
+            <div class="d-flex align-center gap-2 px-3 py-1.5 rounded-xl border bg-surface">
+              <v-icon size="18" :color="activePreviewSheet.percentage >= 50 ? 'success' : 'error'">mdi-percent</v-icon>
+              <div class="d-flex flex-column text-end">
+                <span class="text-caption text-medium-emphasis" style="font-size: 10px; line-height: 1;">النسبة</span>
+                <span class="font-weight-black text-body-1" :class="activePreviewSheet.percentage >= 50 ? 'text-success' : 'text-error'" style="line-height: 1.2;">
+                  {{ activePreviewSheet.percentage }}%
+                </span>
+              </div>
             </div>
+
+            <v-btn icon="mdi-close" variant="text" size="small" color="medium-emphasis" @click="previewDialog = false" />
           </div>
-          <div class="d-flex justify-space-between flex-wrap gap-2">
-            <div>
-              <span class="text-caption text-medium-emphasis">النموذج:</span>
-              <v-chip size="x-small" color="primary" class="font-weight-bold ms-2">
-                النموذج {{ activePreviewSheet.model_code || 'A' }}
+        </v-card-title>
+
+        <!-- تبويبات العرض الموحدة (v-tabs) -->
+        <v-tabs v-model="previewMode" color="primary" density="comfortable" class="border-b px-4 bg-surface">
+          <v-tab value="questions" class="font-weight-bold">
+            <v-icon start size="18">mdi-format-list-numbered</v-icon>
+            جدول تفصيل الأسئلة والدوائر ({{ (activePreviewSheet.questions || []).length }})
+          </v-tab>
+          <v-tab value="annotated" class="font-weight-bold">
+            <v-icon start size="18">mdi-check-circle-outline</v-icon>
+            ورقة فحص وتدقيق الذكاء الاصطناعي
+          </v-tab>
+          <v-tab value="original" class="font-weight-bold">
+            <v-icon start size="18">mdi-image-outline</v-icon>
+            الورقة الممسوحة الأصلية
+          </v-tab>
+        </v-tabs>
+
+        <v-card-text class="pa-4 bg-surface" style="max-height: 72vh;">
+          <!-- ── جدول تفصيل الأسئلة والدوائر بالجدول الموحد (custom-data-table) ── -->
+          <div v-if="previewMode === 'questions'">
+            <!-- شريط مؤشرات الدوائر -->
+            <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3">
+              <div class="d-flex align-center gap-2 flex-wrap">
+                <v-chip size="small" variant="tonal" color="primary" class="font-weight-bold">
+                  إجمالي الأسئلة: {{ (activePreviewSheet.questions || []).length }}
+                </v-chip>
+                <v-chip size="small" variant="tonal" color="success" class="font-weight-bold">
+                  صحيحة: {{ previewCounts.correct }}
+                </v-chip>
+                <v-chip size="small" variant="tonal" color="error" class="font-weight-bold">
+                  خاطئة: {{ previewCounts.wrong }}
+                </v-chip>
+                <v-chip size="small" variant="tonal" color="grey" class="font-weight-bold">
+                  فارغة: {{ previewCounts.empty }}
+                </v-chip>
+              </div>
+
+              <v-chip
+                size="small"
+                :color="activePreviewSheet.score > 0 ? 'success' : 'grey-darken-1'"
+                variant="tonal"
+                class="font-weight-bold"
+              >
+                <v-icon start size="16">mdi-check-decagram-outline</v-icon>
+                حالة الدوائر: {{ activePreviewSheet.score > 0 ? 'تم رصد إجابات مظللة' : 'جميع الدوائر فارغة (لم تُظلل)' }}
               </v-chip>
             </div>
-            <div>
-              <span class="text-caption text-medium-emphasis">الدرجة:</span>
-              <span class="font-mono font-weight-black ms-2 text-success">
-                {{ activePreviewSheet.score }} / {{ activePreviewSheet.max_score || 40 }} ({{ activePreviewSheet.percentage }}%)
-              </span>
+
+            <!-- الجدول الموحد للأسئلة -->
+            <div class="main-card rounded-2xl overflow-hidden mb-2 border">
+              <custom-data-table
+                :items="previewQuestionsTableItems"
+                :getData="getPreviewQuestionsData"
+                :headers="previewQuestionsHeaders"
+                :hasFilter="false"
+                :log="false"
+                :restore="false"
+                :numbering="false"
+                :showSelect="false"
+                :actions="false"
+                :search="false"
+                class="bg-transparent"
+              >
+                <template v-slot:item-slot="{ item, key }">
+                  <!-- رقم السؤال -->
+                  <template v-if="key === 'question_number'">
+                    <div class="text-center py-1">
+                      <span class="font-weight-black text-body-2 text-primary bg-blue-lighten-5 px-3 py-1 rounded-pill border">
+                        #{{ item.question_number }}
+                      </span>
+                    </div>
+                  </template>
+
+                  <!-- الإجابة النموذجية المعتمدة -->
+                  <template v-else-if="key === 'correct_choice'">
+                    <div class="text-center">
+                      <v-chip
+                        v-if="item.correct_choice && item.correct_choice !== '—'"
+                        size="small"
+                        color="success"
+                        variant="tonal"
+                        class="font-weight-black unified-table-chip px-3 border"
+                      >
+                        <v-icon start size="13" color="success">mdi-check-circle-outline</v-icon>
+                        {{ item.correct_choice }}
+                      </v-chip>
+                      <span v-else class="text-caption text-medium-emphasis">—</span>
+                    </div>
+                  </template>
+
+                  <!-- تظليل الطالب المكتشف -->
+                  <template v-else-if="key === 'marked_choice'">
+                    <div class="text-center">
+                      <v-chip
+                        v-if="item.is_marked"
+                        size="small"
+                        :color="item.is_correct ? 'primary' : 'error'"
+                        variant="tonal"
+                        class="font-weight-black font-mono unified-table-chip px-3"
+                      >
+                        <v-icon start size="13">{{ item.is_correct ? 'mdi-check' : 'mdi-close' }}</v-icon>
+                        {{ item.marked_choice }}
+                      </v-chip>
+                      <v-chip v-else size="small" color="grey" variant="tonal" class="font-weight-medium px-2 text-caption">
+                        فارغ (لم يُظلل)
+                      </v-chip>
+                    </div>
+                  </template>
+
+                  <!-- حالة الدائرة -->
+                  <template v-else-if="key === 'bubble_status'">
+                    <div class="text-center">
+                      <v-chip
+                        v-if="item.is_marked"
+                        size="small"
+                        color="success"
+                        variant="tonal"
+                        class="font-weight-bold"
+                      >
+                        <v-icon start size="14">mdi-circle</v-icon>
+                        مظللة
+                      </v-chip>
+                      <v-chip
+                        v-else
+                        size="small"
+                        color="grey"
+                        variant="tonal"
+                        class="font-weight-bold"
+                      >
+                        <v-icon start size="14">mdi-circle-outline</v-icon>
+                        دائرة فارغة
+                      </v-chip>
+                    </div>
+                  </template>
+
+                  <!-- النتيجة -->
+                  <template v-else-if="key === 'status'">
+                    <div class="text-center">
+                      <v-chip
+                        v-if="!item.is_marked"
+                        size="small"
+                        color="secondary"
+                        variant="tonal"
+                        class="font-weight-bold text-caption px-2"
+                      >
+                        لم يُجب
+                      </v-chip>
+                      <v-chip
+                        v-else-if="item.is_correct"
+                        size="small"
+                        color="success"
+                        variant="flat"
+                        class="font-weight-bold text-caption px-2 text-white"
+                      >
+                        صحيحة
+                      </v-chip>
+                      <v-chip
+                        v-else
+                        size="small"
+                        color="error"
+                        variant="flat"
+                        class="font-weight-bold text-caption px-2 text-white"
+                      >
+                        خاطئة
+                      </v-chip>
+                    </div>
+                  </template>
+
+                  <!-- الدرجة -->
+                  <template v-else-if="key === 'score'">
+                    <div class="text-center font-weight-black font-mono">
+                      <v-chip
+                        size="small"
+                        :color="item.score > 0 ? 'success' : 'grey-lighten-2'"
+                        :class="item.score > 0 ? 'text-white font-weight-black' : 'text-grey-darken-2 font-weight-black'"
+                        variant="flat"
+                        class="unified-table-chip px-2.5 font-mono"
+                      >
+                        {{ item.score }}
+                      </v-chip>
+                    </div>
+                  </template>
+                </template>
+              </custom-data-table>
             </div>
           </div>
-        </div>
 
-        <!-- أزرار التبديل بين صورة التدقيق والصورة الأصلية وجدول الأسئلة -->
-        <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3">
-          <v-btn-toggle v-model="previewMode" mandatory density="compact" color="primary" rounded="lg">
-            <v-btn value="annotated" prepend-icon="mdi-check-circle-outline" size="small">
-              ورقة فحص وتدقيق الدوائر (الذكاء الاصطناعي)
-            </v-btn>
-            <v-btn value="original" prepend-icon="mdi-image-outline" size="small">
-              الورقة الممسوحة الأصلية
-            </v-btn>
-            <v-btn value="questions" prepend-icon="mdi-format-list-numbered" size="small">
-              جدول الدوائر والأسئلة ({{ (activePreviewSheet.questions || []).length }})
-            </v-btn>
-          </v-btn-toggle>
-
-          <v-chip size="small" :color="activePreviewSheet.score > 0 ? 'success' : 'grey-darken-1'" variant="tonal" class="font-weight-bold">
-            <v-icon start size="16">mdi-check-decagram-outline</v-icon>
-            حالة الدوائر: {{ activePreviewSheet.score > 0 ? 'تم رصد إجابات' : 'جميع الدوائر فارغة (لم تُظلل)' }}
-          </v-chip>
-        </div>
-
-        <!-- عرض صورة التدقيق والدوائر المكتشفة -->
-        <div v-if="previewMode === 'annotated'" class="text-center pa-2 border rounded-xl mb-4 position-relative" style="max-height: 480px; overflow-y: auto; background: rgba(var(--v-theme-surface-variant), 0.15);">
-          <div v-if="!activePreviewSheet.annotated_url && !activePreviewSheet.image_url" class="py-8 text-medium-emphasis">
-            لا توجد صورة متوفرة للمعاينة
-          </div>
-          <v-img 
-            :src="activePreviewSheet.annotated_url || activePreviewSheet.image_url" 
-            max-height="450" 
-            contain 
-            class="rounded-lg" 
-          />
-          <div class="text-caption text-medium-emphasis mt-2 font-weight-bold">
-            * الحلقات توضح مواضع كافة الدوائر التي فحصها المحرك بدقة بالذكاء الاصطناعي.
-          </div>
-        </div>
-
-        <!-- عرض الصورة الأصلية -->
-        <div v-else-if="previewMode === 'original'" class="text-center pa-2 border rounded-xl mb-4" style="max-height: 480px; overflow-y: auto; background: rgba(var(--v-theme-surface-variant), 0.15);">
-          <v-img :src="activePreviewSheet.image_url" max-height="450" contain class="rounded-lg" />
-        </div>
-
-        <!-- عرض جدول تفصيل الأسئلة والدوائر بالجدول الموحد -->
-        <div v-else-if="previewMode === 'questions'" class="main-card rounded-2xl overflow-hidden mb-4 border">
-          <custom-data-table
-            :items="previewQuestionsTableItems"
-            :getData="getPreviewQuestionsData"
-            :headers="previewQuestionsHeaders"
-            :hasFilter="false"
-            :log="false"
-            :restore="false"
-            :numbering="false"
-            :showSelect="false"
-            :actions="false"
-            :search="false"
-            class="bg-transparent"
-          >
-            <template v-slot:item-slot="{ item, key }">
-              <template v-if="key === 'question_id'">
-                <div class="text-center py-1">
-                  <span class="font-weight-black text-body-2 text-primary bg-blue-lighten-5 px-3 py-1 rounded-pill border">
-                    س {{ item.question_id }}
-                  </span>
-                </div>
-              </template>
-              <template v-else-if="key === 'marked_choice'">
-                <div class="text-center">
-                  <v-chip v-if="item.marked_choice" size="small" color="primary" class="font-weight-bold font-mono">
-                    {{ item.marked_choice }}
-                  </v-chip>
-                  <span v-else class="text-caption text-grey font-weight-medium">فارغ (لم يُظلل)</span>
-                </div>
-              </template>
-              <template v-else-if="key === 'bubble_status'">
-                <div class="text-center">
-                  <v-chip v-if="item.marked_choice" size="small" color="success" variant="tonal" class="font-weight-bold">
-                    <v-icon start size="14">mdi-circle</v-icon>
-                    مظللة
-                  </v-chip>
-                  <v-chip v-else size="small" color="grey" variant="tonal" class="font-weight-bold">
-                    <v-icon start size="14">mdi-circle-outline</v-icon>
-                    دائرة فارغة
-                  </v-chip>
-                </div>
-              </template>
-              <template v-else-if="key === 'correct_choice'">
-                <div class="text-center">
-                  <span class="font-mono font-weight-bold text-success">{{ item.correct_choice }}</span>
-                </div>
-              </template>
-              <template v-else-if="key === 'score'">
-                <div class="text-center">
-                  <v-chip 
-                    size="small" 
-                    :color="item.score > 0 ? 'success' : 'grey-lighten-2'" 
-                    :class="item.score > 0 ? 'text-white font-weight-black font-mono' : 'text-grey-darken-2 font-weight-black font-mono'"
-                    variant="flat"
-                  >
-                    {{ item.score }}
-                  </v-chip>
-                </div>
-              </template>
+          <!-- عرض ورقة التدقيق والذكاء الاصطناعي -->
+          <div v-else-if="previewMode === 'annotated'" class="text-center pa-4 border rounded-2xl mb-2 position-relative bg-surface">
+            <div v-if="!activePreviewSheet.annotated_url && !activePreviewSheet.image_url" class="py-12 text-medium-emphasis">
+              <v-icon size="48" color="medium-emphasis" class="mb-2">mdi-image-off-outline</v-icon>
+              <div class="text-subtitle-1 font-weight-bold">لا توجد صورة متوفرة لورقة هذا الطالب</div>
+              <div class="text-caption">تم تسجيل بيانات التصحيح الضوئي مباشرة بدون تخزين الصورة النقطية</div>
+            </div>
+            <template v-else>
+              <v-img 
+                :src="activePreviewSheet.annotated_url || activePreviewSheet.image_url" 
+                max-height="600" 
+                contain 
+                class="rounded-xl border" 
+              />
+              <div class="text-caption text-medium-emphasis mt-3 font-weight-bold">
+                * الحلقات الملونة توضح مواضع كافة الدوائر التي فحصها المحرك بدقة بالذكاء الاصطناعي ومستوى الكثافة الضوئية.
+              </div>
             </template>
-          </custom-data-table>
-        </div>
+          </div>
 
-        <div class="d-flex justify-end gap-2">
-          <custom-btn
-            v-if="activePreviewSheet.status === 'NEEDS_REVIEW' || activePreviewSheet.needs_review"
-            type="show"
-            label="الانتقال للمراجعة البشرية"
-            color="warning"
-            variant="flat"
-            class="font-weight-bold"
-            :click="() => $router.push(`/omr-human-review?exam=${selectedExamId}`)"
-          />
-          <custom-btn
-            type="cancel"
-            label="إغلاق"
-            class="font-weight-bold"
-            :click="() => previewDialog = false"
-          />
-        </div>
+          <!-- عرض الورقة الممسوحة الأصلية -->
+          <div v-else-if="previewMode === 'original'" class="text-center pa-4 border rounded-2xl mb-2 bg-surface">
+            <div v-if="!activePreviewSheet.image_url" class="py-12 text-medium-emphasis">
+              <v-icon size="48" color="medium-emphasis" class="mb-2">mdi-image-off-outline</v-icon>
+              <div class="text-subtitle-1 font-weight-bold">لا توجد صورة أصلية متوفرة</div>
+            </div>
+            <v-img v-else :src="activePreviewSheet.image_url" max-height="600" contain class="rounded-xl border" />
+          </div>
+        </v-card-text>
+
+        <!-- Dialog Footer -->
+        <v-card-actions class="px-6 py-3 bg-surface border-t d-flex align-center justify-space-between">
+          <div class="text-caption text-medium-emphasis">
+            تم فحص وتحليل الورقة آلياً عبر محرك التصحيح الضوئي الذكي OMR
+          </div>
+          <div class="d-flex align-center gap-2">
+            <custom-btn
+              v-if="activePreviewSheet.status === 'NEEDS_REVIEW' || activePreviewSheet.needs_review"
+              type="show"
+              label="الانتقال للمراجعة البشرية"
+              color="warning"
+              variant="flat"
+              class="font-weight-bold"
+              :click="() => $router.push(`/omr-human-review?exam=${selectedExamId}`)"
+            />
+            <custom-btn
+              type="cancel"
+              label="إغلاق النافذة"
+              class="font-weight-bold"
+              :click="() => previewDialog = false"
+            />
+          </div>
+        </v-card-actions>
       </v-card>
     </v-dialog>
   </div>
@@ -1145,14 +1295,15 @@ export default {
     // Preview Dialog
     const previewDialog = ref(false)
     const activePreviewSheet = ref(null)
-    const previewMode = ref('annotated')
+    const previewMode = ref('questions')
 
     const previewQuestionsHeaders = ref([
-      { title: 'السؤال', key: 'question_id', sortable: false, width: '90px', align: 'center' },
-      { title: 'إجابة الطالب المكتشفة', key: 'marked_choice', sortable: false, align: 'center' },
-      { title: 'حالة الدائرة', key: 'bubble_status', sortable: false, width: '130px', align: 'center' },
-      { title: 'الإجابة المعتمدة', key: 'correct_choice', sortable: false, width: '120px', align: 'center' },
-      { title: 'الدرجة', key: 'score', sortable: false, width: '90px', align: 'center' },
+      { title: 'رقم السؤال', key: 'question_number', sortable: true, width: '100px', align: 'center' },
+      { title: 'الإجابة النموذجية', key: 'correct_choice', sortable: true, width: '140px', align: 'center' },
+      { title: 'تظليل الطالب المكتشف', key: 'marked_choice', sortable: true, width: '160px', align: 'center' },
+      { title: 'حالة الدائرة', key: 'bubble_status', sortable: true, width: '130px', align: 'center' },
+      { title: 'النتيجة', key: 'status', sortable: true, width: '120px', align: 'center' },
+      { title: 'الدرجة', key: 'score', sortable: true, width: '100px', align: 'center' },
     ])
 
     const previewQuestionsPage = ref(1)
@@ -1169,6 +1320,26 @@ export default {
       },
     })
 
+    const previewCounts = computed(() => {
+      const qs = activePreviewSheet.value?.questions || []
+      let correct = 0
+      let wrong = 0
+      let empty = 0
+      qs.forEach((q) => {
+        const marked = q.marked_choice || q.marked
+        const isMarked = Boolean(marked && marked !== 'لم يُجب (فارغ)' && marked !== 'فارغ')
+        if (!isMarked) {
+          empty++
+        } else {
+          const correctChoice = q.correct_choice || '—'
+          const isCorr = q.is_correct ?? (correctChoice !== '—' && String(marked).trim().toUpperCase() === String(correctChoice).trim().toUpperCase())
+          if (isCorr) correct++
+          else wrong++
+        }
+      })
+      return { total: qs.length, correct, wrong, empty }
+    })
+
     const getPreviewQuestionsData = async (params = {}) => {
       const p = params?.params || params || {}
       const page = Number(p.page) || previewQuestionsPage.value || 1
@@ -1177,13 +1348,24 @@ export default {
       previewQuestionsPageSize.value = pageSize
 
       const rawQuestions = activePreviewSheet.value?.questions || []
-      const all = rawQuestions.map((q, idx) => ({
-        ...q,
-        question_id: q.question_id || q.q || (idx + 1),
-        marked_choice: q.marked_choice || q.marked || null,
-        correct_choice: q.correct_choice || '—',
-        score: q.score_awarded ?? q.marks_awarded ?? 0,
-      }))
+      const all = rawQuestions.map((q, idx) => {
+        const qNum = q.question_number || q.question_id || q.q || (idx + 1)
+        const marked = q.marked_choice || q.marked || null
+        const correct = q.correct_choice || '—'
+        const isMarked = Boolean(marked && marked !== 'لم يُجب (فارغ)' && marked !== 'فارغ')
+        const isCorrect = q.is_correct ?? (isMarked && correct !== '—' && String(marked).trim().toUpperCase() === String(correct).trim().toUpperCase())
+        const score = q.score_awarded ?? q.marks_awarded ?? (isCorrect ? 1 : 0)
+
+        return {
+          ...q,
+          question_number: qNum,
+          marked_choice: marked,
+          correct_choice: correct,
+          is_marked: isMarked,
+          is_correct: isCorrect,
+          score: score,
+        }
+      })
 
       const total = all.length
       const numPages = Math.ceil(total / pageSize) || 1
@@ -1623,7 +1805,7 @@ export default {
 
     const openSheetPreview = (sheet) => {
       activePreviewSheet.value = sheet
-      previewMode.value = sheet.annotated_url ? 'annotated' : (sheet.image_url ? 'original' : 'questions')
+      previewMode.value = 'questions'
       previewQuestionsPage.value = 1
       getPreviewQuestionsData({ page: 1, page_size: previewQuestionsPageSize.value })
       previewDialog.value = true
@@ -1728,6 +1910,7 @@ export default {
       activePreviewSheet,
       previewMode,
       openSheetPreview,
+      previewCounts,
       previewQuestionsHeaders,
       previewQuestionsTableItems,
       getPreviewQuestionsData,
