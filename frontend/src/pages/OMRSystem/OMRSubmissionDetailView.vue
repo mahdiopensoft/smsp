@@ -395,6 +395,7 @@
               <custom-data-table
                 v-bind="{
                   items: questionsTableItems,
+                  getData: getQuestionsData,
                   headers: questionHeaders,
                 }"
                 :customLoading="loading"
@@ -660,6 +661,8 @@ export default {
       selectedCrop: null,
 
       filterMode: 'all',
+      questionsPage: 1,
+      questionsPageSize: 10,
 
       paperWidth: 210.0,
       paperHeight: 297.0,
@@ -688,15 +691,21 @@ export default {
   computed: {
     questionsTableItems() {
       const qs = this.filteredQuestions.map(q => this.enrichQuestion(q))
+      const total = qs.length
+      const pageSize = this.questionsPageSize || 10
+      const numPages = Math.ceil(total / pageSize) || 1
+      const validPage = Math.min(Math.max(1, this.questionsPage), numPages)
+      const start = (validPage - 1) * pageSize
+
       return {
-        results: qs,
-        count: qs.length,
+        results: qs.slice(start, start + pageSize),
+        count: total,
         pagination: {
-          count: qs.length,
-          total: qs.length,
-          page_size: 10,
-          num_pages: Math.ceil(qs.length / 10) || 1,
-          current_page: 1,
+          count: total,
+          total: total,
+          page_size: pageSize,
+          num_pages: numPages,
+          current_page: validPage,
         },
       }
     },
@@ -960,8 +969,20 @@ export default {
       return q
     },
 
-    async getQuestionsData() {
+    async getQuestionsData(params = {}) {
+      const p = params?.params || params || {}
+      if (p.page) this.questionsPage = Number(p.page) || 1
+      if (p.page_size) this.questionsPageSize = Number(p.page_size) || 10
       return this.questionsTableItems
+    },
+  },
+
+  watch: {
+    filterMode() {
+      this.questionsPage = 1
+    },
+    questionSearchQuery() {
+      this.questionsPage = 1
     },
   },
 

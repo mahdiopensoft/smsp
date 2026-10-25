@@ -156,7 +156,8 @@
       <div class="main-card rounded-2xl overflow-hidden mb-4">
         <custom-data-table
           v-bind="{
-            items: questionsTableItems,
+            items: qTableItems,
+            getData: getQuestionsData,
             headers: questionsHeaders,
           }"
           :search="false"
@@ -225,7 +226,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 const props = defineProps({
   activeExam: { type: Object, default: () => ({}) },
@@ -308,19 +309,51 @@ const questionsHeaders = ref([
   { title: 'الدرجة', key: 'assigned_mark', sortable: false, width: '80px' },
 ])
 
-const questionsTableItems = computed(() => {
-  const qs = filteredQuestions.value
-  return {
-    results: qs,
-    pagination: {
-      count: qs.length,
-      current_page: 1,
-      num_pages: 1,
-      page_size: qs.length || 10,
-      total: qs.length
-    }
-  }
+const qPage = ref(1)
+const qPageSize = ref(10)
+const qTableItems = ref({
+  results: [],
+  count: 0,
+  pagination: {
+    count: 0,
+    total: 0,
+    num_pages: 1,
+    current_page: 1,
+  },
 })
+
+const getQuestionsData = async (params = {}) => {
+  const p = params?.params || params || {}
+  const page = Number(p.page) || qPage.value || 1
+  const pageSize = Number(p.page_size) || qPageSize.value || 10
+  qPage.value = page
+  qPageSize.value = pageSize
+
+  const all = filteredQuestions.value || []
+  const total = all.length
+  const numPages = Math.ceil(total / pageSize) || 1
+  const validPage = Math.min(Math.max(1, page), numPages)
+  const start = (validPage - 1) * pageSize
+
+  qTableItems.value = {
+    results: all.slice(start, start + pageSize),
+    count: total,
+    pagination: {
+      count: total,
+      total: total,
+      num_pages: numPages,
+      current_page: validPage,
+    },
+  }
+  return qTableItems.value
+}
+
+watch(filteredQuestions, () => {
+  qPage.value = 1
+  getQuestionsData({ page: 1, page_size: qPageSize.value })
+}, { immediate: true })
+
+const questionsTableItems = computed(() => qTableItems.value)
 
 const resetQuestionFilters = () => {
   questionSearchQuery.value = ''

@@ -1955,7 +1955,8 @@
       <div class="main-card rounded-2xl overflow-hidden mb-6">
         <custom-data-table
           v-bind="{
-            items: tableItems,
+            items: batchesTableItems,
+            getData: getBatchesData,
             headers,
             loading: loadingBatches,
           }"
@@ -2059,7 +2060,8 @@
           <div v-else>
             <custom-data-table
               v-bind="{
-                items: studentsTableItems,
+                items: batchStudentsTableItems,
+                getData: getBatchStudentsData,
                 headers: studentsHeaders,
               }"
               :hasFilter="false"
@@ -3586,11 +3588,51 @@ const headers = computed(() => [
   { title: "استعراض الأوراق", key: "actions", sortable: false, align: "center", width: "140px" },
 ])
 
-const tableItems = computed(() => ({
-  results: batches.value,
-  count: batches.value.length,
-  pagination: { count: batches.value.length, total: batches.value.length }
-}))
+const batchesPage = ref(1)
+const batchesPageSize = ref(10)
+const batchesTableItems = ref({
+  results: [],
+  count: 0,
+  pagination: {
+    count: 0,
+    total: 0,
+    num_pages: 1,
+    current_page: 1,
+  },
+})
+
+const getBatchesData = async (params = {}) => {
+  const p = params?.params || params || {}
+  const page = Number(p.page) || batchesPage.value || 1
+  const pageSize = Number(p.page_size) || batchesPageSize.value || 10
+  batchesPage.value = page
+  batchesPageSize.value = pageSize
+
+  const all = batches.value || []
+  const total = all.length
+  const numPages = Math.ceil(total / pageSize) || 1
+  const validPage = Math.min(Math.max(1, page), numPages)
+  const start = (validPage - 1) * pageSize
+
+  batchesTableItems.value = {
+    results: all.slice(start, start + pageSize),
+    count: total,
+    pagination: {
+      count: total,
+      total: total,
+      num_pages: numPages,
+      current_page: validPage,
+    },
+  }
+  return batchesTableItems.value
+}
+
+watch(batches, () => {
+  batchesPage.value = 1
+  getBatchesData({ page: 1, page_size: batchesPageSize.value })
+}, { immediate: true })
+
+const tableItems = computed(() => batchesTableItems.value)
 
 const studentsHeaders = computed(() => [
   { title: "رقم الجلوس", key: "seat_number", sortable: true, align: "center" },
@@ -3599,11 +3641,51 @@ const studentsHeaders = computed(() => [
   { title: "وقت الطباعة الفعلي", key: "printed_at", sortable: true, align: "center" },
 ])
 
-const studentsTableItems = computed(() => ({
-  results: batchStudents.value,
-  count: batchStudents.value.length,
-  pagination: { count: batchStudents.value.length, total: batchStudents.value.length }
-}))
+const batchStudentsPage = ref(1)
+const batchStudentsPageSize = ref(10)
+const batchStudentsTableItems = ref({
+  results: [],
+  count: 0,
+  pagination: {
+    count: 0,
+    total: 0,
+    num_pages: 1,
+    current_page: 1,
+  },
+})
+
+const getBatchStudentsData = async (params = {}) => {
+  const p = params?.params || params || {}
+  const page = Number(p.page) || batchStudentsPage.value || 1
+  const pageSize = Number(p.page_size) || batchStudentsPageSize.value || 10
+  batchStudentsPage.value = page
+  batchStudentsPageSize.value = pageSize
+
+  const all = batchStudents.value || []
+  const total = all.length
+  const numPages = Math.ceil(total / pageSize) || 1
+  const validPage = Math.min(Math.max(1, page), numPages)
+  const start = (validPage - 1) * pageSize
+
+  batchStudentsTableItems.value = {
+    results: all.slice(start, start + pageSize),
+    count: total,
+    pagination: {
+      count: total,
+      total: total,
+      num_pages: numPages,
+      current_page: validPage,
+    },
+  }
+  return batchStudentsTableItems.value
+}
+
+watch(batchStudents, () => {
+  batchStudentsPage.value = 1
+  getBatchStudentsData({ page: 1, page_size: batchStudentsPageSize.value })
+}, { immediate: true })
+
+const studentsTableItems = computed(() => batchStudentsTableItems.value)
 
 // Methods
 const fetchExamsList = async (customParams = {}) => {

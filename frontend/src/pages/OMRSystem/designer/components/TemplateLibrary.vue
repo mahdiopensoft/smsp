@@ -351,7 +351,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import TemplateCard from './TemplateCard.vue'
 
 const props = defineProps<{
@@ -470,14 +470,51 @@ const filteredTemplates = computed(() => {
 })
 
 // Bound items for custom-data-table
-const tableItems = computed(() => ({
-  results: filteredTemplates.value,
-  count: filteredTemplates.value.length,
-}))
+const libraryPage = ref(1)
+const libraryPageSize = ref(10)
+const libraryTableItems = ref({
+  results: [],
+  count: 0,
+  pagination: {
+    count: 0,
+    total: 0,
+    num_pages: 1,
+    current_page: 1,
+  },
+})
 
 async function getData(params = {}) {
-  return tableItems.value
+  const p = params?.params || params || {}
+  const page = Number(p.page) || libraryPage.value || 1
+  const pageSize = Number(p.page_size) || libraryPageSize.value || 10
+  libraryPage.value = page
+  libraryPageSize.value = pageSize
+
+  const all = filteredTemplates.value || []
+  const total = all.length
+  const numPages = Math.ceil(total / pageSize) || 1
+  const validPage = Math.min(Math.max(1, page), numPages)
+  const start = (validPage - 1) * pageSize
+
+  libraryTableItems.value = {
+    results: all.slice(start, start + pageSize),
+    count: total,
+    pagination: {
+      count: total,
+      total: total,
+      num_pages: numPages,
+      current_page: validPage,
+    },
+  }
+  return libraryTableItems.value
 }
+
+watch(filteredTemplates, () => {
+  libraryPage.value = 1
+  getData({ page: 1, page_size: libraryPageSize.value })
+}, { immediate: true })
+
+const tableItems = computed(() => libraryTableItems.value)
 
 function applyFilters() {
   // Triggers reactivity

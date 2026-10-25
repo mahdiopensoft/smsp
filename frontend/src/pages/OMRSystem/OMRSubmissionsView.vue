@@ -494,8 +494,12 @@ export default {
     async getData(params = {}) {
       this.loading = true
       try {
+        const p = params?.params || params || {}
+        const pageNum = Number(p.page) || (this.tableItems?.pagination?.current_page) || 1
+        const pageSizeNum = Number(p.page_size) || (this.tableItems?.pagination?.page_size) || 10
         const queryParams = {
-          ...params,
+          page: pageNum,
+          page_size: pageSizeNum,
           institution_type: (this.filterInstitutionType && this.filterInstitutionType !== 'all') ? this.filterInstitutionType : undefined,
           college: this.filterCollege || undefined,
           department: this.filterDepartment || undefined,
@@ -510,18 +514,45 @@ export default {
           subject: this.filterSubject || undefined,
           exam: this.filterExam || undefined,
           status: this.filterStatus || undefined,
-          search: this.searchQuery || undefined,
+          search: (p.search !== undefined ? p.search : this.searchQuery) || undefined,
         }
         const res = await submissionsAPI.list(queryParams)
         const data = res.data || res
         if (Array.isArray(data)) {
+          const total = data.length
+          const numPages = Math.ceil(total / pageSizeNum) || 1
           this.tableItems = {
             results: data,
-            pagination: { count: data.length, total: data.length },
+            count: total,
+            pagination: {
+              count: total,
+              total: total,
+              num_pages: numPages,
+              current_page: pageNum,
+              page_size: pageSizeNum,
+            },
+          }
+        } else if (data && data.results) {
+          const results = data.results || []
+          const total = data.pagination?.count || data.count || results.length
+          const numPages = data.pagination?.num_pages || Math.ceil(total / pageSizeNum) || 1
+          this.tableItems = {
+            ...data,
+            results,
+            count: total,
+            pagination: {
+              ...data.pagination,
+              count: total,
+              total,
+              num_pages: numPages,
+              current_page: pageNum,
+              page_size: pageSizeNum,
+            },
           }
         } else {
           this.tableItems = data
         }
+        return this.tableItems
       } catch (err) {
         console.error('Error fetching submissions:', err)
       } finally {

@@ -202,7 +202,8 @@
     <div class="main-card rounded-2xl mb-6 overflow-x-auto">
       <custom-data-table
         v-bind="{
-          items: tableItems,
+          items: examsTableItems,
+          getData: getExamsData,
           headers,
           loading,
         }"
@@ -629,7 +630,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/omr/client.js'
 import ExamBookletTab from './exam_hub/ExamBookletTab.vue'
@@ -816,14 +817,52 @@ const filteredExams = computed(() => {
   return list
 })
 
-const tableItems = computed(() => ({
-  results: filteredExams.value,
-  count: filteredExams.value.length,
+const examsPage = ref(1)
+const examsPageSize = ref(10)
+const examsTableItems = ref({
+  results: [],
+  count: 0,
   pagination: {
-    count: filteredExams.value.length,
-    total: filteredExams.value.length,
+    count: 0,
+    total: 0,
+    num_pages: 1,
+    current_page: 1,
+  },
+})
+
+const getExamsData = async (params = {}) => {
+  const p = params?.params || params || {}
+  const page = Number(p.page) || examsPage.value || 1
+  const pageSize = Number(p.page_size) || examsPageSize.value || 10
+  examsPage.value = page
+  examsPageSize.value = pageSize
+
+  const all = filteredExams.value || []
+  const total = all.length
+  const numPages = Math.ceil(total / pageSize) || 1
+  const validPage = Math.min(Math.max(1, page), numPages)
+  const start = (validPage - 1) * pageSize
+
+  examsTableItems.value = {
+    results: all.slice(start, start + pageSize),
+    count: total,
+    pagination: {
+      count: total,
+      total: total,
+      num_pages: numPages,
+      current_page: validPage,
+    },
   }
-}))
+  return examsTableItems.value
+}
+
+watch(filteredExams, () => {
+  examsPage.value = 1
+  getExamsData({ page: 1, page_size: examsPageSize.value })
+}, { immediate: true })
+
+// Backwards-compatible alias for any external bindings
+const tableItems = computed(() => examsTableItems.value)
 
 const resetFilters = () => {
   searchQuery.value = ''

@@ -370,6 +370,7 @@ const fetchExamStudents = async (tableParams = null) => {
     if (data.schools && Array.isArray(data.schools) && data.schools.length) {
       availableSchools.value = data.schools
     }
+    return studentTableData.value
   } catch (err) {
     console.error('Failed to load exam students from backend:', err)
   } finally {

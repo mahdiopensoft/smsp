@@ -153,7 +153,8 @@
 
       <custom-data-table
         v-bind="{
-          items: tableItems,
+          items: dashboardTableItems,
+          getData: getDashboardData,
           headers,
           loading,
         }"
@@ -231,7 +232,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { submissionsAPI, examsAPI } from '../../services/omr/endpoints.js'
 
 const loading = ref(false)
@@ -280,14 +281,51 @@ const filteredSubmissions = computed(() => {
   return list
 })
 
-const tableItems = computed(() => ({
-  results: filteredSubmissions.value,
-  count: filteredSubmissions.value.length,
+const dashboardPage = ref(1)
+const dashboardPageSize = ref(10)
+const dashboardTableItems = ref({
+  results: [],
+  count: 0,
   pagination: {
-    count: filteredSubmissions.value.length,
-    total: filteredSubmissions.value.length,
+    count: 0,
+    total: 0,
+    num_pages: 1,
+    current_page: 1,
+  },
+})
+
+const getDashboardData = async (params = {}) => {
+  const p = params?.params || params || {}
+  const page = Number(p.page) || dashboardPage.value || 1
+  const pageSize = Number(p.page_size) || dashboardPageSize.value || 10
+  dashboardPage.value = page
+  dashboardPageSize.value = pageSize
+
+  const all = filteredSubmissions.value || []
+  const total = all.length
+  const numPages = Math.ceil(total / pageSize) || 1
+  const validPage = Math.min(Math.max(1, page), numPages)
+  const start = (validPage - 1) * pageSize
+
+  dashboardTableItems.value = {
+    results: all.slice(start, start + pageSize),
+    count: total,
+    pagination: {
+      count: total,
+      total: total,
+      num_pages: numPages,
+      current_page: validPage,
+    },
   }
-}))
+  return dashboardTableItems.value
+}
+
+watch(filteredSubmissions, () => {
+  dashboardPage.value = 1
+  getDashboardData({ page: 1, page_size: dashboardPageSize.value })
+}, { immediate: true })
+
+const tableItems = computed(() => dashboardTableItems.value)
 
 const resetFilters = () => {
   searchQuery.value = ''

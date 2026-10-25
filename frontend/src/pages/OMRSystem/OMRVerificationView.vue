@@ -204,7 +204,7 @@
     <!-- Custom Data Table -->
     <div class="main-card rounded-2xl overflow-hidden mb-6">
       <custom-data-table
-        v-bind="{ items: tableItems, headers, loading }"
+        v-bind="{ items: verificationTableItems, getData: getVerificationData, headers, loading }"
         :actions="false"
         :hasFilter="false"
         :log="false"
@@ -288,7 +288,7 @@
               </v-btn-toggle>
             </div>
             <custom-data-table
-              v-bind="{ items: filteredStudentsTableItems, headers: studentsHeaders }"
+              v-bind="{ items: studentsTableItems, getData: getStudentsData, headers: studentsHeaders }"
               :hasFilter="false" :log="false" :restore="false" :actions="false"
             >
               <template v-slot:item-slot="{ item, key }">
@@ -315,7 +315,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import api from '@/services/omr/client.js'
 
 export default {
@@ -428,11 +428,51 @@ export default {
       { title: "التفاصيل", key: "actions", sortable: false, align: "center", width: "100px" },
     ])
 
-    const tableItems = computed(() => ({
-      results: examsStats.value,
-      count: examsStats.value.length,
-      pagination: { count: examsStats.value.length, total: examsStats.value.length }
-    }))
+    const verificationPage = ref(1)
+    const verificationPageSize = ref(10)
+    const verificationTableItems = ref({
+      results: [],
+      count: 0,
+      pagination: {
+        count: 0,
+        total: 0,
+        num_pages: 1,
+        current_page: 1,
+      },
+    })
+
+    const getVerificationData = async (params = {}) => {
+      const p = params?.params || params || {}
+      const page = Number(p.page) || verificationPage.value || 1
+      const pageSize = Number(p.page_size) || verificationPageSize.value || 10
+      verificationPage.value = page
+      verificationPageSize.value = pageSize
+
+      const all = examsStats.value || []
+      const total = all.length
+      const numPages = Math.ceil(total / pageSize) || 1
+      const validPage = Math.min(Math.max(1, page), numPages)
+      const start = (validPage - 1) * pageSize
+
+      verificationTableItems.value = {
+        results: all.slice(start, start + pageSize),
+        count: total,
+        pagination: {
+          count: total,
+          total: total,
+          num_pages: numPages,
+          current_page: validPage,
+        },
+      }
+      return verificationTableItems.value
+    }
+
+    watch(examsStats, () => {
+      verificationPage.value = 1
+      getVerificationData({ page: 1, page_size: verificationPageSize.value })
+    }, { immediate: true })
+
+    const tableItems = computed(() => verificationTableItems.value)
 
     const studentsHeaders = computed(() => [
       { title: "رقم الجلوس", key: "seat_number", sortable: true, align: "center", width: "120px" },
@@ -447,11 +487,51 @@ export default {
       return examStudents.value
     })
 
-    const filteredStudentsTableItems = computed(() => ({
-      results: filteredStudents.value,
-      count: filteredStudents.value.length,
-      pagination: { count: filteredStudents.value.length, total: filteredStudents.value.length }
-    }))
+    const studentsPage = ref(1)
+    const studentsPageSize = ref(10)
+    const studentsTableItems = ref({
+      results: [],
+      count: 0,
+      pagination: {
+        count: 0,
+        total: 0,
+        num_pages: 1,
+        current_page: 1,
+      },
+    })
+
+    const getStudentsData = async (params = {}) => {
+      const p = params?.params || params || {}
+      const page = Number(p.page) || studentsPage.value || 1
+      const pageSize = Number(p.page_size) || studentsPageSize.value || 10
+      studentsPage.value = page
+      studentsPageSize.value = pageSize
+
+      const all = filteredStudents.value || []
+      const total = all.length
+      const numPages = Math.ceil(total / pageSize) || 1
+      const validPage = Math.min(Math.max(1, page), numPages)
+      const start = (validPage - 1) * pageSize
+
+      studentsTableItems.value = {
+        results: all.slice(start, start + pageSize),
+        count: total,
+        pagination: {
+          count: total,
+          total: total,
+          num_pages: numPages,
+          current_page: validPage,
+        },
+      }
+      return studentsTableItems.value
+    }
+
+    watch(filteredStudents, () => {
+      studentsPage.value = 1
+      getStudentsData({ page: 1, page_size: studentsPageSize.value })
+    }, { immediate: true })
+
+    const filteredStudentsTableItems = computed(() => studentsTableItems.value)
 
     const fetchVerificationStats = async () => {
       loading.value = true
@@ -534,6 +614,8 @@ export default {
 
     return {
       loading, searchQuery, headers, tableItems, fetchVerificationStats, resetFilters,
+      verificationTableItems, getVerificationData,
+      studentsTableItems, getStudentsData,
       filterInstitutionType, institutionTypeOptions,
       filterStage, filterClassTrack, filterSubject, subjectFilterParam,
       filterCollege, filterDepartment, filterSpecialization, filterSemesterSubject,
