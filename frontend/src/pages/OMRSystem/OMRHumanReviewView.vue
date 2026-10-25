@@ -658,14 +658,18 @@ const headers = computed(() => [
   { title: "حالة المراجعة", key: "status", sortable: true, align: "center", width: "120px" },
 ])
 
-// Bound items for custom-data-table
+// Bound items for custom-data-table (Main Table Pagination)
+const sheetsPagination = ref({
+  count: 0,
+  current_page: 1,
+  num_pages: 1,
+  page_size: 10,
+})
+
 const tableItems = computed(() => ({
   results: sheets.value,
-  count: sheets.value.length,
-  pagination: {
-    count: sheets.value.length,
-    total: sheets.value.length,
-  },
+  count: sheetsPagination.value.count || sheets.value.length,
+  pagination: sheetsPagination.value,
 }))
 
 // Dialog Headers & Items (Matching unified custom-data-table)
@@ -679,18 +683,19 @@ const dialogHeaders = computed(() => [
   { title: "الدرجة", key: "score", sortable: true, align: "center", width: "85px" },
 ])
 
-const dialogTableItems = computed(() => ({
-  results: filteredDialogQuestions.value,
-  count: filteredDialogQuestions.value.length,
+// Dialog Client-Side Pagination State
+const dialogPage = ref(1)
+const dialogPageSize = ref(10)
+const dialogTableItems = ref({
+  results: [],
+  count: 0,
   pagination: {
-    count: filteredDialogQuestions.value.length,
-    total: filteredDialogQuestions.value.length,
+    count: 0,
+    total: 0,
+    num_pages: 1,
+    current_page: 1,
   },
-}))
-
-const getDialogData = async () => {
-  return dialogTableItems.value
-}
+})
 
 // Filters
 const filterInstitutionType = ref('all')
@@ -818,14 +823,19 @@ const getData = async (params = {}) => {
 }
 
 let activeFetchPromise = null
-const fetchData = async () => {
+const fetchData = async (params = {}) => {
   if (loading.value && activeFetchPromise) {
     return activeFetchPromise
   }
   loading.value = true
   activeFetchPromise = (async () => {
     try {
+      const p = params?.params || params || {}
+      const pageNum = Number(p.page) || sheetsPagination.value.current_page || 1
+      const pageSizeNum = Number(p.page_size) || sheetsPagination.value.page_size || 10
       const queryParams = {
+        page: pageNum,
+        page_size: pageSizeNum,
         institution_type: (filterInstitutionType.value && filterInstitutionType.value !== 'all') ? filterInstitutionType.value : undefined,
         college: filterCollege.value || undefined,
         department: filterDepartment.value || undefined,
@@ -840,7 +850,7 @@ const fetchData = async () => {
         subject: filterSubject.value || undefined,
         exam: filterExam.value || undefined,
         status: filterStatus.value || undefined,
-        search: searchQuery.value || undefined,
+        search: p.search || searchQuery.value || undefined,
       }
       const [statsRes, listRes] = await Promise.all([
         humanReviewAPI.getStats(),
@@ -849,6 +859,17 @@ const fetchData = async () => {
       stats.value = statsRes?.data || stats.value
       const results = listRes?.data?.results || listRes?.data || []
       sheets.value = Array.isArray(results) ? results : []
+      if (listRes?.data?.pagination) {
+        sheetsPagination.value = listRes.data.pagination
+      } else {
+        sheetsPagination.value = {
+          count: sheets.value.length,
+          total: sheets.value.length,
+          current_page: pageNum,
+          num_pages: Math.ceil(sheets.value.length / pageSizeNum) || 1,
+          page_size: pageSizeNum,
+        }
+      }
       return tableItems.value
     } catch (err) {
       console.error('Failed to load human review data', err)
@@ -939,14 +960,47 @@ const dialogCounts = computed(() => {
   }
 })
 
+const getDialogData = async (params = {}) => {
+  const p = params?.params || params || {}
+  const page = Number(p.page) || dialogPage.value || 1
+  const pageSize = Number(p.page_size) || dialogPageSize.value || 10
+  dialogPage.value = page
+  dialogPageSize.value = pageSize
+
+  const all = filteredDialogQuestions.value || []
+  const total = all.length
+  const numPages = Math.ceil(total / pageSize) || 1
+  const validPage = Math.min(Math.max(1, page), numPages)
+  const start = (validPage - 1) * pageSize
+
+  dialogTableItems.value = {
+    results: all.slice(start, start + pageSize),
+    count: total,
+    pagination: {
+      count: total,
+      total: total,
+      num_pages: numPages,
+      current_page: validPage,
+    },
+  }
+  return dialogTableItems.value
+}
+
+watch([filteredDialogQuestions, dialogQuestionFilter, dialogSearchQuery], () => {
+  dialogPage.value = 1
+  getDialogData({ page: 1, page_size: dialogPageSize.value })
+}, { immediate: true })
+
 const openReviewModal = (sheet) => {
   activeReviewSheet.value = { ...sheet }
   dialogQuestionFilter.value = 'all'
   dialogSearchQuery.value = ''
+  dialogPage.value = 1
   sheetImageError.value = false
   if (Array.isArray(activeReviewSheet.value.questions)) {
     activeReviewSheet.value.questions.forEach(enrichQuestion)
   }
+  getDialogData({ page: 1, page_size: dialogPageSize.value })
   reviewDialog.value = true
 }
 
@@ -1092,6 +1146,7 @@ const overrideQuestionChoice = async (q, choice) => {
     q.is_correct = choice ? (normalizeChoiceValue(choice) === normalizeChoiceValue(q.correct_choice)) : false
     q.bubble_state = choice ? 'filled' : 'empty'
     enrichQuestion(q)
+    getDialogData({ page: dialogPage.value, page_size: dialogPageSize.value })
 
     if (res.data?.mcq_score != null) {
       activeReviewSheet.value.mcq_score = res.data.mcq_score
