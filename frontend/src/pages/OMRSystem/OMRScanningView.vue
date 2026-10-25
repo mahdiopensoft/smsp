@@ -389,7 +389,7 @@
                   </v-avatar>
                   <div>
                     <div class="text-h6 font-weight-black text-green-darken-4 mb-0">
-                      ✅ المظروف مطابق ومكتمل 100% ({{ actualScannedCount + currentEnvelope.absentCount }} / {{ currentEnvelope.expectedCount }})
+                      المظروف مطابق ومكتمل 100% ({{ actualScannedCount + currentEnvelope.absentCount }} / {{ currentEnvelope.expectedCount }})
                     </div>
                     <div class="text-caption text-green-darken-3 font-weight-bold mt-1">
                       تم استيفاء كامل أوراق القاعة: {{ actualScannedCount }} ورقة إجابة ممسوحة + {{ currentEnvelope.absentCount }} غياب مسجل رسمي بكشف الحضور والغياب.
@@ -408,7 +408,7 @@
                     :disabled="isCommitted"
                     @click="commitEnvelopeToControl"
                   >
-                    {{ isCommitted ? 'تم اعتماد وترحيل المظروف بنجاح ✓' : 'اعتماد وترحيل المظروف للكنترول المركزي' }}
+                    {{ isCommitted ? 'تم اعتماد وترحيل المظروف بنجاح' : 'اعتماد وترحيل المظروف للكنترول المركزي' }}
                   </v-btn>
                 </div>
               </div>
@@ -426,7 +426,7 @@
                   </v-avatar>
                   <div>
                     <div class="text-h6 font-weight-black text-red-darken-4 mb-0">
-                      ⚠️ تنبيه عجز: نقص في أوراق المظروف الامتحاني!
+                      تنبيه عجز: نقص في أوراق المظروف الامتحاني!
                     </div>
                     <div class="text-caption text-red-darken-3 font-weight-bold mt-1">
                       سعة القاعة المقيدة: {{ currentEnvelope.expectedCount }} طالباً | الأوراق المسحوبة: {{ actualScannedCount }} + الغياب: {{ currentEnvelope.absentCount }} = {{ actualScannedCount + currentEnvelope.absentCount }} ورقة.
@@ -462,7 +462,7 @@
                   </v-avatar>
                   <div>
                     <div class="text-h6 font-weight-black text-amber-darken-4 mb-0">
-                      ⚠️ تنبيه فائض: تم مسح أوراق إضافية غير مقيدة في المظروف!
+                      تنبيه فائض: تم مسح أوراق إضافية غير مقيدة في المظروف!
                     </div>
                     <div class="text-caption text-amber-darken-3 font-weight-bold mt-1">
                       سعة القاعة: {{ currentEnvelope.expectedCount }} | الممسوح + الغياب: {{ actualScannedCount + currentEnvelope.absentCount }} (فائض بمقدار {{ Math.abs(discrepancyAmount) }} ورقة).
@@ -837,9 +837,9 @@ export default {
     const filterInstitutionType = ref('all')
     const institutionTypeOptions = [
       { text: 'الكل (مدارس وجامعات ومعاهد)', value: 'all' },
-      { text: '🏫 تعليم مدرسي', value: 'school' },
-      { text: '🎓 تعليم جامعي', value: 'university' },
-      { text: '🏢 معاهد وتدريب مهني', value: 'institute' },
+      { text: 'تعليم مدرسي', value: 'school' },
+      { text: 'تعليم جامعي', value: 'university' },
+      { text: 'معاهد وتدريب مهني', value: 'institute' },
     ]
 
     // School Filters

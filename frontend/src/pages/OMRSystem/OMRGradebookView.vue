@@ -453,7 +453,7 @@
                   variant="tonal"
                   class="font-weight-bold"
                 >
-                  {{ item.dispatch_status === 'dispatched' ? 'مرحل بالكامل ✓' : (item.dispatch_status === 'partial' ? 'ترحيل جزئي' : 'غير مرحل') }}
+                  {{ item.dispatch_status === 'dispatched' ? 'مرحل بالكامل' : (item.dispatch_status === 'partial' ? 'ترحيل جزئي' : 'غير مرحل') }}
                 </v-chip>
               </template>
 
@@ -1436,9 +1436,9 @@ export default {
       filterInstitutionType: 'all',
       institutionTypeOptions: [
         { text: 'الكل', value: 'all' },
-        { text: '🏫 مدارس', value: 'school' },
-        { text: '🎓 جامعات', value: 'university' },
-        { text: '🏢 معاهد وتدريب مهني', value: 'institute' },
+        { text: 'مدارس', value: 'school' },
+        { text: 'جامعات', value: 'university' },
+        { text: 'معاهد وتدريب مهني', value: 'institute' },
       ],
       filterStage: null,
       filterClassTrack: null,

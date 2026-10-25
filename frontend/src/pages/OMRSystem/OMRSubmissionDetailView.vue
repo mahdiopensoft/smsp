@@ -62,7 +62,7 @@
         <div class="d-flex align-center justify-space-between flex-wrap gap-2">
           <div>
             <div class="text-subtitle-2 font-weight-black">
-              🔒 هذه الورقة مقفلة ومرحلة للكنترول المركزي
+              هذه الورقة مقفلة ومرحلة للكنترول المركزي
             </div>
             <div class="text-caption">
               تم تثبيت ورصد درجات هذه الورقة رسمياً بموجب الإيصال الأكاديمي المشفر رقم:
@@ -88,7 +88,7 @@
         <div class="d-flex align-center justify-space-between flex-wrap gap-2">
           <div>
             <div class="text-subtitle-2 font-weight-black">
-              ✅ تم التصحيح والرصد الآلي بنجاح بمطابقة الذكاء الاصطناعي
+              تم التصحيح والرصد الآلي بنجاح بمطابقة الذكاء الاصطناعي
             </div>
             <div class="text-caption">
               تم التعرف على تظليلات الطالب بدقة عالية ومقارنتها بنموذج الإجابة الرسمي ({{ submission.exam_version_code || 'النموذج المعتمد' }}). يمكنك النقر على مقتطفات الدوائر الدقيقة (AI Crops) في الجدول أدناه لفحص كيفية رؤية الذكاء الاصطناعي لكل دائرة.
@@ -112,7 +112,7 @@
         <div class="d-flex align-center justify-space-between flex-wrap gap-2">
           <div>
             <div class="text-subtitle-2 font-weight-black">
-              🔍 تم فحص الورقة بالكامل ومطابقة الدوائر بالذكاء الاصطناعي
+              تم فحص الورقة بالكامل ومطابقة الدوائر بالذكاء الاصطناعي
             </div>
             <div class="text-caption">
               جميع دوائر الإجابة لهذه الورقة فارغة (لم يقم الطالب بتظليل أي خيار). تم اقتصاص مواضع الدوائر وتأكيد خلوها من الرصاص بنسبة ثقة عالية. يمكنك رؤية مقتطفات الدوائر الدقيقة (AI Crops) في الجدول أدناه بالنقر على أي دائرة.

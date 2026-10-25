@@ -399,9 +399,9 @@ export default {
       filterInstitutionType: 'all',
       institutionTypeOptions: [
         { text: "الكل (مدارس وجامعات ومعاهد)", value: "all" },
-        { text: "🏫 مدارس فقط", value: "school" },
-        { text: "🎓 جامعات فقط", value: "university" },
-        { text: "🏢 معاهد وتدريب مهني", value: "institute" },
+        { text: "مدارس فقط", value: "school" },
+        { text: "جامعات فقط", value: "university" },
+        { text: "معاهد وتدريب مهني", value: "institute" },
       ],
       filterCollege: null,
       filterDepartment: null,

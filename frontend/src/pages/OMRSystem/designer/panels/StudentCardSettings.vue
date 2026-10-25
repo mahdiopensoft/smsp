@@ -23,7 +23,7 @@
             نمط ونطاق حقول هوية الطالب:
           </label>
           <v-chip size="x-small" :color="currentInstitutionType === 'university' ? 'purple' : 'primary'" variant="flat" class="font-weight-bold">
-            {{ currentInstitutionType === 'university' ? '🎓 جامعي' : '🏫 مدرسي' }}
+            {{ currentInstitutionType === 'university' ? 'جامعي' : 'مدرسي' }}
           </v-chip>
         </div>
 
@@ -40,11 +40,11 @@
         >
           <v-btn value="school" class="font-weight-bold">
             <v-icon start size="18">mdi-school</v-icon>
-            🏫 مدرسي
+            مدرسي
           </v-btn>
           <v-btn value="university" class="font-weight-bold">
             <v-icon start size="18">mdi-domain</v-icon>
-            🎓 جامعي
+            جامعي
           </v-btn>
         </v-btn-toggle>
       </div>

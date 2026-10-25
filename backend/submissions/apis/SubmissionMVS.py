@@ -464,8 +464,8 @@ class SubmissionMVS(AllMVS):
                     if matched_reg.seatNumber:
                         seat_num = matched_reg.seatNumber
 
-                    if is_cross_exam and sheet_true_exam:
-                        s_name = f"{s_name} (⚠️ ورقة تتبع {sheet_true_exam.title})"
+                    # Student name stays 100% official and clean without any emojis or appended text
+                    pass
 
                 # ═══ فحص قفل الكنترول المركزي (Control Lock) ═══
                 locked_sub = None
@@ -530,55 +530,86 @@ class SubmissionMVS(AllMVS):
                 avg_conf = float(grading_result.get("overall_confidence") or 0.95)
                 sheet_status = Submission.Status.NEEDS_REVIEW if (ambiguous_c > 0 or avg_conf < 0.82) else Submission.Status.COMPLETED
 
-                # إنشاء كائن التسليم
-                sub_record = Submission(
-                    batch=batch_record,
-                    exam=exam_obj,
-                    exam_version=target_version,
-                    registration=matched_reg if (matched_reg and not Submission.objects.filter(registration=matched_reg).exists()) else None,
-                    status=sheet_status,
-                    current_engine="opencv_omr",
-                    mcq_score=score_val,
-                    total_score=score_val,
-                    overall_confidence=avg_conf,
-                    processing_time_ms=grading_result.get("processing_ms", 0.0),
-                    omr_result=grading_result.get("questions", []),
-                    layout_result={
-                        "student_name": s_name,
-                        "seat_number": seat_num,
-                        "template_id": grading_result.get("template_id"),
-                        "template_name": grading_result.get("template_name"),
-                        "version_code": actual_v_code,
-                        "barcode": barcode_val,
-                        "qr": qr_val,
-                        "score_percent": score_percent,
-                        "total_questions": total_q,
-                        "total_correct": total_c,
-                        "max_score": max_score_val,
-                    }
-                )
+                # فحص التسليم المسبق لنفس الطالب/المقعد لتفادي التكرار (Deduplication)
+                existing_sub = None
+                if matched_reg:
+                    existing_sub = Submission.objects.filter(exam=exam_obj, registration=matched_reg, is_deleted=False).first()
+                if not existing_sub and seat_num and exam_obj:
+                    existing_sub = Submission.objects.filter(exam=exam_obj, layout_result__seat_number=str(seat_num), is_deleted=False).first()
+
+                layout_data = {
+                    "student_name": s_name,
+                    "seat_number": seat_num,
+                    "template_id": grading_result.get("template_id"),
+                    "template_name": grading_result.get("template_name"),
+                    "version_code": actual_v_code,
+                    "barcode": barcode_val,
+                    "qr": qr_val,
+                    "score_percent": score_percent,
+                    "total_questions": total_q,
+                    "total_correct": total_c,
+                    "max_score": max_score_val,
+                    "is_cross_exam": is_cross_exam,
+                    "cross_exam_title": sheet_true_exam.title if (is_cross_exam and sheet_true_exam) else None,
+                }
+
+                if existing_sub:
+                    sub_record = existing_sub
+                    sub_record.batch = batch_record
+                    sub_record.exam_version = target_version
+                    if matched_reg:
+                        sub_record.registration = matched_reg
+                    sub_record.status = sheet_status
+                    sub_record.current_engine = "opencv_omr"
+                    sub_record.mcq_score = score_val
+                    sub_record.total_score = score_val
+                    sub_record.overall_confidence = avg_conf
+                    sub_record.processing_time_ms = grading_result.get("processing_ms", 0.0)
+                    sub_record.omr_result = grading_result.get("questions", [])
+                    sub_record.layout_result = layout_data
+                else:
+                    sub_record = Submission(
+                        batch=batch_record,
+                        exam=exam_obj,
+                        exam_version=target_version,
+                        registration=matched_reg,
+                        status=sheet_status,
+                        current_engine="opencv_omr",
+                        mcq_score=score_val,
+                        total_score=score_val,
+                        overall_confidence=avg_conf,
+                        processing_time_ms=grading_result.get("processing_ms", 0.0),
+                        omr_result=grading_result.get("questions", []),
+                        layout_result=layout_data,
+                    )
+
                 sub_record.original_image.save(img_name, ContentFile(img_bytes), save=False)
                 annotated_raw = grading_result.get("annotated_image")
                 if annotated_raw:
                     sub_record.aligned_image.save(f"annotated_{img_name}", ContentFile(annotated_raw), save=False)
                 sub_record.save()
 
-                # حفظ النتيجة التفصيلية في OMRSheetResult و OMRQuestionResult
-                sheet_res = OMRSheetResult.objects.create(
-                    submission=sub_record,
-                    status="success",
-                    confidence=avg_conf,
-                    total_questions=total_q,
-                    answered_questions=total_c + total_w,
-                    correct_answers=total_c,
-                    wrong_answers=total_w,
-                    unanswered=total_empty,
-                    ambiguous_count=ambiguous_c,
-                    mcq_score=score_val,
-                    mcq_max_score=max_score_val,
-                    provider_used=grading_result.get("engine_used", "opencv_omr"),
-                    processing_time_ms=grading_result.get("processing_ms", 0.0),
-                )
+                # حفظ وتحديث النتيجة التفصيلية في OMRSheetResult و OMRQuestionResult
+                sheet_res = OMRSheetResult.objects.filter(submission=sub_record).first()
+                if not sheet_res:
+                    sheet_res = OMRSheetResult(submission=sub_record)
+
+                sheet_res.status = "verified" if sheet_status == Submission.Status.COMPLETED else "needs_review"
+                sheet_res.confidence = avg_conf
+                sheet_res.total_questions = total_q
+                sheet_res.answered_questions = total_c + total_w
+                sheet_res.correct_answers = total_c
+                sheet_res.wrong_answers = total_w
+                sheet_res.unanswered = total_empty
+                sheet_res.ambiguous_count = ambiguous_c
+                sheet_res.mcq_score = score_val
+                sheet_res.mcq_max_score = max_score_val
+                sheet_res.provider_used = grading_result.get("engine_used", "opencv_omr")
+                sheet_res.processing_time_ms = grading_result.get("processing_ms", 0.0)
+                sheet_res.is_deleted = False
+                sheet_res.save()
+
+                sheet_res.questions.all().delete()
 
                 for q_item in grading_result.get("questions", []):
                     q_num = int(q_item.get("question_id") or q_item.get("q") or 1)
