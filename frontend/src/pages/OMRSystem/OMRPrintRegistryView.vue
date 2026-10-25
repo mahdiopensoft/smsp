@@ -925,7 +925,7 @@
         <div
           class="registry-nav-item"
           :class="{ 'is-active': activeTab === 'sheets' }"
-          @click="activeTab = 'sheets'; visitedTabs.add('sheets')"
+          @click="switchDetailTab('sheets')"
           role="button"
           tabindex="0"
         >
@@ -936,7 +936,7 @@
         <div
           class="registry-nav-item"
           :class="{ 'is-active': activeTab === 'questions' }"
-          @click="activeTab = 'questions'; visitedTabs.add('questions')"
+          @click="switchDetailTab('questions')"
           role="button"
           tabindex="0"
         >
@@ -947,7 +947,7 @@
         <div
           class="registry-nav-item"
           :class="{ 'is-active': activeTab === 'package' }"
-          @click="activeTab = 'package'; visitedTabs.add('package')"
+          @click="switchDetailTab('package')"
           role="button"
           tabindex="0"
         >
@@ -958,7 +958,7 @@
         <div
           class="registry-nav-item"
           :class="{ 'is-active': activeTab === 'history' }"
-          @click="activeTab = 'history'; visitedTabs.add('history')"
+          @click="switchDetailTab('history')"
           role="button"
           tabindex="0"
         >
@@ -1006,7 +1006,7 @@
         <!-- ════════════════════════════════════════════════════════════ -->
         <!-- TAB 1: UNIFIED ROSTER TABLE (الجدول الموحد custom-data-table) -->
         <!-- ════════════════════════════════════════════════════════════ -->
-        <div v-if="visitedTabs.has('sheets')" v-show="activeTab === 'sheets'">
+        <div v-if="isTabVisited('sheets')" v-show="activeTab === 'sheets'">
           <!-- Controls Toolbar (شريط الفلاتر والبحث السريع وأوامر الطباعة) -->
           <div class="main-card rounded-2xl pa-4 mb-4 border bg-white shadow-sm">
             <!-- Row 1: Actions, Batch Print, Header Override -->
@@ -1403,7 +1403,7 @@
         <!-- ════════════════════════════════════════════════════════════ -->
         <!-- TAB 2: QUESTIONS PAPER (كراسات نماذج الأسئلة الرسمية)          -->
         <!-- ════════════════════════════════════════════════════════════ -->
-        <div v-if="visitedTabs.has('questions')" v-show="activeTab === 'questions'" class="questions-paper-viewport mb-6">
+        <div v-if="isTabVisited('questions')" v-show="activeTab === 'questions'" class="questions-paper-viewport mb-6">
           <!-- شريط الإجراءات والمقاس الوزاري المعتمد -->
           <div class="main-card pa-3 px-4 rounded-2xl mb-4 bg-white border elevation-1">
             <div class="d-flex align-center justify-space-between flex-wrap gap-2">
@@ -1602,7 +1602,7 @@
         <!-- ════════════════════════════════════════════════════════════ -->
         <!-- TAB 3: COMBINED PACKAGE (حزم الاختبار المتكاملة للطلاب)     -->
         <!-- ════════════════════════════════════════════════════════════ -->
-        <div v-if="visitedTabs.has('package')" v-show="activeTab === 'package'" class="exam-package-viewport mb-6">
+        <div v-if="isTabVisited('package')" v-show="activeTab === 'package'" class="exam-package-viewport mb-6">
           <!-- شريط الإجراءات والبحث وفلاتر حزم الطلاب (منظم وموحد) -->
           <div class="main-card pa-3 px-4 rounded-2xl mb-4 bg-white border elevation-1">
             <div class="d-flex align-center justify-space-between flex-wrap gap-2">
@@ -1912,7 +1912,7 @@
     <!-- ══════════════════════════════════════════════════════════════════ -->
     <!-- TAB 4: سجل الدفعات السابقة المطبوعة                                 -->
     <!-- ══════════════════════════════════════════════════════════════════ -->
-    <div v-if="visitedTabs.has('history')" v-show="activeTab === 'history'">
+    <div v-if="isTabVisited('history')" v-show="activeTab === 'history'">
       <!-- Unified Filter Fields -->
       <filter-fields label="خيارات التصفية للبحث في سجلات الطباعة" class="main-card border-0 pa-5 rounded-2xl mb-6">
         <v-row dense class="align-center">
@@ -2261,6 +2261,8 @@ const officesList = ref([])
 const directoratesList = ref([])
 const schoolsList = ref([])
 const masterExamsList = ref([])
+const batches = ref([])
+const loadingBatches = ref(false)
 
 // Master Table Headers
 const officeMasterHeaders = [
@@ -2859,6 +2861,15 @@ const activeTab = ref(
 
 // Track visited tabs for instant lazy-mounting & zero-lag tab switching
 const visitedTabs = ref(new Set([activeTab.value]))
+const isTabVisited = (tab) => {
+  return visitedTabs.value ? visitedTabs.value.has(tab) : true
+}
+const switchDetailTab = (tab) => {
+  activeTab.value = tab
+  if (visitedTabs.value) {
+    visitedTabs.value.add(tab)
+  }
+}
 
 // Document Category: أوراق التظليل vs ورقة الأسئلة الرسمية vs حزمة الاختبار الكاملة
 const selectedDocType = ref(
@@ -3042,9 +3053,7 @@ const sheetArtboardRef = ref(null)
 const batchStreamRef = ref(null)
 
 // Batches Registry State
-const loadingBatches = ref(false)
 const searchQuery = ref('')
-const batches = ref([])
 const detailsDialog = ref(false)
 const activeBatch = ref(null)
 const loadingDetails = ref(false)
