@@ -5,45 +5,11 @@
     <!-- 1. MASTER VIEW: الهيكل الإداري وسجل الطباعة المركزي             -->
     <!-- ══════════════════════════════════════════════════════════════ -->
     <div v-if="currentView === 'master'" class="master-view-container">
-      <!-- شريط التصفية الهيكلي الموحد (مرتب وبدون تكرار) -->
-      <div class="main-card pa-4 rounded-2xl mb-4 bg-surface border elevation-1">
-        <!-- شريط الفلاتر الهيكلية العلوي: عنوان وأزرار الإجراءات -->
-        <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3 pb-2 border-b">
-          <div class="d-flex align-center gap-2">
-            <v-icon color="primary" size="20">mdi-filter-variant</v-icon>
-            <span class="text-subtitle-2 font-weight-black text-on-surface">فلاتر الهيكل الإداري والمؤسسي:</span>
-          </div>
-
-          <div class="d-flex align-center gap-2">
-            <v-btn
-              variant="tonal"
-              color="error"
-              size="small"
-              rounded="lg"
-              class="font-weight-bold"
-              prepend-icon="mdi-filter-remove-outline"
-              @click="resetHierarchyFilters"
-            >
-              تفريغ الفلاتر
-            </v-btn>
-            <v-btn
-              color="primary"
-              variant="flat"
-              size="small"
-              rounded="lg"
-              class="font-weight-bold"
-              prepend-icon="mdi-refresh"
-              :loading="loadingMaster"
-              @click="loadMasterData"
-            >
-              تحديث
-            </v-btn>
-          </div>
-        </div>
-
+      <!-- شريط التصفية الهيكلي الموحد بنمط students-master -->
+      <filter-fields label="خيارات التصفية الأكاديمية والهرمية لسجلات الطباعة والتوليد" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
         <v-row dense class="align-center">
-          <!-- نوع المؤسسة التعليمية كفلتر منسدل أساسي -->
-          <v-col cols="12" sm="6" :md="institutionType === 'school' ? 2 : 4">
+          <!-- نوع المؤسسة التعليمية كفلتر منسدل أساسي (حقل واحد قياسي) -->
+          <v-col cols="12" sm="6" :md="institutionType === 'school' ? 2 : 3">
             <v-select
               v-model="institutionType"
               :items="sectorOptions"
@@ -54,6 +20,7 @@
               variant="outlined"
               rounded="lg"
               hide-details
+              class="mb-3"
               :prepend-inner-icon="institutionType === 'university' ? 'mdi-domain' : (institutionType === 'institute' ? 'mdi-tools' : 'mdi-school')"
               @update:model-value="onSectorChange"
             >
@@ -81,6 +48,7 @@
                 variant="outlined"
                 rounded="lg"
                 hide-details
+                class="mb-3"
                 prepend-inner-icon="mdi-office-building-outline"
                 @update:model-value="onOfficeFilterChange"
               >
@@ -111,6 +79,7 @@
                 variant="outlined"
                 rounded="lg"
                 hide-details
+                class="mb-3"
                 prepend-inner-icon="mdi-map-marker-radius-outline"
                 @update:model-value="onDirectorateFilterChange"
               >
@@ -141,6 +110,7 @@
                 variant="outlined"
                 rounded="lg"
                 hide-details
+                class="mb-3"
                 prepend-inner-icon="mdi-school-outline"
                 @update:model-value="onSchoolFilterChange"
               >
@@ -168,6 +138,7 @@
                 variant="outlined"
                 rounded="lg"
                 hide-details
+                class="mb-3"
                 prepend-inner-icon="mdi-book-education-outline"
                 @update:model-value="onSubjectFilterChange"
               />
@@ -192,6 +163,7 @@
                 variant="outlined"
                 rounded="lg"
                 hide-details
+                class="mb-3"
                 prepend-inner-icon="mdi-domain"
                 @update:model-value="onSchoolFilterChange"
               >
@@ -219,6 +191,7 @@
                 variant="outlined"
                 rounded="lg"
                 hide-details
+                class="mb-3"
                 prepend-inner-icon="mdi-book-education-outline"
                 @update:model-value="onSubjectFilterChange"
               />
@@ -243,6 +216,7 @@
                 variant="outlined"
                 rounded="lg"
                 hide-details
+                class="mb-3"
                 prepend-inner-icon="mdi-tools"
                 @update:model-value="onSchoolFilterChange"
               >
@@ -270,13 +244,36 @@
                 variant="outlined"
                 rounded="lg"
                 hide-details
+                class="mb-3"
                 prepend-inner-icon="mdi-book-education-outline"
                 @update:model-value="onSubjectFilterChange"
               />
             </v-col>
           </template>
+
+          <!-- أزرار الإجراءات -->
+          <v-col cols="12" class="d-flex align-center justify-end gap-2 mb-3">
+            <custom-btn
+              type="show"
+              label="تصفية النتائج"
+              color="primary"
+              icon="mdi-filter"
+              class="font-weight-bold px-5"
+              :loading="loadingMaster"
+              :click="loadMasterData"
+            />
+            <custom-btn
+              type="cancel_filter"
+              :click="resetHierarchyFilters"
+              variant="tonal"
+              color="error"
+              label="تفريغ الفلاتر"
+              icon="mdi-filter-off"
+              class="font-weight-bold"
+            />
+          </v-col>
         </v-row>
-      </div>
+      </filter-fields>
 
       <!-- 4. تبويبات الاستعراض الهيكلي وسجل الطباعة المركزي (Master Tabs) -->
       <div class="main-card rounded-2xl overflow-hidden mb-6 elevation-1 bg-surface border">
@@ -2223,27 +2220,30 @@
               clearable
               density="compact"
               variant="outlined"
-              class="mb-6"
+              rounded="lg"
+              class="mb-3"
               hide-details
               @keyup.enter="fetchBatches"
             />
           </v-col>
 
-          <v-col cols="12" sm="4" md="3" class="d-flex align-center gap-2">
+          <v-col cols="12" sm="4" md="3" class="d-flex align-center justify-end gap-2 mb-3">
+            <custom-btn
+              type="show"
+              label="تصفية النتائج"
+              color="primary"
+              icon="mdi-filter"
+              class="font-weight-bold px-5"
+              :click="fetchBatches"
+            />
             <custom-btn
               type="cancel_filter"
               :click="resetFilters"
               variant="tonal"
               color="error"
-              label="تفريغ"
-              class="font-weight-bold mb-6"
-            />
-            <custom-btn
-              type="show"
-              label="تحديث"
-              color="primary"
-              class="font-weight-bold flex-grow-1 mb-6"
-              :click="fetchBatches"
+              label="تفريغ الفلاتر"
+              icon="mdi-filter-off"
+              class="font-weight-bold"
             />
           </v-col>
         </v-row>

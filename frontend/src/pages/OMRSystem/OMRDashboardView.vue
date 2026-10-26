@@ -92,7 +92,8 @@
             clearable
             density="compact"
             variant="outlined"
-            class="mb-6"
+            rounded="lg"
+            class="mb-3"
             hide-details
           />
         </v-col>
@@ -105,30 +106,35 @@
             item-title="label"
             item-value="value"
             label="حالة التصحيح"
+            placeholder="حالة التصحيح"
             prepend-inner-icon="mdi-check-decagram-outline"
+            clearable
             density="compact"
             variant="outlined"
-            class="mb-6"
+            rounded="lg"
+            class="mb-3"
             hide-details
           />
         </v-col>
 
         <!-- Actions -->
-        <v-col cols="12" sm="12" md="3" class="d-flex align-center gap-2">
+        <v-col cols="12" sm="12" md="3" class="d-flex align-center justify-end gap-2 mb-3">
+          <custom-btn
+            type="show"
+            label="تصفية النتائج"
+            color="primary"
+            icon="mdi-filter"
+            class="font-weight-bold px-5"
+            :click="fetchDashboardData"
+          />
           <custom-btn
             type="cancel_filter"
             :click="resetFilters"
             variant="tonal"
             color="error"
-            label="تفريغ"
-            class="font-weight-bold mb-6"
-          />
-          <custom-btn
-            type="show"
-            label="تحديث"
-            color="primary"
-            class="font-weight-bold flex-grow-1 mb-6"
-            :click="fetchDashboardData"
+            label="تفريغ الفلاتر"
+            icon="mdi-filter-off"
+            class="font-weight-bold"
           />
         </v-col>
       </v-row>

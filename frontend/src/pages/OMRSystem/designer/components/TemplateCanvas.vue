@@ -1,134 +1,24 @@
 <template>
   <div class="template-canvas-container d-flex flex-column h-100">
     <!-- ── Canvas Control Toolbar ────────────────────────────────── -->
-    <div class="canvas-toolbar pa-3 px-4 rounded-xl border bg-surface mb-3 d-flex justify-space-between align-center flex-wrap gap-2 elevation-1">
-      <div class="d-flex align-center gap-2 flex-wrap">
-        <!-- View Mode -->
-        <v-btn-toggle
-          v-model="zoomMode"
-          mandatory
-          density="compact"
-          color="primary"
-          variant="outlined"
-          rounded="lg"
-          class="me-1"
-        >
-          <v-btn value="fit" size="small" class="font-weight-bold" prepend-icon="mdi-fit-to-screen-outline">
-            ملاءمة الصفحة
-          </v-btn>
-          <v-btn value="actual" size="small" class="font-weight-bold" prepend-icon="mdi-image-size-select-actual">
-            الحجم الفعلي 100%
-          </v-btn>
-        </v-btn-toggle>
-
-        <!-- Proportional Zoom -->
-        <div class="d-flex align-center rounded-lg px-1 border" style="background: rgba(var(--v-theme-surface-variant), 0.3);">
-          <v-btn icon size="small" variant="text" :disabled="zoomLevel <= 0.4" @click="zoomOut">
-            <v-icon size="18">mdi-magnify-minus-outline</v-icon>
-          </v-btn>
-          <span class="text-caption font-weight-bold px-2 font-mono" style="min-width: 44px; text-align: center;">
-            {{ Math.round(currentZoomDisplay * 100) }}%
-          </span>
-          <v-btn icon size="small" variant="text" :disabled="zoomLevel >= 3.0" @click="zoomIn">
-            <v-icon size="18">mdi-magnify-plus-outline</v-icon>
-          </v-btn>
-          <v-btn icon size="small" variant="text" title="إعادة ضبط" @click="resetZoom">
-            <v-icon size="16">mdi-refresh</v-icon>
-          </v-btn>
-        </div>
-
-        <!-- Shading Simulator Buttons -->
-        <v-btn
-          size="small"
-          variant="tonal"
-          color="info"
-          rounded="lg"
-          class="font-weight-bold"
-          prepend-icon="mdi-dice-5-outline"
-          @click="randomShade"
-        >
-          تظليل تجريبي
-        </v-btn>
-        <v-btn
-          v-if="Object.keys(simulatedAnswers).length > 0"
-          size="small"
-          variant="text"
-          color="error"
-          rounded="lg"
-          class="font-weight-bold"
-          prepend-icon="mdi-delete-sweep-outline"
-          @click="clearShade"
-        >
-          مسح
-        </v-btn>
-
-        <!-- Presentation / Layout Mode Switcher (Always available for all templates) -->
-        <v-btn-toggle
-          v-model="presentationMode"
-          mandatory
-          density="compact"
-          color="primary"
-          variant="flat"
-          rounded="lg"
-          class="ms-2"
-        >
-          <v-btn value="audit_a4" size="small" class="font-weight-bold" prepend-icon="mdi-file-document-check-outline">
-            النموذج الرسمي الشامل (A4 المعتمد)
-          </v-btn>
-          <v-btn value="compact_a5" size="small" class="font-weight-bold" prepend-icon="mdi-file-outline">
-            ورقة إجابة الطالب (A5 للاختبار)
-          </v-btn>
-          <v-btn value="university_180" size="small" class="font-weight-bold" prepend-icon="mdi-school-outline">
-            نموذج الجامعات (180 سؤال)
-          </v-btn>
-        </v-btn-toggle>
-      </div>
-
-      <div class="d-flex align-center gap-2">
-        <v-btn
-          color="success"
-          size="small"
-          rounded="lg"
-          class="font-weight-bold"
-          prepend-icon="mdi-content-save"
-          @click="emit('save')"
-        >
-          حفظ القالب
-        </v-btn>
-        <v-btn
-          variant="tonal"
-          color="indigo"
-          size="small"
-          rounded="lg"
-          class="font-weight-bold"
-          prepend-icon="mdi-code-json"
-          @click="exportJson"
-        >
-          تصدير JSON
-        </v-btn>
-        <v-btn
-          variant="tonal"
-          color="secondary"
-          size="small"
-          rounded="lg"
-          class="font-weight-bold"
-          prepend-icon="mdi-printer"
-          @click="printSheet"
-        >
-          طباعة
-        </v-btn>
-        <v-btn
-          color="primary"
-          size="small"
-          rounded="lg"
-          class="font-weight-bold"
-          prepend-icon="mdi-download"
-          @click="exportPNG"
-        >
-          تنزيل PNG عالية الدقة
-        </v-btn>
-      </div>
-    </div>
+    <CanvasToolbar
+      :zoom-mode="zoomMode"
+      :zoom-level="zoomLevel"
+      :current-zoom-display="currentZoomDisplay"
+      :presentation-mode="presentationMode"
+      :has-simulated-answers="Object.keys(simulatedAnswers).length > 0"
+      @update:zoom-mode="zoomMode = $event"
+      @update:presentation-mode="presentationMode = $event"
+      @zoom-in="zoomIn"
+      @zoom-out="zoomOut"
+      @reset-zoom="resetZoom"
+      @random-shade="randomShade"
+      @clear-shade="clearShade"
+      @save="emit('save')"
+      @export-json="exportJson(config)"
+      @print="printSheet(config, presentationMode)"
+      @export-png="exportPNG(config)"
+    />
 
     <!-- ── Interactive Viewport Canvas ───────────────────────────── -->
     <div
@@ -137,8 +27,7 @@
       style="min-height: 600px; max-height: calc(100vh - 260px);"
     >
       <div class="sheet-artboard-container d-inline-block rounded-lg elevation-6 bg-white position-relative" :style="containerStyle">
-        
-        <!-- Mode 1: Yemeni Official Electronic Audit & Correction Sheet (A4 Full) - DEFAULT -->
+        <!-- Mode 1: Yemeni Official Electronic Audit Sheet (A4 Full) -->
         <YemeniAuditReportSheet
           v-if="presentationMode === 'audit_a4'"
           :student-name="config.header?.student_name || '................................'"
@@ -181,6 +70,14 @@
           :student-name="config.header?.student_name || '................................'"
           :seat-number="config.header?.seat_number || '418485'"
           :serial-number="config.header?.serial_number || '101'"
+          :label-seat-number="activeProfile.labels.seatNumber"
+          :label-serial-number="activeProfile.labels.serialNumber"
+          :label-subject="activeProfile.labels.examSubject"
+          :label-center="activeProfile.labels.centerName"
+          :label-center-code="activeProfile.labels.centerCode"
+          :label-governorate="activeProfile.labels.area1"
+          :label-directorate="activeProfile.labels.area2"
+          :primary-color="config.header?.primary_color || activeProfile.themeColor"
           :model-code="config.header?.model_code || '1'"
           :center-name="config.header?.center_name || 'المركز الاختباري الرئيسي'"
           :center-code="config.header?.center_code || '101'"
@@ -236,7 +133,9 @@
 
 <script setup lang="ts">
 import { ref, computed, defineAsyncComponent, watch } from 'vue'
-import { printOmrElement } from '../../utils/omrPrint'
+import CanvasToolbar from './canvas/CanvasToolbar.vue'
+import { useCanvasExport } from '../composables/useCanvasExport'
+import { getProfileById } from '../composables/useInstitutionProfiles'
 
 const props = defineProps<{
   config: any
@@ -249,29 +148,33 @@ const emit = defineEmits<{
 const OmrSheetMultigraphics = defineAsyncComponent(() =>
   import('@/components/omr_templates/OmrSheetMultigraphics.vue')
 )
-
 const YemeniMinistrySheet = defineAsyncComponent(() =>
   import('@/components/omr_templates/YemeniMinistrySheet.vue')
 )
-
 const YemeniAuditReportSheet = defineAsyncComponent(() =>
   import('@/components/omr_templates/YemeniAuditReportSheet.vue')
 )
 
-const isYemeniMinistryPreset = computed(() => {
-  return presentationMode.value === 'audit_a4' || presentationMode.value === 'compact_a5'
-})
+const { printSheet, exportPNG, exportJson } = useCanvasExport()
+
+const activeProfile = computed(() => getProfileById(props.config?.institution_type))
 
 const presentationMode = ref<'audit_a4' | 'compact_a5' | 'university_180'>(
-  props.config?.display_mode === 'compact_a5' ? 'compact_a5' :
-  props.config?.display_mode === 'university_180' ? 'university_180' : 'audit_a4'
+  props.config?.display_mode === 'compact_a5'
+    ? 'compact_a5'
+    : props.config?.display_mode === 'university_180'
+    ? 'university_180'
+    : 'audit_a4'
 )
 
-watch(() => props.config?.display_mode, (val) => {
-  if (val && val !== presentationMode.value) {
-    presentationMode.value = val as any
+watch(
+  () => props.config?.display_mode,
+  (val) => {
+    if (val && val !== presentationMode.value) {
+      presentationMode.value = val as any
+    }
   }
-})
+)
 
 watch(presentationMode, (val) => {
   if (props.config) {
@@ -323,9 +226,7 @@ watch(zoomMode, (mode) => {
 
 const currentZoomDisplay = computed(() => {
   if (zoomMode.value === 'fit') {
-    if (presentationMode.value === 'audit_a4') {
-      return 0.68
-    }
+    if (presentationMode.value === 'audit_a4') return 0.68
     return 1.0
   }
   if (zoomMode.value === 'actual') return 1.0
@@ -333,16 +234,12 @@ const currentZoomDisplay = computed(() => {
 })
 
 const currentAspectRatio = computed(() => {
-  if (presentationMode.value === 'compact_a5') {
-    return '210 / 148.5'
-  }
+  if (presentationMode.value === 'compact_a5') return '210 / 148.5'
   return '210 / 297'
 })
 
 const containerStyle = computed(() => {
   const ar = currentAspectRatio.value
-
-  // معالجة هندسية خاصة لتقرير التدقيق A4 المعتمد لمنع انهيار وتداخل جداول HTML
   if (presentationMode.value === 'audit_a4') {
     const scaleFactor = zoomMode.value === 'fit' ? 0.68 : (zoomMode.value === 'actual' ? 1.0 : zoomLevel.value)
     return {
@@ -412,7 +309,6 @@ function randomShade() {
   for (let q = 1; q <= total; q++) {
     const sec = sections.find((s: any) => q >= (s.from_q || 1) && q <= (s.to_q || s.from_q || 1))
     const isTf = sec ? (sec.type === 'true_false') : (q <= 20)
-
     if (isTf) {
       const tfChoices = sec?.choices || ['صح', 'خطأ']
       answers[q] = tfChoices[Math.floor(Math.random() * tfChoices.length)]
@@ -426,147 +322,6 @@ function randomShade() {
 
 function clearShade() {
   simulatedAnswers.value = {}
-}
-
-async function printSheet() {
-  const svgEl = (
-    document.querySelector('.sheet-artboard-container svg.yemeni-ministry-sheet-svg') ||
-    document.querySelector('.sheet-artboard-container svg.yemeni-sheet-svg') ||
-    document.querySelector('.sheet-artboard-container svg[viewBox="0 0 210 148.5"]') ||
-    document.querySelector('.sheet-artboard-container svg[viewBox="0 0 210 297"]') ||
-    document.querySelector('.sheet-artboard-container svg.omr-svg') ||
-    document.querySelector('.sheet-artboard-container svg')
-  ) as SVGGraphicsElement
-
-  if (svgEl) {
-    await printOmrElement(svgEl, {
-      title: props.config?.template_name || 'OMR_Sheet',
-      isA5: presentationMode.value === 'compact_a5'
-    })
-  } else {
-    window.print()
-  }
-}
-
-async function exportPNG() {
-  const svgEl = (
-    document.querySelector('.sheet-artboard-container svg.yemeni-ministry-sheet-svg') ||
-    document.querySelector('.sheet-artboard-container svg.yemeni-sheet-svg') ||
-    document.querySelector('.sheet-artboard-container svg[viewBox="0 0 210 148.5"]') ||
-    document.querySelector('.sheet-artboard-container svg[viewBox="0 0 210 297"]') ||
-    document.querySelector('.sheet-artboard-container svg.omr-svg') ||
-    document.querySelector('.sheet-artboard-container svg')
-  ) as SVGGraphicsElement
-
-  if (!svgEl) {
-    console.error('No SVG element found to export')
-    return
-  }
-
-  try {
-    // 1. Clone the SVG element so we don't mutate the DOM
-    const clonedSvg = svgEl.cloneNode(true) as SVGGraphicsElement
-
-    // Ensure all required namespaces are declared on root
-    clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
-    clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink')
-
-    // 2. Parse viewBox to get real millimeter dimensions
-    const viewBox = svgEl.getAttribute('viewBox') || '0 0 210 148.5'
-    const parts = viewBox.trim().split(/[\s,]+/).map(Number)
-    const vbWidth = parts[2] || 210
-    const vbHeight = parts[3] || 148.5
-
-    // Ultra-HD 600 DPI: px = mm * (600 / 25.4) -> 4960 x 3508 for A5
-    const dpi = 600
-    const targetWidth = Math.round(vbWidth * (dpi / 25.4))
-    const targetHeight = Math.round(vbHeight * (dpi / 25.4))
-
-    clonedSvg.setAttribute('width', `${targetWidth}`)
-    clonedSvg.setAttribute('height', `${targetHeight}`)
-    clonedSvg.style.width = `${targetWidth}px`
-    clonedSvg.style.height = `${targetHeight}px`
-
-    // 3. Convert all <image> elements with relative URLs to inline Base64 Data URLs
-    const images = Array.from(clonedSvg.querySelectorAll('image'))
-    for (const imgEl of images) {
-      const href = imgEl.getAttribute('href') || imgEl.getAttribute('xlink:href') || ''
-      if (href && !href.startsWith('data:')) {
-        try {
-          const fullUrl = href.startsWith('http') ? href : `${window.location.origin}${href}`
-          const resp = await fetch(fullUrl)
-          if (resp.ok) {
-            const blob = await resp.blob()
-            const b64 = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader()
-              reader.onloadend = () => resolve(reader.result as string)
-              reader.onerror = reject
-              reader.readAsDataURL(blob)
-            })
-            imgEl.setAttribute('href', b64)
-            imgEl.removeAttribute('xlink:href')
-          }
-        } catch (e) {
-          console.warn('Could not inline image for export:', href, e)
-        }
-      }
-    }
-
-    // 4. Serialize to XML string and create Image blob
-    const serializer = new XMLSerializer()
-    let svgStr = serializer.serializeToString(clonedSvg)
-
-    const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-
-    const img = new Image()
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width = targetWidth
-      canvas.height = targetHeight
-      const ctx = canvas.getContext('2d')
-      if (ctx) {
-        ctx.imageSmoothingEnabled = true
-        ctx.imageSmoothingQuality = 'high'
-        ctx.fillStyle = '#ffffff'
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
-        ctx.drawImage(img, 0, 0, targetWidth, targetHeight)
-
-        const pngUrl = canvas.toDataURL('image/png', 1.0)
-        const a = document.createElement('a')
-        a.href = pngUrl
-        a.download = `${props.config?.template_name || 'OMR_Sheet'}_600DPI_UltraHD.png`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-      }
-      URL.revokeObjectURL(url)
-    }
-    img.onerror = (e) => {
-      console.error('Image load error during export:', e)
-      URL.revokeObjectURL(url)
-    }
-    img.src = url
-  } catch (err) {
-    console.error('Export PNG failed:', err)
-  }
-}
-
-function exportJson() {
-  try {
-    const jsonStr = JSON.stringify(props.config, null, 2)
-    const blob = new Blob([jsonStr], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${props.config?.template_id || 'template'}_config.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  } catch (e) {
-    console.error('Export JSON failed:', e)
-  }
 }
 </script>
 

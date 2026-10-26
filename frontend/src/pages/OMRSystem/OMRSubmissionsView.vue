@@ -6,49 +6,11 @@
     <!-- ══════════════════════════════════════════════════════════════ -->
     <div v-if="currentView === 'master'" class="master-view-container">
 
-      <!-- شريط التصفية الهيكلي الموحد (مرتب وبدون تكرار) -->
-      <div class="main-card pa-4 rounded-2xl mb-4 bg-surface border elevation-1">
-        <!-- شريط الفلاتر الهيكلية العلوي: عنوان وأزرار الإجراءات -->
-        <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3 pb-2 border-b">
-          <div class="d-flex align-center gap-2">
-            <v-icon color="primary" size="20">mdi-filter-variant</v-icon>
-            <span class="text-subtitle-2 font-weight-black text-on-surface">فلاتر الهيكل الإداري والمؤسسي:</span>
-          </div>
-
-          <div class="d-flex align-center gap-2">
-            <v-chip color="indigo" variant="tonal" size="small" class="font-weight-black px-3">
-              متوسط الدرجات: {{ statsData.average_score || 0 }}% لعموم الأوراق المصححة
-            </v-chip>
-
-            <v-btn
-              variant="tonal"
-              color="error"
-              size="small"
-              rounded="lg"
-              class="font-weight-bold"
-              prepend-icon="mdi-filter-remove-outline"
-              @click="resetHierarchyFilters"
-            >
-              تفريغ الفلاتر
-            </v-btn>
-            <v-btn
-              color="primary"
-              variant="flat"
-              size="small"
-              rounded="lg"
-              class="font-weight-bold"
-              prepend-icon="mdi-refresh"
-              :loading="loadingMaster"
-              @click="refreshMasterData"
-            >
-              تحديث
-            </v-btn>
-          </div>
-        </div>
-
+      <!-- شريط التصفية الهيكلي الموحد بنمط students-master -->
+      <filter-fields label="خيارات التصفية الأكاديمية والهرمية لأوراق الإجابة المصححة" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
         <v-row dense class="align-center">
-          <!-- نوع المؤسسة التعليمية كفلتر منسدل أساسي -->
-          <v-col cols="12" sm="6" :md="institutionType === 'school' ? 2 : 4">
+          <!-- نوع المؤسسة التعليمية كفلتر منسدل أساسي (حقل واحد قياسي) -->
+          <v-col cols="12" sm="6" :md="institutionType === 'school' ? 2 : 3">
             <v-select
               v-model="institutionType"
               :items="sectorOptions"
@@ -59,6 +21,7 @@
               variant="outlined"
               rounded="lg"
               hide-details
+              class="mb-3"
               :prepend-inner-icon="institutionType === 'university' ? 'mdi-domain' : (institutionType === 'institute' ? 'mdi-tools' : 'mdi-school')"
               @update:model-value="onSectorChange"
             >
@@ -86,6 +49,7 @@
                 variant="outlined"
                 rounded="lg"
                 hide-details
+                class="mb-3"
                 prepend-inner-icon="mdi-office-building-outline"
                 @update:model-value="onOfficeFilterChange"
               >
@@ -116,6 +80,7 @@
                 variant="outlined"
                 rounded="lg"
                 hide-details
+                class="mb-3"
                 prepend-inner-icon="mdi-map-marker-radius-outline"
                 @update:model-value="onDirectorateFilterChange"
               >
@@ -146,6 +111,7 @@
                 variant="outlined"
                 rounded="lg"
                 hide-details
+                class="mb-3"
                 prepend-inner-icon="mdi-school-outline"
                 @update:model-value="onSchoolFilterChange"
               >
@@ -173,6 +139,7 @@
                 variant="outlined"
                 rounded="lg"
                 hide-details
+                class="mb-3"
                 prepend-inner-icon="mdi-book-education-outline"
                 @update:model-value="onSubjectFilterChange"
               />
@@ -181,7 +148,7 @@
 
           <!-- التعليم الجامعي -->
           <template v-else-if="institutionType === 'university'">
-            <v-col cols="12" sm="6" md="4">
+            <v-col cols="12" sm="6" md="3">
               <v-autocomplete
                 v-model="selectedSchoolId"
                 :items="schoolsOptions"
@@ -197,6 +164,7 @@
                 variant="outlined"
                 rounded="lg"
                 hide-details
+                class="mb-3"
                 prepend-inner-icon="mdi-domain"
                 @update:model-value="onSchoolFilterChange"
               >
@@ -211,7 +179,7 @@
               </v-autocomplete>
             </v-col>
 
-            <v-col cols="12" sm="6" md="4">
+            <v-col cols="12" sm="6" md="3">
               <v-autocomplete
                 v-model="selectedSubjectId"
                 :items="subjectsList"
@@ -224,6 +192,7 @@
                 variant="outlined"
                 rounded="lg"
                 hide-details
+                class="mb-3"
                 prepend-inner-icon="mdi-book-education-outline"
                 @update:model-value="onSubjectFilterChange"
               />
@@ -232,7 +201,7 @@
 
           <!-- التعليم الفني والمهني (معاهد) -->
           <template v-else-if="institutionType === 'institute'">
-            <v-col cols="12" sm="6" md="4">
+            <v-col cols="12" sm="6" md="3">
               <v-autocomplete
                 v-model="selectedSchoolId"
                 :items="schoolsOptions"
@@ -248,6 +217,7 @@
                 variant="outlined"
                 rounded="lg"
                 hide-details
+                class="mb-3"
                 prepend-inner-icon="mdi-tools"
                 @update:model-value="onSchoolFilterChange"
               >
@@ -262,7 +232,7 @@
               </v-autocomplete>
             </v-col>
 
-            <v-col cols="12" sm="6" md="4">
+            <v-col cols="12" sm="6" md="3">
               <v-autocomplete
                 v-model="selectedSubjectId"
                 :items="subjectsList"
@@ -275,6 +245,7 @@
                 variant="outlined"
                 rounded="lg"
                 hide-details
+                class="mb-3"
                 prepend-inner-icon="mdi-book-education-outline"
                 @update:model-value="onSubjectFilterChange"
               />
@@ -295,12 +266,41 @@
               variant="outlined"
               rounded="lg"
               hide-details
+              class="mb-3"
               prepend-inner-icon="mdi-list-status"
               @update:model-value="onStatusFilterChange"
             />
           </v-col>
+
+          <!-- أزرار الإجراءات ومتوسط الدرجات -->
+          <v-col cols="12" class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3">
+            <v-chip color="indigo" variant="tonal" size="small" class="font-weight-black px-3">
+              متوسط الدرجات: {{ statsData.average_score || 0 }}% لعموم الأوراق المصححة
+            </v-chip>
+
+            <div class="d-flex align-center gap-2">
+              <custom-btn
+                type="show"
+                label="تصفية النتائج"
+                color="primary"
+                icon="mdi-filter"
+                class="font-weight-bold px-5"
+                :loading="loadingMaster"
+                :click="refreshMasterData"
+              />
+              <custom-btn
+                type="cancel_filter"
+                :click="resetHierarchyFilters"
+                variant="tonal"
+                color="error"
+                label="تفريغ الفلاتر"
+                icon="mdi-filter-off"
+                class="font-weight-bold"
+              />
+            </div>
+          </v-col>
         </v-row>
-      </div>
+      </filter-fields>
 
       <!-- تبويبات الاستعراض الهيكلي (Master Tabs) -->
       <div class="main-card rounded-2xl overflow-hidden mb-6 elevation-1 bg-surface border">
@@ -876,10 +876,10 @@
         </div>
       </div>
 
-      <!-- شريط تصفية نتائج أوراق الإجابة (الاختبار والنموذج والحالة والمتوسط) -->
-      <div class="main-card pa-4 rounded-2xl mb-4 bg-surface border">
+      <!-- شريط تصفية نتائج أوراق الإجابة بنمط students-master -->
+      <filter-fields label="خيارات تصفية وتدقيق نتائج أوراق الإجابة" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
         <v-row dense class="align-center">
-          <v-col cols="12" sm="6" md="4">
+          <v-col cols="12" sm="6" md="3">
             <v-autocomplete
               v-model="selectedExamId"
               :items="examsList"
@@ -889,44 +889,52 @@
               placeholder="اختر الاختبار..."
               density="compact"
               variant="outlined"
+              rounded="lg"
+              class="mb-3"
               hide-details
               prepend-inner-icon="mdi-file-document-edit-outline"
               @update:model-value="onExamChange"
             />
           </v-col>
 
-          <v-col cols="6" sm="3" md="2">
+          <v-col cols="12" sm="6" md="2">
             <v-select
               v-model="filterVersion"
               :items="versionFilterOptions"
               item-title="text"
               item-value="value"
               placeholder="النموذج"
+              label="النموذج"
               prepend-inner-icon="mdi-file-document-multiple-outline"
               density="compact"
               variant="outlined"
+              rounded="lg"
+              class="mb-3"
               hide-details
               @update:model-value="applyFilters"
             />
           </v-col>
 
-          <v-col cols="6" sm="3" md="2">
+          <v-col cols="12" sm="6" md="3">
             <v-select
               v-model="filterStatus"
               :items="statusFilterFieldOptions"
               item-title="title"
               item-value="value"
               placeholder="حالة المسح والتصحيح"
+              label="حالة الورقة"
               prepend-inner-icon="mdi-list-status"
               density="compact"
               variant="outlined"
+              rounded="lg"
+              class="mb-3"
               hide-details
               clearable
               @update:model-value="applyFilters"
             />
           </v-col>
 
-          <v-col cols="12" sm="12" md="4" class="d-flex justify-end align-center gap-2 flex-wrap">
+          <v-col cols="12" sm="12" md="4" class="d-flex justify-end align-center gap-2 flex-wrap mb-3">
             <v-chip color="indigo" variant="tonal" size="small" class="font-weight-black">
               متوسط الدرجات: {{ statsData.average_score || 0 }}%
             </v-chip>
@@ -941,23 +949,21 @@
               prepend-icon="mdi-clipboard-list-outline"
               @click="$router.push(`/omr-gradebook?exam=${selectedExamId}`)"
             >
-              كشف الرصد الأكاديمي
+              كشف الرصد
             </v-btn>
 
-            <v-btn
+            <custom-btn
+              type="cancel_filter"
+              :click="resetDetailFilters"
               variant="tonal"
               color="error"
-              size="small"
-              rounded="lg"
+              label="تفريغ الفلاتر"
+              icon="mdi-filter-off"
               class="font-weight-bold"
-              prepend-icon="mdi-filter-remove-outline"
-              @click="resetDetailFilters"
-            >
-              تفريغ الفلاتر
-            </v-btn>
+            />
           </v-col>
         </v-row>
-      </div>
+      </filter-fields>
 
       <!-- جدول أوراق الإجابة المصححة والممسوحة -->
       <div class="main-card rounded-2xl overflow-hidden mb-6 elevation-1">

@@ -1,98 +1,17 @@
 <template>
   <div class="template-library">
-    <!-- ── Filters Bar (Exact same layout & standard as /levels) ───────── -->
-    <filter-fields label="خيارات التصفية والبحث المتقدم" class="main-card border-0 pa-5 rounded-2xl mb-6">
-      <v-row dense class="align-center">
-        <!-- 1. Search Query Input -->
-        <v-col cols="12" sm="6" md="3">
-          <v-text-field
-            v-model="searchQuery"
-            label="اسم القالب أو المادة"
-            placeholder="بحث باسم القالب أو المادة..."
-            prepend-inner-icon="mdi-magnify"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-            @update:model-value="applyFilters"
-          />
-        </v-col>
-
-        <!-- 2. Category / Organization Filter -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterCategory"
-            :items="categoryOptions"
-            item-title="text"
-            item-value="value"
-            label="نوع القالب / المؤسسة"
-            prepend-inner-icon="mdi-domain"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-            @update:model-value="applyFilters"
-          />
-        </v-col>
-
-        <!-- 3. Question Count Capacity Filter -->
-        <v-col cols="12" sm="6" md="2">
-          <v-select
-            v-model="filterQuestions"
-            :items="questionCountOptions"
-            item-title="text"
-            item-value="value"
-            label="سعة الأسئلة"
-            prepend-inner-icon="mdi-help-circle-outline"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-            @update:model-value="applyFilters"
-          />
-        </v-col>
-
-        <!-- 4. Active Status Filter (Exact same as /levels) -->
-        <v-col cols="12" sm="6" md="2">
-          <v-select
-            v-model="filterActive"
-            :items="activeOptions"
-            item-title="text"
-            item-value="value"
-            label="حالة التفعيل"
-            prepend-inner-icon="mdi-check-circle-outline"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-            @update:model-value="applyFilters"
-          />
-        </v-col>
-
-        <!-- 5. Filter Action Buttons (Exact same as /levels) -->
-        <v-col cols="12" sm="6" md="2" class="d-flex align-center gap-2">
-          <custom-btn
-            type="show"
-            label="تصفية"
-            color="primary"
-            class="font-weight-bold flex-grow-1 mb-6"
-            :click="applyFilters"
-          />
-          <custom-btn
-            type="cancel_filter"
-            :click="resetFilters"
-            variant="tonal"
-            color="error"
-            label="تفريغ"
-            class="font-weight-bold mb-6"
-          />
-        </v-col>
-      </v-row>
-    </filter-fields>
+    <!-- ── Filters Bar (Exact same layout & standard as students-master) ───────── -->
+    <TemplateFilters
+      v-model:search-query="searchQuery"
+      v-model:filter-category="filterCategory"
+      v-model:filter-questions="filterQuestions"
+      v-model:filter-active="filterActive"
+      :category-options="categoryOptions"
+      :question-count-options="questionCountOptions"
+      :active-options="activeOptions"
+      @apply="applyFilters"
+      @reset="resetFilters"
+    />
 
     <!-- ── View Switcher & Action Header ────────────────────────── -->
     <div class="d-flex align-center justify-space-between mb-4 flex-wrap gap-2">
@@ -160,137 +79,27 @@
       </div>
     </v-card>
 
-    <!-- ── 1. TABLE VIEW (Exact custom-data-table as /levels) ─────── -->
+    <!-- ── 1. TABLE VIEW ─────────────────────────────────────────── -->
     <div v-else-if="viewMode === 'table'">
-      <custom-data-table
-        v-bind="{
-          items: tableItems,
-          getData,
-          headers,
-          editItem: (item) => emit('edit', item),
-          create: () => emit('create-new'),
-        }"
-        :hasFilter="false"
-        :log="false"
-        :restore="false"
-      >
-        <template v-slot:item-slot="{ item, key }">
-          <!-- Template Name and Subtitle -->
-          <template v-if="key === 'name'">
-            <div class="d-flex align-center gap-3 py-1">
-              <v-avatar size="36" color="primary" variant="tonal" class="rounded-lg">
-                <v-icon size="20">mdi-file-document-edit-outline</v-icon>
-              </v-avatar>
-              <div>
-                <div class="font-weight-black text-body-2 text-primary">{{ item.name }}</div>
-                <div class="text-caption text-medium-emphasis">{{ item.description || 'قالب تصحيح آلي عالي الدقة 300 DPI' }}</div>
-              </div>
-            </div>
-          </template>
-
-          <!-- Category / Organization -->
-          <template v-else-if="key === 'category'">
-            <v-chip
-              size="small"
-              :color="getCategoryColor(item)"
-              variant="tonal"
-              class="font-weight-bold"
-            >
-              <v-icon start size="14">{{ getCategoryIcon(item) }}</v-icon>
-              {{ getCategoryLabel(item) }}
-            </v-chip>
-          </template>
-
-          <!-- Questions Count -->
-          <template v-else-if="key === 'total_mcq'">
-            <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
-              <v-icon start size="14">mdi-help-circle-outline</v-icon>
-              {{ getQuestionsCount(item) }} سؤال
-            </v-chip>
-          </template>
-
-          <!-- Columns & Layout -->
-          <template v-else-if="key === 'layout'">
-            <v-chip size="small" color="info" variant="tonal" class="font-weight-bold">
-              <v-icon start size="14">mdi-view-column-outline</v-icon>
-              {{ getColumnsCount(item) }} أعمدة ({{ getChoicesCount(item) }} خيارات)
-            </v-chip>
-          </template>
-
-          <!-- Paper Size -->
-          <template v-else-if="key === 'paper_size'">
-            <v-chip size="small" color="secondary" variant="tonal" class="font-weight-bold">
-              <v-icon start size="14">mdi-file-outline</v-icon>
-              {{ getPaperSize(item) }}
-            </v-chip>
-          </template>
-
-          <!-- Version -->
-          <template v-else-if="key === 'version'">
-            <v-chip size="small" color="grey-darken-2" variant="tonal" class="font-weight-bold">
-              v{{ item.version || '1.0' }}
-            </v-chip>
-          </template>
-
-          <!-- Is Active Status (Exact same as /levels) -->
-          <template v-else-if="key === 'is_active'">
-            <v-chip
-              size="small"
-              :color="item.is_active !== false ? 'success' : 'error'"
-              variant="tonal"
-              class="font-weight-bold text-white"
-            >
-              <v-icon start size="14">{{ item.is_active !== false ? 'mdi-check-circle' : 'mdi-close-circle' }}</v-icon>
-              {{ item.is_active !== false ? 'مفعل' : 'معطل' }}
-            </v-chip>
-          </template>
-
-          <!-- Custom Actions Bar -->
-          <template v-else-if="key === 'actions'">
-            <div class="d-flex align-center justify-center gap-1">
-              <custom-btn
-                is-icon
-                icon="scanner"
-                color="success"
-                label="بدء التصحيح الضوئي بهذا القالب"
-                :click="() => emit('scan', item.id)"
-              />
-              <custom-btn
-                type="show"
-                is-icon
-                label="معاينة الورقة"
-                :click="() => emit('preview', item)"
-              />
-              <custom-btn
-                type="update"
-                is-icon
-                label="تعديل القالب"
-                :click="() => emit('edit', item)"
-              />
-              <custom-btn
-                is-icon
-                icon="printer"
-                color="secondary"
-                label="طباعة القالب"
-                :click="() => emit('print', item)"
-              />
-              <custom-btn
-                is-icon
-                icon="content-copy"
-                color="info"
-                label="نسخ كقالب جديد"
-                :click="() => emit('duplicate', item)"
-              />
-              <custom-btn
-                type="del"
-                is-icon
-                label="حذف القالب"
-                :click="() => confirmDeleteTemplate(item)"
-              />
-            </div>
-          </template>
-        </template>
-      </custom-data-table>
+      <TemplateTable
+        :table-items="tableItems"
+        :headers="headers"
+        :get-data="getData"
+        :get-category-color="getCategoryColor"
+        :get-category-icon="getCategoryIcon"
+        :get-category-label="getCategoryLabel"
+        :get-questions-count="getQuestionsCount"
+        :get-columns-count="getColumnsCount"
+        :get-choices-count="getChoicesCount"
+        :get-paper-size="getPaperSize"
+        @create-new="emit('create-new')"
+        @edit="emit('edit', $event)"
+        @scan="emit('scan', $event)"
+        @preview="emit('preview', $event)"
+        @duplicate="emit('duplicate', $event)"
+        @print="emit('print', $event)"
+        @confirm-delete="confirmDeleteTemplate"
+      />
     </div>
 
     <!-- ── 2. CARDS GRID VIEW ────────────────────────────────────── -->
@@ -316,43 +125,21 @@
     </v-row>
 
     <!-- ── Delete Confirmation Dialog ────────────────────────────── -->
-    <v-dialog v-model="showDeleteDialog" max-width="480">
-      <v-card class="pa-6 rounded-2xl">
-        <div class="d-flex align-center gap-3 mb-4">
-          <v-avatar color="error" variant="tonal" size="48" rounded="xl">
-            <v-icon size="28" color="error">mdi-alert-outline</v-icon>
-          </v-avatar>
-          <div>
-            <h3 class="text-h6 font-weight-black mb-0">تأكيد حذف القالب</h3>
-            <span class="text-caption text-medium-emphasis">عملية الحذف نهائية ولا يمكن التراجع عنها</span>
-          </div>
-        </div>
-        <p class="text-body-2 mb-6">
-          هل أنت متأكد من رغبتك في حذف القالب المعياري
-          <strong class="text-error">«{{ templateToDelete?.name }}»</strong>؟
-        </p>
-        <div class="d-flex justify-end gap-2">
-          <v-btn variant="text" rounded="lg" class="font-weight-bold" @click="showDeleteDialog = false">
-            إلغاء
-          </v-btn>
-          <v-btn
-            color="error"
-            rounded="lg"
-            class="font-weight-bold px-6"
-            :loading="isDeleting"
-            @click="executeDelete"
-          >
-            نعم، احذف القالب
-          </v-btn>
-        </div>
-      </v-card>
-    </v-dialog>
+    <TemplateDeleteDialog
+      v-model="showDeleteDialog"
+      :template-to-delete="templateToDelete"
+      :is-deleting="isDeleting"
+      @confirm="executeDelete"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
 import TemplateCard from './TemplateCard.vue'
+import TemplateFilters from './library/TemplateFilters.vue'
+import TemplateTable from './library/TemplateTable.vue'
+import TemplateDeleteDialog from './library/TemplateDeleteDialog.vue'
+import { useTemplateLibrary } from '../composables/useTemplateLibrary'
 
 const props = defineProps<{
   templates: any[]
@@ -369,242 +156,33 @@ const emit = defineEmits<{
   (e: 'delete', id: number | string): void
 }>()
 
-// View mode: 'table' (default, matches /levels) or 'cards'
-const viewMode = ref<'table' | 'cards'>('table')
-
-// Filters states (matching /levels)
-const searchQuery = ref('')
-const filterCategory = ref('all')
-const filterQuestions = ref('all')
-const filterActive = ref<boolean | null>(null)
-
-// Dialog states
-const showDeleteDialog = ref(false)
-const templateToDelete = ref<any>(null)
-const isDeleting = ref(false)
-
-// Select options
-const categoryOptions = [
-  { text: 'كافة الأنواع (الكل)', value: 'all' },
-  { text: 'وزارة التربية والتعليم', value: 'ministry' },
-  { text: 'الجامعات والتعليم العالي', value: 'university' },
-  { text: 'قوالب مخصصة', value: 'custom' },
-]
-
-const questionCountOptions = [
-  { text: 'كافة السعات', value: 'all' },
-  { text: '20 سؤال (سريع)', value: 20 },
-  { text: '40 سؤال (معياري)', value: 40 },
-  { text: '50 سؤال (وزاري رسمي)', value: 50 },
-  { text: '60 سؤال (فصلي)', value: 60 },
-  { text: '100 سؤال (نصف سنوي)', value: 100 },
-  { text: '180 سؤال (جامعي شامل)', value: 180 },
-]
-
-const activeOptions = [
-  { text: 'مفعل', value: true },
-  { text: 'غير مفعل', value: false },
-]
-
-// Table Headers (Standard /levels specification)
-const headers = computed(() => [
-  { title: 'اسم القالب والنموذج', key: 'name', sortable: true },
-  { title: 'نوع القالب / المؤسسة', key: 'category', sortable: true },
-  { title: 'عدد الأسئلة', key: 'total_mcq', sortable: true, align: 'center' },
-  { title: 'التخطيط (أعمدة / خيارات)', key: 'layout', sortable: false, align: 'center' },
-  { title: 'المقاس', key: 'paper_size', sortable: false, align: 'center' },
-  { title: 'الإصدار', key: 'version', sortable: true, align: 'center' },
-  { title: 'الحالة', key: 'is_active', sortable: true, align: 'center' },
-])
-
-// Filtered templates list
-const filteredTemplates = computed(() => {
-  let list = props.templates || []
-
-  // 1. Category filter
-  if (filterCategory.value === 'ministry') {
-    list = list.filter(t => {
-      const name = t.name || ''
-      const tid = t.template_data?.template_id || ''
-      const q = getQuestionsCount(t)
-      return name.includes('وزارة التربية') || name.includes('الثانوية العامة') || tid === 'YEMEN_MINISTRY_50' || tid.includes('YEMEN_MINISTRY') || q === 50
-    })
-  } else if (filterCategory.value === 'university') {
-    list = list.filter(t => {
-      const q = getQuestionsCount(t)
-      return q === 180 || t.name?.includes('الجامعات') || t.name?.includes('التعليم العالي')
-    })
-  } else if (filterCategory.value === 'custom') {
-    list = list.filter(t => {
-      const q = getQuestionsCount(t)
-      return q !== 50 && q !== 180
-    })
-  }
-
-  // 2. Question count filter
-  if (filterQuestions.value && filterQuestions.value !== 'all') {
-    const targetQ = Number(filterQuestions.value)
-    list = list.filter(t => getQuestionsCount(t) === targetQ)
-  }
-
-  // 3. Active status filter
-  if (filterActive.value !== null && filterActive.value !== undefined) {
-    list = list.filter(t => {
-      const active = t.is_active !== false
-      return active === filterActive.value
-    })
-  }
-
-  // 4. Search query
-  if (searchQuery.value && searchQuery.value.trim()) {
-    const q = searchQuery.value.toLowerCase().trim()
-    list = list.filter(t =>
-      (t.name && t.name.toLowerCase().includes(q)) ||
-      (t.description && t.description.toLowerCase().includes(q)) ||
-      (String(t.id).includes(q)) ||
-      (t.template_data?.template_id && t.template_data.template_id.toLowerCase().includes(q))
-    )
-  }
-
-  return list
-})
-
-// Bound items for custom-data-table
-const libraryPage = ref(1)
-const libraryPageSize = ref(10)
-const libraryTableItems = ref({
-  results: [],
-  count: 0,
-  pagination: {
-    count: 0,
-    total: 0,
-    num_pages: 1,
-    current_page: 1,
-  },
-})
-
-async function getData(params = {}) {
-  const p = params?.params || params || {}
-  const page = Number(p.page) || libraryPage.value || 1
-  const pageSize = Number(p.page_size) || libraryPageSize.value || 10
-  libraryPage.value = page
-  libraryPageSize.value = pageSize
-
-  const all = filteredTemplates.value || []
-  const total = all.length
-  const numPages = Math.ceil(total / pageSize) || 1
-  const validPage = Math.min(Math.max(1, page), numPages)
-  const start = (validPage - 1) * pageSize
-
-  libraryTableItems.value = {
-    results: all.slice(start, start + pageSize),
-    count: total,
-    pagination: {
-      count: total,
-      total: total,
-      num_pages: numPages,
-      current_page: validPage,
-    },
-  }
-  return libraryTableItems.value
-}
-
-watch(filteredTemplates, () => {
-  libraryPage.value = 1
-  getData({ page: 1, page_size: libraryPageSize.value })
-}, { immediate: true })
-
-const tableItems = computed(() => libraryTableItems.value)
-
-function applyFilters() {
-  // Triggers reactivity
-}
-
-function resetFilters() {
-  searchQuery.value = ''
-  filterCategory.value = 'all'
-  filterQuestions.value = 'all'
-  filterActive.value = null
-}
-
-function getQuestionsCount(item: any) {
-  return (
-    item.total_mcq ??
-    item.template_data?.questions?.metadata?.num_questions ??
-    item.template_data?.metadata?.num_questions ??
-    0
-  )
-}
-
-function getColumnsCount(item: any) {
-  return (
-    item.template_data?.questions?.layout?.columns_count ??
-    item.template_data?.metadata?.columns_count ??
-    item.template_data?.layout?.columns_count ??
-    4
-  )
-}
-
-function getChoicesCount(item: any) {
-  return (
-    item.template_data?.questions?.layout?.choices_count ??
-    item.template_data?.metadata?.choices_count ??
-    item.template_data?.layout?.choices_count ??
-    4
-  )
-}
-
-function getPaperSize(item: any) {
-  return (
-    item.template_data?.paper?.size ||
-    item.template_data?.metadata?.paper_size ||
-    (getQuestionsCount(item) > 100 ? 'A3' : (getQuestionsCount(item) <= 40 ? 'A5' : 'A4'))
-  )
-}
-
-function getCategoryLabel(item: any) {
-  const name = item.name || ''
-  const tId = item.template_data?.template_id || ''
-  const q = getQuestionsCount(item)
-  if (name.includes('وزارة التربية') || name.includes('الثانوية العامة') || tId === 'YEMEN_MINISTRY_50' || q === 50) {
-    return 'وزارة التربية والتعليم'
-  }
-  if (q === 180 || name.includes('الجامعات') || name.includes('التعليم العالي')) {
-    return 'الجامعات والتعليم العالي'
-  }
-  return 'قالب مخصص'
-}
-
-function getCategoryColor(item: any) {
-  const name = item.name || ''
-  const tId = item.template_data?.template_id || ''
-  const q = getQuestionsCount(item)
-  if (name.includes('وزارة التربية') || name.includes('الثانوية العامة') || tId === 'YEMEN_MINISTRY_50' || q === 50) {
-    return 'primary'
-  }
-  if (q === 180 || name.includes('الجامعات') || name.includes('التعليم العالي')) {
-    return 'indigo'
-  }
-  return 'teal'
-}
-
-function getCategoryIcon(item: any) {
-  const name = item.name || ''
-  const tId = item.template_data?.template_id || ''
-  const q = getQuestionsCount(item)
-  if (name.includes('وزارة التربية') || name.includes('الثانوية العامة') || tId === 'YEMEN_MINISTRY_50' || q === 50) {
-    return 'mdi-school-outline'
-  }
-  if (q === 180 || name.includes('الجامعات') || name.includes('التعليم العالي')) {
-    return 'mdi-domain'
-  }
-  return 'mdi-tune-variant'
-}
-
-function confirmDeleteTemplate(t: any) {
-  templateToDelete.value = t
-  showDeleteDialog.value = true
-}
+const {
+  viewMode,
+  searchQuery,
+  filterCategory,
+  filterQuestions,
+  filterActive,
+  showDeleteDialog,
+  templateToDelete,
+  isDeleting,
+  categoryOptions,
+  questionCountOptions,
+  activeOptions,
+  headers,
+  filteredTemplates,
+  tableItems,
+  getData,
+  applyFilters,
+  resetFilters,
+  getQuestionsCount,
+  getColumnsCount,
+  getChoicesCount,
+  getPaperSize,
+  getCategoryLabel,
+  getCategoryColor,
+  getCategoryIcon,
+  confirmDeleteTemplate,
+} = useTemplateLibrary(props)
 
 async function executeDelete() {
   if (!templateToDelete.value) return

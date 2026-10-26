@@ -5,194 +5,210 @@
       label="1. بيانات المظروف الامتحاني والقاعة (Envelope Manifest & Dispatch Details)"
       class="main-card border-0 pa-5 rounded-2xl mb-5 shadow-sm"
     >
-      <!-- الصف 1: نوع المؤسسة التعليمية (مدارس / جامعات / معاهد / الكل) بنمط students-master -->
-      <v-row dense class="align-center mb-2">
-        <v-col cols="12">
-          <v-btn-toggle
+      <v-row dense class="align-center">
+        <!-- 1. نوع المؤسسة التعليمية (حقل واحد قياسي موحد بنمط students-master) -->
+        <v-col cols="12" sm="6" md="3">
+          <auto-list
             v-model="filterInstitutionType"
-            color="primary"
-            variant="outlined"
-            density="compact"
-            rounded="lg"
-            class="w-100 d-flex flex-wrap institutional-toggle"
+            name="InstitutionType"
+            placeholder="نوع المؤسسة التعليمية"
+            label="نوع المؤسسة التعليمية"
+            cols="12"
+            :add="false"
             @update:model-value="onInstitutionTypeChange"
-          >
-            <v-btn value="all" class="flex-grow-1 font-weight-bold">
-              <v-icon start size="16" color="primary">mdi-asterisk</v-icon>
-              كافة المؤسسات (الكل)
-            </v-btn>
-            <v-btn value="university" class="flex-grow-1 font-weight-bold">
-              <v-icon start size="16" color="indigo">mdi-domain</v-icon>
-              الجامعات والكليات
-            </v-btn>
-            <v-btn value="school" class="flex-grow-1 font-weight-bold">
-              <v-icon start size="16" color="teal">mdi-school</v-icon>
-              مدارس التعليم العام
-            </v-btn>
-            <v-btn value="institute" class="flex-grow-1 font-weight-bold">
-              <v-icon start size="16" color="amber-darken-3">mdi-tools</v-icon>
-              المعاهد ومراكز التدريب
-            </v-btn>
-          </v-btn-toggle>
+          />
         </v-col>
-      </v-row>
 
-      <!-- الصف 2: الهيكلية الجغرافية والمؤسسية + اختيار الاختبار المعتمد -->
-      <v-row dense class="align-center mb-1">
-        <!-- 1. المحافظة -->
-        <auto-list
-          v-model="filterGovernorate"
-          name="Governorate"
-          placeholder="المحافظة *"
-          :cols="isSchoolFilter ? 3 : 4"
-          :add="false"
-          @update:model-value="onGovernorateChange"
-        />
+        <!-- 2. المحافظة -->
+        <v-col cols="12" sm="6" md="3">
+          <auto-list
+            v-model="filterGovernorate"
+            name="Governorate"
+            placeholder="المحافظة *"
+            label="المحافظة"
+            cols="12"
+            :add="false"
+            @update:model-value="onGovernorateChange"
+          />
+        </v-col>
 
-        <!-- 2. المديرية (تظهر للمدارس فقط) -->
-        <auto-list
-          v-if="isSchoolFilter"
-          v-model="filterDirectorate"
-          name="Directorate"
-          :param="filterGovernorate"
-          :placeholder="filterGovernorate ? 'المديرية *' : 'اختر المحافظة أولاً'"
-          cols="3"
-          :add="false"
-          :disabled="!filterGovernorate"
-          @update:model-value="onDirectorateChange"
-        />
+        <!-- 3. المديرية (تظهر للمدارس فقط) -->
+        <v-col v-if="isSchoolFilter" cols="12" sm="6" md="3">
+          <auto-list
+            v-model="filterDirectorate"
+            name="Directorate"
+            :param="filterGovernorate"
+            :placeholder="filterGovernorate ? 'المديرية *' : 'اختر المحافظة أولاً'"
+            label="المديرية"
+            cols="12"
+            :add="false"
+            :disabled="!filterGovernorate"
+            @update:model-value="onDirectorateChange"
+          />
+        </v-col>
 
-        <!-- 3. المركز الامتحاني (المدرسة / الكلية / المعهد) -->
-        <auto-list
-          v-model="filterOrganization"
-          name="Organization"
-          :param="orgParam"
-          :placeholder="orgPlaceholder"
-          :cols="isSchoolFilter ? 3 : 4"
-          :add="false"
-          :disabled="isOrgDisabled"
-          @update:model-value="onOrganizationChange"
-        />
+        <!-- 4. المركز الامتحاني (المدرسة / الكلية / المعهد) -->
+        <v-col cols="12" sm="6" md="3">
+          <auto-list
+            v-model="filterOrganization"
+            name="Organization"
+            :param="orgParam"
+            :placeholder="orgPlaceholder"
+            :label="orgFieldLabel"
+            cols="12"
+            :add="false"
+            :disabled="isOrgDisabled"
+            @update:model-value="onOrganizationChange"
+          />
+        </v-col>
 
-        <!-- 4. الاختبار والمادة الدراسية -->
-        <auto-list
-          v-model="selectedExamId"
-          name="Exam"
-          :param="examFilterParam"
-          placeholder="الاختبار والمادة الدراسية *"
-          :cols="isSchoolFilter ? 3 : 4"
-          :add="false"
-          @update:model-value="onExamChange"
-        />
-      </v-row>
+        <!-- 5. الاختبار والمادة الدراسية -->
+        <v-col cols="12" sm="6" md="3">
+          <auto-list
+            v-model="selectedExamId"
+            name="Exam"
+            :param="examFilterParam"
+            placeholder="الاختبار والمادة الدراسية *"
+            label="الاختبار والمادة الدراسية"
+            cols="12"
+            :add="false"
+            @update:model-value="onExamChange"
+          />
+        </v-col>
 
-      <!-- الصف 3: الهيكلية الأكاديمية التخصصية المشروطة -->
-      <v-row v-if="filterInstitutionType !== 'all'" dense class="align-center mb-1">
+        <!-- الهيكلية الأكاديمية التخصصية المشروطة -->
         <!-- أ. فلاتر المدارس -->
         <template v-if="filterInstitutionType === 'school'">
-          <auto-list
-            v-model="filterStage"
-            name="Stage"
-            placeholder="المرحلة الدراسية"
-            cols="4"
-            :add="false"
-            @update:model-value="onStageChange"
-          />
-          <auto-list
-            v-model="filterClassTrack"
-            name="ClassTrackByStage"
-            :param="filterStage"
-            placeholder="الصف والمسار"
-            cols="4"
-            :add="false"
-            :disabled="!filterStage"
-            @update:model-value="onClassTrackChange"
-          />
-          <auto-list
-            v-model="filterSubject"
-            name="Subject"
-            :param="subjectFilterParam"
-            placeholder="المادة الدراسية"
-            cols="4"
-            :add="false"
-            @update:model-value="onSubjectChange"
-          />
+          <v-col cols="12" sm="6" md="3">
+            <auto-list
+              v-model="filterStage"
+              name="Stage"
+              placeholder="المرحلة الدراسية"
+              label="المرحلة الدراسية"
+              cols="12"
+              :add="false"
+              @update:model-value="onStageChange"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <auto-list
+              v-model="filterClassTrack"
+              name="ClassTrackByStage"
+              :param="filterStage"
+              placeholder="الصف والمسار"
+              label="الصف والمسار"
+              cols="12"
+              :add="false"
+              :disabled="!filterStage"
+              @update:model-value="onClassTrackChange"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <auto-list
+              v-model="filterSubject"
+              name="Subject"
+              :param="subjectFilterParam"
+              placeholder="المادة الدراسية"
+              label="المادة الدراسية"
+              cols="12"
+              :add="false"
+              @update:model-value="onSubjectChange"
+            />
+          </v-col>
         </template>
 
         <!-- ب. فلاتر الجامعات -->
         <template v-if="filterInstitutionType === 'university'">
-          <auto-list
-            v-model="filterCollege"
-            name="College"
-            placeholder="الكلية الجامعية"
-            cols="4"
-            :add="false"
-            @update:model-value="onCollegeChange"
-          />
-          <auto-list
-            v-model="filterDepartment"
-            name="DepartmentByCollege"
-            :param="filterCollege"
-            placeholder="القسم الأكاديمي"
-            cols="4"
-            :add="false"
-            :disabled="!filterCollege"
-            @update:model-value="onDepartmentChange"
-          />
-          <auto-list
-            v-model="filterSpecialization"
-            name="Specialization"
-            :param="filterDepartment"
-            placeholder="التخصص والبرنامج"
-            cols="4"
-            :add="false"
-            :disabled="!filterDepartment"
-            @update:model-value="onSpecializationChange"
-          />
+          <v-col cols="12" sm="6" md="3">
+            <auto-list
+              v-model="filterCollege"
+              name="College"
+              placeholder="الكلية الجامعية"
+              label="الكلية الجامعية"
+              cols="12"
+              :add="false"
+              @update:model-value="onCollegeChange"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <auto-list
+              v-model="filterDepartment"
+              name="DepartmentByCollege"
+              :param="filterCollege"
+              placeholder="القسم الأكاديمي"
+              label="القسم الأكاديمي"
+              cols="12"
+              :add="false"
+              :disabled="!filterCollege"
+              @update:model-value="onDepartmentChange"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <auto-list
+              v-model="filterSpecialization"
+              name="Specialization"
+              :param="filterDepartment"
+              placeholder="التخصص والبرنامج"
+              label="التخصص والبرنامج"
+              cols="12"
+              :add="false"
+              :disabled="!filterDepartment"
+              @update:model-value="onSpecializationChange"
+            />
+          </v-col>
         </template>
 
         <!-- ج. فلاتر المعاهد -->
         <template v-if="filterInstitutionType === 'institute'">
-          <auto-list
-            v-model="filterInstituteField"
-            name="InstituteField"
-            placeholder="المجال المهني"
-            cols="4"
-            :add="false"
-            @update:model-value="onInstituteFieldChange"
-          />
-          <auto-list
-            v-model="filterInstituteEducationSystem"
-            name="InstituteEducationSystem"
-            :param="filterInstituteField"
-            placeholder="نظام التعليم"
-            cols="4"
-            :add="false"
-            :disabled="!filterInstituteField"
-            @update:model-value="onInstituteEducationSystemChange"
-          />
-          <auto-list
-            v-model="filterInstituteSpecialization"
-            name="InstituteSpecialization"
-            :param="instituteSpecParam"
-            placeholder="التخصص المهني"
-            cols="4"
-            :add="false"
-            :disabled="!filterInstituteEducationSystem"
-            @update:model-value="onInstituteSpecializationChange"
-          />
+          <v-col cols="12" sm="6" md="3">
+            <auto-list
+              v-model="filterInstituteField"
+              name="InstituteField"
+              placeholder="المجال المهني"
+              label="المجال المهني"
+              cols="12"
+              :add="false"
+              @update:model-value="onInstituteFieldChange"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <auto-list
+              v-model="filterInstituteEducationSystem"
+              name="InstituteEducationSystem"
+              :param="filterInstituteField"
+              placeholder="نظام التعليم"
+              label="نظام التعليم"
+              cols="12"
+              :add="false"
+              :disabled="!filterInstituteField"
+              @update:model-value="onInstituteEducationSystemChange"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <auto-list
+              v-model="filterInstituteSpecialization"
+              name="InstituteSpecialization"
+              :param="instituteSpecParam"
+              placeholder="التخصص المهني"
+              label="التخصص المهني"
+              cols="12"
+              :add="false"
+              :disabled="!filterInstituteEducationSystem"
+              @update:model-value="onInstituteSpecializationChange"
+            />
+          </v-col>
         </template>
-      </v-row>
 
-      <!-- الصف 4: أرقام المظروف والقاعة وسعة الطلاب وفق حافظة التسليم الرسمية -->
-      <v-row dense class="align-center mb-1 mt-1">
-        <!-- 5. رقم القاعة -->
+        <!-- أرقام المظروف والقاعة وسعة الطلاب وفق حافظة التسليم الرسمية -->
+        <!-- رقم القاعة -->
         <v-col cols="12" sm="6" md="3">
           <v-text-field
             v-model="currentEnvelope.hallNumber"
             label="رقم القاعة *"
             variant="outlined"
             density="compact"
+            rounded="lg"
+            class="mb-3"
             prepend-inner-icon="mdi-map-marker-outline"
             hide-details
             placeholder="مثال: قاعة 03"
@@ -200,13 +216,15 @@
           />
         </v-col>
 
-        <!-- 6. باركود / كود المظروف الامتحاني -->
+        <!-- باركود / كود المظروف الامتحاني -->
         <v-col cols="12" sm="6" md="3">
           <v-text-field
             v-model="currentEnvelope.envelopeCode"
             label="باركود / كود المظروف الامتحاني *"
             variant="outlined"
             density="compact"
+            rounded="lg"
+            class="mb-3"
             prepend-inner-icon="mdi-barcode"
             hide-details
           >
@@ -226,7 +244,7 @@
           </v-text-field>
         </v-col>
 
-        <!-- 7. سعة القاعة المقيدة (الطلاب المقيدون) -->
+        <!-- سعة القاعة المقيدة (الطلاب المقيدون) -->
         <v-col cols="12" sm="6" md="3">
           <v-text-field
             v-model.number="currentEnvelope.expectedCount"
@@ -236,12 +254,14 @@
             label="سعة القاعة المقيدة (الطلاب المقيدون) *"
             variant="outlined"
             density="compact"
+            rounded="lg"
+            class="mb-3"
             prepend-inner-icon="mdi-account-group-outline"
             hide-details
           />
         </v-col>
 
-        <!-- 8. عدد الغائبين (وفق حافظة الكشف) -->
+        <!-- عدد الغائبين (وفق حافظة الكشف) -->
         <v-col cols="12" sm="6" md="3">
           <v-text-field
             v-model.number="currentEnvelope.absentCount"
@@ -251,33 +271,35 @@
             label="عدد الغائبين (وفق حافظة الكشف) *"
             variant="outlined"
             density="compact"
+            rounded="lg"
+            class="mb-3"
             prepend-inner-icon="mdi-account-remove-outline"
             color="warning"
             hide-details
           />
         </v-col>
-      </v-row>
 
-      <!-- الصف 5: أزرار التحكم والتصفية والتفريغ (بنفس هوية students-master) -->
-      <div class="d-flex align-center justify-end flex-wrap gap-2 mt-2 mb-1">
-        <custom-btn
-          type="show"
-          label="تصفية وتحديث"
-          color="primary"
-          icon="mdi-filter"
-          class="font-weight-bold px-5"
-          :click="fetchExamDetails"
-        />
-        <custom-btn
-          type="cancel_filter"
-          label="تفريغ الفلاتر"
-          color="error"
-          variant="tonal"
-          icon="mdi-filter-off"
-          class="font-weight-bold"
-          :click="resetAllFilters"
-        />
-      </div>
+        <!-- أزرار التحكم والتصفية والتفريغ (بنفس هوية students-master) -->
+        <v-col cols="12" class="d-flex align-center justify-end gap-2 mb-3">
+          <custom-btn
+            type="show"
+            label="تصفية النتائج"
+            color="primary"
+            icon="mdi-filter"
+            class="font-weight-bold px-5"
+            :click="fetchExamDetails"
+          />
+          <custom-btn
+            type="cancel_filter"
+            label="تفريغ الفلاتر"
+            color="error"
+            variant="tonal"
+            icon="mdi-filter-off"
+            class="font-weight-bold"
+            :click="resetAllFilters"
+          />
+        </v-col>
+      </v-row>
 
       <!-- ── معادلة مطابقة القاعة والمطلوب سحبه (تصميم رسمي بخلايا منظمة وهادئة) ── -->
       <div class="d-flex align-center justify-space-between flex-wrap gap-2 pa-2.5 mt-3 rounded-lg border bg-surface">
@@ -1657,6 +1679,12 @@ export default {
       return `${typeLabel} (التابعة للمحافظة)`
     })
 
+    const orgFieldLabel = computed(() => {
+      if (filterInstitutionType.value === 'university') return 'الجامعة / الكلية'
+      if (filterInstitutionType.value === 'institute') return 'المعهد / المركز التدريبي'
+      return 'المدرسة / المركز الامتحاني'
+    })
+
     const onInstitutionTypeChange = () => {
       filterStage.value = null
       filterClassTrack.value = null
@@ -2534,6 +2562,7 @@ export default {
       isSchoolFilter,
       isOrgDisabled,
       orgPlaceholder,
+      orgFieldLabel,
       onInstitutionTypeChange,
       onStageChange,
       onClassTrackChange,

@@ -100,6 +100,7 @@
               density="compact"
               variant="outlined"
               rounded="lg"
+              class="mb-3"
               hide-details
               clearable
               prepend-inner-icon="mdi-magnify"
@@ -117,6 +118,7 @@
               density="compact"
               variant="outlined"
               rounded="lg"
+              class="mb-3"
               hide-details
               prepend-inner-icon="mdi-brain"
             />
@@ -133,19 +135,21 @@
               density="compact"
               variant="outlined"
               rounded="lg"
+              class="mb-3"
               hide-details
               prepend-inner-icon="mdi-format-list-checks"
             />
           </v-col>
 
           <!-- Cancel Filter -->
-          <v-col cols="12" sm="12" md="1" class="d-flex justify-center">
+          <v-col cols="12" sm="12" md="1" class="d-flex justify-center mb-3">
             <custom-btn
               type="cancel_filter"
               :click="resetQuestionFilters"
               variant="tonal"
               color="error"
               label="تفريغ"
+              icon="mdi-filter-off"
               class="font-weight-bold w-100"
             />
           </v-col>

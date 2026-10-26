@@ -15,19 +15,19 @@
     </div>
 
     <template v-if="config.student_fields.enabled">
-      <!-- ── Fast Institution Identity Switcher (School vs University) ── -->
+      <!-- ── Dynamic Institution Identity Switcher (School vs University vs Institute) ── -->
       <div class="pa-4 rounded-xl border bg-surface mb-4">
         <div class="d-flex align-center justify-space-between mb-2">
           <label class="text-subtitle-2 font-weight-bold d-flex align-center gap-2">
             <v-icon color="primary" size="20">mdi-domain-switch</v-icon>
             نمط ونطاق حقول هوية الطالب:
           </label>
-          <v-chip size="x-small" :color="currentInstitutionType === 'university' ? 'purple' : 'primary'" variant="flat" class="font-weight-bold">
-            {{ currentInstitutionType === 'university' ? 'جامعي' : 'مدرسي' }}
+          <v-chip size="x-small" :color="activeProfile.color" variant="flat" class="font-weight-bold">
+            {{ activeProfile.name }}
           </v-chip>
         </div>
 
-        <!-- Quick Switcher Button Toggle -->
+        <!-- Dynamic Switcher Buttons from Registry -->
         <v-btn-toggle
           v-model="currentInstitutionType"
           mandatory
@@ -35,28 +35,43 @@
           density="comfortable"
           rounded="lg"
           grow
-          class="w-100"
+          class="w-100 mb-2"
           @update:model-value="onInstitutionChange"
         >
-          <v-btn value="school" class="font-weight-bold">
-            <v-icon start size="18">mdi-school</v-icon>
-            مدرسي
-          </v-btn>
-          <v-btn value="university" class="font-weight-bold">
-            <v-icon start size="18">mdi-domain</v-icon>
-            جامعي
+          <v-btn
+            v-for="profile in INSTITUTION_PROFILES"
+            :key="profile.id"
+            :value="profile.id"
+            class="font-weight-bold"
+          >
+            <v-icon start size="18">{{ profile.icon }}</v-icon>
+            {{ profile.name }}
           </v-btn>
         </v-btn-toggle>
+
+        <div class="d-flex align-center justify-space-between text-caption text-medium-emphasis">
+          <span>{{ activeProfile.fullName }}</span>
+          <v-btn
+            size="x-small"
+            variant="text"
+            color="primary"
+            prepend-icon="mdi-restore"
+            class="font-weight-bold"
+            @click="applyProfileDefaults(activeProfile)"
+          >
+            استعادة نموذج {{ activeProfile.name }}
+          </v-btn>
+        </div>
       </div>
 
-      <!-- Institutional Header & Seal -->
+      <!-- Institutional Header & Seal (Dynamic Labels) -->
       <div class="pa-4 rounded-xl border bg-surface mb-4">
         <label class="text-subtitle-2 font-weight-bold mb-2 d-block">
-          {{ currentInstitutionType === 'university' ? 'الترويسة والشعار — التعليم الجامعي والأكاديمي' : 'الترويسة والشعار — التعليم الأساسي والثانوي' }}
+          الترويسة والشعار — {{ activeProfile.fullName }}
         </label>
         <v-text-field
           v-model="config.header.institution_name"
-          :label="currentInstitutionType === 'university' ? 'اسم الدولة والجامعة' : 'اسم الدولة والوزارة'"
+          :label="activeProfile.labels.institution"
           variant="outlined"
           density="compact"
           rounded="lg"
@@ -65,29 +80,43 @@
         />
         <v-text-field
           v-model="config.header.sub_title"
-          :label="currentInstitutionType === 'university' ? 'الكلية / نيابة شؤون الطلاب والامتحانات' : 'القطاع / لجنة الاختبارات'"
+          :label="activeProfile.labels.subTitle"
           variant="outlined"
           density="compact"
           rounded="lg"
           class="mb-3"
           hide-details
         />
-        <v-text-field
-          v-model="config.metadata.academic_year"
-          :label="currentInstitutionType === 'university' ? 'العام الجامعي / الفصل' : 'العام الدراسي'"
-          variant="outlined"
-          density="compact"
-          rounded="lg"
-          hide-details
-        />
+        <v-row dense>
+          <v-col cols="6">
+            <v-text-field
+              v-model="config.header.exam_stage_title"
+              :label="activeProfile.labels.examStage"
+              variant="outlined"
+              density="compact"
+              rounded="lg"
+              hide-details
+            />
+          </v-col>
+          <v-col cols="6">
+            <v-text-field
+              v-model="config.metadata.academic_year"
+              :label="activeProfile.labels.academicYear"
+              variant="outlined"
+              density="compact"
+              rounded="lg"
+              hide-details
+            />
+          </v-col>
+        </v-row>
       </div>
 
-      <!-- Exam & Subject Information -->
+      <!-- Exam & Subject Information (Dynamic Labels) -->
       <div class="pa-4 rounded-xl border bg-surface mb-4">
-        <label class="text-subtitle-2 font-weight-bold mb-2 d-block">بيانات المادة وموقع الاختبار</label>
+        <label class="text-subtitle-2 font-weight-bold mb-2 d-block">بيانات المقرر وموقع الاختبار</label>
         <v-text-field
           v-model="config.header.exam_name"
-          :label="currentInstitutionType === 'university' ? 'اسم المقرر الأكاديمي' : 'اسم المادة الدراسية'"
+          :label="activeProfile.labels.examSubject"
           variant="outlined"
           density="compact"
           rounded="lg"
@@ -98,7 +127,7 @@
           <v-col cols="6">
             <v-text-field
               v-model="config.header.governorate"
-              :label="currentInstitutionType === 'university' ? 'المدينة / الحرم الجامعي' : 'المحافظة'"
+              :label="activeProfile.labels.area1"
               variant="outlined"
               density="compact"
               rounded="lg"
@@ -108,7 +137,7 @@
           <v-col cols="6">
             <v-text-field
               v-model="config.header.directorate"
-              :label="currentInstitutionType === 'university' ? 'المبنى / القاعة' : 'المديرية'"
+              :label="activeProfile.labels.area2"
               variant="outlined"
               density="compact"
               rounded="lg"
@@ -120,7 +149,7 @@
           <v-col cols="6">
             <v-text-field
               v-model="config.header.center_name"
-              :label="currentInstitutionType === 'university' ? 'الكلية / المعمل' : 'اسم المركز الاختباري'"
+              :label="activeProfile.labels.centerName"
               variant="outlined"
               density="compact"
               rounded="lg"
@@ -130,7 +159,7 @@
           <v-col cols="6">
             <v-text-field
               v-model="config.header.center_code"
-              :label="currentInstitutionType === 'university' ? 'رقم القاعة / الشعبة' : 'رقم المركز'"
+              :label="activeProfile.labels.centerCode"
               variant="outlined"
               density="compact"
               rounded="lg"
@@ -140,16 +169,16 @@
         </v-row>
       </div>
 
-      <!-- Student Identifier & Serial Box -->
+      <!-- Student Identifier & Serial Box (Dynamic Labels) -->
       <div class="pa-4 rounded-xl border bg-surface mb-4">
         <label class="text-subtitle-2 font-weight-bold mb-2 d-block">
-          {{ currentInstitutionType === 'university' ? 'صندوق الرقم الأكاديمي / القيد' : 'صندوق رقم الجلوس والرقم التسلسلي' }}
+          صندوق {{ activeProfile.labels.seatNumber }} والرقم التسلسلي
         </label>
         <v-row dense>
           <v-col cols="7">
             <v-text-field
               v-model="config.header.seat_number"
-              :label="currentInstitutionType === 'university' ? 'الرقم الأكاديمي / القيد' : 'رقم الجلوس'"
+              :label="activeProfile.labels.seatNumber"
               variant="outlined"
               density="compact"
               rounded="lg"
@@ -159,7 +188,7 @@
           <v-col cols="5">
             <v-text-field
               v-model="config.header.serial_number"
-              label="الرقم التسلسلي"
+              :label="activeProfile.labels.serialNumber"
               variant="outlined"
               density="compact"
               rounded="lg"
@@ -191,47 +220,52 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { INSTITUTION_PROFILES, getProfileById, type InstitutionProfile } from '../composables/useInstitutionProfiles'
 
 const props = defineProps<{
   config: any
 }>()
 
-// Determine current institution type based on config
 const currentInstitutionType = ref<string>(
   props.config?.institution_type ||
-  (props.config?.header?.institution_name?.includes('التعليم العالي') ? 'university' : 'school')
+  (props.config?.header?.institution_name?.includes('التعليم العالي')
+    ? 'university'
+    : props.config?.header?.institution_name?.includes('التعليم الفني') || props.config?.header?.institution_name?.includes('المعهد')
+    ? 'institute'
+    : 'school')
 )
+
+const activeProfile = computed<InstitutionProfile>(() => {
+  return getProfileById(currentInstitutionType.value)
+})
 
 function onInstitutionChange(typeId: string) {
   currentInstitutionType.value = typeId
   if (props.config) {
     props.config.institution_type = typeId
   }
-  if (typeId === 'university') {
-    if (props.config?.header) {
-      props.config.header.institution_name = 'الجمهورية اليمنية — وزارة التعليم العالي والبحث العلمي'
-      props.config.header.sub_title = 'جامعة صنعاء — كلية الحاسوب وتكنولوجيا المعلومات'
-      if (props.config.metadata) {
-        props.config.metadata.academic_year = 'العام الجامعي 2024-2025م'
-      }
-      props.config.header.governorate = 'صنعاء'
-      props.config.header.directorate = 'الحرم الجامعي'
-      props.config.header.center_name = 'قاعة الاختبارات المركزية'
-      props.config.header.center_code = 'A1'
+  const prof = getProfileById(typeId)
+  applyProfileDefaults(prof)
+}
+
+function applyProfileDefaults(prof: InstitutionProfile) {
+  if (!props.config) return
+  props.config.institution_type = prof.id
+  if (props.config.header) {
+    props.config.header.institution_name = prof.defaults.institution_name
+    props.config.header.sub_title = prof.defaults.sub_title
+    props.config.header.exam_stage_title = prof.defaults.exam_stage_title
+    props.config.header.governorate = prof.defaults.governorate
+    props.config.header.directorate = prof.defaults.directorate
+    props.config.header.center_name = prof.defaults.center_name
+    props.config.header.center_code = prof.defaults.center_code
+    if (prof.defaults.primary_color) {
+      props.config.header.primary_color = prof.defaults.primary_color
     }
-  } else {
-    if (props.config?.header) {
-      props.config.header.institution_name = 'الجمهورية اليمنية — وزارة التربية والتعليم'
-      props.config.header.sub_title = 'قطاع المناهج والتوجيه — لجان الاختبارات'
-      if (props.config.metadata) {
-        props.config.metadata.academic_year = '1444هـ — 2022-2023م'
-      }
-      props.config.header.governorate = 'أمانة العاصمة'
-      props.config.header.directorate = 'معين'
-      props.config.header.center_name = 'سالم قطن — معين'
-      props.config.header.center_code = '164'
-    }
+  }
+  if (props.config.metadata) {
+    props.config.metadata.academic_year = prof.defaults.academic_year
   }
 }
 </script>

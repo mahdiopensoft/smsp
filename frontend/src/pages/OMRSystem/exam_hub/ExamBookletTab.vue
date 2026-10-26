@@ -111,6 +111,8 @@
             :prepend-inner-icon="labels.level1Icon"
             density="compact"
             variant="outlined"
+            rounded="lg"
+            class="mb-3"
             hide-details
             clearable
             @update:model-value="() => { filterDirectorate = null; filterSchool = null; selectedStudentId = null; }"
@@ -129,6 +131,8 @@
             :prepend-inner-icon="labels.level2Icon"
             density="compact"
             variant="outlined"
+            rounded="lg"
+            class="mb-3"
             hide-details
             clearable
             @update:model-value="() => { filterSchool = null; selectedStudentId = null; }"
@@ -147,6 +151,8 @@
             :prepend-inner-icon="labels.level3Icon"
             density="compact"
             variant="outlined"
+            rounded="lg"
+            class="mb-3"
             hide-details
             clearable
             @update:model-value="() => { selectedStudentId = null; }"
@@ -162,13 +168,14 @@
         </v-col>
 
         <!-- زر تفريغ التصفية الموحد -->
-        <v-col cols="12" sm="4" md="2" class="d-flex align-center">
+        <v-col cols="12" sm="4" md="2" class="d-flex align-center mb-3">
           <custom-btn
             type="cancel_filter"
             :click="resetFilters"
             variant="tonal"
             color="error"
             label="تفريغ التصفية"
+            icon="mdi-filter-off"
             class="font-weight-bold w-100"
             :disabled="!filterSchool && !filterDirectorate && !filterGovernorate"
           />
