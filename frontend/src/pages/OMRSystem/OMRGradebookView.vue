@@ -68,19 +68,31 @@
             <v-col cols="12" sm="6" md="2">
               <v-autocomplete
                 v-model="selectedOfficeId"
-                :items="officesList"
+                :items="allOfficesList && allOfficesList.length ? allOfficesList : officesList"
                 item-title="office_name"
                 item-value="id"
                 label="مكتب التربية (المحافظة)"
-                placeholder="اختر مكتب التربية بالمحافظة..."
+                placeholder="اختر مكتب أو أكثر..."
                 clearable
+                multiple
+                chips
+                closable-chips
                 density="compact"
                 variant="outlined"
                 rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-office-building-outline"
                 @update:model-value="onOfficeFilterChange"
-              />
+              >
+                <template #selection="{ item, index }">
+                  <v-chip v-if="index < 1" size="x-small" class="font-weight-bold" color="primary" variant="flat">
+                    {{ item.title }}
+                  </v-chip>
+                  <span v-if="index === 1" class="text-caption text-primary font-weight-bold ms-1">
+                    (+{{ (selectedOfficeId || []).length - 1 }})
+                  </span>
+                </template>
+              </v-autocomplete>
             </v-col>
 
             <v-col cols="12" sm="6" md="2">
@@ -90,15 +102,27 @@
                 item-title="name"
                 item-value="id"
                 label="إدارة التربية (المديرية)"
-                placeholder="اختر إدارة التربية بالمديرية..."
+                placeholder="اختر مديرية أو أكثر..."
                 clearable
+                multiple
+                chips
+                closable-chips
                 density="compact"
                 variant="outlined"
                 rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-map-marker-radius-outline"
                 @update:model-value="onDirectorateFilterChange"
-              />
+              >
+                <template #selection="{ item, index }">
+                  <v-chip v-if="index < 1" size="x-small" class="font-weight-bold" color="teal" variant="flat">
+                    {{ item.title }}
+                  </v-chip>
+                  <span v-if="index === 1" class="text-caption text-teal font-weight-bold ms-1">
+                    (+{{ (selectedDirectorateId || []).length - 1 }})
+                  </span>
+                </template>
+              </v-autocomplete>
             </v-col>
 
             <v-col cols="12" sm="6" md="3">
@@ -108,15 +132,27 @@
                 item-title="name"
                 item-value="id"
                 label="المدرسة / المركز الامتحاني"
-                placeholder="اختر المركز أو المدرسة..."
+                placeholder="اختر مركز أو أكثر..."
                 clearable
+                multiple
+                chips
+                closable-chips
                 density="compact"
                 variant="outlined"
                 rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-school-outline"
                 @update:model-value="onSchoolFilterChange"
-              />
+              >
+                <template #selection="{ item, index }">
+                  <v-chip v-if="index < 1" size="x-small" class="font-weight-bold" color="indigo" variant="flat">
+                    {{ item.title }}
+                  </v-chip>
+                  <span v-if="index === 1" class="text-caption text-indigo font-weight-bold ms-1">
+                    (+{{ (selectedSchoolId || []).length - 1 }})
+                  </span>
+                </template>
+              </v-autocomplete>
             </v-col>
 
             <v-col cols="12" sm="6" md="3">
@@ -149,13 +185,25 @@
                 label="الجامعة / الكلية"
                 placeholder="اختر الجامعة أو الكلية..."
                 clearable
+                multiple
+                chips
+                closable-chips
                 density="compact"
                 variant="outlined"
                 rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-domain"
                 @update:model-value="onSchoolFilterChange"
-              />
+              >
+                <template #selection="{ item, index }">
+                  <v-chip v-if="index < 1" size="x-small" class="font-weight-bold" color="indigo" variant="flat">
+                    {{ item.title }}
+                  </v-chip>
+                  <span v-if="index === 1" class="text-caption text-indigo font-weight-bold ms-1">
+                    (+{{ (selectedSchoolId || []).length - 1 }})
+                  </span>
+                </template>
+              </v-autocomplete>
             </v-col>
 
             <v-col cols="12" sm="6" md="4">
@@ -188,13 +236,25 @@
                 label="المعهد التقني / المهني"
                 placeholder="اختر المعهد..."
                 clearable
+                multiple
+                chips
+                closable-chips
                 density="compact"
                 variant="outlined"
                 rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-tools"
                 @update:model-value="onSchoolFilterChange"
-              />
+              >
+                <template #selection="{ item, index }">
+                  <v-chip v-if="index < 1" size="x-small" class="font-weight-bold" color="indigo" variant="flat">
+                    {{ item.title }}
+                  </v-chip>
+                  <span v-if="index === 1" class="text-caption text-indigo font-weight-bold ms-1">
+                    (+{{ (selectedSchoolId || []).length - 1 }})
+                  </span>
+                </template>
+              </v-autocomplete>
             </v-col>
 
             <v-col cols="12" sm="6" md="4">
@@ -259,6 +319,7 @@
           <!-- 1. تبويب مكاتب التربية بالمحافظات -->
           <v-window-item value="offices" v-if="institutionType === 'school'">
             <custom-data-table
+              :key="'offices-tbl-' + filteredOfficesTable.length + '-' + normalizeIds(selectedOfficeId).join('-')"
               v-model="selectedOfficeMasterRows"
               :items="officeMasterTableItems"
               :getData="getOfficeMasterData"
@@ -368,6 +429,7 @@
           <!-- 2. تبويب إدارات التربية بالمديريات -->
           <v-window-item value="directorates" v-if="institutionType === 'school'">
             <custom-data-table
+              :key="'dirs-tbl-' + filteredDirectoratesTable.length + '-' + normalizeIds(selectedDirectorateId).join('-')"
               v-model="selectedDirectorateMasterRows"
               :items="directorateMasterTableItems"
               :getData="getDirectorateMasterData"
@@ -477,6 +539,7 @@
           <!-- 3. تبويب المراكز الامتحانية والمدارس / الجامعات / المعاهد -->
           <v-window-item value="schools">
             <custom-data-table
+              :key="'schools-tbl-' + filteredSchoolsTable.length + '-' + normalizeIds(selectedSchoolId).join('-')"
               v-model="selectedSchoolMasterRows"
               :items="schoolMasterTableItems"
               :getData="getSchoolMasterData"
@@ -642,6 +705,7 @@
           <!-- 4. تبويب الاختبارات الأكاديمية -->
           <v-window-item value="exams">
             <custom-data-table
+              :key="'exams-tbl-' + filteredExamsTable.length"
               v-model="selectedExamMasterRows"
               :items="examMasterTableItems"
               :getData="getExamMasterData"
@@ -785,21 +849,8 @@
             </div>
           </div>
 
-          <!-- اختيار الاختبار والأزرار -->
+          <!-- أزرار العمليات والتصدير -->
           <div class="d-flex align-center gap-2 flex-wrap">
-            <v-autocomplete
-              v-model="selectedExamId"
-              :items="examsList"
-              item-title="title"
-              item-value="id"
-              label="الاختبار المعروض"
-              density="compact"
-              variant="outlined"
-              hide-details
-              style="min-width: 280px;"
-              @update:model-value="onExamChange"
-            />
-
             <!-- زر ترحيل الدرجات للكنترول -->
             <v-btn
               color="success"
@@ -812,6 +863,21 @@
               @click="openDispatchDialog"
             >
               ترحيل الدرجات للكنترول
+            </v-btn>
+
+            <!-- زر ترحيل المحدد للكنترول (إذا تم تحديد طلاب) -->
+            <v-btn
+              v-if="selectedStudentIds.length > 0"
+              color="purple-darken-1"
+              variant="flat"
+              size="small"
+              rounded="lg"
+              class="font-weight-bold px-3 text-white"
+              prepend-icon="mdi-bank-transfer"
+              :loading="dispatchingLoading"
+              @click="dispatchSelectedToControl"
+            >
+              ترحيل المحدد ({{ selectedStudentIds.length }})
             </v-btn>
 
             <!-- زر إلغاء الترحيل (إذا تم ترحيله مسبقاً) -->
@@ -856,21 +922,22 @@
         </div>
       </div>
 
-      <!-- شريط تصفية نتائج الطلاب (البحث والنموذج والحالة والتقدير) -->
+      <!-- شريط تصفية نتائج الطلاب (الاختبار والنموذج والحالة والتقدير والكنترول) -->
       <div class="main-card pa-3 px-4 rounded-2xl mb-4 bg-surface border">
         <v-row dense class="align-center">
-          <v-col cols="12" sm="6" md="4">
-            <v-text-field
-              v-model="searchQuery"
-              placeholder="بحث بالاسم أو رقم الجلوس أو السري..."
-              prepend-inner-icon="mdi-magnify"
+          <v-col cols="12" sm="6" md="3">
+            <v-autocomplete
+              v-model="selectedExamId"
+              :items="examsList"
+              item-title="title"
+              item-value="id"
+              label="الاختبار المعروض"
+              placeholder="اختر الاختبار..."
               density="compact"
               variant="outlined"
               hide-details
-              clearable
-              @update:model-value="onSearchInput"
-              @keydown.enter="applyFilters"
-              @click:clear="onClearSearch"
+              prepend-inner-icon="mdi-file-document-edit-outline"
+              @update:model-value="onExamChange"
             />
           </v-col>
 
@@ -933,82 +1000,25 @@
               @update:model-value="applyFilters"
             />
           </v-col>
+
+          <v-col cols="12" sm="3" md="1" class="d-flex justify-end">
+            <v-btn
+              variant="tonal"
+              color="error"
+              size="small"
+              rounded="lg"
+              class="font-weight-bold"
+              prepend-icon="mdi-filter-remove-outline"
+              @click="resetFilterSelections"
+            >
+              تفريغ
+            </v-btn>
+          </v-col>
         </v-row>
       </div>
 
-
     <!-- ── Student Gradebook Table (Component with Server-Side Pagination) ── -->
     <div class="main-card rounded-2xl overflow-hidden mb-6 elevation-1">
-      <!-- ── شريط إدارة التحديد والتحكم والعمليات الموحد في الكشف ── -->
-      <div class="d-flex align-center justify-space-between flex-wrap gap-3 px-4 py-3 bg-surface border-b">
-        <!-- قسم التحديد والطلاب -->
-        <div class="d-flex align-center gap-3 flex-wrap">
-          <v-checkbox-btn
-            :model-value="isAllCurrentSelected"
-            :indeterminate="isSomeCurrentSelected"
-            color="primary"
-            density="compact"
-            hide-details
-            @update:model-value="toggleSelectAllCurrent"
-          />
-          <span class="text-caption font-weight-bold text-on-surface">
-            تحديد الكل
-          </span>
-
-          <v-chip
-            v-if="selectedStudentIds.length > 0"
-            size="small"
-            color="primary"
-            variant="flat"
-            class="font-weight-black"
-          >
-            {{ selectedStudentIds.length }} طالب محدد
-          </v-chip>
-
-          <v-btn
-            v-if="selectedStudentIds.length > 0"
-            size="x-small"
-            variant="text"
-            color="error"
-            class="font-weight-bold"
-            @click="selectedStudentIds = []"
-          >
-            إلغاء التحديد
-          </v-btn>
-
-          <!-- زر ترحيل درجات الطلاب المحددين فقط عند اختيارهم -->
-          <v-btn
-            v-if="selectedStudentIds.length > 0"
-            color="purple-darken-1"
-            variant="flat"
-            size="small"
-            class="font-weight-bold text-white rounded-lg px-3"
-            prepend-icon="mdi-bank-transfer"
-            :loading="dispatchingLoading"
-            @click="dispatchSelectedToControl"
-          >
-            ترحيل المحدد ({{ selectedStudentIds.length }})
-          </v-btn>
-
-          <span class="text-caption text-medium-emphasis">
-            ({{ tableItems.pagination?.total || tableItems.pagination?.count || totalRecordsCount }} طالب مسجل)
-          </span>
-        </div>
-
-        <!-- إجراءات تحديث الكشف -->
-        <div class="d-flex align-center gap-2" v-if="selectedExamObj">
-          <v-btn
-            icon="mdi-refresh"
-            variant="text"
-            size="small"
-            color="medium-emphasis"
-            title="إعادة تحميل الكشف"
-            :loading="loadingRecords"
-            @click="fetchGradebookRoster({ params: { page: 1 } })"
-          />
-        </div>
-      </div>
-
       <custom-data-table
         v-model="selectedStudentIds"
         :headers="headers"
@@ -1020,7 +1030,7 @@
         :log="false"
         :restore="false"
         :numbering="true"
-        :showSelect="false"
+        :showSelect="true"
         :itemValue="'registration_id'"
         :actions="false"
       >
@@ -1029,17 +1039,6 @@
             <div class="d-flex justify-center align-center">
               <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
             </div>
-          </template>
-
-          <!-- Selection Checkbox Column -->
-          <template v-else-if="key === 'select'">
-            <v-checkbox-btn
-              :model-value="selectedStudentIds.includes(item.registration_id)"
-              color="primary"
-              density="compact"
-              hide-details
-              @update:model-value="toggleStudentSelection(item.registration_id)"
-            />
           </template>
 
           <!-- Seat Number -->
@@ -1783,9 +1782,10 @@ export default {
       schoolsList: [],
       subjectsList: [],
 
-      selectedOfficeId: null,
-      selectedDirectorateId: null,
-      selectedSchoolId: null,
+      allOfficesList: [],
+      selectedOfficeId: [],
+      selectedDirectorateId: [],
+      selectedSchoolId: [],
       selectedSubjectId: null,
       selectedSubjectName: '',
 
@@ -1899,7 +1899,6 @@ export default {
       selectedStudentRecord: null,
 
       headers: [
-        { title: "تحديد", key: "select", sortable: false, align: "center", width: "60px" },
         { title: "رقم الجلوس", key: "seat_number", sortable: true, align: "center", width: "115px" },
         { title: "الرقم السري", key: "secret_number", sortable: true, align: "center", width: "105px" },
         { title: "اسم الطالب", key: "student_name", sortable: true, align: "start" },
@@ -2001,8 +2000,9 @@ export default {
 
   computed: {
     directoratesOptions() {
-      if (this.selectedOfficeId) {
-        return (this.directoratesList || []).filter(d => d.office_id === this.selectedOfficeId)
+      const officeIds = this.normalizeIds(this.selectedOfficeId)
+      if (officeIds.length > 0) {
+        return (this.directoratesList || []).filter(d => officeIds.includes(Number(d.office_id)))
       }
       return this.directoratesList || []
     },
@@ -2012,19 +2012,22 @@ export default {
       if (this.institutionType !== 'all') {
         list = list.filter(s => !s.institution_type || s.institution_type === this.institutionType)
       }
-      if (this.selectedDirectorateId) {
-        const dObj = (this.directoratesList || []).find(d => d.id === this.selectedDirectorateId)
-        const dName = dObj?.name?.replace(/^(إدارة التربية والتعليم - مديرية |مديرية )/, '').trim()
+      const dirIds = this.normalizeIds(this.selectedDirectorateId)
+      const officeIds = this.normalizeIds(this.selectedOfficeId)
+
+      if (dirIds.length > 0) {
+        const dObjs = (this.directoratesList || []).filter(d => dirIds.includes(Number(d.id)))
+        const dNames = dObjs.map(d => d.name?.replace(/^(إدارة التربية والتعليم - مديرية |مديرية )/, '').trim()).filter(Boolean)
         list = list.filter(s => 
-          s.directorate_id === this.selectedDirectorateId ||
-          (dName && s.directorate_name && s.directorate_name.includes(dName))
+          dirIds.includes(Number(s.directorate_id)) ||
+          dNames.some(dn => s.directorate_name && s.directorate_name.includes(dn))
         )
-      } else if (this.selectedOfficeId) {
-        const oObj = (this.officesList || []).find(o => o.id === this.selectedOfficeId)
-        const oGov = oObj?.governorate_name?.trim()
+      } else if (officeIds.length > 0) {
+        const oObjs = (this.officesList || []).filter(o => officeIds.includes(Number(o.id)))
+        const oGovs = oObjs.map(o => o.governorate_name?.trim()).filter(Boolean)
         list = list.filter(s => 
-          s.office_id === this.selectedOfficeId ||
-          (oGov && s.governorate_name && s.governorate_name.includes(oGov))
+          officeIds.includes(Number(s.office_id)) ||
+          oGovs.some(og => s.governorate_name && s.governorate_name.includes(og))
         )
       }
       return list
@@ -2035,35 +2038,44 @@ export default {
     },
 
     realDirectoratesList() {
-      if (this.selectedOfficeId) {
-        return (this.educationalOrgs || []).filter(o => o.company_level === 40 && o.fk_parent_organization === this.selectedOfficeId)
+      const officeIds = this.normalizeIds(this.selectedOfficeId)
+      if (officeIds.length > 0) {
+        return (this.educationalOrgs || []).filter(o => o.company_level === 40 && officeIds.includes(o.fk_parent_organization))
       }
       return (this.educationalOrgs || []).filter(o => o.company_level === 40)
     },
 
     realSchoolsList() {
-      if (this.selectedDirectorateId) {
-        return (this.educationalOrgs || []).filter(o => o.company_level === 50 && o.fk_parent_organization === this.selectedDirectorateId)
-      }
-      if (this.selectedOfficeId) {
-        const dirIds = this.realDirectoratesList.map(d => d.id)
+      const dirIds = this.normalizeIds(this.selectedDirectorateId)
+      if (dirIds.length > 0) {
         return (this.educationalOrgs || []).filter(o => o.company_level === 50 && dirIds.includes(o.fk_parent_organization))
+      }
+      const officeIds = this.normalizeIds(this.selectedOfficeId)
+      if (officeIds.length > 0) {
+        const validDirIds = this.realDirectoratesList.map(d => d.id)
+        return (this.educationalOrgs || []).filter(o => o.company_level === 50 && validDirIds.includes(o.fk_parent_organization))
       }
       return (this.educationalOrgs || []).filter(o => o.company_level === 50)
     },
 
     selectedOfficeObj() {
-      if (!this.selectedOfficeId) return null
-      return (this.realOfficesList || []).find(o => o.id === this.selectedOfficeId) || (this.officesList || []).find(o => o.id === this.selectedOfficeId) || null
+      const officeIds = this.normalizeIds(this.selectedOfficeId)
+      if (officeIds.length === 0) return null
+      return (this.realOfficesList || []).find(o => officeIds.includes(o.id)) || (this.officesList || []).find(o => officeIds.includes(o.id)) || null
     },
 
     selectedDirectorateObj() {
-      if (!this.selectedDirectorateId) return null
-      return (this.realDirectoratesList || []).find(d => d.id === this.selectedDirectorateId) || (this.directoratesList || []).find(d => d.id === this.selectedDirectorateId) || null
+      const dirIds = this.normalizeIds(this.selectedDirectorateId)
+      if (dirIds.length === 0) return null
+      return (this.realDirectoratesList || []).find(d => dirIds.includes(d.id)) || (this.directoratesList || []).find(d => dirIds.includes(d.id)) || null
     },
 
     filteredOfficesTable() {
       let list = this.officesList || []
+      const selIds = this.normalizeIds(this.selectedOfficeId)
+      if (selIds.length > 0) {
+        list = list.filter(o => selIds.includes(Number(o.id)))
+      }
       if (this.selectedSubjectId) {
         list = list.filter(o => (o.exams_count || 0) > 0)
       }
@@ -2076,8 +2088,13 @@ export default {
 
     filteredDirectoratesTable() {
       let list = this.directoratesList || []
-      if (this.selectedOfficeId) {
-        list = list.filter(d => d.office_id === this.selectedOfficeId)
+      const officeIds = this.normalizeIds(this.selectedOfficeId)
+      if (officeIds.length > 0) {
+        list = list.filter(d => officeIds.includes(Number(d.office_id)))
+      }
+      const dirIds = this.normalizeIds(this.selectedDirectorateId)
+      if (dirIds.length > 0) {
+        list = list.filter(d => dirIds.includes(Number(d.id)))
       }
       if (this.selectedSubjectId) {
         list = list.filter(d => (d.exams_count || 0) > 0)
@@ -2094,20 +2111,27 @@ export default {
       if (this.institutionType !== 'all') {
         list = list.filter(s => !s.institution_type || s.institution_type === this.institutionType)
       }
-      if (this.selectedDirectorateId) {
-        const dObj = (this.directoratesList || []).find(d => d.id === this.selectedDirectorateId)
-        const dName = dObj?.name?.replace(/^(إدارة التربية والتعليم - مديرية |مديرية )/, '').trim()
+      const dirIds = this.normalizeIds(this.selectedDirectorateId)
+      const officeIds = this.normalizeIds(this.selectedOfficeId)
+
+      if (dirIds.length > 0) {
+        const dObjs = (this.directoratesList || []).filter(d => dirIds.includes(Number(d.id)))
+        const dNames = dObjs.map(d => d.name?.replace(/^(إدارة التربية والتعليم - مديرية |مديرية )/, '').trim()).filter(Boolean)
         list = list.filter(s => 
-          s.directorate_id === this.selectedDirectorateId ||
-          (dName && s.directorate_name && s.directorate_name.includes(dName))
+          dirIds.includes(Number(s.directorate_id)) ||
+          dNames.some(dn => s.directorate_name && s.directorate_name.includes(dn))
         )
-      } else if (this.selectedOfficeId) {
-        const oObj = (this.officesList || []).find(o => o.id === this.selectedOfficeId)
-        const oGov = oObj?.governorate_name?.trim()
+      } else if (officeIds.length > 0) {
+        const oObjs = (this.officesList || []).filter(o => officeIds.includes(Number(o.id)))
+        const oGovs = oObjs.map(o => o.governorate_name?.trim()).filter(Boolean)
         list = list.filter(s => 
-          s.office_id === this.selectedOfficeId ||
-          (oGov && s.governorate_name && s.governorate_name.includes(oGov))
+          officeIds.includes(Number(s.office_id)) ||
+          oGovs.some(og => s.governorate_name && s.governorate_name.includes(og))
         )
+      }
+      const schoolIds = this.normalizeIds(this.selectedSchoolId)
+      if (schoolIds.length > 0) {
+        list = list.filter(s => schoolIds.includes(Number(s.id)))
       }
       if (this.selectedSubjectId) {
         const sObj = (this.subjectsList || []).find(s => s.id === this.selectedSubjectId)
@@ -2136,13 +2160,19 @@ export default {
       if (this.institutionType && this.institutionType !== 'all') {
         list = list.filter(e => e.institution_type === this.institutionType)
       }
-      if (this.selectedDirectorateId) {
-        list = list.filter(e => e.directorate_id === this.selectedDirectorateId)
-      } else if (this.selectedOfficeId) {
-        list = list.filter(e => e.governorate_id === this.selectedOfficeId || e.office_id === this.selectedOfficeId)
+      const dirIds = this.normalizeIds(this.selectedDirectorateId)
+      const officeIds = this.normalizeIds(this.selectedOfficeId)
+      const schoolIds = this.normalizeIds(this.selectedSchoolId)
+
+      if (schoolIds.length > 0) {
+        list = list.filter(e => schoolIds.includes(Number(e.school_id)))
+      } else if (dirIds.length > 0) {
+        list = list.filter(e => dirIds.includes(Number(e.directorate_id)))
+      } else if (officeIds.length > 0) {
+        list = list.filter(e => officeIds.includes(Number(e.governorate_id)) || officeIds.includes(Number(e.office_id)))
       }
       if (this.selectedSubjectId) {
-        list = list.filter(e => e.subject_id === this.selectedSubjectId || e.subject === this.selectedSubjectId)
+        list = list.filter(e => Number(e.subject_id) === Number(this.selectedSubjectId) || Number(e.subject) === Number(this.selectedSubjectId))
       }
       if (this.masterSearchQuery && this.masterSearchQuery.trim()) {
         const q = this.masterSearchQuery.trim().toLowerCase()
@@ -2531,27 +2561,70 @@ export default {
       }
     },
 
+    normalizeIds(val) {
+      if (!val) return []
+      if (Array.isArray(val)) {
+        return val.map(x => {
+          if (typeof x === 'object' && x !== null) {
+            return Number(x.id ?? x.value ?? x.raw?.id)
+          }
+          return Number(x)
+        }).filter(n => !isNaN(n) && n > 0)
+      }
+      if (typeof val === 'object' && val !== null) {
+        const id = Number(val.id ?? val.value ?? val.raw?.id)
+        return (!isNaN(id) && id > 0) ? [id] : []
+      }
+      if (typeof val === 'string' && val.includes(',')) {
+        return val.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n) && n > 0)
+      }
+      const num = Number(val)
+      return (!isNaN(num) && num > 0) ? [num] : []
+    },
+
     async refreshMasterData() {
       this.loadingMaster = true
       try {
-        const params = {
+        const officeIds = this.normalizeIds(this.selectedOfficeId)
+        const dirIds = this.normalizeIds(this.selectedDirectorateId)
+        const schoolIds = this.normalizeIds(this.selectedSchoolId)
+
+        const baseParams = {
           institution_type: this.institutionType !== 'all' ? this.institutionType : undefined,
           subject: this.selectedSubjectId || undefined,
         }
-        if (this.selectedOfficeId) params.office_id = this.selectedOfficeId
-        if (this.selectedDirectorateId) params.directorate_id = this.selectedDirectorateId
-        if (this.selectedSchoolId) params.school_id = this.selectedSchoolId
+        const officeParams = { ...baseParams }
+        if (officeIds.length > 0) officeParams.office_id = officeIds.join(',')
 
-        const [officesRes, directoratesRes, schoolsRes, examsRes] = await Promise.all([
-          gradebookAPI.getByOffice(params).catch(() => ({ data: { results: [] } })),
-          gradebookAPI.getByDirectorate(params).catch(() => ({ data: { results: [] } })),
-          gradebookAPI.getBySchool(params).catch(() => ({ data: { results: [] } })),
-          gradebookAPI.list(params).catch(() => ({ data: { results: [] } }))
+        const dirParams = { ...officeParams }
+
+        const schoolParams = { ...dirParams }
+        if (dirIds.length > 0) schoolParams.directorate_id = dirIds.join(',')
+        if (schoolIds.length > 0) schoolParams.school_id = schoolIds.join(',')
+
+        const [allOfficesRes, officesRes, directoratesRes, schoolsRes, examsRes] = await Promise.all([
+          (!this.allOfficesList || !this.allOfficesList.length)
+            ? gradebookAPI.getByOffice(baseParams).catch(() => ({ data: { results: [] } }))
+            : Promise.resolve({ data: { results: this.allOfficesList } }),
+          gradebookAPI.getByOffice(officeParams).catch(() => ({ data: { results: [] } })),
+          gradebookAPI.getByDirectorate(dirParams).catch(() => ({ data: { results: [] } })),
+          gradebookAPI.getBySchool(schoolParams).catch(() => ({ data: { results: [] } })),
+          gradebookAPI.list(schoolParams).catch(() => ({ data: { results: [] } }))
         ])
+        if (!this.allOfficesList || !this.allOfficesList.length) {
+          this.allOfficesList = allOfficesRes.data?.results || []
+        }
         this.officesList = officesRes.data?.results || []
         this.directoratesList = directoratesRes.data?.results || []
         this.schoolsList = schoolsRes.data?.results || []
         this.examsList = examsRes.data?.results || []
+
+        await Promise.all([
+          this.getOfficeMasterData(),
+          this.getDirectorateMasterData(),
+          this.getSchoolMasterData(),
+          this.getExamMasterData(),
+        ])
       } catch (err) {
         console.error('Error refreshing master data:', err)
       } finally {
@@ -2561,9 +2634,9 @@ export default {
 
     onSectorChange(val) {
       this.institutionType = val
-      this.selectedOfficeId = null
-      this.selectedDirectorateId = null
-      this.selectedSchoolId = null
+      this.selectedOfficeId = []
+      this.selectedDirectorateId = []
+      this.selectedSchoolId = []
       this.selectedSubjectId = null
       this.selectedSubjectName = ''
       if (val === 'school') {
@@ -2575,33 +2648,52 @@ export default {
     },
 
     onOfficeFilterChange(val) {
-      this.selectedOfficeId = val
-      this.selectedDirectorateId = null
-      this.selectedSchoolId = null
+      this.selectedOfficeId = val || []
+      const officeIds = this.normalizeIds(this.selectedOfficeId)
+      if (officeIds.length > 0) {
+        const validDirIds = (this.directoratesList || []).filter(d => officeIds.includes(Number(d.office_id))).map(d => d.id)
+        this.selectedDirectorateId = (this.selectedDirectorateId || []).filter(id => validDirIds.includes(id))
+      } else {
+        this.selectedDirectorateId = []
+      }
+      this.selectedSchoolId = []
       this.refreshMasterData()
     },
 
     onDirectorateFilterChange(val) {
-      this.selectedDirectorateId = val
-      this.selectedSchoolId = null
+      this.selectedDirectorateId = val || []
+      this.selectedSchoolId = []
+      const dirIds = this.normalizeIds(this.selectedDirectorateId)
+      const currentOfficeIds = this.normalizeIds(this.selectedOfficeId)
+      if (dirIds.length > 0 && currentOfficeIds.length === 0) {
+        const relatedOffices = (this.directoratesList || [])
+          .filter(d => dirIds.includes(Number(d.id)) && d.office_id)
+          .map(d => Number(d.office_id))
+        if (relatedOffices.length > 0) {
+          this.selectedOfficeId = Array.from(new Set(relatedOffices))
+        }
+      }
       this.refreshMasterData()
     },
 
     onSchoolFilterChange(val) {
-      this.selectedSchoolId = val
+      this.selectedSchoolId = val || []
       this.refreshMasterData()
     },
 
     drillDownToOffice(item) {
       if (!item || !item.id) return
-      this.selectedOfficeId = item.id
+      this.selectedOfficeId = [item.id]
       this.masterTab = 'directorates'
       this.refreshMasterData()
     },
 
     drillDownToDirectorate(item) {
       if (!item || !item.id) return
-      this.selectedDirectorateId = item.id
+      this.selectedDirectorateId = [item.id]
+      if (item.office_id) {
+        this.selectedOfficeId = [item.office_id]
+      }
       this.masterTab = 'schools'
       this.refreshMasterData()
     },
@@ -3052,14 +3144,16 @@ export default {
       if (this.filterStatus && this.filterStatus !== 'all') {
         queryParams.status = this.filterStatus
       }
-      if (this.selectedOfficeId) {
-        queryParams.office_id = this.selectedOfficeId
-      }
-      if (this.selectedDirectorateId) {
-        queryParams.directorate_id = this.selectedDirectorateId
-      }
-      if (this.selectedSchoolId) {
-        queryParams.school_id = this.selectedSchoolId
+      const officeIds = this.normalizeIds(this.selectedOfficeId)
+      const dirIds = this.normalizeIds(this.selectedDirectorateId)
+      const schoolIds = this.normalizeIds(this.selectedSchoolId)
+      if (officeIds.length > 0) queryParams.office_id = officeIds.join(',')
+      if (dirIds.length > 0) queryParams.directorate_id = dirIds.join(',')
+      if (schoolIds.length > 0) queryParams.school_id = schoolIds.join(',')
+      if (this.searchQuery && this.searchQuery.trim()) {
+        queryParams.search = this.searchQuery.trim()
+      } else if (extra && extra.search) {
+        queryParams.search = extra.search
       }
       if (this.filterDispatch && this.filterDispatch !== 'all') {
         queryParams.dispatch = this.filterDispatch

@@ -128,16 +128,20 @@ class ExamGradebookMVS(ViewSet):
 
         # فلترة الاختبارات حسب مكتب التربية والتعليم بالمحافظة
         elif office_id:
+            off_ids = [int(x) for x in str(office_id).split(',') if x.strip().isdigit()] if (office_id and office_id != 'all') else []
             gov_names = []
             child_school_names = []
-            if str(office_id).isdigit():
-                core_off = CoreOrg.objects.filter(id=int(office_id), company_level=30).first()
-                if core_off:
+            gov_ids = []
+            if off_ids:
+                core_offs = CoreOrg.objects.filter(id__in=off_ids, company_level=30)
+                for core_off in core_offs:
                     clean_gov = core_off.name_ar.replace('مكتب التربية والتعليم - ', '').strip()
                     gov_names.extend([core_off.name_ar, clean_gov])
-                    child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization=core_off.id, is_deleted=False)
-                    child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=child_dirs.values_list('id', flat=True), is_deleted=False)
-                    child_school_names = list(child_schools.values_list('name_ar', flat=True))
+                    if core_off.fk_governorate_id:
+                        gov_ids.append(core_off.fk_governorate_id)
+                child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization__in=off_ids, is_deleted=False)
+                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=child_dirs.values_list('id', flat=True), is_deleted=False)
+                child_school_names = list(child_schools.values_list('name_ar', flat=True))
             else:
                 gov_names.append(str(office_id).strip())
 
@@ -147,8 +151,8 @@ class ExamGradebookMVS(ViewSet):
             ).values_list('examVersion__exam_id', flat=True).distinct()
 
             off_q = Q(id__in=off_exam_ids)
-            if str(office_id).isdigit():
-                off_q |= Q(governorate_id=int(office_id))
+            if gov_ids:
+                off_q |= Q(governorate_id__in=gov_ids)
             for g_name in gov_names:
                 off_q |= Q(governorate__name_ar__icontains=g_name)
 
@@ -278,6 +282,11 @@ class ExamGradebookMVS(ViewSet):
         ):
             score_aggregates[row['exam_id']] = row
 
+        gov_to_office_map = {
+            o.fk_governorate_id: o.id 
+            for o in CoreOrg.objects.filter(company_level=30, fk_governorate__isnull=False, is_deleted=False)
+        }
+
         exams_list = []
         for exam in exams:
             total_registered = reg_counts.get(exam.id, 0)
@@ -305,6 +314,7 @@ class ExamGradebookMVS(ViewSet):
                 "institution_type_display": "مدرسي" if exam.institution_type == 'school' else ("جامعي" if exam.institution_type == 'university' else "معاهد"),
                 "subject_name": getattr(exam.subject, 'name_ar', str(exam.subject)) if exam.subject else "غير محدد",
                 "year_name": exam.year.gregorian_year if (exam.year and hasattr(exam.year, 'gregorian_year')) else (str(exam.year) if exam.year else "العام الحالي"),
+                "office_id": gov_to_office_map.get(exam.governorate_id) or exam.governorate_id,
                 "governorate_id": exam.governorate_id,
                 "governorate_name": getattr(exam.governorate, 'name_ar', str(exam.governorate)) if exam.governorate else "",
                 "directorate_id": exam.directorate_id,
@@ -342,9 +352,13 @@ class ExamGradebookMVS(ViewSet):
         تجميع إحصائيات الرصد والكنترول حسب مكاتب التربية والتعليم بالمحافظات (المستوى 30 الحقيقي).
         """
         search = request.query_params.get('search', '').strip()
+        office_id = request.query_params.get('office_id') or request.query_params.get('office')
+        off_ids = [int(x) for x in str(office_id).split(',') if x.strip().isdigit()] if (office_id and office_id != 'all') else []
         subj_filter = request.query_params.get('subject') or request.query_params.get('subject_id')
 
         offices = CoreOrg.objects.filter(company_level=30, is_deleted=False).order_by('branch_no', 'id')
+        if off_ids:
+            offices = offices.filter(id__in=off_ids)
         if search:
             offices = offices.filter(name_ar__icontains=search)
 

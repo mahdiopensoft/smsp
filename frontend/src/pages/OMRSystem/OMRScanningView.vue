@@ -5,124 +5,40 @@
       label="1. بيانات المظروف الامتحاني والقاعة (Envelope Manifest & Dispatch Details)"
       class="main-card border-0 pa-5 rounded-2xl mb-5 shadow-sm"
     >
-      <div class="d-flex align-center justify-end mb-3">
-        <v-chip color="primary" variant="tonal" size="small" class="font-weight-bold" prepend-icon="mdi-shield-check">
-          حالة الاستلام: مظروف رسمي مشمع ومفروز
-        </v-chip>
-      </div>
-
-      <!-- الصف 1: الهيكلية التعليمية والأكاديمية الموحدة (المدارس / الجامعات / المعاهد) -->
-      <v-row dense class="align-center mb-1">
-        <!-- 0. نوع المؤسسة التعليمية (مدارس / جامعات / معاهد) موحد كـ auto-list -->
-        <auto-list
-          v-model="filterInstitutionType"
-          name="InstitutionType"
-          placeholder="نوع المؤسسة التعليمية"
-          cols="3"
-          :add="false"
-          @update:model-value="onInstitutionTypeChange"
-        />
-
-        <!-- فلاتر المدارس -->
-        <template v-if="filterInstitutionType === 'school' || filterInstitutionType === 'all'">
-          <auto-list
-            v-if="filterInstitutionType === 'school'"
-            v-model="filterStage"
-            name="Stage"
-            placeholder="المرحلة الدراسية"
-            cols="3"
-            :add="false"
-            @update:model-value="onStageChange"
-          />
-          <auto-list
-            v-if="filterInstitutionType === 'school'"
-            v-model="filterClassTrack"
-            name="ClassTrackByStage"
-            :param="filterStage"
-            placeholder="الصف والمسار"
-            cols="3"
-            :add="false"
-            :disabled="!filterStage"
-            @update:model-value="onClassTrackChange"
-          />
-          <auto-list
-            v-model="filterSubject"
-            name="Subject"
-            :param="subjectFilterParam"
-            placeholder="المادة الدراسية"
-            :cols="filterInstitutionType === 'school' ? '3' : '9'"
-            :add="false"
-            @update:model-value="onSubjectChange"
-          />
-        </template>
-
-        <!-- فلاتر الجامعات -->
-        <template v-if="filterInstitutionType === 'university'">
-          <auto-list
-            v-model="filterCollege"
-            name="College"
-            placeholder="الكلية الجامعية"
-            cols="3"
-            :add="false"
-            @update:model-value="onCollegeChange"
-          />
-          <auto-list
-            v-model="filterDepartment"
-            name="DepartmentByCollege"
-            :param="filterCollege"
-            placeholder="القسم الأكاديمي"
-            cols="3"
-            :add="false"
-            :disabled="!filterCollege"
-            @update:model-value="onDepartmentChange"
-          />
-          <auto-list
-            v-model="filterSpecialization"
-            name="Specialization"
-            :param="filterDepartment"
-            placeholder="التخصص والبرنامج"
-            cols="3"
-            :add="false"
-            :disabled="!filterDepartment"
-            @update:model-value="onSpecializationChange"
-          />
-        </template>
-
-        <!-- فلاتر المعاهد -->
-        <template v-if="filterInstitutionType === 'institute'">
-          <auto-list
-            v-model="filterInstituteField"
-            name="InstituteField"
-            placeholder="المجال المهني"
-            cols="3"
-            :add="false"
-            @update:model-value="onInstituteFieldChange"
-          />
-          <auto-list
-            v-model="filterInstituteEducationSystem"
-            name="InstituteEducationSystem"
-            :param="filterInstituteField"
-            placeholder="نظام التعليم"
-            cols="3"
-            :add="false"
-            :disabled="!filterInstituteField"
-            @update:model-value="onInstituteEducationSystemChange"
-          />
-          <auto-list
-            v-model="filterInstituteSpecialization"
-            name="InstituteSpecialization"
-            :param="instituteSpecParam"
-            placeholder="التخصص المهني"
-            cols="3"
-            :add="false"
-            :disabled="!filterInstituteEducationSystem"
-            @update:model-value="onInstituteSpecializationChange"
-          />
-        </template>
+      <!-- الصف 1: نوع المؤسسة التعليمية (مدارس / جامعات / معاهد / الكل) بنمط students-master -->
+      <v-row dense class="align-center mb-2">
+        <v-col cols="12">
+          <v-btn-toggle
+            v-model="filterInstitutionType"
+            color="primary"
+            variant="outlined"
+            density="compact"
+            rounded="lg"
+            class="w-100 d-flex flex-wrap institutional-toggle"
+            @update:model-value="onInstitutionTypeChange"
+          >
+            <v-btn value="all" class="flex-grow-1 font-weight-bold">
+              <v-icon start size="16" color="primary">mdi-asterisk</v-icon>
+              كافة المؤسسات (الكل)
+            </v-btn>
+            <v-btn value="university" class="flex-grow-1 font-weight-bold">
+              <v-icon start size="16" color="indigo">mdi-domain</v-icon>
+              الجامعات والكليات
+            </v-btn>
+            <v-btn value="school" class="flex-grow-1 font-weight-bold">
+              <v-icon start size="16" color="teal">mdi-school</v-icon>
+              مدارس التعليم العام
+            </v-btn>
+            <v-btn value="institute" class="flex-grow-1 font-weight-bold">
+              <v-icon start size="16" color="amber-darken-3">mdi-tools</v-icon>
+              المعاهد ومراكز التدريب
+            </v-btn>
+          </v-btn-toggle>
+        </v-col>
       </v-row>
 
-      <!-- الصف 2: الهيكلية الجغرافية والمؤسسية + اختيار الاختبار المعتمد (أعمدة ديناميكية) -->
-      <v-row dense class="align-center mb-1 mt-1">
+      <!-- الصف 2: الهيكلية الجغرافية والمؤسسية + اختيار الاختبار المعتمد -->
+      <v-row dense class="align-center mb-1">
         <!-- 1. المحافظة -->
         <auto-list
           v-model="filterGovernorate"
@@ -170,7 +86,105 @@
         />
       </v-row>
 
-      <!-- الصف 2: أرقام المظروف والقاعة وسعة الطلاب وفق حافظة التسليم الرسمية -->
+      <!-- الصف 3: الهيكلية الأكاديمية التخصصية المشروطة -->
+      <v-row v-if="filterInstitutionType !== 'all'" dense class="align-center mb-1">
+        <!-- أ. فلاتر المدارس -->
+        <template v-if="filterInstitutionType === 'school'">
+          <auto-list
+            v-model="filterStage"
+            name="Stage"
+            placeholder="المرحلة الدراسية"
+            cols="4"
+            :add="false"
+            @update:model-value="onStageChange"
+          />
+          <auto-list
+            v-model="filterClassTrack"
+            name="ClassTrackByStage"
+            :param="filterStage"
+            placeholder="الصف والمسار"
+            cols="4"
+            :add="false"
+            :disabled="!filterStage"
+            @update:model-value="onClassTrackChange"
+          />
+          <auto-list
+            v-model="filterSubject"
+            name="Subject"
+            :param="subjectFilterParam"
+            placeholder="المادة الدراسية"
+            cols="4"
+            :add="false"
+            @update:model-value="onSubjectChange"
+          />
+        </template>
+
+        <!-- ب. فلاتر الجامعات -->
+        <template v-if="filterInstitutionType === 'university'">
+          <auto-list
+            v-model="filterCollege"
+            name="College"
+            placeholder="الكلية الجامعية"
+            cols="4"
+            :add="false"
+            @update:model-value="onCollegeChange"
+          />
+          <auto-list
+            v-model="filterDepartment"
+            name="DepartmentByCollege"
+            :param="filterCollege"
+            placeholder="القسم الأكاديمي"
+            cols="4"
+            :add="false"
+            :disabled="!filterCollege"
+            @update:model-value="onDepartmentChange"
+          />
+          <auto-list
+            v-model="filterSpecialization"
+            name="Specialization"
+            :param="filterDepartment"
+            placeholder="التخصص والبرنامج"
+            cols="4"
+            :add="false"
+            :disabled="!filterDepartment"
+            @update:model-value="onSpecializationChange"
+          />
+        </template>
+
+        <!-- ج. فلاتر المعاهد -->
+        <template v-if="filterInstitutionType === 'institute'">
+          <auto-list
+            v-model="filterInstituteField"
+            name="InstituteField"
+            placeholder="المجال المهني"
+            cols="4"
+            :add="false"
+            @update:model-value="onInstituteFieldChange"
+          />
+          <auto-list
+            v-model="filterInstituteEducationSystem"
+            name="InstituteEducationSystem"
+            :param="filterInstituteField"
+            placeholder="نظام التعليم"
+            cols="4"
+            :add="false"
+            :disabled="!filterInstituteField"
+            @update:model-value="onInstituteEducationSystemChange"
+          />
+          <auto-list
+            v-model="filterInstituteSpecialization"
+            name="InstituteSpecialization"
+            :param="instituteSpecParam"
+            placeholder="التخصص المهني"
+            cols="4"
+            :add="false"
+            :disabled="!filterInstituteEducationSystem"
+            @update:model-value="onInstituteSpecializationChange"
+          />
+        </template>
+      </v-row>
+
+      <!-- الصف 4: أرقام المظروف والقاعة وسعة الطلاب وفق حافظة التسليم الرسمية -->
       <v-row dense class="align-center mb-1 mt-1">
         <!-- 5. رقم القاعة -->
         <v-col cols="12" sm="6" md="3">
@@ -244,78 +258,66 @@
         </v-col>
       </v-row>
 
-      <!-- ── التلخيص السريع لحافظة المظروف ومعادلة المطابقة المتوقعة (شريط خفيف ومرتب بنمط النظام) ── -->
-      <div class="d-flex align-center justify-space-between flex-wrap gap-2 pa-2.5 mt-3 rounded-xl border bg-surface">
+      <!-- الصف 5: أزرار التحكم والتصفية والتفريغ (بنفس هوية students-master) -->
+      <div class="d-flex align-center justify-end flex-wrap gap-2 mt-2 mb-1">
+        <custom-btn
+          type="show"
+          label="تصفية وتحديث"
+          color="primary"
+          icon="mdi-filter"
+          class="font-weight-bold px-5"
+          :click="fetchExamDetails"
+        />
+        <custom-btn
+          type="cancel_filter"
+          label="تفريغ الفلاتر"
+          color="error"
+          variant="tonal"
+          icon="mdi-filter-off"
+          class="font-weight-bold"
+          :click="resetAllFilters"
+        />
+      </div>
+
+      <!-- ── معادلة مطابقة القاعة والمطلوب سحبه (تصميم رسمي بخلايا منظمة وهادئة) ── -->
+      <div class="d-flex align-center justify-space-between flex-wrap gap-2 pa-2.5 mt-3 rounded-lg border bg-surface">
         <div class="d-flex align-center flex-wrap gap-2">
           <span class="text-caption font-weight-bold text-medium-emphasis me-1 d-flex align-center gap-1">
             <v-icon size="16" color="primary">mdi-calculator-variant-outline</v-icon>
             معادلة المطابقة:
           </span>
 
-          <!-- مقيد -->
-          <v-btn
-            type="button"
-            class="v-btn text-primary font-weight-bold"
-            variant="tonal"
-            density="comfortable"
-            size="default"
-            style="min-width: 90px; width: auto;"
-          >
-            <span class="custom-btn-label">{{ currentEnvelope.expectedCount }} مقيد</span>
-            <template v-slot:append>
-              <v-icon size="16">mdi-account-group-outline</v-icon>
-            </template>
-          </v-btn>
+          <div class="d-flex align-center gap-1.5 flex-wrap audit-equation-strip">
+            <!-- مقيد -->
+            <div class="audit-cell">
+              <span class="cell-label">المقيدون:</span>
+              <span class="cell-val font-mono text-high-emphasis">{{ currentEnvelope.expectedCount }}</span>
+            </div>
 
-          <span class="font-weight-black text-medium-emphasis text-body-1 mx-0.5">=</span>
+            <span class="text-medium-emphasis font-weight-bold mx-0.5">=</span>
 
-          <!-- ورقة حاضرة -->
-          <v-btn
-            type="button"
-            class="v-btn text-success font-weight-bold"
-            variant="tonal"
-            density="comfortable"
-            size="default"
-            style="min-width: 90px; width: auto;"
-          >
-            <span class="custom-btn-label">{{ expectedPresentSheets }} ورقة حاضرة</span>
-            <template v-slot:append>
-              <v-icon size="16">mdi-file-document-check-outline</v-icon>
-            </template>
-          </v-btn>
+            <!-- ورقة حاضرة -->
+            <div class="audit-cell">
+              <span class="cell-label text-success">الحضور:</span>
+              <span class="cell-val font-mono text-success">{{ expectedPresentSheets }} ورقة</span>
+            </div>
 
-          <span class="font-weight-black text-medium-emphasis text-body-1 mx-0.5">+</span>
+            <span class="text-medium-emphasis font-weight-bold mx-0.5">+</span>
 
-          <!-- طالب غائب -->
-          <v-btn
-            type="button"
-            class="v-btn text-warning font-weight-bold"
-            variant="tonal"
-            density="comfortable"
-            size="default"
-            style="min-width: 90px; width: auto;"
-          >
-            <span class="custom-btn-label">{{ currentEnvelope.absentCount }} طالب غائب</span>
-            <template v-slot:append>
-              <v-icon size="16">mdi-account-remove-outline</v-icon>
-            </template>
-          </v-btn>
+            <!-- طالب غائب -->
+            <div class="audit-cell">
+              <span class="cell-label text-medium-emphasis">الغياب:</span>
+              <span class="cell-val font-mono text-medium-emphasis">{{ currentEnvelope.absentCount }}</span>
+            </div>
+          </div>
         </div>
 
         <!-- المطلوب سحبه من الماسح -->
-        <v-btn
-          type="button"
-          class="v-btn text-info font-weight-bold"
-          variant="tonal"
-          density="comfortable"
-          size="default"
-          style="min-width: 110px; width: auto;"
-        >
-          <span class="custom-btn-label">المطلوب سحبه: {{ expectedPresentSheets }} ورقة</span>
-          <template v-slot:append>
-            <v-icon size="16">mdi-tray-arrow-down</v-icon>
-          </template>
-        </v-btn>
+        <div class="d-flex align-center gap-1.5 px-3 py-1.5 rounded border" style="background: rgba(var(--v-theme-surface-variant), 0.08);">
+          <v-icon size="16" color="primary">mdi-tray-arrow-down</v-icon>
+          <span class="text-caption text-medium-emphasis font-weight-bold">المطلوب سحبه:</span>
+          <span class="font-mono font-weight-bold text-primary">{{ expectedPresentSheets }} ورقة</span>
+        </div>
       </div>
     </filter-fields>
 
@@ -374,32 +376,35 @@
               />
 
               <template v-if="batchFiles.length === 0">
-                <v-avatar size="48" color="primary" variant="tonal" class="mb-2 rounded-xl">
-                  <v-icon size="26" color="primary">mdi-scanner</v-icon>
+                <v-avatar size="52" color="primary" variant="tonal" class="mb-2 rounded-xl">
+                  <v-icon size="28" color="primary">mdi-cloud-upload-outline</v-icon>
                 </v-avatar>
                 <div class="text-subtitle-1 font-weight-black mb-1">
-                  قم بإفلات حزمة أوراق المظروف هنا (ملف PDF متعدد الصفحات أو صور الماسح)
+                  إفلات حزمة أوراق المظروف هنا أو النقر للاستعراض
                 </div>
-                <div class="text-caption text-medium-emphasis mb-3">
-                  الماسحات الصناعية (Kodak / Fujitsu / Canon) تخرج ملف PDF للمظروف بالكامل أو حزمة صور بدقة 300 DPI
+                <div class="text-caption text-medium-emphasis mb-3" style="max-width: 600px; margin: 0 auto; line-height: 1.5;">
+                  يدعم ملفات PDF متعددة الصفحات الصادرة من الماسحات الضوئية (300 DPI) أو حزم الصور
                 </div>
-                <div class="d-flex align-center flex-wrap gap-2 justify-center">
+                <div class="d-flex align-center flex-wrap gap-2 justify-center mb-1">
                   <custom-btn
                     type="imports"
                     label="استعراض واختيار ملفات المظروف"
+                    icon="mdi-file-document-plus-outline"
                     density="comfortable"
                     class="font-weight-bold px-4"
                     :click="(e) => { if(e) e.stopPropagation(); $refs.fileInput.click(); }"
                   />
-                  <v-chip size="small" variant="tonal" color="primary" class="font-weight-bold">
-                    PDF متعدد الصفحات / ZIP / صور
-                  </v-chip>
+                </div>
+                <div class="d-flex align-center justify-center flex-wrap gap-1.5 mt-2">
+                  <span class="text-caption font-mono font-weight-bold px-2 py-0.5 rounded border" style="background: rgba(var(--v-theme-surface-variant), 0.1);">PDF متعدد الصفحات</span>
+                  <span class="text-caption font-mono font-weight-bold px-2 py-0.5 rounded border" style="background: rgba(var(--v-theme-surface-variant), 0.1);">صور JPG / PNG</span>
+                  <span class="text-caption font-mono font-weight-bold px-2 py-0.5 rounded border" style="background: rgba(var(--v-theme-surface-variant), 0.1);">أرشيف ZIP</span>
                 </div>
               </template>
 
               <template v-else>
-                <v-avatar size="48" color="success" variant="tonal" class="mb-2 rounded-xl">
-                  <v-icon size="26" color="success">mdi-file-check-outline</v-icon>
+                <v-avatar size="56" color="success" variant="tonal" class="mb-2 rounded-2xl">
+                  <v-icon size="32" color="success">mdi-file-check-outline</v-icon>
                 </v-avatar>
                 <div class="text-subtitle-1 font-weight-black text-success mb-1">
                   تم تجهيز {{ batchFiles.length }} ورقة / ملف تابعة للمظروف
@@ -440,15 +445,26 @@
               />
             </div>
 
-            <!-- شريط تقدم المعالجة والمسح الخفيف والمرتب -->
-            <div v-if="isGrading" class="d-flex align-center gap-3 px-4 py-2.5 rounded-xl border bg-surface mt-3">
-              <v-progress-circular indeterminate size="18" width="2" color="primary" />
-              <span class="text-caption font-weight-bold text-primary">{{ gradingStatus }}</span>
-              <v-spacer />
-              <div class="d-flex align-center gap-2" style="min-width: 180px;">
-                <v-progress-linear :model-value="gradingProgress" height="6" rounded color="primary" />
-                <span class="font-mono font-weight-black text-primary text-caption">{{ gradingProgress }}%</span>
+            <!-- شريط تقدم المعالجة وتغذية الماسح الضوئي اللحظي (Live Scanner Feed Activity) -->
+            <div v-if="isGrading" class="pa-4 rounded-xl border bg-surface mt-3 shadow-sm">
+              <div class="d-flex align-center justify-space-between mb-2 flex-wrap gap-2">
+                <div class="d-flex align-center gap-2">
+                  <v-avatar color="primary" variant="tonal" size="34" class="rounded-lg">
+                    <v-progress-circular indeterminate size="20" width="2" color="primary" />
+                  </v-avatar>
+                  <div>
+                    <div class="text-subtitle-2 font-weight-black text-primary">{{ gradingStatus }}</div>
+                    <div class="text-caption text-medium-emphasis">
+                      الماسح الضوئي نشط: تغذية الأوراق، قراءة الباركود والنموذج، وفحص الدوائر عبر الذكاء الاصطناعي OMR
+                    </div>
+                  </div>
+                </div>
+                <div class="d-flex align-center gap-2">
+                  <span class="text-caption font-weight-bold text-medium-emphasis">نسبة المعالجة:</span>
+                  <span class="font-mono font-weight-black text-primary text-subtitle-1">{{ gradingProgress }}%</span>
+                </div>
               </div>
+              <v-progress-linear :model-value="gradingProgress" height="8" rounded color="primary" striped active />
             </div>
 
             <!-- تنبيه الخطأ إن وجد -->
@@ -465,26 +481,40 @@
             </v-alert>
           </v-card>
 
-          <!-- ── 3. ميزان المطابقة اللحظي للمظروف (خفيف ومرتب شريط أفقي) ── -->
-          <div v-if="reconciliationCalculated" class="reconciliation-panel mb-3">
+          <!-- ── 3. ميزان ومطابقة أوراق المظروف (Reconciliation Audit Strip) ── -->
+          <div v-if="reconciliationCalculated" class="reconciliation-audit-card mb-3 pa-3 rounded-lg border bg-surface">
             <!-- حالة 1: مطابق ومكتمل 100% -->
             <div
               v-if="reconciliationStatus === 'BALANCED'"
-              class="d-flex align-center justify-space-between flex-wrap gap-2 px-4 py-2.5 rounded-xl border"
-              style="background: rgba(var(--v-theme-success), 0.08); border-color: rgba(var(--v-theme-success), 0.3) !important;"
+              class="d-flex align-center justify-space-between flex-wrap gap-3"
             >
               <div class="d-flex align-center flex-wrap gap-2">
-                <v-icon color="success" size="18">mdi-check-decagram</v-icon>
-                <span class="text-caption font-weight-black text-success">المظروف مطابق ومكتمل:</span>
-                <v-chip size="small" color="success" variant="tonal" class="font-weight-black font-mono">
-                  {{ actualScannedCount + currentEnvelope.absentCount }} / {{ currentEnvelope.expectedCount }} ورقة
-                </v-chip>
-                <v-divider vertical class="mx-1 d-none d-sm-block" style="height: 18px;" />
-                <span class="text-caption text-medium-emphasis">
-                  المقيدون: <strong class="font-mono text-high-emphasis">{{ currentEnvelope.expectedCount }}</strong> = 
-                  الممسوح: <strong class="font-mono text-success">{{ actualScannedCount }}</strong> + 
-                  الغياب: <strong class="font-mono text-high-emphasis">{{ currentEnvelope.absentCount }}</strong>
-                </span>
+                <!-- شارة الحالة الرسمية -->
+                <div class="audit-badge audit-badge-success d-flex align-center gap-1.5 px-3 py-1.5 rounded border">
+                  <v-icon color="success" size="18">mdi-check-decagram</v-icon>
+                  <span class="text-caption font-weight-bold text-success">المظروف مطابق ومكتمل:</span>
+                  <span class="font-mono font-weight-bold text-success">
+                    {{ actualScannedCount + currentEnvelope.absentCount }} / {{ currentEnvelope.expectedCount }} ورقة
+                  </span>
+                </div>
+
+                <!-- خلايا معادلة المطابقة المنظمة -->
+                <div class="d-flex align-center gap-1 flex-wrap audit-equation-strip">
+                  <div class="audit-cell">
+                    <span class="cell-label">المقيدون:</span>
+                    <span class="cell-val font-mono">{{ currentEnvelope.expectedCount }}</span>
+                  </div>
+                  <span class="text-medium-emphasis font-weight-bold">=</span>
+                  <div class="audit-cell">
+                    <span class="cell-label">الممسوح:</span>
+                    <span class="cell-val font-mono text-success">{{ actualScannedCount }}</span>
+                  </div>
+                  <span class="text-medium-emphasis font-weight-bold">+</span>
+                  <div class="audit-cell">
+                    <span class="cell-label">الغياب:</span>
+                    <span class="cell-val font-mono">{{ currentEnvelope.absentCount }}</span>
+                  </div>
+                </div>
               </div>
 
               <custom-btn
@@ -502,22 +532,41 @@
             <!-- حالة 2: عجز ونقص في الأوراق -->
             <div
               v-else-if="reconciliationStatus === 'DEFICIT'"
-              class="d-flex align-center justify-space-between flex-wrap gap-2 px-4 py-2.5 rounded-xl border"
-              style="background: rgba(var(--v-theme-error), 0.08); border-color: rgba(var(--v-theme-error), 0.3) !important;"
+              class="d-flex align-center justify-space-between flex-wrap gap-3"
             >
               <div class="d-flex align-center flex-wrap gap-2">
-                <v-icon color="error" size="18">mdi-alert-circle</v-icon>
-                <span class="text-caption font-weight-black text-error">تنبيه عجز:</span>
-                <v-chip size="small" color="error" variant="flat" class="font-weight-black text-white px-2">
-                  نقص ({{ discrepancyAmount }}) ورقة مفقودة
-                </v-chip>
-                <v-divider vertical class="mx-1 d-none d-sm-block" style="height: 18px;" />
-                <span class="text-caption text-medium-emphasis">
-                  سعة القاعة: <strong class="font-mono text-high-emphasis">{{ currentEnvelope.expectedCount }}</strong> = 
-                  الممسوح: <strong class="font-mono text-error">{{ actualScannedCount }}</strong> + 
-                  الغياب: <strong class="font-mono text-high-emphasis">{{ currentEnvelope.absentCount }}</strong>
-                </span>
-                <span class="text-caption text-error font-weight-medium">(يرجى فحص سلة الماسح أو المظروف)</span>
+                <!-- شارة التنبيه الرسمية -->
+                <div class="audit-badge audit-badge-error d-flex align-center gap-1.5 px-3 py-1.5 rounded border">
+                  <v-icon color="error" size="18">mdi-alert-circle-outline</v-icon>
+                  <span class="text-caption font-weight-bold text-error">تنبيه عجز:</span>
+                  <span class="font-mono font-weight-bold text-error">
+                    نقص ({{ discrepancyAmount }}) ورقة مفقودة
+                  </span>
+                </div>
+
+                <!-- خلايا معادلة المطابقة المنظمة -->
+                <div class="d-flex align-center gap-1 flex-wrap audit-equation-strip">
+                  <div class="audit-cell">
+                    <span class="cell-label">سعة القاعة:</span>
+                    <span class="cell-val font-mono">{{ currentEnvelope.expectedCount }}</span>
+                  </div>
+                  <span class="text-medium-emphasis font-weight-bold">=</span>
+                  <div class="audit-cell">
+                    <span class="cell-label">الممسوح:</span>
+                    <span class="cell-val font-mono text-error">{{ actualScannedCount }}</span>
+                  </div>
+                  <span class="text-medium-emphasis font-weight-bold">+</span>
+                  <div class="audit-cell">
+                    <span class="cell-label">الغياب:</span>
+                    <span class="cell-val font-mono">{{ currentEnvelope.absentCount }}</span>
+                  </div>
+                </div>
+
+                <!-- الملاحظة التوجيهية الرسمية -->
+                <div class="audit-note d-flex align-center gap-1 px-2 py-1 rounded text-caption text-error font-weight-medium">
+                  <v-icon size="14" color="error">mdi-information-outline</v-icon>
+                  <span>(يرجى فحص سلة الماسح أو المظروف)</span>
+                </div>
               </div>
 
               <custom-btn
@@ -534,19 +583,36 @@
             <!-- حالة 3: فائض وزيادة غير مبررة -->
             <div
               v-else-if="reconciliationStatus === 'SURPLUS'"
-              class="d-flex align-center justify-space-between flex-wrap gap-2 px-4 py-2.5 rounded-xl border"
-              style="background: rgba(var(--v-theme-warning), 0.08); border-color: rgba(var(--v-theme-warning), 0.3) !important;"
+              class="d-flex align-center justify-space-between flex-wrap gap-3"
             >
               <div class="d-flex align-center flex-wrap gap-2">
-                <v-icon color="warning" size="18">mdi-alert</v-icon>
-                <span class="text-caption font-weight-black text-warning">تنبيه فائض:</span>
-                <v-chip size="small" color="warning" variant="flat" class="font-weight-black text-white px-2">
-                  زيادة {{ Math.abs(discrepancyAmount) }} ورقة
-                </v-chip>
-                <v-divider vertical class="mx-1 d-none d-sm-block" style="height: 18px;" />
-                <span class="text-caption text-medium-emphasis">
-                  سعة القاعة: <strong class="font-mono">{{ currentEnvelope.expectedCount }}</strong> | الممسوح + الغياب: <strong class="font-mono text-warning">{{ actualScannedCount + currentEnvelope.absentCount }}</strong>
-                </span>
+                <!-- شارة التنبيه الرسمية -->
+                <div class="audit-badge audit-badge-warning d-flex align-center gap-1.5 px-3 py-1.5 rounded border">
+                  <v-icon color="warning" size="18">mdi-alert-outline</v-icon>
+                  <span class="text-caption font-weight-bold text-warning">تنبيه فائض:</span>
+                  <span class="font-mono font-weight-bold text-warning">
+                    زيادة {{ Math.abs(discrepancyAmount) }} ورقة
+                  </span>
+                </div>
+
+                <!-- خلايا معادلة المطابقة المنظمة -->
+                <div class="d-flex align-center gap-1 flex-wrap audit-equation-strip">
+                  <div class="audit-cell">
+                    <span class="cell-label">سعة القاعة:</span>
+                    <span class="cell-val font-mono">{{ currentEnvelope.expectedCount }}</span>
+                  </div>
+                  <v-divider vertical class="mx-1" style="height: 16px;" />
+                  <div class="audit-cell">
+                    <span class="cell-label">الممسوح + الغياب:</span>
+                    <span class="cell-val font-mono text-warning">{{ actualScannedCount + currentEnvelope.absentCount }}</span>
+                  </div>
+                </div>
+
+                <!-- الملاحظة التوجيهية -->
+                <div class="audit-note d-flex align-center gap-1 px-2 py-1 rounded text-caption text-medium-emphasis">
+                  <v-icon size="14" color="medium-emphasis">mdi-information-outline</v-icon>
+                  <span>(يرجى فحص سلة الماسح أو المظروف)</span>
+                </div>
               </div>
 
               <custom-btn
@@ -561,267 +627,591 @@
             </div>
           </div>
 
-          <!-- ── د. نتائج الفرز والتدقيق لأوراق المظروف (شريط أدوات ومؤشرات خفيف ومرتب) ── -->
-          <div v-if="batchResult && batchResult.sheets && batchResult.sheets.length > 0" class="mb-5">
-            <v-card class="rounded-2xl border-0 shadow-sm overflow-hidden bg-surface">
-              <!-- شريط مؤشرات الفرز المدمج الخفيف والمرتب -->
-              <div class="pa-3 border-b d-flex align-center justify-space-between flex-wrap gap-2" style="background: rgba(var(--v-theme-surface-variant), 0.15);">
-                <div class="d-flex align-center flex-wrap gap-2">
-                  <!-- كود المظروف -->
-                  <span class="text-caption font-weight-black text-on-surface">الأوراق الممسوحة بالمظروف:</span>
-                  <span class="font-mono font-weight-black text-primary px-2.5 py-1 rounded-lg border bg-surface text-caption">
-                    {{ currentEnvelope.envelopeCode }}
-                  </span>
-                  <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold font-mono">
-                    {{ displaySheets.length }} ورقة
-                  </v-chip>
+          <!-- ── 4. مركز التحكم والمتابعة الموحد للمظروف (Unified Envelope Control Console) ── -->
+          <v-card class="main-card rounded-2xl border mb-5 overflow-hidden shadow-sm bg-surface">
+            <!-- شريط رأس الكونسول والمؤشرات السريعة -->
+            <div class="pa-4 border-b d-flex align-center justify-space-between flex-wrap gap-3" style="background: rgba(var(--v-theme-surface-variant), 0.12);">
+              <div class="d-flex align-center flex-wrap gap-2">
+                <v-avatar color="primary" variant="tonal" size="36" class="rounded-lg">
+                  <v-icon size="20" color="primary">mdi-view-dashboard-outline</v-icon>
+                </v-avatar>
+                <div>
+                  <div class="d-flex align-center gap-2">
+                    <span class="text-subtitle-2 font-weight-bold text-on-surface">سجل ومطابقة المظروف:</span>
+                    <span class="seat-number-box font-mono text-caption">
+                      {{ currentEnvelope.envelopeCode || 'لم يُحدد كود المظروف بعد' }}
+                    </span>
+                  </div>
+                  <div class="text-caption text-medium-emphasis">
+                    {{ currentEnvelope.examCenter || 'المركز الامتحاني' }} — {{ currentEnvelope.hallNumber || 'القاعة' }}
+                  </div>
+                </div>
+              </div>
 
-                  <v-divider vertical class="mx-1 d-none d-md-block" style="height: 22px;" />
+              <!-- مؤشرات سريعة وأزرار الإجراءات -->
+              <div class="d-flex align-center flex-wrap gap-2">
+                <!-- متوسط درجات القاعة -->
+                <v-chip
+                  v-if="displaySheets.length > 0"
+                  size="small"
+                  color="indigo"
+                  variant="tonal"
+                  class="font-weight-bold"
+                >
+                  <v-icon start size="14">mdi-chart-line</v-icon>
+                  متوسط القاعة: {{ currentEnvelopeAvgScore }}%
+                </v-chip>
 
-                  <!-- أوراق سليمة ومعتمدة -->
-                  <v-btn
-                    type="button"
-                    class="v-btn text-success font-weight-bold"
-                    variant="tonal"
+                <!-- زر مراجعة وتدقيق إن وجد أوراق تحتاج تدقيق -->
+                <custom-btn
+                  v-if="needsReviewSheets.length > 0"
+                  type="show"
+                  :label="`مراجعة وتدقيق (${needsReviewSheets.length})`"
+                  color="warning"
+                  variant="tonal"
+                  density="comfortable"
+                  class="font-weight-bold"
+                  :click="() => $router.push(`/omr-human-review?exam=${selectedExamId}`)"
+                />
+
+                <custom-btn
+                  type="add"
+                  label="المظروف التالي"
+                  color="success"
+                  variant="outlined"
+                  density="comfortable"
+                  class="font-weight-bold px-4"
+                  :click="prepareNextEnvelope"
+                />
+              </div>
+            </div>
+
+            <!-- تبويبات العرض الموحدة والمتزامنة -->
+            <v-tabs v-model="activeConsoleTab" color="primary" density="comfortable" class="border-b px-4 bg-surface">
+              <!-- تبويب 1: الأوراق الممسوحة بالمظروف -->
+              <v-tab value="scanned" class="font-weight-bold">
+                <v-icon start size="18">mdi-file-document-check-outline</v-icon>
+                الأوراق الممسوحة بالمظروف
+                <v-chip size="x-small" color="primary" variant="tonal" class="ms-2 font-weight-black font-mono">
+                  {{ displaySheets.length }}
+                </v-chip>
+              </v-tab>
+
+              <!-- تبويب 2: حافظة كشف الطلاب والمطابقة اللحظية -->
+              <v-tab value="roster" class="font-weight-bold">
+                <v-icon start size="18">mdi-clipboard-list-outline</v-icon>
+                حافظة كشف الطلاب والمطابقة
+                <v-chip size="x-small" color="info" variant="tonal" class="ms-2 font-weight-black font-mono">
+                  {{ registeredStudents.length }}
+                </v-chip>
+              </v-tab>
+
+              <!-- تبويب 3: أوراق تحتاج تدقيق بشري -->
+              <v-tab v-if="needsReviewSheets.length > 0" value="needs_review" class="font-weight-bold text-warning">
+                <v-icon start size="18">mdi-alert-circle-outline</v-icon>
+                أوراق تحتاج تدقيق بشري
+                <v-chip size="x-small" color="warning" variant="flat" class="ms-2 font-weight-black font-mono text-white">
+                  {{ needsReviewSheets.length }}
+                </v-chip>
+              </v-tab>
+            </v-tabs>
+
+            <v-card-text class="pa-4 bg-surface">
+              <!-- ═══════════ التبويب 1: الأوراق الممسوحة بالمظروف ═══════════ -->
+              <div v-if="activeConsoleTab === 'scanned'">
+                <!-- في حال لم يتم سحب أي ورقة بعد -->
+                <div v-if="displaySheets.length === 0" class="pa-8 text-center">
+                  <v-avatar size="64" color="primary" variant="tonal" class="mb-3 rounded-2xl">
+                    <v-icon size="32" color="primary">mdi-file-document-multiple-outline</v-icon>
+                  </v-avatar>
+                  <div class="text-subtitle-1 font-weight-bold">لا توجد أوراق ممسوحة في هذا المظروف حتى الآن</div>
+                  <div class="text-caption text-medium-emphasis mb-3">
+                    قم بإفلات حزمة أوراق المظروف في قسم التغذية أعلاه ثم انقر "بدء المسح والتصحيح الآلي"
+                  </div>
+                  <custom-btn
+                    type="show"
+                    label="معاينة كشف الطلاب المقيدين في القاعة"
                     density="comfortable"
-                    size="default"
-                    style="min-width: 100px; width: auto;"
-                  >
-                    <span class="custom-btn-label">أوراق سليمة: {{ successfulSheets.length }}</span>
-                    <template v-slot:append>
-                      <v-icon size="16">mdi-check-decagram</v-icon>
-                    </template>
-                  </v-btn>
-
-                  <!-- أوراق تحتاج تدقيق بشري -->
-                  <v-btn
-                    type="button"
-                    class="v-btn font-weight-bold"
-                    :class="needsReviewSheets.length > 0 ? 'text-warning' : 'text-grey'"
-                    variant="tonal"
-                    density="comfortable"
-                    size="default"
-                    style="min-width: 100px; width: auto;"
-                  >
-                    <span class="custom-btn-label">تحتاج تدقيق: {{ needsReviewSheets.length }}</span>
-                    <template v-slot:append>
-                      <v-icon size="16">{{ needsReviewSheets.length > 0 ? 'mdi-alert-circle' : 'mdi-check-circle-outline' }}</v-icon>
-                    </template>
-                  </v-btn>
-
-                  <!-- متوسط درجات القاعة -->
-                  <v-btn
-                    type="button"
-                    class="v-btn text-indigo font-weight-bold"
-                    variant="tonal"
-                    density="comfortable"
-                    size="default"
-                    style="min-width: 100px; width: auto;"
-                  >
-                    <span class="custom-btn-label">متوسط القاعة: {{ currentEnvelopeAvgScore }}%</span>
-                    <template v-slot:append>
-                      <v-icon size="16">mdi-chart-line</v-icon>
-                    </template>
-                  </v-btn>
+                    class="font-weight-bold"
+                    :click="() => activeConsoleTab = 'roster'"
+                  />
                 </div>
 
-                <!-- الإجراءات (المراجعة والمظروف التالي) -->
-                <div class="d-flex align-center gap-2">
+                <!-- في حال وجود أوراق ممسوحة -->
+                <div v-else>
+                  <!-- شريط الأدوات والخيارات: إحصائيات + تبديل طريقة العرض (جدول / شبكة بطاقات) -->
+                  <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3 pa-2 rounded-xl border bg-surface">
+                    <div class="d-flex align-center flex-wrap gap-2">
+                      <v-chip
+                        rounded="md"
+                        size="small"
+                        color="primary"
+                        variant="tonal"
+                        class="font-weight-bold font-mono px-3"
+                      >
+                        الممسوح: {{ displaySheets.length }} ورقة
+                      </v-chip>
+                      <v-chip
+                        rounded="md"
+                        size="small"
+                        color="success"
+                        variant="tonal"
+                        class="font-weight-bold font-mono px-3"
+                      >
+                        أوراق سليمة: {{ successfulSheets.length }}
+                      </v-chip>
+                      <v-chip
+                        rounded="md"
+                        size="small"
+                        color="warning"
+                        variant="tonal"
+                        class="font-weight-bold font-mono px-3"
+                      >
+                        تحتاج تدقيق: {{ needsReviewSheets.length }}
+                      </v-chip>
+                    </div>
+
+                    <!-- تبديل العرض بين جدول وشبكة كروت -->
+                    <div class="d-flex align-center gap-1">
+                      <span class="text-caption text-medium-emphasis me-1">طريقة العرض:</span>
+                      <v-btn-toggle v-model="sheetViewMode" mandatory density="compact" rounded="lg" color="primary">
+                        <v-btn value="table" size="small" icon="mdi-view-headline" aria-label="عرض جدولي" title="عرض جدولي" />
+                        <v-btn value="grid" size="small" icon="mdi-view-grid-outline" aria-label="عرض شبكة البطاقات" title="عرض شبكة البطاقات" />
+                      </v-btn-toggle>
+                    </div>
+                  </div>
+
+                  <!-- تنبيه أمني إذا تم رصد أوراق دخيلة لا تخص حافظة القاعة (تصميم هادئ رسمي) -->
+                  <div
+                    v-if="intruderSheets.length > 0"
+                    class="official-notice-box mb-3 pa-3 rounded-lg border d-flex align-start gap-3"
+                  >
+                    <v-icon color="warning" size="20" class="mt-0.5 flex-shrink-0">mdi-shield-alert-outline</v-icon>
+                    <div class="flex-grow-1">
+                      <div class="text-caption font-weight-bold text-high-emphasis mb-1">
+                        تنبيه تدقيق ومطابقة — رصد ورقة دخيلة:
+                      </div>
+                      <div class="text-caption text-medium-emphasis font-weight-regular" style="line-height: 1.6;">
+                        تم رصد {{ intruderSheets.length }} ورقة تم مسحها ولا تتبع كشف الطلاب المقيدين في هذه القاعة (مثل رقم الجلوس: {{ intruderSheets.map(s => s.seat_number).join(', ') }}). تم عزلها تلقائياً للتدقيق البشري لحماية كنترول القاعة.
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 1.1 العرض الجدولي (Table View) -->
+                  <div v-if="sheetViewMode === 'table'">
+                    <custom-data-table
+                      v-model="selectedScannedSheets"
+                      :items="scannedSheetsTableItems"
+                      :getData="getScannedSheetsData"
+                      :headers="scannedSheetsHeaders"
+                      :hasFilter="false"
+                      :log="false"
+                      :restore="false"
+                      :actions="false"
+                      :search="false"
+                      class="bg-transparent"
+                    >
+                      <template v-slot:item-slot="{ item, key }">
+                        <!-- رقم الجلوس -->
+                        <template v-if="key === 'seat_number'">
+                          <span class="seat-number-box font-mono">
+                            {{ item.seat_number || '—' }}
+                          </span>
+                        </template>
+
+                        <!-- اسم الطالب -->
+                        <template v-else-if="key === 'student_name'">
+                          <span class="font-weight-bold text-body-2 text-on-surface">{{ item.student_name || 'طالب غير محدد' }}</span>
+                        </template>
+
+                        <!-- نموذج الأسئلة -->
+                        <template v-else-if="key === 'model_code'">
+                          <v-chip size="small" variant="tonal" color="primary" class="font-weight-bold">
+                            النموذج {{ item.model_code || 'A' }}
+                          </v-chip>
+                        </template>
+
+                        <!-- مطابقة الحافظة -->
+                        <template v-else-if="key === 'roster_match'">
+                          <v-chip
+                            v-if="item.roster_match"
+                            size="small"
+                            color="success"
+                            variant="tonal"
+                            class="font-weight-bold"
+                          >
+                            <v-icon start size="14">mdi-check-circle-outline</v-icon>
+                            مقيد بالقاعة
+                          </v-chip>
+                          <v-chip
+                            v-else
+                            size="small"
+                            color="error"
+                            variant="flat"
+                            class="font-weight-bold text-white"
+                          >
+                            <v-icon start size="14">mdi-alert-circle</v-icon>
+                            ورقة دخيلة
+                          </v-chip>
+                        </template>
+
+                        <!-- الدرجة -->
+                        <template v-else-if="key === 'score'">
+                          <span class="font-weight-black font-mono text-body-2 text-on-surface">
+                            {{ item.score != null ? item.score : 0 }} / {{ item.max_score || 40 }}
+                          </span>
+                        </template>
+
+                        <!-- النسبة -->
+                        <template v-else-if="key === 'percentage'">
+                          <v-chip size="small" variant="tonal" color="success" class="font-weight-bold font-mono">
+                            {{ item.percentage || 0 }}%
+                          </v-chip>
+                        </template>
+
+                        <!-- حالة التصحيح -->
+                        <template v-else-if="key === 'status'">
+                          <v-chip
+                            v-if="String(item.status || '').toLowerCase() === 'needs_review' || item.needs_review || item.error_message"
+                            size="small"
+                            color="warning"
+                            variant="flat"
+                            class="font-weight-bold"
+                          >
+                            تدقيق بشري
+                          </v-chip>
+                          <v-chip
+                            v-else
+                            size="small"
+                            color="success"
+                            variant="flat"
+                            class="font-weight-bold"
+                          >
+                            معتمد وسليم
+                          </v-chip>
+                        </template>
+
+                        <!-- المعاينة -->
+                        <template v-else-if="key === 'actions'">
+                          <custom-btn
+                            is-icon
+                            type="show"
+                            label="معاينة الورقة الضوئية"
+                            :click="() => openSheetPreview(item)"
+                          />
+                        </template>
+                      </template>
+                    </custom-data-table>
+                  </div>
+
+                  <!-- 1.2 العرض الشبكي بالبطاقات البصرية (Grid View) -->
+                  <div v-else-if="sheetViewMode === 'grid'">
+                    <v-row dense>
+                      <v-col
+                        v-for="sheet in displaySheets"
+                        :key="sheet.id || sheet.filename || sheet.seat_number"
+                        cols="12"
+                        sm="6"
+                        md="4"
+                        lg="3"
+                      >
+                        <v-card
+                          class="rounded-xl border pa-3 h-100 d-flex flex-column justify-space-between transition-all"
+                          :class="{
+                            'border-warning': isNeedsReview(sheet),
+                            'border-success': !isNeedsReview(sheet)
+                          }"
+                          variant="outlined"
+                          style="background: rgba(var(--v-theme-surface), 0.9);"
+                        >
+                          <div>
+                            <div class="d-flex align-center justify-space-between mb-2">
+                              <span class="seat-number-box font-mono text-caption">
+                                {{ sheet.seat_number || '—' }}
+                              </span>
+                              <span class="text-caption font-weight-bold px-2 py-0.5 rounded border" style="background: rgba(var(--v-theme-surface-variant), 0.1);">
+                                النموذج {{ sheet.model_code || 'A' }}
+                              </span>
+                            </div>
+
+                            <div class="text-subtitle-2 font-weight-black text-on-surface text-truncate mb-1" :title="sheet.student_name">
+                              {{ sheet.student_name || 'طالب غير محدد' }}
+                            </div>
+
+                            <div class="d-flex align-center flex-wrap gap-1 mb-2">
+                              <v-chip
+                                size="x-small"
+                                :color="isNeedsReview(sheet) ? 'warning' : 'success'"
+                                variant="flat"
+                                class="font-weight-bold"
+                              >
+                                {{ isNeedsReview(sheet) ? 'تدقيق بشري' : 'معتمد وسليم' }}
+                              </v-chip>
+                              <v-chip
+                                v-if="!isSheetInRoster(sheet)"
+                                size="x-small"
+                                color="error"
+                                variant="tonal"
+                                class="font-weight-bold"
+                              >
+                                ورقة دخيلة
+                              </v-chip>
+                            </div>
+
+                            <div
+                              v-if="sheet.error_message"
+                              class="text-caption text-error font-weight-medium pa-1.5 rounded-lg mb-2 text-truncate"
+                              style="background: rgba(var(--v-theme-error), 0.08);"
+                              :title="sheet.error_message"
+                            >
+                              {{ sheet.error_message }}
+                            </div>
+                          </div>
+
+                          <div class="d-flex align-center justify-space-between border-t pt-2 mt-2">
+                            <div>
+                              <span class="font-mono font-weight-black text-body-2 text-primary">
+                                {{ sheet.score != null ? sheet.score : 0 }} / {{ sheet.max_score || 40 }}
+                              </span>
+                              <span class="text-caption text-medium-emphasis ms-1">({{ sheet.percentage || 0 }}%)</span>
+                            </div>
+                            <custom-btn
+                              type="show"
+                              label="معاينة"
+                              density="compact"
+                              class="font-weight-bold"
+                              :click="() => openSheetPreview(sheet)"
+                            />
+                          </div>
+                        </v-card>
+                      </v-col>
+                    </v-row>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ═══════════ التبويب 2: حافظة كشف الطلاب والمطابقة اللحظية ═══════════ -->
+              <div v-else-if="activeConsoleTab === 'roster'">
+                <!-- شريط توضيحي يشرح فائدة كشف الحافظة ومعادلة المطابقة -->
+                <div class="pa-3 mb-3 rounded-xl border bg-surface d-flex align-center justify-space-between flex-wrap gap-3">
+                  <div class="d-flex align-center gap-2">
+                    <v-avatar color="info" variant="tonal" size="32" class="rounded-lg">
+                      <v-icon color="info" size="18">mdi-shield-account-outline</v-icon>
+                    </v-avatar>
+                    <div>
+                      <span class="text-subtitle-2 font-weight-black text-on-surface">
+                        كشف المناداة والتسليم الرسمي للقاعة: {{ currentEnvelope.envelopeCode }}
+                      </span>
+                      <div class="text-caption text-medium-emphasis">
+                        السجل المعتمد للطلاب الـ ({{ registeredStudents.length }}) المقيدين بهذه القاعة. يتم تحديث حالة كل طالب لحظياً فور مرور ورقته عبر الماسح.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="d-flex align-center flex-wrap gap-2">
+                    <v-chip color="info" variant="tonal" size="small" class="font-weight-bold">
+                      المقيدون: {{ registeredStudents.length }}
+                    </v-chip>
+                    <v-chip color="success" variant="tonal" size="small" class="font-weight-bold">
+                      تم المسح: {{ rosterMatchedCount }}
+                    </v-chip>
+                    <v-chip color="blue-grey" variant="tonal" size="small" class="font-weight-bold">
+                      بانتظار السحب: {{ Math.max(0, registeredStudents.length - rosterMatchedCount - currentEnvelope.absentCount) }}
+                    </v-chip>
+                    <v-chip v-if="currentEnvelope.absentCount > 0" color="warning" variant="tonal" size="small" class="font-weight-bold">
+                      الغياب: {{ currentEnvelope.absentCount }}
+                    </v-chip>
+                  </div>
+                </div>
+
+                <div v-if="registeredStudents.length > 0">
+                  <custom-data-table
+                    v-model="selectedRegisteredStudents"
+                    :items="regStudentsTableItems"
+                    :getData="getRegStudentsData"
+                    :headers="regStudentsHeaders"
+                    :customLoading="loadingExams"
+                    :hasFilter="false"
+                    :log="false"
+                    :restore="false"
+                    :actions="false"
+                    :search="false"
+                    class="bg-transparent"
+                  >
+                    <template v-slot:item-slot="{ item, key }">
+                      <!-- رقم الجلوس -->
+                      <template v-if="key === 'seat_number'">
+                        <span class="seat-number-box font-mono">
+                          {{ item.seat_number }}
+                        </span>
+                      </template>
+
+                      <!-- اسم الطالب -->
+                      <template v-else-if="key === 'student_name'">
+                        <span class="font-weight-bold text-body-2 text-on-surface">{{ item.student_name || 'طالب مقيد' }}</span>
+                      </template>
+
+                      <!-- النموذج المخصص -->
+                      <template v-else-if="key === 'model_code'">
+                        <v-chip size="small" variant="tonal" color="primary" class="font-weight-bold">
+                          النموذج {{ item.model_code || 'A' }}
+                        </v-chip>
+                      </template>
+
+                      <!-- المدرسة / المركز -->
+                      <template v-else-if="key === 'school_name'">
+                        <span class="text-body-2">{{ item.school_name || currentEnvelope.examCenter || '-' }}</span>
+                      </template>
+
+                      <!-- حالة سحب الورقة بالماسح (ديناميكية لحظية) -->
+                      <template v-else-if="key === 'scan_status'">
+                        <v-chip
+                          v-if="item.scan_status === 'scanned'"
+                          size="small"
+                          color="success"
+                          variant="tonal"
+                          class="font-weight-bold"
+                        >
+                          <v-icon start size="14">mdi-check-decagram</v-icon>
+                          تم المسح والتصحيح
+                        </v-chip>
+                        <v-chip
+                          v-else-if="item.scan_status === 'needs_review'"
+                          size="small"
+                          color="warning"
+                          variant="flat"
+                          class="font-weight-bold"
+                        >
+                          <v-icon start size="14">mdi-alert-circle</v-icon>
+                          تم المسح - تدقيق بشري
+                        </v-chip>
+                        <v-chip
+                          v-else-if="item.scan_status === 'missing'"
+                          size="small"
+                          color="error"
+                          variant="flat"
+                          class="font-weight-bold text-white"
+                        >
+                          <v-icon start size="14">mdi-help-rhombus-outline</v-icon>
+                          ورقة مفقودة (عجز)
+                        </v-chip>
+                        <v-chip
+                          v-else
+                          size="small"
+                          color="blue-grey"
+                          variant="tonal"
+                          class="font-weight-bold"
+                        >
+                          <v-icon start size="14">mdi-clock-outline</v-icon>
+                          بانتظار سحب الورقة
+                        </v-chip>
+                      </template>
+
+                      <!-- النتيجة والدرجة المحسوبة -->
+                      <template v-else-if="key === 'student_score'">
+                        <span v-if="item.matchedSheet" class="font-weight-black font-mono text-body-2 text-primary">
+                          {{ item.matchedSheet.score != null ? item.matchedSheet.score : 0 }} / {{ item.matchedSheet.max_score || 40 }}
+                        </span>
+                        <span v-else class="text-caption text-medium-emphasis">—</span>
+                      </template>
+
+                      <!-- إجراءات المعاينة -->
+                      <template v-else-if="key === 'actions'">
+                        <custom-btn
+                          v-if="item.matchedSheet"
+                          is-icon
+                          type="show"
+                          label="معاينة الورقة الممسوحة"
+                          :click="() => openSheetPreview(item.matchedSheet)"
+                        />
+                        <span v-else class="text-caption text-disabled">—</span>
+                      </template>
+                    </template>
+                  </custom-data-table>
+                </div>
+
+                <div v-else class="pa-8 text-center">
+                  <v-avatar size="64" color="primary" variant="tonal" class="mb-3 rounded-2xl">
+                    <v-icon size="32" color="primary">mdi-account-group-outline</v-icon>
+                  </v-avatar>
+                  <div class="text-subtitle-1 font-weight-bold">لا توجد بيانات طلاب مقيدين مسجلة في هذا الاختبار</div>
+                  <div class="text-caption text-medium-emphasis">يرجى التحقق من اختيار الاختبار والمركز الامتحاني من الفلاتر أعلاه</div>
+                </div>
+              </div>
+
+              <!-- ═══════════ التبويب 3: أوراق تحتاج تدقيق بشري ═══════════ -->
+              <div v-else-if="activeConsoleTab === 'needs_review'">
+                <div class="pa-3 mb-3 rounded-xl border bg-surface d-flex align-center justify-space-between flex-wrap gap-2">
+                  <div class="d-flex align-center gap-2">
+                    <v-avatar color="warning" variant="tonal" size="32" class="rounded-lg">
+                      <v-icon color="warning" size="18">mdi-alert-octagon-outline</v-icon>
+                    </v-avatar>
+                    <div>
+                      <span class="text-subtitle-2 font-weight-black text-warning">
+                        أوراق معزولة تتطلب تدقيقاً بشرياً ({{ needsReviewSheets.length }} ورقة)
+                      </span>
+                      <div class="text-caption text-medium-emphasis">
+                        تم عزل هذه الأوراق لحماية درجات المظروف نظراً لوجود أوراق من اختبار آخر، أو باركود غير مقروء، أو تظليلات ملتبسة.
+                      </div>
+                    </div>
+                  </div>
+
                   <custom-btn
-                    v-if="needsReviewSheets.length > 0"
                     type="show"
-                    :label="`مراجعة وتدقيق (${needsReviewSheets.length})`"
+                    label="فتح شاشة التدقيق البشري الشاملة"
                     color="warning"
                     variant="tonal"
                     density="comfortable"
                     class="font-weight-bold"
                     :click="() => $router.push(`/omr-human-review?exam=${selectedExamId}`)"
                   />
-
-                  <v-divider v-if="needsReviewSheets.length > 0" vertical class="mx-1 d-none d-sm-block" style="height: 22px;" />
-
-                  <custom-btn
-                    type="add"
-                    label="المظروف التالي"
-                    color="success"
-                    variant="outlined"
-                    density="comfortable"
-                    class="font-weight-bold px-4"
-                    :click="prepareNextEnvelope"
-                  />
-                </div>
-              </div>
-
-              <custom-data-table
-                :items="scannedSheetsTableItems"
-                :getData="getScannedSheetsData"
-                :headers="scannedSheetsHeaders"
-                :hasFilter="false"
-                :log="false"
-                :restore="false"
-                :numbering="false"
-                :showSelect="false"
-                :actions="false"
-                :search="false"
-                class="bg-transparent"
-              >
-                <template v-slot:item-slot="{ item, key }">
-                  <!-- رقم الجلوس -->
-                  <template v-if="key === 'seat_number'">
-                    <span class="font-mono font-weight-black text-primary px-2.5 py-1 rounded-lg border bg-surface">
-                      {{ item.seat_number }}
-                    </span>
-                  </template>
-
-                  <!-- اسم الطالب -->
-                  <template v-else-if="key === 'student_name'">
-                    <span class="font-weight-bold text-body-2 text-on-surface">{{ item.student_name || 'طالب غير محدد' }}</span>
-                  </template>
-
-                  <!-- نموذج الأسئلة -->
-                  <template v-else-if="key === 'model_code'">
-                    <v-chip size="small" variant="tonal" color="primary" class="font-weight-bold">
-                      النموذج {{ item.model_code || 'A' }}
-                    </v-chip>
-                  </template>
-
-                  <!-- الدرجة -->
-                  <template v-else-if="key === 'score'">
-                    <span class="font-weight-black font-mono text-body-2 text-on-surface">
-                      {{ item.score }} / {{ item.max_score || 40 }}
-                    </span>
-                  </template>
-
-                  <!-- النسبة -->
-                  <template v-else-if="key === 'percentage'">
-                    <v-chip size="small" variant="tonal" color="success" class="font-weight-bold font-mono">
-                      {{ item.percentage }}%
-                    </v-chip>
-                  </template>
-
-                  <!-- حالة التصحيح -->
-                  <template v-else-if="key === 'status'">
-                    <v-chip
-                      v-if="String(item.status || '').toLowerCase() === 'needs_review' || item.needs_review || item.error_message"
-                      size="small"
-                      color="warning"
-                      variant="flat"
-                      class="font-weight-bold"
-                    >
-                      تدقيق بشري
-                    </v-chip>
-                    <v-chip
-                      v-else
-                      size="small"
-                      color="success"
-                      variant="flat"
-                      class="font-weight-bold"
-                    >
-                      معتمد وسليم
-                    </v-chip>
-                  </template>
-
-                  <!-- المعاينة -->
-                  <template v-else-if="key === 'actions'">
-                    <custom-btn
-                      is-icon
-                      type="show"
-                      label="معاينة الورقة الضوئية"
-                      :click="() => openSheetPreview(item)"
-                    />
-                  </template>
-                </template>
-              </custom-data-table>
-            </v-card>
-          </div>
-
-          <!-- ── هـ. كشف الطلاب المقيدين رسمياً في القاعة (عند عدم وجود أوراق ممسوحة بعد) ── -->
-          <div v-else class="mb-5">
-            <v-card class="rounded-2xl border-0 shadow-sm overflow-hidden bg-surface">
-              <div class="pa-4 border-b d-flex align-center justify-space-between flex-wrap gap-2" style="background: rgba(var(--v-theme-surface-variant), 0.25);">
-                <div class="d-flex align-center gap-2">
-                  <v-icon color="primary" size="22">mdi-clipboard-list-outline</v-icon>
-                  <div>
-                    <span class="text-subtitle-2 font-weight-black text-on-surface">
-                      حافظة كشف الطلاب المقيدين في القاعة (السجل الرسمي للطلاب): {{ currentEnvelope.envelopeCode }}
-                    </span>
-                    <div class="text-caption text-medium-emphasis">
-                      إجمالي الطلاب المقيدين رسمياً: {{ registeredStudents.length }} طالباً | بانتظار تلقيم وسحب أوراق الإجابة عبر الماسح
-                    </div>
-                  </div>
                 </div>
 
-                <v-chip color="info" variant="tonal" size="small" class="font-weight-bold">
-                  {{ registeredStudents.length }} طالباً مقيداً في الحافظة
-                </v-chip>
-              </div>
-
-              <div v-if="registeredStudents.length > 0">
                 <custom-data-table
-                  :items="regStudentsTableItems"
-                  :getData="getRegStudentsData"
-                  :headers="regStudentsHeaders"
-                  :customLoading="loadingExams"
+                  v-model="selectedNeedsReviewSheets"
+                  :items="needsReviewTableItems"
+                  :getData="getNeedsReviewData"
+                  :headers="needsReviewHeaders"
                   :hasFilter="false"
                   :log="false"
                   :restore="false"
-                  :numbering="false"
-                  :showSelect="false"
                   :actions="false"
                   :search="false"
                   class="bg-transparent"
                 >
-                  <template v-slot:item-slot="{ item, key, index }">
-                    <!-- م (الترقيم) -->
-                    <template v-if="key === 'index_number'">
-                      <span class="font-mono text-caption text-medium-emphasis font-weight-bold">
-                        {{ ((regStudentsTableItems.pagination?.current_page || 1) - 1) * (regStudentsTableItems.pagination?.page_size || 10) + (index ?? 0) + 1 }}
+                  <template v-slot:item-slot="{ item, key }">
+                    <template v-if="key === 'seat_number'">
+                      <span class="seat-number-box font-mono">
+                        {{ item.seat_number || '—' }}
                       </span>
                     </template>
-
-                    <!-- رقم الجلوس -->
-                    <template v-else-if="key === 'seat_number'">
-                      <span class="font-mono font-weight-black text-primary px-2.5 py-1 rounded-lg border bg-surface">
-                        {{ item.seat_number }}
-                      </span>
-                    </template>
-
-                    <!-- اسم الطالب -->
                     <template v-else-if="key === 'student_name'">
-                      <span class="font-weight-bold text-body-2 text-on-surface">{{ item.student_name || 'طالب مقيد' }}</span>
+                      <span class="font-weight-bold text-body-2 text-on-surface">{{ item.student_name || 'طالب غير محدد' }}</span>
                     </template>
-
-                    <!-- النموذج المخصص -->
                     <template v-else-if="key === 'model_code'">
                       <v-chip size="small" variant="tonal" color="primary" class="font-weight-bold">
                         النموذج {{ item.model_code || 'A' }}
                       </v-chip>
                     </template>
-
-                    <!-- المدرسة / المركز -->
-                    <template v-else-if="key === 'school_name'">
-                      <span class="text-body-2">{{ item.school_name || currentEnvelope.examCenter || '-' }}</span>
+                    <template v-else-if="key === 'error_message'">
+                      <span class="text-caption font-weight-bold text-error" style="line-height: 1.5;">
+                        {{ item.error_message || 'مطلوب تدقيق بشري للورقة' }}
+                      </span>
                     </template>
-
-                    <!-- حالة المسح والتصحيح -->
-                    <template v-else-if="key === 'scan_status'">
-                      <v-chip size="small" color="blue-grey" variant="tonal" class="font-weight-bold">
-                        بانتظار سحب الورقة
-                      </v-chip>
+                    <template v-else-if="key === 'actions'">
+                      <custom-btn
+                        type="show"
+                        label="معاينة وتدقيق"
+                        density="compact"
+                        class="font-weight-bold"
+                        :click="() => openSheetPreview(item)"
+                      />
                     </template>
                   </template>
                 </custom-data-table>
               </div>
-
-              <div v-else class="pa-8 text-center">
-                <v-avatar size="64" color="primary" variant="tonal" class="mb-3 rounded-2xl">
-                  <v-icon size="32" color="primary">mdi-account-group-outline</v-icon>
-                </v-avatar>
-                <div class="text-subtitle-1 font-weight-bold">لا توجد بيانات طلاب مقيدين مسجلة في هذا الاختبار</div>
-                <div class="text-caption text-medium-emphasis">يرجى التحقق من اختيار الاختبار والمركز الامتحاني من الفلاتر أعلاه</div>
-              </div>
-            </v-card>
-          </div>
+            </v-card-text>
+          </v-card>
 
 
     <!-- ── نافذة معاينة ورقة الطالب (Sheet Details Dialog) ── -->
@@ -853,78 +1243,84 @@
           />
         </v-card-title>
 
-        <!-- ── شريط بيانات ورقة الطالب خفيف كشرائح مستطيلة منتظمة (ليست بيضاوية) ── -->
-        <div class="d-flex align-center flex-wrap gap-2 px-6 py-2.5 bg-surface border-b">
-          <v-chip size="small" variant="tonal" color="primary" rounded="md" class="font-weight-bold">
-            <v-icon start size="14">mdi-card-account-details-outline</v-icon>
-            رقم الجلوس: {{ activePreviewSheet.seat_number || '—' }}
-          </v-chip>
+        <!-- ── شريط بيانات ورقة الطالب: مربعات رسمية متناسقة وهادئة ── -->
+        <div class="d-flex align-center flex-wrap gap-2 px-6 py-3 bg-surface border-b official-meta-strip">
+          <!-- رقم الجلوس -->
+          <div class="official-meta-box">
+            <span class="meta-label">رقم الجلوس</span>
+            <span class="meta-val font-mono">{{ activePreviewSheet.seat_number || '—' }}</span>
+          </div>
 
-          <v-chip size="small" variant="tonal" color="indigo" rounded="md" class="font-weight-bold">
-            <v-icon start size="14">mdi-file-document-outline</v-icon>
-            النموذج: {{ activePreviewSheet.model_code || 'A' }}
-          </v-chip>
+          <!-- نموذج الأسئلة -->
+          <div class="official-meta-box">
+            <span class="meta-label">النموذج</span>
+            <span class="meta-val font-mono">{{ activePreviewSheet.model_code || 'A' }}</span>
+          </div>
 
-          <v-chip
-            size="small"
-            variant="tonal"
-            rounded="md"
-            :color="String(activePreviewSheet.status || '').toLowerCase() === 'needs_review' || activePreviewSheet.needs_review || activePreviewSheet.error_message ? 'warning' : 'success'"
-            class="font-weight-bold"
+          <!-- حالة التدقيق والاعتماد -->
+          <div
+            class="official-meta-box"
+            :class="isNeedsReview(activePreviewSheet) ? 'status-box-warning' : 'status-box-success'"
           >
-            <v-icon start size="14">
-              {{ String(activePreviewSheet.status || '').toLowerCase() === 'needs_review' || activePreviewSheet.needs_review || activePreviewSheet.error_message ? 'mdi-alert-circle-outline' : 'mdi-check-circle-outline' }}
-            </v-icon>
-            {{ String(activePreviewSheet.status || '').toLowerCase() === 'needs_review' || activePreviewSheet.needs_review || activePreviewSheet.error_message ? 'يحتاج تدقيق' : 'معتمد وسليم' }}
-          </v-chip>
+            <span class="meta-label">الحالة</span>
+            <span class="meta-val d-flex align-center gap-1">
+              <v-icon size="14">
+                {{ isNeedsReview(activePreviewSheet) ? 'mdi-alert-circle-outline' : 'mdi-check-circle-outline' }}
+              </v-icon>
+              {{ isNeedsReview(activePreviewSheet) ? 'يحتاج تدقيق' : 'معتمد وسليم' }}
+            </span>
+          </div>
 
-          <v-chip
-            size="small"
-            variant="tonal"
-            rounded="md"
-            :color="activePreviewSheet.percentage >= 50 ? 'success' : 'primary'"
-            class="font-weight-bold"
-          >
-            <v-icon start size="14">mdi-counter</v-icon>
-            الدرجة: {{ activePreviewSheet.score != null ? activePreviewSheet.score : 0 }} / {{ activePreviewSheet.max_score || 16 }} ({{ activePreviewSheet.percentage }}%)
-          </v-chip>
+          <!-- الدرجة المحسوبة -->
+          <div class="official-meta-box">
+            <span class="meta-label">الدرجة المحسوبة</span>
+            <span class="meta-val font-mono">
+              {{ activePreviewSheet.score != null ? activePreviewSheet.score : 0 }} / {{ activePreviewSheet.max_score != null ? activePreviewSheet.max_score : ((activePreviewSheet.questions || []).length || 50) }}
+              <span class="text-caption font-weight-medium text-medium-emphasis ms-1">({{ activePreviewSheet.percentage }}%)</span>
+            </span>
+          </div>
 
-          <v-chip size="small" variant="tonal" color="info" rounded="md" class="font-weight-bold">
-            <v-icon start size="14">mdi-format-list-numbered</v-icon>
-            الأسئلة: {{ (activePreviewSheet.questions || []).length }}
-          </v-chip>
-
-          <v-chip size="small" variant="tonal" color="success" rounded="md" class="font-weight-bold">
-            <v-icon start size="14">mdi-check</v-icon>
-            صحيحة: {{ previewCounts.correct }}
-          </v-chip>
-
-          <v-chip size="small" variant="tonal" color="error" rounded="md" class="font-weight-bold">
-            <v-icon start size="14">mdi-close</v-icon>
-            خاطئة: {{ previewCounts.wrong }}
-          </v-chip>
-
-          <v-chip size="small" variant="tonal" color="grey" rounded="md" class="font-weight-bold">
-            <v-icon start size="14">mdi-circle-outline</v-icon>
-            لم يُجب (فارغة): {{ previewCounts.empty }}
-          </v-chip>
+          <!-- تفصيل الأسئلة والإجابات كمربع مدمج ومتناسق -->
+          <div class="official-meta-box official-meta-stats-box">
+            <div class="d-flex align-center gap-3">
+              <div>
+                <span class="meta-label">الأسئلة</span>
+                <span class="meta-val font-mono">{{ (activePreviewSheet.questions || []).length }}</span>
+              </div>
+              <v-divider vertical class="mx-1" style="height: 22px;" />
+              <div>
+                <span class="meta-label text-success">صحيحة</span>
+                <span class="meta-val font-mono text-success">{{ previewCounts.correct }}</span>
+              </div>
+              <v-divider vertical class="mx-1" style="height: 22px;" />
+              <div>
+                <span class="meta-label text-error">خاطئة</span>
+                <span class="meta-val font-mono text-error">{{ previewCounts.wrong }}</span>
+              </div>
+              <v-divider vertical class="mx-1" style="height: 22px;" />
+              <div>
+                <span class="meta-label text-medium-emphasis">لم يُجب</span>
+                <span class="meta-val font-mono text-medium-emphasis">{{ previewCounts.empty }}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- تنبيه تفصيلي عند وجود خطأ في مطابقة الطالب أو الاختبار -->
-        <v-alert
+        <!-- تنبيه تفصيلي عند وجود خطأ في مطابقة الطالب أو الاختبار (تصميم هادئ رسمي) -->
+        <div
           v-if="activePreviewSheet.error_message"
-          type="warning"
-          variant="tonal"
-          density="comfortable"
-          class="mx-4 mt-3 mb-1 rounded-xl"
-          icon="mdi-alert-octagon-outline"
-          border="start"
+          class="official-notice-box mx-4 mt-3 mb-1 pa-3 rounded-lg border d-flex align-start gap-3"
         >
-          <div class="text-subtitle-2 font-weight-black">تنبيه تدقيق ومطابقة الورقة:</div>
-          <div class="text-caption font-weight-bold mt-1" style="white-space: pre-wrap; line-height: 1.6;">
-            {{ activePreviewSheet.error_message }}
+          <v-icon color="warning" size="20" class="mt-0.5 flex-shrink-0">mdi-alert-circle-outline</v-icon>
+          <div class="flex-grow-1">
+            <div class="text-caption font-weight-bold text-high-emphasis mb-1">
+              تنبيه تدقيق ومطابقة الورقة:
+            </div>
+            <div class="text-caption text-medium-emphasis font-weight-regular" style="white-space: pre-wrap; line-height: 1.6;">
+              {{ activePreviewSheet.error_message }}
+            </div>
           </div>
-        </v-alert>
+        </div>
 
         <!-- تبويبات العرض الموحدة (v-tabs) -->
         <v-tabs v-model="previewMode" color="primary" density="comfortable" class="border-b px-4 bg-surface">
@@ -1280,6 +1676,34 @@ export default {
       generateEnvelopeBarcode()
     }
 
+    const resetAllFilters = () => {
+      filterInstitutionType.value = 'all'
+      filterGovernorate.value = null
+      filterDirectorate.value = null
+      filterOrganization.value = null
+      filterStage.value = null
+      filterClassTrack.value = null
+      filterSubject.value = null
+      filterCollege.value = null
+      filterDepartment.value = null
+      filterSpecialization.value = null
+      filterSemesterSubject.value = null
+      filterInstituteField.value = null
+      filterInstituteEducationSystem.value = null
+      filterInstituteSpecialization.value = null
+      filterInstituteSubject.value = null
+      selectedExamId.value = null
+      batchFiles.value = []
+      batchResult.value = null
+      gradingError.value = null
+      isCommitted.value = false
+      currentEnvelope.expectedCount = 0
+      currentEnvelope.absentCount = 0
+      currentEnvelope.envelopeCode = ''
+      registeredStudents.value = []
+      activeConsoleTab.value = 'roster'
+    }
+
     const onStageChange = () => {
       filterClassTrack.value = null
       filterSubject.value = null
@@ -1610,14 +2034,44 @@ export default {
       return Math.round(total / displaySheets.value.length)
     })
 
-    // ── Unified Tables: Registered Students (Table A) & Scanned Sheets (Table B) ──
+    // ── Unified Envelope Console: Tab Navigation & View Mode ──
+    const activeConsoleTab = ref('roster')
+    const sheetViewMode = ref('table')
+
+    const isSheetInRoster = (sheet) => {
+      if (!sheet || !sheet.seat_number) return false
+      const sStr = String(sheet.seat_number).trim()
+      return (registeredStudents.value || []).some(
+        (r) => String(r.seat_number || '').trim() === sStr
+      )
+    }
+
+    const rosterMatchedCount = computed(() => {
+      if (!registeredStudents.value.length || !displaySheets.value.length) return 0
+      const scannedSeats = new Set(displaySheets.value.map((s) => String(s.seat_number || '').trim()))
+      return registeredStudents.value.filter((r) => scannedSeats.has(String(r.seat_number || '').trim())).length
+    })
+
+    const intruderSheets = computed(() => {
+      if (!displaySheets.value.length) return []
+      const regSeats = new Set((registeredStudents.value || []).map((s) => String(s.seat_number || '').trim()))
+      return displaySheets.value.filter((s) => s.seat_number && !regSeats.has(String(s.seat_number).trim()))
+    })
+
+    // Selection arrays for CustomDataTable (matching review-queue)
+    const selectedScannedSheets = ref([])
+    const selectedRegisteredStudents = ref([])
+    const selectedNeedsReviewSheets = ref([])
+
+    // ── Table 1: Registered Students Manifest (الحافظة الرسمية) ──
     const regStudentsHeaders = ref([
-      { title: 'م', key: 'index_number', sortable: false, width: '60px', align: 'center' },
       { title: 'رقم الجلوس', key: 'seat_number', sortable: true, width: '130px' },
-      { title: 'اسم الطالب الثلاثي/الرباعي', key: 'student_name', sortable: true },
-      { title: 'النموذج المخصص', key: 'model_code', sortable: false, width: '130px', align: 'center' },
-      { title: 'المدرسة / المركز المقيد به', key: 'school_name', sortable: false },
-      { title: 'حالة المسح والتصحيح', key: 'scan_status', sortable: false, width: '160px', align: 'center' },
+      { title: 'اسم الطالب المقيد بالحافظة', key: 'student_name', sortable: true },
+      { title: 'النموذج المخصص', key: 'model_code', sortable: false, width: '120px', align: 'center' },
+      { title: 'المدرسة / المركز', key: 'school_name', sortable: false },
+      { title: 'حالة سحب الورقة بالماسح', key: 'scan_status', sortable: false, width: '200px', align: 'center' },
+      { title: 'النتيجة', key: 'student_score', sortable: false, width: '110px', align: 'center' },
+      { title: 'معاينة', key: 'actions', sortable: false, width: '80px', align: 'center' },
     ])
 
     const regStudentsPage = ref(1)
@@ -1641,7 +2095,30 @@ export default {
       regStudentsPage.value = page
       regStudentsPageSize.value = pageSize
 
-      const all = registeredStudents.value || []
+      const raw = registeredStudents.value || []
+      const sheets = displaySheets.value || []
+
+      const all = raw.map((student, idx) => {
+        const sSeat = String(student.seat_number || '').trim()
+        const matched = sheets.find((s) => String(s.seat_number || '').trim() === sSeat)
+        let status = 'waiting'
+        if (matched) {
+          if (String(matched.status || '').toLowerCase() === 'needs_review' || matched.needs_review || matched.error_message) {
+            status = 'needs_review'
+          } else {
+            status = 'scanned'
+          }
+        } else if (sheets.length > 0) {
+          status = 'missing'
+        }
+        return {
+          id: student.id || student.seat_number || `reg_${idx}`,
+          ...student,
+          matchedSheet: matched || null,
+          scan_status: status,
+        }
+      })
+
       const total = all.length
       const numPages = Math.ceil(total / pageSize) || 1
       const validPage = Math.min(Math.max(1, page), numPages)
@@ -1661,19 +2138,16 @@ export default {
       return regStudentsTableItems.value
     }
 
-    watch(registeredStudents, () => {
-      regStudentsPage.value = 1
-      getRegStudentsData({ page: 1, page_size: regStudentsPageSize.value })
-    }, { immediate: true })
-
+    // ── Table 2: Scanned Sheets (الأوراق الممسوحة بالمظروف) ──
     const scannedSheetsHeaders = ref([
       { title: 'رقم الجلوس', key: 'seat_number', sortable: true, width: '120px' },
       { title: 'اسم الطالب', key: 'student_name', sortable: true },
-      { title: 'نموذج الأسئلة', key: 'model_code', sortable: false, width: '120px', align: 'center' },
-      { title: 'الدرجة المحسوبة', key: 'score', sortable: true, width: '130px', align: 'center' },
+      { title: 'نموذج الأسئلة', key: 'model_code', sortable: false, width: '110px', align: 'center' },
+      { title: 'المطابقة مع الحافظة', key: 'roster_match', sortable: false, width: '150px', align: 'center' },
+      { title: 'الدرجة المحسوبة', key: 'score', sortable: true, width: '120px', align: 'center' },
       { title: 'النسبة المئوية', key: 'percentage', sortable: true, width: '110px', align: 'center' },
-      { title: 'حالة التصحيح', key: 'status', sortable: true, width: '140px', align: 'center' },
-      { title: 'المعاينة', key: 'actions', sortable: false, width: '90px', align: 'center' },
+      { title: 'حالة التصحيح', key: 'status', sortable: true, width: '130px', align: 'center' },
+      { title: 'المعاينة', key: 'actions', sortable: false, width: '80px', align: 'center' },
     ])
 
     const scannedSheetsPage = ref(1)
@@ -1697,7 +2171,13 @@ export default {
       scannedSheetsPage.value = page
       scannedSheetsPageSize.value = pageSize
 
-      const all = displaySheets.value || []
+      const regSeats = new Set((registeredStudents.value || []).map((s) => String(s.seat_number || '').trim()))
+      const all = (displaySheets.value || []).map((s, idx) => ({
+        id: s.id || s.seat_number || s.filename || `scan_${idx}`,
+        ...s,
+        roster_match: Boolean(s.seat_number && regSeats.has(String(s.seat_number).trim())),
+      }))
+
       const total = all.length
       const numPages = Math.ceil(total / pageSize) || 1
       const validPage = Math.min(Math.max(1, page), numPages)
@@ -1717,9 +2197,66 @@ export default {
       return scannedSheetsTableItems.value
     }
 
-    watch(displaySheets, () => {
+    // ── Table 3: Needs Review Sheets (الأوراق المعزولة للتدقيق البشري) ──
+    const needsReviewHeaders = ref([
+      { title: 'رقم الجلوس', key: 'seat_number', sortable: true, width: '130px' },
+      { title: 'اسم الطالب', key: 'student_name', sortable: true },
+      { title: 'النموذج', key: 'model_code', sortable: false, width: '100px', align: 'center' },
+      { title: 'سبب العزل والتدقيق', key: 'error_message', sortable: false },
+      { title: 'المعاينة والتدقيق', key: 'actions', sortable: false, width: '130px', align: 'center' },
+    ])
+
+    const needsReviewPage = ref(1)
+    const needsReviewPageSize = ref(10)
+    const needsReviewTableItems = ref({
+      results: [],
+      count: 0,
+      pagination: {
+        count: 0,
+        total: 0,
+        num_pages: 1,
+        current_page: 1,
+        page_size: 10,
+      },
+    })
+
+    const getNeedsReviewData = async (params = {}) => {
+      const p = params?.params || params || {}
+      const page = Number(p.page) || needsReviewPage.value || 1
+      const pageSize = Number(p.page_size || p.perPage) || needsReviewPageSize.value || 10
+      needsReviewPage.value = page
+      needsReviewPageSize.value = pageSize
+
+      const all = (needsReviewSheets.value || []).map((s, idx) => ({
+        id: s.id || s.seat_number || s.filename || `rev_${idx}`,
+        ...s,
+      }))
+      const total = all.length
+      const numPages = Math.ceil(total / pageSize) || 1
+      const validPage = Math.min(Math.max(1, page), numPages)
+      const start = (validPage - 1) * pageSize
+
+      needsReviewTableItems.value = {
+        results: all.slice(start, start + pageSize),
+        count: total,
+        pagination: {
+          count: total,
+          total: total,
+          num_pages: numPages,
+          current_page: validPage,
+          page_size: pageSize,
+        },
+      }
+      return needsReviewTableItems.value
+    }
+
+    watch([displaySheets, registeredStudents], () => {
       scannedSheetsPage.value = 1
+      regStudentsPage.value = 1
+      needsReviewPage.value = 1
       getScannedSheetsData({ page: 1, page_size: scannedSheetsPageSize.value })
+      getRegStudentsData({ page: 1, page_size: regStudentsPageSize.value })
+      getNeedsReviewData({ page: 1, page_size: needsReviewPageSize.value })
     }, { immediate: true })
 
     // Fetch Real Exam Details and Real Registered Students from Database
@@ -1790,6 +2327,7 @@ export default {
       batchFiles.value = []
       gradingError.value = null
       isCommitted.value = false
+      activeConsoleTab.value = 'roster'
       await fetchExamDetails()
     }
 
@@ -1814,6 +2352,7 @@ export default {
       batchResult.value = null
       gradingError.value = null
       isCommitted.value = false
+      activeConsoleTab.value = 'roster'
     }
 
     const formatTotalSize = () => {
@@ -1850,6 +2389,7 @@ export default {
         gradingProgress.value = 100
         gradingStatus.value = 'تمت معالجة أوراق المظروف بنجاح!'
         batchResult.value = resp.data
+        activeConsoleTab.value = 'scanned'
       } catch (err) {
         clearInterval(timer)
         console.error('Failed to grade batch:', err)
@@ -2018,6 +2558,7 @@ export default {
       registeredStudents,
       examDetails,
       fetchExamDetails,
+      resetAllFilters,
       // Files & Processing
       batchFiles,
       isDragging,
@@ -2040,17 +2581,30 @@ export default {
       commitEnvelopeToControl,
       prepareNextEnvelope,
       openDiscrepancyReport,
+      // Unified Console & Views
+      activeConsoleTab,
+      sheetViewMode,
+      rosterMatchedCount,
+      intruderSheets,
+      isSheetInRoster,
+      isNeedsReview,
       // Tables & KPIs
       displaySheets,
       successfulSheets,
       needsReviewSheets,
       currentEnvelopeAvgScore,
+      selectedScannedSheets,
+      selectedRegisteredStudents,
+      selectedNeedsReviewSheets,
       regStudentsHeaders,
       regStudentsTableItems,
       getRegStudentsData,
       scannedSheetsHeaders,
       scannedSheetsTableItems,
       getScannedSheetsData,
+      needsReviewHeaders,
+      needsReviewTableItems,
+      getNeedsReviewData,
       // Hot-Folder
       hotFolderActive,
       toggleHotFolder,
@@ -2137,5 +2691,128 @@ export default {
 .governorate-card:hover {
   border-color: #0284c7;
   box-shadow: 0 4px 12px rgba(2, 132, 199, 0.1);
+}
+
+/* ── Natural Seat Number Box (Official Standard) ───────────── */
+.seat-number-box {
+  display: inline-block;
+  padding: 2px 8px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: rgb(var(--v-theme-on-surface));
+  background: rgba(var(--v-theme-surface-variant), 0.12);
+  border: 1px solid rgba(var(--v-border-color), 0.35);
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  min-width: 64px;
+  text-align: center;
+}
+
+/* ── Reconciliation Audit Panel ────────────────────────────── */
+.reconciliation-audit-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.audit-badge {
+  background: rgba(var(--v-theme-surface-variant), 0.12);
+  border-color: rgba(var(--v-border-color), 0.3) !important;
+}
+
+.audit-badge-success {
+  background: rgba(var(--v-theme-success), 0.08);
+  border-color: rgba(var(--v-theme-success), 0.35) !important;
+}
+
+.audit-badge-error {
+  background: rgba(var(--v-theme-error), 0.08);
+  border-color: rgba(var(--v-theme-error), 0.35) !important;
+}
+
+.audit-badge-warning {
+  background: rgba(var(--v-theme-warning), 0.08);
+  border-color: rgba(var(--v-theme-warning), 0.35) !important;
+}
+
+.audit-equation-strip {
+  background: rgba(var(--v-theme-surface-variant), 0.06);
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(var(--v-border-color), 0.2);
+}
+
+.audit-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  font-size: 0.82rem;
+}
+
+.audit-cell .cell-label {
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  font-weight: 600;
+}
+
+.audit-cell .cell-val {
+  font-weight: 700;
+}
+
+.audit-note {
+  background: rgba(var(--v-theme-surface-variant), 0.05);
+}
+
+/* ── Official Meta Strip & Boxes for Details Dialog ────────── */
+.official-meta-strip {
+  background: rgba(var(--v-theme-surface-variant), 0.04);
+}
+
+.official-meta-box {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 85px;
+  padding: 5px 12px;
+  background: rgba(var(--v-theme-surface-variant), 0.08);
+  border: 1px solid rgba(var(--v-border-color), 0.28);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.official-meta-box .meta-label {
+  font-size: 0.72rem;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: 2px;
+}
+
+.official-meta-box .meta-val {
+  font-size: 0.9rem;
+  color: rgb(var(--v-theme-on-surface));
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.status-box-warning {
+  border-color: rgba(var(--v-theme-warning), 0.5) !important;
+  background: rgba(var(--v-theme-warning), 0.06) !important;
+}
+
+.status-box-success {
+  border-color: rgba(var(--v-theme-success), 0.5) !important;
+  background: rgba(var(--v-theme-success), 0.06) !important;
+}
+
+.official-meta-stats-box {
+  flex-direction: row !important;
+  align-items: center;
+  padding: 4px 12px;
+}
+
+/* ── Calm Official Notice Box (Toned Down Warning) ─────────── */
+.official-notice-box {
+  background: rgba(var(--v-theme-surface-variant), 0.1);
+  border: 1px solid rgba(var(--v-border-color), 0.3) !important;
+  border-right: 4px solid rgba(var(--v-theme-warning), 0.8) !important;
 }
 </style>

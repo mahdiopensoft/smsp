@@ -68,19 +68,31 @@
             <v-col cols="12" sm="6" md="2">
               <v-autocomplete
                 v-model="selectedOfficeId"
-                :items="officesList"
+                :items="allOfficesList && allOfficesList.length ? allOfficesList : officesList"
                 item-title="office_name"
                 item-value="id"
                 label="مكتب التربية (المحافظة)"
-                placeholder="اختر مكتب التربية بالمحافظة..."
+                placeholder="اختر مكتب أو أكثر..."
                 clearable
+                multiple
+                chips
+                closable-chips
                 density="compact"
                 variant="outlined"
                 rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-office-building-outline"
                 @update:model-value="onOfficeFilterChange"
-              />
+              >
+                <template #selection="{ item, index }">
+                  <v-chip v-if="index < 1" size="x-small" class="font-weight-bold" color="primary" variant="flat">
+                    {{ item.title }}
+                  </v-chip>
+                  <span v-if="index === 1" class="text-caption text-primary font-weight-bold ms-1">
+                    (+{{ (selectedOfficeId || []).length - 1 }})
+                  </span>
+                </template>
+              </v-autocomplete>
             </v-col>
 
             <v-col cols="12" sm="6" md="2">
@@ -90,15 +102,27 @@
                 item-title="name"
                 item-value="id"
                 label="إدارة التربية (المديرية)"
-                placeholder="اختر إدارة التربية بالمديرية..."
+                placeholder="اختر مديرية أو أكثر..."
                 clearable
+                multiple
+                chips
+                closable-chips
                 density="compact"
                 variant="outlined"
                 rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-map-marker-radius-outline"
                 @update:model-value="onDirectorateFilterChange"
-              />
+              >
+                <template #selection="{ item, index }">
+                  <v-chip v-if="index < 1" size="x-small" class="font-weight-bold" color="teal" variant="flat">
+                    {{ item.title }}
+                  </v-chip>
+                  <span v-if="index === 1" class="text-caption text-teal font-weight-bold ms-1">
+                    (+{{ (selectedDirectorateId || []).length - 1 }})
+                  </span>
+                </template>
+              </v-autocomplete>
             </v-col>
 
             <v-col cols="12" sm="6" md="3">
@@ -108,15 +132,27 @@
                 item-title="name"
                 item-value="id"
                 label="المدرسة / المركز الامتحاني"
-                placeholder="اختر المركز أو المدرسة..."
+                placeholder="اختر مركز أو أكثر..."
                 clearable
+                multiple
+                chips
+                closable-chips
                 density="compact"
                 variant="outlined"
                 rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-school-outline"
                 @update:model-value="onSchoolFilterChange"
-              />
+              >
+                <template #selection="{ item, index }">
+                  <v-chip v-if="index < 1" size="x-small" class="font-weight-bold" color="indigo" variant="flat">
+                    {{ item.title }}
+                  </v-chip>
+                  <span v-if="index === 1" class="text-caption text-indigo font-weight-bold ms-1">
+                    (+{{ (selectedSchoolId || []).length - 1 }})
+                  </span>
+                </template>
+              </v-autocomplete>
             </v-col>
 
             <v-col cols="12" sm="6" md="3">
@@ -149,13 +185,25 @@
                 label="الجامعة / الكلية"
                 placeholder="اختر الجامعة أو الكلية..."
                 clearable
+                multiple
+                chips
+                closable-chips
                 density="compact"
                 variant="outlined"
                 rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-domain"
                 @update:model-value="onSchoolFilterChange"
-              />
+              >
+                <template #selection="{ item, index }">
+                  <v-chip v-if="index < 1" size="x-small" class="font-weight-bold" color="indigo" variant="flat">
+                    {{ item.title }}
+                  </v-chip>
+                  <span v-if="index === 1" class="text-caption text-indigo font-weight-bold ms-1">
+                    (+{{ (selectedSchoolId || []).length - 1 }})
+                  </span>
+                </template>
+              </v-autocomplete>
             </v-col>
 
             <v-col cols="12" sm="6" md="4">
@@ -188,13 +236,25 @@
                 label="المعهد التقني / المهني"
                 placeholder="اختر المعهد..."
                 clearable
+                multiple
+                chips
+                closable-chips
                 density="compact"
                 variant="outlined"
                 rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-tools"
                 @update:model-value="onSchoolFilterChange"
-              />
+              >
+                <template #selection="{ item, index }">
+                  <v-chip v-if="index < 1" size="x-small" class="font-weight-bold" color="indigo" variant="flat">
+                    {{ item.title }}
+                  </v-chip>
+                  <span v-if="index === 1" class="text-caption text-indigo font-weight-bold ms-1">
+                    (+{{ (selectedSchoolId || []).length - 1 }})
+                  </span>
+                </template>
+              </v-autocomplete>
             </v-col>
 
             <v-col cols="12" sm="6" md="4">
@@ -263,6 +323,7 @@
           <!-- 1. تبويب مكاتب التربية بالمحافظات -->
           <v-window-item value="offices" v-if="institutionType === 'school'">
             <custom-data-table
+              :key="'offices-tbl-' + filteredOfficesTable.length + '-' + normalizeIds(selectedOfficeId).join('-')"
               v-model="selectedOfficeMasterRows"
               :items="officeMasterTableItems"
               :getData="getOfficeMasterData"
@@ -380,6 +441,7 @@
           <!-- 2. تبويب إدارات التربية بالمديريات -->
           <v-window-item value="directorates" v-if="institutionType === 'school'">
             <custom-data-table
+              :key="'dirs-tbl-' + filteredDirectoratesTable.length + '-' + normalizeIds(selectedDirectorateId).join('-')"
               v-model="selectedDirectorateMasterRows"
               :items="directorateMasterTableItems"
               :getData="getDirectorateMasterData"
@@ -496,6 +558,7 @@
           <!-- 3. تبويب المراكز الامتحانية والمدارس / الجامعات / المعاهد -->
           <v-window-item value="schools">
             <custom-data-table
+              :key="'schools-tbl-' + filteredSchoolsTable.length + '-' + normalizeIds(selectedSchoolId).join('-')"
               v-model="selectedSchoolMasterRows"
               :items="schoolMasterTableItems"
               :getData="getSchoolMasterData"
@@ -663,6 +726,7 @@
           <!-- 4. تبويب الاختبارات الأكاديمية -->
           <v-window-item value="exams">
             <custom-data-table
+              :key="'exams-tbl-' + filteredMasterExamsTable.length"
               v-model="selectedExamMasterRows"
               :items="examMasterTableItems"
               :getData="getExamMasterData"
@@ -2657,11 +2721,12 @@ const sectorOptions = [
 const loadingMaster = ref(false)
 const masterSearchQuery = ref('')
 
-const selectedOfficeId = ref(null)
+const allOfficesList = ref([])
+const selectedOfficeId = ref([])
 const selectedOfficeName = ref('')
-const selectedDirectorateId = ref(null)
+const selectedDirectorateId = ref([])
 const selectedDirectorateName = ref('')
-const selectedSchoolId = ref(null)
+const selectedSchoolId = ref([])
 const selectedSchoolName = ref('')
 const selectedSubjectId = ref(null)
 const selectedSubjectName = ref('')
@@ -2767,33 +2832,62 @@ const kpiExamsCount = computed(() => {
   return masterExamsList.value.length
 })
 
+const normalizeIds = (val) => {
+  if (!val) return []
+  if (Array.isArray(val)) {
+    return val.map(x => {
+      if (typeof x === 'object' && x !== null) {
+        return Number(x.id ?? x.value ?? x.raw?.id)
+      }
+      return Number(x)
+    }).filter(n => !isNaN(n) && n > 0)
+  }
+  if (typeof val === 'object' && val !== null) {
+    const id = Number(val.id ?? val.value ?? val.raw?.id)
+    return (!isNaN(id) && id > 0) ? [id] : []
+  }
+  if (typeof val === 'string' && val.includes(',')) {
+    return val.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n) && n > 0)
+  }
+  const num = Number(val)
+  return (!isNaN(num) && num > 0) ? [num] : []
+}
+
 // Autocomplete Options
 const directoratesOptions = computed(() => {
-  if (selectedOfficeId.value) {
-    return directoratesList.value.filter(d => d.office_id === selectedOfficeId.value)
+  const officeIds = normalizeIds(selectedOfficeId.value)
+  if (officeIds.length > 0) {
+    return (directoratesList.value || []).filter(d => officeIds.includes(Number(d.office_id)))
   }
-  return directoratesList.value
+  return directoratesList.value || []
 })
 
 const schoolsOptions = computed(() => {
-  let list = schoolsList.value
+  let list = schoolsList.value || []
   if (institutionType.value !== 'all') {
     list = list.filter(s => !s.institution_type || s.institution_type === institutionType.value)
   }
-  if (selectedDirectorateId.value) {
-    const dObj = directoratesList.value.find(d => d.id === selectedDirectorateId.value)
-    const dName = dObj?.name?.replace(/^(إدارة التربية والتعليم - مديرية |مديرية )/, '').trim()
+  const dirIds = normalizeIds(selectedDirectorateId.value)
+  const officeIds = normalizeIds(selectedOfficeId.value)
+
+  if (dirIds.length > 0) {
+    const dObjs = (directoratesList.value || []).filter(d => dirIds.includes(Number(d.id)))
+    const dNames = dObjs.map(d => d.name?.replace(/^(إدارة التربية والتعليم - مديرية |مديرية )/, '').trim()).filter(Boolean)
     list = list.filter(s => 
-      s.directorate_id === selectedDirectorateId.value ||
-      (dName && s.directorate_name && s.directorate_name.includes(dName))
+      dirIds.includes(Number(s.directorate_id)) ||
+      dNames.some(dn => s.directorate_name && s.directorate_name.includes(dn))
     )
-  } else if (selectedOfficeId.value) {
-    const oObj = officesList.value.find(o => o.id === selectedOfficeId.value)
-    const oGov = oObj?.governorate_name?.trim()
+  } else if (officeIds.length > 0) {
+    const oObjs = (officesList.value || []).filter(o => officeIds.includes(Number(o.id)))
+    const oGovs = oObjs.map(o => o.governorate_name?.trim()).filter(Boolean)
     list = list.filter(s => 
-      s.office_id === selectedOfficeId.value ||
-      (oGov && s.governorate_name && s.governorate_name.includes(oGov))
+      officeIds.includes(Number(s.office_id)) ||
+      oGovs.some(og => s.governorate_name && s.governorate_name.includes(og))
     )
+  }
+  const schoolIds = normalizeIds(selectedSchoolId.value)
+  if (schoolIds.length > 0) {
+    list = list.filter(s => schoolIds.includes(Number(s.id)))
   }
   return list
 })
@@ -2801,6 +2895,10 @@ const schoolsOptions = computed(() => {
 // Filtered Master Tables Computeds
 const filteredOfficesTable = computed(() => {
   let list = officesList.value || []
+  const selIds = normalizeIds(selectedOfficeId.value)
+  if (selIds.length > 0) {
+    list = list.filter(o => selIds.includes(Number(o.id)))
+  }
   if (selectedSubjectId.value) {
     list = list.filter(o => (o.exams_count || 0) > 0)
   }
@@ -2816,8 +2914,13 @@ const filteredOfficesTable = computed(() => {
 
 const filteredDirectoratesTable = computed(() => {
   let list = directoratesList.value || []
-  if (selectedOfficeId.value) {
-    list = list.filter(d => d.office_id === selectedOfficeId.value)
+  const officeIds = normalizeIds(selectedOfficeId.value)
+  if (officeIds.length > 0) {
+    list = list.filter(d => officeIds.includes(Number(d.office_id)))
+  }
+  const dirIds = normalizeIds(selectedDirectorateId.value)
+  if (dirIds.length > 0) {
+    list = list.filter(d => dirIds.includes(Number(d.id)))
   }
   if (selectedSubjectId.value) {
     list = list.filter(d => (d.exams_count || 0) > 0)
@@ -2837,20 +2940,27 @@ const filteredSchoolsTable = computed(() => {
   if (institutionType.value !== 'all') {
     list = list.filter(s => !s.institution_type || s.institution_type === institutionType.value)
   }
-  if (selectedDirectorateId.value) {
-    const dObj = directoratesList.value.find(d => d.id === selectedDirectorateId.value)
-    const dName = dObj?.name?.replace(/^(إدارة التربية والتعليم - مديرية |مديرية )/, '').trim()
+  const dirIds = normalizeIds(selectedDirectorateId.value)
+  const officeIds = normalizeIds(selectedOfficeId.value)
+
+  if (dirIds.length > 0) {
+    const dObjs = (directoratesList.value || []).filter(d => dirIds.includes(Number(d.id)))
+    const dNames = dObjs.map(d => d.name?.replace(/^(إدارة التربية والتعليم - مديرية |مديرية )/, '').trim()).filter(Boolean)
     list = list.filter(s => 
-      s.directorate_id === selectedDirectorateId.value ||
-      (dName && s.directorate_name && s.directorate_name.includes(dName))
+      dirIds.includes(Number(s.directorate_id)) ||
+      dNames.some(dn => s.directorate_name && s.directorate_name.includes(dn))
     )
-  } else if (selectedOfficeId.value) {
-    const oObj = officesList.value.find(o => o.id === selectedOfficeId.value)
-    const oGov = oObj?.governorate_name?.trim()
+  } else if (officeIds.length > 0) {
+    const oObjs = (officesList.value || []).filter(o => officeIds.includes(Number(o.id)))
+    const oGovs = oObjs.map(o => o.governorate_name?.trim()).filter(Boolean)
     list = list.filter(s => 
-      s.office_id === selectedOfficeId.value ||
-      (oGov && s.governorate_name && s.governorate_name.includes(oGov))
+      officeIds.includes(Number(s.office_id)) ||
+      oGovs.some(og => s.governorate_name && s.governorate_name.includes(og))
     )
+  }
+  const schoolIds = normalizeIds(selectedSchoolId.value)
+  if (schoolIds.length > 0) {
+    list = list.filter(s => schoolIds.includes(Number(s.id)))
   }
   if (selectedSubjectId.value) {
     const sObj = subjectsList.value.find(s => s.id === selectedSubjectId.value)
@@ -2876,13 +2986,22 @@ const filteredSchoolsTable = computed(() => {
 
 const filteredMasterExamsTable = computed(() => {
   let list = masterExamsList.value || []
-  if (selectedDirectorateId.value) {
-    list = list.filter(e => e.directorate_id === selectedDirectorateId.value)
-  } else if (selectedOfficeId.value) {
-    list = list.filter(e => e.governorate_id === selectedOfficeId.value || e.office_id === selectedOfficeId.value)
+  if (institutionType.value && institutionType.value !== 'all') {
+    list = list.filter(e => e.institution_type === institutionType.value)
+  }
+  const dirIds = normalizeIds(selectedDirectorateId.value)
+  const officeIds = normalizeIds(selectedOfficeId.value)
+  const schoolIds = normalizeIds(selectedSchoolId.value)
+
+  if (schoolIds.length > 0) {
+    list = list.filter(e => schoolIds.includes(Number(e.school_id)))
+  } else if (dirIds.length > 0) {
+    list = list.filter(e => dirIds.includes(Number(e.directorate_id)))
+  } else if (officeIds.length > 0) {
+    list = list.filter(e => officeIds.includes(Number(e.governorate_id)) || officeIds.includes(Number(e.office_id)))
   }
   if (selectedSubjectId.value) {
-    list = list.filter(e => e.subject_id === selectedSubjectId.value || e.subject === selectedSubjectId.value)
+    list = list.filter(e => Number(e.subject_id) === Number(selectedSubjectId.value) || Number(e.subject) === Number(selectedSubjectId.value))
   }
   if (masterSearchQuery.value) {
     const q = masterSearchQuery.value.toLowerCase().trim()
@@ -3116,16 +3235,35 @@ const loadSubjects = async () => {
 const loadMasterData = async () => {
   loadingMaster.value = true
   try {
-    const params = {
+    const officeIds = normalizeIds(selectedOfficeId.value)
+    const dirIds = normalizeIds(selectedDirectorateId.value)
+    const schoolIds = normalizeIds(selectedSchoolId.value)
+
+    const baseParams = {
       institution_type: institutionType.value !== 'all' ? institutionType.value : undefined,
       subject: selectedSubjectId.value || undefined,
     }
-    const [officesRes, directoratesRes, schoolsRes, examsRes] = await Promise.all([
-      gradebookAPI.getByOffice(params).catch(() => ({ data: { results: [] } })),
-      gradebookAPI.getByDirectorate(params).catch(() => ({ data: { results: [] } })),
-      gradebookAPI.getBySchool(params).catch(() => ({ data: { results: [] } })),
-      gradebookAPI.list(params).catch(() => ({ data: { results: [] } }))
+    const officeParams = { ...baseParams }
+    if (officeIds.length > 0) officeParams.office_id = officeIds.join(',')
+
+    const dirParams = { ...officeParams }
+
+    const schoolParams = { ...dirParams }
+    if (dirIds.length > 0) schoolParams.directorate_id = dirIds.join(',')
+    if (schoolIds.length > 0) schoolParams.school_id = schoolIds.join(',')
+
+    const [allOfficesRes, officesRes, directoratesRes, schoolsRes, examsRes] = await Promise.all([
+      (!allOfficesList.value || !allOfficesList.value.length)
+        ? gradebookAPI.getByOffice(baseParams).catch(() => ({ data: { results: [] } }))
+        : Promise.resolve({ data: { results: allOfficesList.value } }),
+      gradebookAPI.getByOffice(officeParams).catch(() => ({ data: { results: [] } })),
+      gradebookAPI.getByDirectorate(dirParams).catch(() => ({ data: { results: [] } })),
+      gradebookAPI.getBySchool(schoolParams).catch(() => ({ data: { results: [] } })),
+      gradebookAPI.list(schoolParams).catch(() => ({ data: { results: [] } }))
     ])
+    if (!allOfficesList.value || !allOfficesList.value.length) {
+      allOfficesList.value = allOfficesRes.data?.results || []
+    }
     officesList.value = officesRes.data?.results || []
     directoratesList.value = directoratesRes.data?.results || []
     schoolsList.value = schoolsRes.data?.results || []
@@ -3144,11 +3282,11 @@ const loadMasterData = async () => {
 
 const resetHierarchyFilters = async () => {
   institutionType.value = 'school'
-  selectedOfficeId.value = null
+  selectedOfficeId.value = []
   selectedOfficeName.value = ''
-  selectedDirectorateId.value = null
+  selectedDirectorateId.value = []
   selectedDirectorateName.value = ''
-  selectedSchoolId.value = null
+  selectedSchoolId.value = []
   selectedSchoolName.value = ''
   selectedSubjectId.value = null
   selectedSubjectName.value = ''
@@ -3158,11 +3296,11 @@ const resetHierarchyFilters = async () => {
 
 const onSectorChange = (val) => {
   institutionType.value = val
-  selectedOfficeId.value = null
+  selectedOfficeId.value = []
   selectedOfficeName.value = ''
-  selectedDirectorateId.value = null
+  selectedDirectorateId.value = []
   selectedDirectorateName.value = ''
-  selectedSchoolId.value = null
+  selectedSchoolId.value = []
   selectedSchoolName.value = ''
   selectedSubjectId.value = null
   selectedSubjectName.value = ''
@@ -3213,49 +3351,37 @@ const selectExamFromSchoolDialog = async (exam, school) => {
 }
 
 const onOfficeFilterChange = (officeId) => {
-  selectedOfficeId.value = officeId
-  selectedDirectorateId.value = null
-  selectedDirectorateName.value = ''
-  selectedSchoolId.value = null
-  selectedSchoolName.value = ''
-  if (officeId) {
-    const o = officesList.value.find(item => item.id === officeId)
-    if (o) selectedOfficeName.value = o.office_name
+  selectedOfficeId.value = officeId || []
+  const officeIds = normalizeIds(selectedOfficeId.value)
+  if (officeIds.length > 0) {
+    const validDirIds = (directoratesList.value || []).filter(d => officeIds.includes(Number(d.office_id))).map(d => d.id)
+    selectedDirectorateId.value = (selectedDirectorateId.value || []).filter(id => validDirIds.includes(id))
   } else {
-    selectedOfficeName.value = ''
+    selectedDirectorateId.value = []
   }
+  selectedSchoolId.value = []
+  loadMasterData()
 }
 
 const onDirectorateFilterChange = (dirId) => {
-  selectedDirectorateId.value = dirId
-  selectedSchoolId.value = null
-  selectedSchoolName.value = ''
-  if (dirId) {
-    const d = directoratesList.value.find(item => item.id === dirId)
-    if (d) {
-      selectedDirectorateName.value = d.name
-      if (d.office_id && !selectedOfficeId.value) {
-        selectedOfficeId.value = d.office_id
-        selectedOfficeName.value = d.office_name
-      }
+  selectedDirectorateId.value = dirId || []
+  selectedSchoolId.value = []
+  const dirIds = normalizeIds(selectedDirectorateId.value)
+  const currentOfficeIds = normalizeIds(selectedOfficeId.value)
+  if (dirIds.length > 0 && currentOfficeIds.length === 0) {
+    const relatedOffices = (directoratesList.value || [])
+      .filter(d => dirIds.includes(Number(d.id)) && d.office_id)
+      .map(d => Number(d.office_id))
+    if (relatedOffices.length > 0) {
+      selectedOfficeId.value = Array.from(new Set(relatedOffices))
     }
-  } else {
-    selectedDirectorateName.value = ''
   }
+  loadMasterData()
 }
 
 const onSchoolFilterChange = (schoolId) => {
-  selectedSchoolId.value = schoolId
-  if (schoolId) {
-    const s = schoolsList.value.find(item => item.id === schoolId)
-    if (s) {
-      selectedSchoolName.value = s.name
-      if (s.directorate_name && !selectedDirectorateName.value) selectedDirectorateName.value = s.directorate_name
-      if (s.governorate_name && !selectedOfficeName.value) selectedOfficeName.value = s.governorate_name
-    }
-  } else {
-    selectedSchoolName.value = ''
-  }
+  selectedSchoolId.value = schoolId || []
+  loadMasterData()
 }
 
 const drillDownToOffice = (office) => {

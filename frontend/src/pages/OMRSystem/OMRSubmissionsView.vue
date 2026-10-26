@@ -73,7 +73,7 @@
             <v-col cols="12" sm="6" md="2">
               <v-autocomplete
                 v-model="selectedOfficeId"
-                :items="officesList"
+                :items="allOfficesList && allOfficesList.length ? allOfficesList : officesList"
                 item-title="office_name"
                 item-value="id"
                 label="مكتب التربية (المحافظة)"
@@ -343,6 +343,7 @@
           <!-- 1. تبويب مكاتب التربية بالمحافظات -->
           <v-window-item value="offices" v-if="institutionType === 'school'">
             <custom-data-table
+              :key="'offices-tbl-' + filteredOfficesTable.length + '-' + normalizeIds(selectedOfficeId).join('-')"
               v-model="selectedOfficeMasterRows"
               :items="officeMasterTableItems"
               :getData="getOfficeMasterData"
@@ -452,6 +453,7 @@
           <!-- 2. تبويب إدارات التربية بالمديريات -->
           <v-window-item value="directorates" v-if="institutionType === 'school'">
             <custom-data-table
+              :key="'dirs-tbl-' + filteredDirectoratesTable.length + '-' + normalizeIds(selectedDirectorateId).join('-') + '-' + normalizeIds(selectedOfficeId).join('-')"
               v-model="selectedDirectorateMasterRows"
               :items="directorateMasterTableItems"
               :getData="getDirectorateMasterData"
@@ -560,6 +562,7 @@
           <!-- 3. تبويب المراكز الامتحانية والمدارس / الجامعات / المعاهد -->
           <v-window-item value="schools">
             <custom-data-table
+              :key="'schools-tbl-' + filteredSchoolsTable.length + '-' + normalizeIds(selectedSchoolId).join('-') + '-' + normalizeIds(selectedDirectorateId).join('-')"
               v-model="selectedSchoolMasterRows"
               :items="schoolMasterTableItems"
               :getData="getSchoolMasterData"
@@ -725,6 +728,7 @@
           <!-- 4. تبويب الاختبارات الأكاديمية ومسحوبات الدفعات -->
           <v-window-item value="exams">
             <custom-data-table
+              :key="'exams-tbl-' + filteredExamsTable.length + '-' + normalizeIds(selectedOfficeId).join('-')"
               v-model="selectedExamMasterRows"
               :items="examMasterTableItems"
               :getData="getExamMasterData"
@@ -869,53 +873,25 @@
               <span class="text-primary font-weight-black">{{ selectedExamObj?.title || 'سجل الأوراق الممسوحة' }}</span>
             </div>
           </div>
+        </div>
+      </div>
 
-          <!-- اختيار الاختبار والأزرار السريعة -->
-          <div class="d-flex align-center gap-2 flex-wrap">
+      <!-- شريط تصفية نتائج أوراق الإجابة (الاختبار والنموذج والحالة والمتوسط) -->
+      <div class="main-card pa-4 rounded-2xl mb-4 bg-surface border">
+        <v-row dense class="align-center">
+          <v-col cols="12" sm="6" md="4">
             <v-autocomplete
               v-model="selectedExamId"
               :items="examsList"
               item-title="title"
               item-value="id"
               label="الاختبار المعروض"
+              placeholder="اختر الاختبار..."
               density="compact"
               variant="outlined"
               hide-details
-              style="min-width: 280px;"
+              prepend-inner-icon="mdi-file-document-edit-outline"
               @update:model-value="onExamChange"
-            />
-
-            <v-btn
-              color="primary"
-              variant="tonal"
-              size="small"
-              rounded="lg"
-              class="font-weight-bold"
-              prepend-icon="mdi-refresh"
-              :loading="loadingRecords"
-              @click="fetchSubmissionsRoster({ params: { page: 1 } })"
-            >
-              تحديث السجل
-            </v-btn>
-          </div>
-        </div>
-      </div>
-
-      <!-- شريط تصفية نتائج أوراق الإجابة (البحث والنموذج والحالة) -->
-      <div class="main-card pa-4 rounded-2xl mb-4 bg-surface border">
-        <v-row dense class="align-center mb-3">
-          <v-col cols="12" sm="6" md="4">
-            <v-text-field
-              v-model="searchQuery"
-              placeholder="بحث بالاسم أو رقم الجلوس أو الرقم السري..."
-              prepend-inner-icon="mdi-magnify"
-              density="compact"
-              variant="outlined"
-              hide-details
-              clearable
-              @update:model-value="onSearchInput"
-              @keydown.enter="applyFilters"
-              @click:clear="onClearSearch"
             />
           </v-col>
 
@@ -934,7 +910,7 @@
             />
           </v-col>
 
-          <v-col cols="6" sm="3" md="3">
+          <v-col cols="6" sm="3" md="2">
             <v-select
               v-model="filterStatus"
               :items="statusFilterFieldOptions"
@@ -950,10 +926,23 @@
             />
           </v-col>
 
-          <v-col cols="12" sm="12" md="3" class="d-flex justify-end align-center gap-2">
+          <v-col cols="12" sm="12" md="4" class="d-flex justify-end align-center gap-2 flex-wrap">
             <v-chip color="indigo" variant="tonal" size="small" class="font-weight-black">
               متوسط الدرجات: {{ statsData.average_score || 0 }}%
             </v-chip>
+
+            <v-btn
+              v-if="selectedExamId"
+              color="indigo"
+              variant="tonal"
+              size="small"
+              rounded="lg"
+              class="font-weight-bold"
+              prepend-icon="mdi-clipboard-list-outline"
+              @click="$router.push(`/omr-gradebook?exam=${selectedExamId}`)"
+            >
+              كشف الرصد الأكاديمي
+            </v-btn>
 
             <v-btn
               variant="tonal"
@@ -972,64 +961,6 @@
 
       <!-- جدول أوراق الإجابة المصححة والممسوحة -->
       <div class="main-card rounded-2xl overflow-hidden mb-6 elevation-1">
-        <!-- شريط إدارة التحديد والعمليات المجمعة -->
-        <div class="d-flex align-center justify-space-between flex-wrap gap-3 px-4 py-3 bg-surface border-b">
-          <div class="d-flex align-center gap-3 flex-wrap">
-            <v-checkbox-btn
-              :model-value="isAllCurrentSelected"
-              :indeterminate="isSomeCurrentSelected"
-              color="primary"
-              density="compact"
-              hide-details
-              @update:model-value="toggleSelectAllCurrent"
-            />
-            <span class="text-caption font-weight-bold text-on-surface">
-              تحديد الكل
-            </span>
-
-            <v-chip
-              v-if="selectedSubmissionIds.length > 0"
-              size="small"
-              color="primary"
-              variant="flat"
-              class="font-weight-black"
-            >
-              {{ selectedSubmissionIds.length }} ورقة محددة
-            </v-chip>
-
-            <v-btn
-              v-if="selectedSubmissionIds.length > 0"
-              size="x-small"
-              variant="text"
-              color="error"
-              class="font-weight-bold"
-              @click="selectedSubmissionIds = []"
-            >
-              إلغاء التحديد
-            </v-btn>
-
-            <span class="text-caption text-medium-emphasis">
-              ({{ tableItems.pagination?.total || tableItems.count || 0 }} ورقة مسجلة)
-            </span>
-          </div>
-
-          <div class="d-flex align-center gap-2">
-            <!-- زر الانتقال لكشف الرصد والدرجات لهذا الاختبار -->
-            <v-btn
-              v-if="selectedExamId"
-              color="indigo"
-              variant="tonal"
-              size="small"
-              rounded="lg"
-              class="font-weight-bold"
-              prepend-icon="mdi-clipboard-list-outline"
-              @click="$router.push(`/omr-gradebook?exam=${selectedExamId}`)"
-            >
-              فتح كشف الرصد الأكاديمي
-            </v-btn>
-          </div>
-        </div>
-
         <custom-data-table
           v-model="selectedSubmissionIds"
           :headers="detailHeaders"
@@ -1041,7 +972,7 @@
           :log="false"
           :restore="false"
           :numbering="true"
-          :showSelect="false"
+          :showSelect="true"
           :itemValue="'id'"
           :actions="false"
         >
@@ -1050,19 +981,6 @@
             <template v-if="key === 'numbering'">
               <div class="d-flex justify-center align-center">
                 <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
-              </div>
-            </template>
-
-            <!-- عمود التحديد -->
-            <template v-else-if="key === 'select'">
-              <div class="d-flex justify-center align-center">
-                <v-checkbox-btn
-                  :model-value="selectedSubmissionIds.includes(item.id)"
-                  color="primary"
-                  density="compact"
-                  hide-details
-                  @update:model-value="toggleSubmissionSelection(item.id)"
-                />
               </div>
             </template>
 
@@ -1497,6 +1415,7 @@ export default {
       masterSearchQuery: '',
 
       educationalOrgs: [],
+      allOfficesList: [],
       officesList: [],
       directoratesList: [],
       schoolsList: [],
@@ -1628,7 +1547,6 @@ export default {
       },
 
       detailHeaders: [
-        { title: "تحديد", key: "select", sortable: false, align: "center", width: "60px" },
         { title: "الورقة الممسوحة", key: "sheet_thumbnail", sortable: false, align: "center", width: "90px" },
         { title: "رقم الجلوس", key: "seat_number", sortable: true, align: "center", width: "120px" },
         { title: "اسم الطالب والمادة", key: "student_name", sortable: true, align: "start" },
@@ -1736,7 +1654,7 @@ export default {
       let list = this.officesList || []
       const selIds = this.normalizeIds(this.selectedOfficeId)
       if (selIds.length > 0) {
-        list = list.filter(o => selIds.includes(o.id))
+        list = list.filter(o => selIds.includes(Number(o.id)))
       }
       if (this.selectedSubjectId) {
         list = list.filter(o => (o.exams_count || 0) > 0)
@@ -1752,11 +1670,11 @@ export default {
       let list = this.directoratesList || []
       const officeIds = this.normalizeIds(this.selectedOfficeId)
       if (officeIds.length > 0) {
-        list = list.filter(d => officeIds.includes(d.office_id))
+        list = list.filter(d => officeIds.includes(Number(d.office_id)))
       }
       const dirIds = this.normalizeIds(this.selectedDirectorateId)
       if (dirIds.length > 0) {
-        list = list.filter(d => dirIds.includes(d.id))
+        list = list.filter(d => dirIds.includes(Number(d.id)))
       }
       if (this.selectedSubjectId) {
         list = list.filter(d => (d.exams_count || 0) > 0)
@@ -1777,23 +1695,23 @@ export default {
       const officeIds = this.normalizeIds(this.selectedOfficeId)
 
       if (dirIds.length > 0) {
-        const dObjs = (this.directoratesList || []).filter(d => dirIds.includes(d.id))
+        const dObjs = (this.directoratesList || []).filter(d => dirIds.includes(Number(d.id)))
         const dNames = dObjs.map(d => d.name?.replace(/^(إدارة التربية والتعليم - مديرية |مديرية )/, '').trim()).filter(Boolean)
         list = list.filter(s => 
-          dirIds.includes(s.directorate_id) ||
+          dirIds.includes(Number(s.directorate_id)) ||
           dNames.some(dn => s.directorate_name && s.directorate_name.includes(dn))
         )
       } else if (officeIds.length > 0) {
-        const oObjs = (this.officesList || []).filter(o => officeIds.includes(o.id))
+        const oObjs = (this.officesList || []).filter(o => officeIds.includes(Number(o.id)))
         const oGovs = oObjs.map(o => o.governorate_name?.trim()).filter(Boolean)
         list = list.filter(s => 
-          officeIds.includes(s.office_id) ||
+          officeIds.includes(Number(s.office_id)) ||
           oGovs.some(og => s.governorate_name && s.governorate_name.includes(og))
         )
       }
       const schoolIds = this.normalizeIds(this.selectedSchoolId)
       if (schoolIds.length > 0) {
-        list = list.filter(s => schoolIds.includes(s.id))
+        list = list.filter(s => schoolIds.includes(Number(s.id)))
       }
       if (this.selectedSubjectId) {
         const sObj = (this.subjectsList || []).find(s => s.id === this.selectedSubjectId)
@@ -1826,9 +1744,9 @@ export default {
       const officeIds = this.normalizeIds(this.selectedOfficeId)
 
       if (dirIds.length > 0) {
-        list = list.filter(e => dirIds.includes(e.directorate_id))
+        list = list.filter(e => dirIds.includes(Number(e.directorate_id)))
       } else if (officeIds.length > 0) {
-        list = list.filter(e => officeIds.includes(e.governorate_id) || officeIds.includes(e.office_id))
+        list = list.filter(e => officeIds.includes(Number(e.office_id)) || officeIds.includes(Number(e.governorate_id)))
       }
       if (this.selectedSubjectId) {
         list = list.filter(e => e.subject_id === this.selectedSubjectId || e.subject === this.selectedSubjectId)
@@ -1915,14 +1833,28 @@ export default {
   methods: {
     normalizeIds(val) {
       if (!val) return []
-      if (Array.isArray(val)) {
-        return val.map(x => Number(x)).filter(x => !isNaN(x) && x > 0)
+      const arr = Array.isArray(val) ? val : [val]
+      const result = []
+      for (const item of arr) {
+        if (item === null || item === undefined || item === 'all' || item === '') continue
+        if (typeof item === 'object') {
+          const id = item.id ?? item.value ?? item.raw?.id ?? item.raw?.value
+          if (id !== undefined && !isNaN(Number(id)) && Number(id) > 0) {
+            result.push(Number(id))
+          }
+        } else if (!isNaN(Number(item)) && Number(item) > 0) {
+          result.push(Number(item))
+        } else if (typeof item === 'string' && item.includes(',')) {
+          for (const s of item.split(',')) {
+            const n = Number(s.trim())
+            if (!isNaN(n) && n > 0) result.push(n)
+          }
+        } else if (typeof item === 'string') {
+          const matchOff = (this.allOfficesList || this.officesList || []).find(o => o.office_name === item || o.governorate_name === item)
+          if (matchOff && matchOff.id) result.push(Number(matchOff.id))
+        }
       }
-      if (typeof val === 'number') return [val]
-      if (typeof val === 'string' && val.trim() && val !== 'all') {
-        return val.split(',').map(x => Number(x.trim())).filter(x => !isNaN(x) && x > 0)
-      }
-      return []
+      return Array.from(new Set(result))
     },
 
     notify(text, color = 'success') {
@@ -2031,19 +1963,27 @@ export default {
           institution_type: this.institutionType !== 'all' ? this.institutionType : undefined,
           subject: this.selectedSubjectId || undefined,
         }
-        const dirParams = { ...baseParams }
-        if (officeIds.length > 0) dirParams.office_id = officeIds.join(',')
+        const officeParams = { ...baseParams }
+        if (officeIds.length > 0) officeParams.office_id = officeIds.join(',')
+
+        const dirParams = { ...officeParams }
 
         const schoolParams = { ...dirParams }
         if (dirIds.length > 0) schoolParams.directorate_id = dirIds.join(',')
         if (schoolIds.length > 0) schoolParams.school_id = schoolIds.join(',')
 
-        const [officesRes, directoratesRes, schoolsRes, examsRes] = await Promise.all([
-          gradebookAPI.getByOffice(baseParams).catch(() => ({ data: { results: [] } })),
+        const [allOfficesRes, officesRes, directoratesRes, schoolsRes, examsRes] = await Promise.all([
+          (!this.allOfficesList || !this.allOfficesList.length)
+            ? gradebookAPI.getByOffice(baseParams).catch(() => ({ data: { results: [] } }))
+            : Promise.resolve({ data: { results: this.allOfficesList } }),
+          gradebookAPI.getByOffice(officeParams).catch(() => ({ data: { results: [] } })),
           gradebookAPI.getByDirectorate(dirParams).catch(() => ({ data: { results: [] } })),
           gradebookAPI.getBySchool(schoolParams).catch(() => ({ data: { results: [] } })),
           gradebookAPI.list(schoolParams).catch(() => ({ data: { results: [] } }))
         ])
+        if (!this.allOfficesList || !this.allOfficesList.length) {
+          this.allOfficesList = allOfficesRes.data?.results || []
+        }
         this.officesList = officesRes.data?.results || []
         this.directoratesList = directoratesRes.data?.results || []
         this.schoolsList = schoolsRes.data?.results || []
@@ -2095,7 +2035,7 @@ export default {
       this.selectedOfficeId = val || []
       const officeIds = this.normalizeIds(this.selectedOfficeId)
       if (officeIds.length > 0) {
-        const validDirIds = (this.directoratesList || []).filter(d => officeIds.includes(d.office_id)).map(d => d.id)
+        const validDirIds = (this.directoratesList || []).filter(d => officeIds.includes(Number(d.office_id))).map(d => d.id)
         this.selectedDirectorateId = (this.selectedDirectorateId || []).filter(id => validDirIds.includes(id))
       } else {
         this.selectedDirectorateId = []
@@ -2113,8 +2053,8 @@ export default {
       const currentOfficeIds = this.normalizeIds(this.selectedOfficeId)
       if (dirIds.length > 0 && currentOfficeIds.length === 0) {
         const relatedOffices = (this.directoratesList || [])
-          .filter(d => dirIds.includes(d.id) && d.office_id)
-          .map(d => d.office_id)
+          .filter(d => dirIds.includes(Number(d.id)) && d.office_id)
+          .map(d => Number(d.office_id))
         if (relatedOffices.length > 0) {
           this.selectedOfficeId = Array.from(new Set(relatedOffices))
         }
@@ -2352,7 +2292,11 @@ export default {
     buildFilterParams(extra = {}) {
       const q = { ...extra }
       if (this.selectedExamId) q.exam = this.selectedExamId
-      if (this.searchQuery && this.searchQuery.trim()) q.search = this.searchQuery.trim()
+      if (this.searchQuery && this.searchQuery.trim()) {
+        q.search = this.searchQuery.trim()
+      } else if (extra && extra.search) {
+        q.search = extra.search
+      }
       if (this.filterStatus) q.status = this.filterStatus
       if (this.filterVersion && this.filterVersion !== 'all') {
         q.version_code = this.filterVersion
