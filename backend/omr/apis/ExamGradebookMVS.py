@@ -50,7 +50,8 @@ class ExamGradebookMVS(ViewSet):
     """
     سجل درجات الاختبارات والترحيل لنظام الكنترول المركزي.
     """
-    permission_classes = [permissions.AllowAny]
+    from omr.permissions import IsControlOfficer
+    permission_classes = [permissions.IsAuthenticated, IsControlOfficer]
 
     def list(self, request):
         """
@@ -408,11 +409,12 @@ class ExamGradebookMVS(ViewSet):
         """
         search = request.query_params.get('search', '').strip()
         office_id = request.query_params.get('office_id') or request.query_params.get('office')
+        off_ids = [int(x) for x in str(office_id).split(',') if x.strip().isdigit()] if (office_id and office_id != 'all') else []
         subj_filter = request.query_params.get('subject') or request.query_params.get('subject_id')
 
         dirs_qs = CoreOrg.objects.filter(company_level=40, is_deleted=False)
-        if office_id:
-            dirs_qs = dirs_qs.filter(fk_parent_organization_id=office_id)
+        if off_ids:
+            dirs_qs = dirs_qs.filter(fk_parent_organization_id__in=off_ids)
         if search:
             dirs_qs = dirs_qs.filter(name_ar__icontains=search)
 
@@ -498,23 +500,27 @@ class ExamGradebookMVS(ViewSet):
                 Q(student_profile__organization__name_en__icontains=search)
             )
 
-        if directorate_id:
-            # Check if directorate_id is CoreOrg Level 40
-            core_dir = CoreOrg.objects.filter(id=directorate_id, company_level=40).first()
-            if core_dir:
-                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization=core_dir.id, is_deleted=False)
+        off_ids = [int(x) for x in str(office_id).split(',') if x.strip().isdigit()] if (office_id and office_id != 'all') else []
+        dir_ids = [int(x) for x in str(directorate_id).split(',') if x.strip().isdigit()] if (directorate_id and directorate_id != 'all') else []
+
+        if dir_ids:
+            core_dirs = CoreOrg.objects.filter(id__in=dir_ids, company_level=40)
+            if core_dirs.exists():
+                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=core_dirs.values_list('id', flat=True), is_deleted=False)
                 school_names = list(child_schools.values_list('name_ar', flat=True))
-                clean_name = core_dir.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip()
+                clean_names = [d.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip() for d in core_dirs]
+                dir_names = list(core_dirs.values_list('name_ar', flat=True))
                 regs_qs = regs_qs.filter(
                     Q(student_profile__organization__name_ar__in=school_names) |
-                    Q(student_profile__directorate__name_ar__icontains=clean_name)
+                    Q(student_profile__directorate__name_ar__in=clean_names) |
+                    Q(student_profile__directorate__name_ar__in=dir_names)
                 )
             else:
-                regs_qs = regs_qs.filter(student_profile__directorate_id=directorate_id)
-        elif office_id:
-            core_off = CoreOrg.objects.filter(id=office_id, company_level=30).first()
-            if core_off:
-                child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization=core_off.id, is_deleted=False)
+                regs_qs = regs_qs.filter(student_profile__directorate_id__in=dir_ids)
+        elif off_ids:
+            core_offices = CoreOrg.objects.filter(id__in=off_ids, company_level=30)
+            if core_offices.exists():
+                child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization__in=core_offices.values_list('id', flat=True), is_deleted=False)
                 child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=child_dirs.values_list('id', flat=True), is_deleted=False)
                 school_names = list(child_schools.values_list('name_ar', flat=True))
                 regs_qs = regs_qs.filter(student_profile__organization__name_ar__in=school_names)
@@ -530,7 +536,9 @@ class ExamGradebookMVS(ViewSet):
         for cs in core_schools:
             dir_name = cs.fk_parent_organization.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip() if cs.fk_parent_organization else "—"
             gov_name = cs.fk_parent_organization.fk_parent_organization.name_ar.replace('مكتب التربية والتعليم - ', '').strip() if (cs.fk_parent_organization and cs.fk_parent_organization.fk_parent_organization) else "—"
-            core_map[cs.name_ar] = (dir_name, gov_name)
+            dir_id = cs.fk_parent_organization_id
+            off_id = cs.fk_parent_organization.fk_parent_organization_id if cs.fk_parent_organization else None
+            core_map[cs.name_ar] = (dir_name, gov_name, dir_id, off_id)
 
         student_geo_map = {}
         for row in regs_qs.values(
@@ -594,9 +602,11 @@ class ExamGradebookMVS(ViewSet):
             avg_sc = subs_scores.get(org_id, 0.0) or 0.0
             prn = subs_printed.get(org_id, 0)
 
-            dir_name, gov_name = core_map.get(name, (None, None))
+            dir_info = core_map.get(name, (None, None, None, None))
+            dir_name, gov_name, dir_id, off_id = dir_info
             if not dir_name:
-                dir_name, gov_name = student_geo_map.get(org_id, ("—", "—"))
+                geo_tuple = student_geo_map.get(org_id, ("—", "—"))
+                dir_name, gov_name = geo_tuple[0], geo_tuple[1]
 
             # تفاصيل المواد والاختبارات التابعة للمدرسة ونماذجها المقيدة للطلاب
             school_regs = regs_qs.filter(student_profile__organization_id=org_id).select_related(
@@ -660,6 +670,8 @@ class ExamGradebookMVS(ViewSet):
                 "id": org_id,
                 "name": name,
                 "institution_type": s['student_profile__organization__institution_type'] or "school",
+                "directorate_id": dir_id,
+                "office_id": off_id,
                 "directorate_name": dir_name or "—",
                 "governorate_name": gov_name or "—",
                 "total_students": tot,
@@ -686,12 +698,60 @@ class ExamGradebookMVS(ViewSet):
     @action(detail=False, methods=['get'], url_path='subjects')
     def available_subjects(self, request):
         """
-        قائمة المواد الدراسية المعتمدة بالاختبارات المصدرة لفلترة شاشات الطباعة والرصد.
+        قائمة المواد الدراسية المعتمدة بالاختبارات المصدرة لفلترة شاشات الطباعة والرصد،
+        مع دعم التصفية الدقيقة حسب نوع المؤسسة (مدرسي / جامعي / معاهد) والمحافظات والمديريات.
         """
         from exams.models.Exam import Exam
-        subjects_qs = Exam.objects.filter(is_deleted=False, subject__isnull=False).values(
+        institution_type = request.query_params.get('institution_type')
+        office_id = request.query_params.get('office_id')
+        directorate_id = request.query_params.get('directorate_id')
+        school_id = request.query_params.get('school_id')
+
+        exams_qs = Exam.objects.filter(is_deleted=False, subject__isnull=False)
+
+        if institution_type and institution_type != 'all':
+            exams_qs = exams_qs.filter(institution_type=institution_type)
+
+        from OpenSoftCoreV41.common.models.Branch import Organization as CoreOrg
+        from exams.models.StudentExamRegistration import StudentExamRegistration
+
+        if directorate_id and directorate_id != 'all':
+            dir_ids = [int(x) for x in str(directorate_id).split(',') if x.strip().isdigit()]
+            if dir_ids:
+                core_dirs = CoreOrg.objects.filter(id__in=dir_ids, company_level=40)
+                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=core_dirs.values_list('id', flat=True), is_deleted=False)
+                school_names = list(child_schools.values_list('name_ar', flat=True))
+                reg_exam_ids = StudentExamRegistration.objects.filter(
+                    is_deleted=False,
+                    student_profile__organization__name_ar__in=school_names
+                ).values_list('examVersion__exam_id', flat=True)
+                exams_qs = exams_qs.filter(Q(directorate_id__in=dir_ids) | Q(id__in=reg_exam_ids))
+        elif office_id and office_id != 'all':
+            off_ids = [int(x) for x in str(office_id).split(',') if x.strip().isdigit()]
+            if off_ids:
+                core_offices = CoreOrg.objects.filter(id__in=off_ids, company_level=30)
+                child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization__in=core_offices.values_list('id', flat=True), is_deleted=False)
+                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=child_dirs.values_list('id', flat=True), is_deleted=False)
+                school_names = list(child_schools.values_list('name_ar', flat=True))
+                reg_exam_ids = StudentExamRegistration.objects.filter(
+                    is_deleted=False,
+                    student_profile__organization__name_ar__in=school_names
+                ).values_list('examVersion__exam_id', flat=True)
+                exams_qs = exams_qs.filter(Q(governorate_id__in=off_ids) | Q(id__in=reg_exam_ids))
+
+        if school_id and school_id != 'all':
+            sch_ids = [int(x) for x in str(school_id).split(',') if x.strip().isdigit()]
+            if sch_ids:
+                reg_exam_ids = StudentExamRegistration.objects.filter(
+                    is_deleted=False,
+                    student_profile__organization_id__in=sch_ids
+                ).values_list('examVersion__exam_id', flat=True)
+                exams_qs = exams_qs.filter(id__in=reg_exam_ids)
+
+        subjects_qs = exams_qs.values(
             'subject_id', 'subject__name_ar', 'subject__name_en'
         ).distinct()
+
         results = [
             {
                 "id": s['subject_id'],
@@ -1306,7 +1366,11 @@ class ExamGradebookMVS(ViewSet):
         except Exam.DoesNotExist:
             return Response({"success": False, "message": "الاختبار غير موجود"}, status=status.HTTP_404_NOT_FOUND)
 
-        # جلب جميع بيانات الطلاب والتسليمات للاختبار
+        # Gate 8 & P1: جلب كافة بيانات الطلاب (100%) بدون التقيد ببجنشن العرض (10 طلاب)
+        req_params = request.query_params.copy()
+        req_params['all'] = 'true'
+        if hasattr(request, '_request'):
+            request._request.GET = req_params
         roster_response = self.retrieve(request, pk=pk)
         records = roster_response.data.get('records', []) if hasattr(roster_response, 'data') else []
 

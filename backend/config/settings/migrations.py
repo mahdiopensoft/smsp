@@ -124,7 +124,7 @@ def get_migration_modules(env: str, separate_envs: bool = False) -> dict:
         قاموس MIGRATION_MODULES
     """
     migration_modules = {
-        'auth': None,  # تعطيل هجرات auth لأننا نستخدم نموذج مستخدم مخصص
+        # 'auth': None,  # تعطيل هجرات auth يسبب كسر إنشاء قاعدة بيانات الاختبار
         'gate_sync': None,  # تعطيل هجرات gate_sync لتجنب تبعيتها لهجرة screens.0054 غير الموجودة
     }
     
@@ -174,7 +174,7 @@ def get_migration_modules(env: str, separate_envs: bool = False) -> dict:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 MIGRATION_MODULES_DEFAULT = {
-    'auth': None,  # تعطيل هجرات auth لأننا نستخدم نموذج مستخدم مخصص
+    # 'auth': None,  # تعطيل هجرات auth يسبب كسر إنشاء قاعدة بيانات الاختبار
     'gate_sync': None,  # تعطيل هجرات gate_sync لتجنب تبعيتها لهجرة screens.0054 غير الموجودة
 }
 

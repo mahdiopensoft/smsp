@@ -40,23 +40,10 @@ class OMRScannerLabMVS(AllMVS):
             default_keys = {i: chr(65 + (i % 4)) for i in range(1, 41)}
             return Response({"success": True, "answerKey": default_keys})
 
-        key_map = {}
-        for qo in version.question_orders.filter(is_deleted=False).order_by('orderIndex'):
-            correct_opt = qo.question.options.filter(isTrue=True).first()
-            if correct_opt:
-                # Map option order to letter (A, B, C, D)
-                all_opts = list(qo.question.options.all())
-                try:
-                    idx = all_opts.index(correct_opt)
-                    key_map[qo.orderIndex] = chr(65 + idx)
-                except ValueError:
-                    key_map[qo.orderIndex] = 'A'
-            elif qo.question.isTrue is not None:
-                key_map[qo.orderIndex] = 'A' if qo.question.isTrue else 'B'
-            else:
-                key_map[qo.orderIndex] = 'A'
-
-        return Response({"success": True, "answerKey": key_map})
+        key_map, _ = version.get_answer_key_and_weights()
+        # Convert string keys to int for frontend compatibility
+        int_key_map = {int(k): v for k, v in key_map.items()}
+        return Response({"success": True, "answerKey": int_key_map})
 
     @action(detail=False, methods=['post'], url_path='scan-sheet')
     def scan_sheet(self, request):

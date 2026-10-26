@@ -28,7 +28,7 @@ class MasterYOLOVerifier:
         model_path: str = DEFAULT_YOLO_PATH,
         conf: float = 0.35,
         iou: float = 0.35,
-        enable_tracing: bool = True
+        enable_tracing: bool = False
     ):
         self.model_path = model_path
         self.conf = conf
@@ -41,6 +41,21 @@ class MasterYOLOVerifier:
         if self.enable_tracing:
             os.makedirs(os.path.join(self.tracer_dir, "crops"), exist_ok=True)
             os.makedirs(os.path.join(self.tracer_dir, "annotated"), exist_ok=True)
+
+    @classmethod
+    def cleanup_tracer(cls, max_age_hours: int = 24):
+        """Removes tracing files older than max_age_hours to prevent disk overflow."""
+        if not os.path.exists(DEBUG_TRACER_DIR):
+            return
+        now = time.time()
+        for root, dirs, files in os.walk(DEBUG_TRACER_DIR):
+            for f in files:
+                f_path = os.path.join(root, f)
+                try:
+                    if os.stat(f_path).st_mtime < now - (max_age_hours * 3600):
+                        os.remove(f_path)
+                except Exception:
+                    pass
 
     def _load_model(self):
         if not os.path.exists(self.model_path):

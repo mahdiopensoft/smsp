@@ -30,8 +30,25 @@ except ImportError:
 
 logger = logging.getLogger("omr.api")
 
-# مخزن مؤقت للنتائج (demo mode — لا قاعدة بيانات)
-_RESULT_CACHE: dict = {}
+from django.core.cache import cache
+
+class ResultCacheWrapper:
+    """Bounded, TTL-based cache wrapper to prevent memory leaks (Gate 7)."""
+    def get(self, key, default=None):
+        val = cache.get(f"omr_res_{key}")
+        return val if val is not None else default
+
+    def __getitem__(self, key):
+        val = self.get(key)
+        if val is None:
+            raise KeyError(key)
+        return val
+
+    def __setitem__(self, key, value):
+        # 1-hour expiration time prevents unbounded memory growth
+        cache.set(f"omr_res_{key}", value, timeout=3600)
+
+_RESULT_CACHE = ResultCacheWrapper()
 
 
 def _process_and_grade_image_file(
@@ -78,8 +95,8 @@ def _process_and_grade_image_file(
     from django.core.files.base import ContentFile
 
     student_info = result.get("student_info", {})
-    s_name = student_info.get("name") or "طالب اختبار"
-    seat_num = student_info.get("seat_number") or result.get("barcode") or ""
+    s_name = student_info.get("name") or ""
+    seat_num = student_info.get("seat_number") or ""
     total_q = result.get("total_questions", len(result.get("questions", [])))
 
     if not exam_obj:
@@ -102,13 +119,17 @@ def _process_and_grade_image_file(
         candidate_seats.append(str(seat_num).strip())
 
     # استخراج معرف الاختبار من الباركود إذا وجد (مثال: EXAM_7_VER_A_SEAT_418485)
+    extracted_exam_id = None
+    extracted_exam_code = None
     if barcode_val and "EXAM_" in barcode_val:
         try:
             ex_part = barcode_val.split("EXAM_")[1].split("_")[0]
             if ex_part.isdigit():
-                found_ex = Exam.objects.filter(id=int(ex_part), is_deleted=False).first()
-                if found_ex:
-                    exam_obj = found_ex
+                extracted_exam_id = int(ex_part)
+                if not exam_obj:
+                    found_ex = Exam.objects.filter(id=extracted_exam_id, is_deleted=False).first()
+                    if found_ex:
+                        exam_obj = found_ex
         except Exception:
             pass
 
@@ -116,11 +137,14 @@ def _process_and_grade_image_file(
     for c_val in [barcode_val, qr_val]:
         if c_val and "|" in c_val:
             parts = [p.strip() for p in c_val.split("|")]
-            if len(parts) >= 1 and not exam_obj:
+            if len(parts) >= 1:
                 u_code = parts[0]
-                found_ex = Exam.objects.filter(uniqueCode=u_code, is_deleted=False).first()
-                if found_ex:
-                    exam_obj = found_ex
+                if u_code and not u_code.isdigit():
+                    extracted_exam_code = u_code
+                if not exam_obj and u_code:
+                    found_ex = Exam.objects.filter(uniqueCode=u_code, is_deleted=False).first()
+                    if found_ex:
+                        exam_obj = found_ex
             if len(parts) >= 3 and parts[2].isdigit():
                 candidate_seats.insert(0, parts[2])
             if len(parts) >= 4 and parts[3].isdigit():
@@ -136,9 +160,30 @@ def _process_and_grade_image_file(
     if qr_val:
         tokens = [t.strip() for t in re.split(r'[-|_/]', qr_val) if t.strip().isdigit()]
         candidate_seats.extend(tokens)
-        candidate_seats.extend(tokens)
+
+    # إزالة التكرارات مع الحفاظ على الترتيب
+    seen_s = set()
+    dedup_seats = []
+    for s in candidate_seats:
+        if s and s not in seen_s:
+            seen_s.add(s)
+            dedup_seats.append(s)
+    candidate_seats = dedup_seats
+
+    if not seat_num and candidate_seats:
+        seat_num = candidate_seats[0]
+
+    # فحص ما إذا كان الباركود يتبع اختباراً آخر (Mismatched Exam Detection)
+    foreign_exam = None
+    if exam_obj:
+        if extracted_exam_id and extracted_exam_id != exam_obj.id:
+            foreign_exam = Exam.objects.filter(id=extracted_exam_id, is_deleted=False).first()
+        elif extracted_exam_code and (not exam_obj.uniqueCode or exam_obj.uniqueCode != extracted_exam_code):
+            foreign_exam = Exam.objects.filter(uniqueCode=extracted_exam_code, is_deleted=False).first()
 
     matched_reg = None
+    unregistered_error = ""
+
     if exam_obj:
         reg_qs = StudentExamRegistration.objects.filter(examVersion__exam=exam_obj, is_deleted=False).select_related('student', 'student_profile__organization', 'examVersion')
         for c_seat in candidate_seats:
@@ -152,8 +197,8 @@ def _process_and_grade_image_file(
                     matched_reg = r
                     break
 
-    # محاولة مطابقة الطالب برقم الجلوس مباشرة حتى لو لم يحدد الاختبار مسبقاً
-    if not matched_reg:
+    # Gate 3: مطابقة الطالب برقم الجلوس محصورة فقط داخل الاختبار المختار؛ يُمنع منعاً باتاً Cross-Exam
+    if not matched_reg and not exam_obj:
         for c_seat in candidate_seats:
             if c_seat and c_seat.isdigit():
                 reg_found = StudentExamRegistration.objects.filter(
@@ -161,8 +206,7 @@ def _process_and_grade_image_file(
                 ).select_related('student', 'student_profile__organization', 'examVersion__exam').first()
                 if reg_found:
                     matched_reg = reg_found
-                    if not exam_obj:
-                        exam_obj = matched_reg.examVersion.exam
+                    exam_obj = matched_reg.examVersion.exam
                     break
 
     inst_name = ""
@@ -177,6 +221,34 @@ def _process_and_grade_image_file(
             seat_num = matched_reg.seatNumber
         if matched_reg.student_profile and matched_reg.student_profile.organization:
             inst_name = matched_reg.student_profile.organization.name_ar
+    else:
+        # عزل وتحليل حالة الطالب غير المسجل في هذا الاختبار بدقة قطعية
+        if foreign_exam:
+            foreign_reg = None
+            if seat_num:
+                foreign_reg = StudentExamRegistration.objects.filter(
+                    examVersion__exam=foreign_exam, seatNumber=seat_num, is_deleted=False
+                ).select_related('student_profile', 'student').first()
+
+            if foreign_reg:
+                f_name = foreign_reg.student_profile.name_ar if (foreign_reg.student_profile and foreign_reg.student_profile.name_ar) else str(foreign_reg.student)
+                s_name = f"{f_name} (ورقة تابعة لاختبار آخر)"
+                unregistered_error = (
+                    f"MISMATCHED_EXAM: الورقة تتبع اختبار آخر ('{foreign_exam.title}' - كود: {foreign_exam.uniqueCode or foreign_exam.id}) "
+                    f"وليست لهذا الاختبار المختار ('{exam_obj.title}'). الطالبة/الطالب: {f_name} (رقم الجلوس: {seat_num}). تم عزل الورقة للتدقيق البشري."
+                )
+            else:
+                s_name = f"طالب من اختبار آخر (رقم الجلوس: {seat_num})" if seat_num else "طالب من اختبار آخر"
+                unregistered_error = (
+                    f"MISMATCHED_EXAM: الورقة تتبع اختبار آخر ('{foreign_exam.title}') وليست لهذا الاختبار المختار ('{exam_obj.title}'). "
+                    f"رقم الجلوس: {seat_num or 'غير محدد'}. تم عزل الورقة للتدقيق البشري."
+                )
+        elif seat_num or barcode_val:
+            s_name = f"طالب غير مسجل (رقم الجلوس: {seat_num})" if seat_num else "طالب غير مسجل"
+            unregistered_error = f"UNREGISTERED_STUDENT_IN_EXAM: رقم الجلوس ({seat_num or 'غير محدد'}) غير مسجل في قوائم هذا الاختبار ('{exam_obj.title}')."
+        else:
+            s_name = "طالب غير محدد (تعذر قراءة الباركود)"
+            unregistered_error = "MISSING_STUDENT_IDENTITY: تعذر قراءة رقم الجلوس أو الباركود التعريفي للورقة الضوئية. يرجى التدقيق اليدوي."
 
     # ═══ قفل وحماية الكنترول المركزي الصارم (Control Lock Enforcement) ═══
     # يمنع منعاً باتاً تعديل أو إعادة تصحيح أي ورقة لطالب تم ترحيلها واعتمادها رسمياً في الكنترول
@@ -224,20 +296,7 @@ def _process_and_grade_image_file(
 
     # إذا تم كشف نموذج معتمد بدقة، يتم إعادة احتساب الدرجات بمفتاح النموذج الفعلي
     if target_version:
-        v_key = {}
-        v_marks = {}
-        for qo in target_version.question_orders.filter(is_deleted=False).order_by('orderIndex'):
-            q = qo.question
-            opts = list(q.options.filter(is_deleted=False))
-            ans_letter = 'A'
-            for idx, opt in enumerate(opts):
-                if opt.isTrue:
-                    ans_letter = chr(65 + idx)
-                    break
-            if (q.questionType in ['True/False', 'true_false', 'صح وخطأ']) or (q.isTrue is not None):
-                ans_letter = 'A' if q.isTrue is True else ('B' if q.isTrue is False else ans_letter)
-            v_key[str(qo.orderIndex)] = ans_letter
-            v_marks[str(qo.orderIndex)] = float(q.defaultMark or 1.0)
+        v_key, v_marks = target_version.get_answer_key_and_weights()
 
         re_score = 0.0
         re_max = 0.0
@@ -281,8 +340,8 @@ def _process_and_grade_image_file(
     if ambiguous_cnt == 0:
         ambiguous_cnt = result.get("ai_corrections", 0)
 
-    initial_sub_status = Submission.Status.NEEDS_REVIEW if (ambiguous_cnt > 0 or confidence < 0.85) else Submission.Status.COMPLETED
-    initial_sheet_status = "needs_review" if (ambiguous_cnt > 0 or confidence < 0.85) else "success"
+    initial_sub_status = Submission.Status.NEEDS_REVIEW if (ambiguous_cnt > 0 or confidence < 0.85 or bool(unregistered_error)) else Submission.Status.COMPLETED
+    initial_sheet_status = "needs_review" if (ambiguous_cnt > 0 or confidence < 0.85 or bool(unregistered_error)) else "success"
 
     annotated_raw = result.pop("annotated_image", b"")
     annotated_b64 = base64.b64encode(annotated_raw).decode() if annotated_raw else ""
@@ -306,6 +365,7 @@ def _process_and_grade_image_file(
             "exam_title":       exam_obj.title if exam_obj else "",
             "version_code":     target_version.versionCode if target_version else "",
             "status":           initial_sub_status,
+            "error_message":    unregistered_error,
             "confidence":       confidence,
             "total_questions":  total_q,
             "score":            result["score"],
@@ -332,6 +392,7 @@ def _process_and_grade_image_file(
         "exam": exam_obj,
         "batch": batch_obj,
         "status": initial_sub_status,
+        "error_message": unregistered_error,
         "current_engine": result.get("engine_used", "opencv_omr"),
         "mcq_score": result.get("score", 0),
         "total_score": result.get("score", 0),
@@ -400,16 +461,28 @@ def _process_and_grade_image_file(
 
     for q_item in result.get("questions", []):
         q_num = int(q_item.get("question_id") or q_item.get("q") or 1)
+        c_choice = q_item.get("candidate_choice") or q_item.get("marked_choice")
+        f_choice = q_item.get("final_marked_choice") or q_item.get("marked_choice")
+        b_state = q_item.get("bubble_state") or ("filled" if f_choice else "empty")
+        q_weight = float(q_item.get("max_mark", 1.0))
         OMRQuestionResult.objects.create(
             sheet_result=sheet_obj,
             question_number=q_num,
-            marked_choice=q_item.get("marked_choice") or q_item.get("marked"),
+            marked_choice=f_choice,
+            candidate_choice=c_choice,
+            final_marked_choice=f_choice,
+            original_marked_choice=c_choice,
+            original_bubble_state=b_state,
             correct_choice=q_item.get("correct_choice") or q_item.get("correct"),
             is_correct=q_item.get("is_correct"),
-            bubble_state=q_item.get("bubble_state") or ("filled" if q_item.get("marked_choice") else "empty"),
+            bubble_state=b_state,
             choice_confidences=q_item.get("choice_confidences") or {},
             final_confidence=float(q_item.get("final_confidence") or q_item.get("confidence") or 0.95),
-            marks_awarded=float(q_item.get("marks_awarded", q_item.get("score_awarded", 1.0 if q_item.get("is_correct") else 0.0))),
+            decision_confidence=float(q_item.get("decision_confidence", 1.0)),
+            needs_review=bool(q_item.get("needs_review", False)),
+            review_priority=q_item.get("review_priority", "NONE"),
+            assigned_weight=q_weight,
+            marks_awarded=float(q_item.get("marks_awarded", q_item.get("score_awarded", q_weight if q_item.get("is_correct") else 0.0))),
         )
 
     result_id = str(sub_record.id)
@@ -430,6 +503,7 @@ def _process_and_grade_image_file(
         "exam_title":       exam_obj.title if exam_obj else "",
         "version_code":     target_version.versionCode if target_version else "",
         "status":           initial_sub_status,
+        "error_message":    unregistered_error,
         "confidence":       confidence,
         "total_questions":  total_q,
         "score":            result["score"],
@@ -508,22 +582,13 @@ def grade_sheet(request):
                 exam_obj = target_version.exam
 
             if target_version:
-                for qo in target_version.question_orders.filter(is_deleted=False).order_by('orderIndex'):
-                    q = qo.question
-                    opts = list(q.options.filter(is_deleted=False))
-                    ans_letter = 'A'
-                    for idx, opt in enumerate(opts):
-                        if opt.isTrue:
-                            ans_letter = chr(65 + idx)
-                            break
-                    if (q.questionType in ['True/False', 'true_false', 'صح وخطأ']) or (q.isTrue is not None):
-                        ans_letter = 'A' if q.isTrue is True else ('B' if q.isTrue is False else ans_letter)
-                    
-                    q_num_str = str(qo.orderIndex)
+                f_key, f_marks = target_version.get_answer_key_and_weights()
+                for q_num_str, ans_letter in f_key.items():
                     if not answer_key or q_num_str not in answer_key:
                         answer_key[q_num_str] = ans_letter
+                for q_num_str, mark_val in f_marks.items():
                     if q_num_str not in marks_map:
-                        marks_map[q_num_str] = float(q.defaultMark or 1.0)
+                        marks_map[q_num_str] = mark_val
         except Exception as e_key:
             logger.warning(f"Could not auto-fetch answer key from ExamVersion: {e_key}")
 

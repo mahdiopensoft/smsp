@@ -1,100 +1,149 @@
 <template>
-  <div class="qb-gradebook-view-v4">
+  <div class="qb-gradebook-view-v4 pa-4 pa-md-6">
 
-    <!-- ── 1. Sector Switcher (فصل نوع المؤسسة التعليمية بشكل قاطع) ── -->
-    <div class="d-flex align-center justify-start flex-wrap gap-3 mb-4">
-      <v-btn-toggle
-        v-model="institutionType"
-        mandatory
-        color="primary"
-        variant="outlined"
-        density="comfortable"
-        rounded="xl"
-        class="bg-surface border"
-        @update:model-value="onSectorChange"
-      >
-        <v-btn value="school" class="px-4 font-weight-bold" prepend-icon="mdi-school">
-          التعليم العام (المدرسي)
-        </v-btn>
-        <v-btn value="university" class="px-4 font-weight-bold" prepend-icon="mdi-domain">
-          التعليم الجامعي (كليات وجامعات)
-        </v-btn>
-        <v-btn value="institute" class="px-4 font-weight-bold" prepend-icon="mdi-tools">
-          التعليم الفني والمهني (معاهد)
-        </v-btn>
-      </v-btn-toggle>
-
-
-    </div>
-
-    <!-- ── 2. MASTER VIEW: عرض الهيكل الإداري والمكاتب والمديريات والمراكز والاختبارات ── -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- 1. MASTER VIEW: الهيكل الإداري وسجل درجات الطلاب المركزي       -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
     <div v-if="currentView === 'master'" class="master-view-container">
       <!-- شريط التصفية الهيكلي الموحد (مرتب وبدون تكرار) -->
       <div class="main-card pa-4 rounded-2xl mb-4 bg-surface border elevation-1">
+        <!-- شريط الفلاتر الهيكلية العلوي: عنوان وأزرار الإجراءات -->
+        <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3 pb-2 border-b">
+          <div class="d-flex align-center gap-2">
+            <v-icon color="primary" size="20">mdi-filter-variant</v-icon>
+            <span class="text-subtitle-2 font-weight-black text-on-surface">فلاتر الهيكل الإداري والمؤسسي:</span>
+          </div>
+
+          <div class="d-flex align-center gap-2">
+            <v-btn
+              variant="tonal"
+              color="error"
+              size="small"
+              rounded="lg"
+              class="font-weight-bold"
+              prepend-icon="mdi-filter-remove-outline"
+              @click="resetHierarchyFilters"
+            >
+              تفريغ الفلاتر
+            </v-btn>
+            <v-btn
+              color="primary"
+              variant="flat"
+              size="small"
+              rounded="lg"
+              class="font-weight-bold"
+              prepend-icon="mdi-refresh"
+              :loading="loadingMaster"
+              @click="refreshMasterData"
+            >
+              تحديث
+            </v-btn>
+          </div>
+        </div>
+
         <v-row dense class="align-center">
+          <!-- نوع المؤسسة التعليمية كفلتر منسدل أساسي -->
+          <v-col cols="12" sm="6" :md="institutionType === 'school' ? 2 : 4">
+            <v-select
+              v-model="institutionType"
+              :items="sectorOptions"
+              item-title="title"
+              item-value="value"
+              label="نوع المؤسسة التعليمية"
+              density="compact"
+              variant="outlined"
+              rounded="lg"
+              hide-details
+              :prepend-inner-icon="institutionType === 'university' ? 'mdi-domain' : (institutionType === 'institute' ? 'mdi-tools' : 'mdi-school')"
+              @update:model-value="onSectorChange"
+            >
+              <template #item="{ props, item }">
+                <v-list-item v-bind="props" :prepend-icon="item.raw?.icon" />
+              </template>
+            </v-select>
+          </v-col>
+
           <!-- التعليم العام (مدرسي) -->
           <template v-if="institutionType === 'school'">
-            <!-- مكتب التربية والتعليم بالمحافظة (المستوى 30 الحقيقي) -->
-            <v-col cols="12" md="4">
+            <v-col cols="12" sm="6" md="2">
               <v-autocomplete
                 v-model="selectedOfficeId"
-                :items="realOfficesList"
-                item-title="name_ar"
+                :items="officesList"
+                item-title="office_name"
                 item-value="id"
-                label="مكتب التربية والتعليم (المحافظة)"
+                label="مكتب التربية (المحافظة)"
                 placeholder="اختر مكتب التربية بالمحافظة..."
                 clearable
                 density="compact"
                 variant="outlined"
+                rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-office-building-outline"
                 @update:model-value="onOfficeFilterChange"
               />
             </v-col>
 
-            <!-- إدارة التربية والتعليم بالمديرية (المستوى 40 الحقيقي) -->
-            <v-col cols="12" md="4">
+            <v-col cols="12" sm="6" md="2">
               <v-autocomplete
                 v-model="selectedDirectorateId"
-                :items="realDirectoratesList"
-                item-title="name_ar"
+                :items="directoratesOptions"
+                item-title="name"
                 item-value="id"
-                label="إدارة التربية والتعليم (المديرية)"
+                label="إدارة التربية (المديرية)"
                 placeholder="اختر إدارة التربية بالمديرية..."
                 clearable
                 density="compact"
                 variant="outlined"
+                rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-map-marker-radius-outline"
                 @update:model-value="onDirectorateFilterChange"
               />
             </v-col>
 
-            <!-- المدرسة / المركز الامتحاني -->
-            <v-col cols="12" md="4">
+            <v-col cols="12" sm="6" md="3">
               <v-autocomplete
                 v-model="selectedSchoolId"
-                :items="realSchoolsList"
-                item-title="name_ar"
+                :items="schoolsOptions"
+                item-title="name"
                 item-value="id"
                 label="المدرسة / المركز الامتحاني"
                 placeholder="اختر المركز أو المدرسة..."
                 clearable
                 density="compact"
                 variant="outlined"
+                rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-school-outline"
                 @update:model-value="onSchoolFilterChange"
+              />
+            </v-col>
+
+            <v-col cols="12" sm="6" md="3">
+              <v-autocomplete
+                v-model="selectedSubjectId"
+                :items="subjectsList"
+                item-title="name"
+                item-value="id"
+                label="المادة الدراسية"
+                placeholder="تصفية حسب المادة..."
+                clearable
+                density="compact"
+                variant="outlined"
+                rounded="lg"
+                hide-details
+                prepend-inner-icon="mdi-book-education-outline"
+                @update:model-value="onSubjectFilterChange"
               />
             </v-col>
           </template>
 
           <!-- التعليم الجامعي -->
           <template v-else-if="institutionType === 'university'">
-            <v-col cols="12" md="6">
+            <v-col cols="12" sm="6" md="4">
               <v-autocomplete
                 v-model="selectedSchoolId"
-                :items="filteredSchoolsTable"
+                :items="schoolsOptions"
                 item-title="name"
                 item-value="id"
                 label="الجامعة / الكلية"
@@ -102,19 +151,38 @@
                 clearable
                 density="compact"
                 variant="outlined"
+                rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-domain"
                 @update:model-value="onSchoolFilterChange"
+              />
+            </v-col>
+
+            <v-col cols="12" sm="6" md="4">
+              <v-autocomplete
+                v-model="selectedSubjectId"
+                :items="subjectsList"
+                item-title="name"
+                item-value="id"
+                label="المادة الدراسية"
+                placeholder="تصفية حسب المادة..."
+                clearable
+                density="compact"
+                variant="outlined"
+                rounded="lg"
+                hide-details
+                prepend-inner-icon="mdi-book-education-outline"
+                @update:model-value="onSubjectFilterChange"
               />
             </v-col>
           </template>
 
           <!-- التعليم الفني والمهني (معاهد) -->
           <template v-else-if="institutionType === 'institute'">
-            <v-col cols="12" md="6">
+            <v-col cols="12" sm="6" md="4">
               <v-autocomplete
                 v-model="selectedSchoolId"
-                :items="filteredSchoolsTable"
+                :items="schoolsOptions"
                 item-title="name"
                 item-value="id"
                 label="المعهد التقني / المهني"
@@ -122,9 +190,28 @@
                 clearable
                 density="compact"
                 variant="outlined"
+                rounded="lg"
                 hide-details
                 prepend-inner-icon="mdi-tools"
                 @update:model-value="onSchoolFilterChange"
+              />
+            </v-col>
+
+            <v-col cols="12" sm="6" md="4">
+              <v-autocomplete
+                v-model="selectedSubjectId"
+                :items="subjectsList"
+                item-title="name"
+                item-value="id"
+                label="المادة الدراسية"
+                placeholder="تصفية حسب المادة..."
+                clearable
+                density="compact"
+                variant="outlined"
+                rounded="lg"
+                hide-details
+                prepend-inner-icon="mdi-book-education-outline"
+                @update:model-value="onSubjectFilterChange"
               />
             </v-col>
           </template>
@@ -163,7 +250,7 @@
               variant="outlined"
               hide-details
               clearable
-              class="bg-white rounded-lg"
+              class="rounded-lg"
             />
           </div>
         </div>
@@ -171,308 +258,487 @@
         <v-window v-model="masterTab">
           <!-- 1. تبويب مكاتب التربية بالمحافظات -->
           <v-window-item value="offices" v-if="institutionType === 'school'">
-            <v-data-table
+            <custom-data-table
+              v-model="selectedOfficeMasterRows"
+              :items="officeMasterTableItems"
+              :getData="getOfficeMasterData"
               :headers="officeMasterHeaders"
-              :items="filteredOfficesTable"
-              :loading="loadingMaster"
-              density="comfortable"
-              hover
-              class="elevation-0"
-              no-data-text="لا توجد مكاتب تربية مسجلة"
+              :customLoading="loadingMaster"
+              :hasFilter="false"
+              :log="false"
+              :restore="false"
+              :numbering="true"
+              :showSelect="true"
+              :actions="false"
+              :search="false"
+              class="bg-transparent"
             >
-              <template #item.office_name="{ item }">
-                <div class="d-flex align-center py-2">
-                  <v-avatar color="primary" variant="tonal" size="36" class="me-3 rounded-lg">
-                    <v-icon color="primary" size="20">mdi-office-building-outline</v-icon>
-                  </v-avatar>
-                  <div>
-                    <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.office_name }}</div>
-                    <div class="text-caption text-medium-emphasis">المحافظة: {{ item.governorate_name }}</div>
+              <template v-slot:item-slot="{ item, key, index }">
+                <template v-if="key === 'numbering'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
                   </div>
-                </div>
-              </template>
+                </template>
 
-              <template #item.completion_rate="{ item }">
-                <div class="d-flex align-center gap-2">
-                  <v-progress-linear
-                    :model-value="item.completion_rate"
-                    color="primary"
-                    height="8"
-                    rounded
-                    class="flex-grow-1"
-                  />
-                  <span class="text-caption font-weight-bold">{{ item.completion_rate }}%</span>
-                </div>
-              </template>
+                <template v-else-if="key === 'office_name'">
+                  <div class="d-flex align-center py-2" style="min-width: 260px;">
+                    <v-avatar color="primary" variant="tonal" size="36" class="me-3 rounded-lg flex-shrink-0">
+                      <v-icon color="primary" size="20">mdi-office-building-outline</v-icon>
+                    </v-avatar>
+                    <div>
+                      <div class="font-weight-bold text-subtitle-2 text-on-surface text-wrap">{{ item.office_name }}</div>
+                      <div class="text-caption text-medium-emphasis">المحافظة: {{ item.governorate_name }}</div>
+                    </div>
+                  </div>
+                </template>
 
-              <template #item.actions="{ item }">
-                <div class="d-flex align-center justify-center gap-2">
-                  <v-btn
-                    size="small"
-                    color="primary"
-                    variant="tonal"
-                    rounded="lg"
-                    class="font-weight-bold"
-                    prepend-icon="mdi-arrow-down-right"
-                    @click="drillDownToOffice(item)"
-                  >
-                    المديريات
-                  </v-btn>
-                  <v-btn
-                    size="small"
-                    color="primary"
-                    variant="flat"
-                    rounded="lg"
-                    class="font-weight-bold"
-                    prepend-icon="mdi-account-group-outline"
-                    @click="openOfficeRoster(item)"
-                  >
-                    كشف الطلاب
-                  </v-btn>
-                </div>
+                <template v-else-if="key === 'directorates_count'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.directorates_count ?? 0 }}</span>
+                  </div>
+                </template>
+
+                <template v-else-if="key === 'schools_count'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.schools_count ?? 0 }}</span>
+                  </div>
+                </template>
+
+                <template v-else-if="key === 'exams_count'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.exams_count ?? 0 }}</span>
+                  </div>
+                </template>
+
+                <template v-else-if="key === 'total_students'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.total_students ?? 0 }}</span>
+                  </div>
+                </template>
+
+                <template v-else-if="key === 'completed_count'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-primary">{{ item.completed_count || 0 }} ورقة</span>
+                  </div>
+                </template>
+
+                <template v-else-if="key === 'completion_rate'">
+                  <div class="d-flex align-center justify-center gap-2 px-1">
+                    <v-progress-linear
+                      :model-value="item.completion_rate || 0"
+                      :color="(item.completion_rate >= 100) ? 'success' : (item.completion_rate > 0 ? 'warning' : 'primary')"
+                      height="8"
+                      rounded
+                      style="min-width: 60px; max-width: 80px;"
+                    />
+                    <span class="text-caption font-weight-bold">{{ item.completion_rate || 0 }}%</span>
+                  </div>
+                </template>
+
+                <template v-else-if="key === 'actions'">
+                  <div class="d-flex align-center justify-center gap-2">
+                    <v-btn
+                      size="small"
+                      color="primary"
+                      variant="tonal"
+                      rounded="lg"
+                      class="font-weight-bold"
+                      prepend-icon="mdi-arrow-down-right"
+                      @click="drillDownToOffice(item)"
+                    >
+                      المديريات
+                    </v-btn>
+                    <v-btn
+                      size="small"
+                      color="primary"
+                      variant="flat"
+                      rounded="lg"
+                      class="font-weight-bold"
+                      prepend-icon="mdi-account-group-outline"
+                      @click="openOfficeRoster(item)"
+                    >
+                      كشف الطلاب
+                    </v-btn>
+                  </div>
+                </template>
               </template>
-            </v-data-table>
+            </custom-data-table>
           </v-window-item>
 
           <!-- 2. تبويب إدارات التربية بالمديريات -->
           <v-window-item value="directorates" v-if="institutionType === 'school'">
-            <v-data-table
+            <custom-data-table
+              v-model="selectedDirectorateMasterRows"
+              :items="directorateMasterTableItems"
+              :getData="getDirectorateMasterData"
               :headers="directorateMasterHeaders"
-              :items="filteredDirectoratesTable"
-              :loading="loadingMaster"
-              density="comfortable"
-              hover
-              class="elevation-0"
-              no-data-text="لا توجد إدارات تربية مسجلة"
+              :customLoading="loadingMaster"
+              :hasFilter="false"
+              :log="false"
+              :restore="false"
+              :numbering="true"
+              :showSelect="true"
+              :actions="false"
+              :search="false"
+              class="bg-transparent"
             >
-              <template #item.name="{ item }">
-                <div class="d-flex align-center py-2">
-                  <v-avatar color="teal" variant="tonal" size="36" class="me-3 rounded-lg">
-                    <v-icon color="teal" size="20">mdi-map-marker-radius-outline</v-icon>
-                  </v-avatar>
-                  <div>
-                    <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name }}</div>
-                    <div class="text-caption text-medium-emphasis">{{ item.office_name }}</div>
+              <template v-slot:item-slot="{ item, key, index }">
+                <template v-if="key === 'numbering'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
                   </div>
-                </div>
-              </template>
+                </template>
 
-              <template #item.completion_rate="{ item }">
-                <div class="d-flex align-center gap-2">
-                  <v-progress-linear
-                    :model-value="item.completion_rate"
-                    color="teal"
-                    height="8"
-                    rounded
-                    class="flex-grow-1"
-                  />
-                  <span class="text-caption font-weight-bold">{{ item.completion_rate }}%</span>
-                </div>
-              </template>
+                <template v-else-if="key === 'name'">
+                  <div class="d-flex align-center py-2" style="min-width: 240px;">
+                    <v-avatar color="teal" variant="tonal" size="36" class="me-3 rounded-lg flex-shrink-0">
+                      <v-icon color="teal" size="20">mdi-map-marker-radius-outline</v-icon>
+                    </v-avatar>
+                    <div>
+                      <div class="font-weight-bold text-subtitle-2 text-on-surface text-wrap">{{ item.name }}</div>
+                      <div class="text-caption text-medium-emphasis">{{ item.office_name }}</div>
+                    </div>
+                  </div>
+                </template>
 
-              <template #item.actions="{ item }">
-                <div class="d-flex align-center justify-center gap-2">
-                  <v-btn
-                    size="small"
-                    color="teal"
-                    variant="tonal"
-                    rounded="lg"
-                    class="font-weight-bold"
-                    prepend-icon="mdi-school"
-                    @click="drillDownToDirectorate(item)"
-                  >
-                    المدارس
-                  </v-btn>
-                  <v-btn
-                    size="small"
-                    color="teal"
-                    variant="flat"
-                    rounded="lg"
-                    class="font-weight-bold"
-                    prepend-icon="mdi-account-group-outline"
-                    @click="openDirectorateRoster(item)"
-                  >
-                    كشف الطلاب
-                  </v-btn>
-                </div>
+                <template v-else-if="key === 'office_name'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="text-caption font-weight-medium text-medium-emphasis">{{ item.office_name }}</span>
+                  </div>
+                </template>
+
+                <template v-else-if="key === 'schools_count'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.schools_count ?? 0 }}</span>
+                  </div>
+                </template>
+
+                <template v-else-if="key === 'exams_count'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.exams_count ?? 0 }}</span>
+                  </div>
+                </template>
+
+                <template v-else-if="key === 'total_students'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.total_students ?? 0 }}</span>
+                  </div>
+                </template>
+
+                <template v-else-if="key === 'completed_count'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-teal">{{ item.completed_count || 0 }} ورقة</span>
+                  </div>
+                </template>
+
+                <template v-else-if="key === 'completion_rate'">
+                  <div class="d-flex align-center justify-center gap-2 px-1">
+                    <v-progress-linear
+                      :model-value="item.completion_rate || 0"
+                      color="teal"
+                      height="8"
+                      rounded
+                      style="min-width: 60px; max-width: 80px;"
+                    />
+                    <span class="text-caption font-weight-bold">{{ item.completion_rate || 0 }}%</span>
+                  </div>
+                </template>
+
+                <template v-else-if="key === 'actions'">
+                  <div class="d-flex align-center justify-center gap-2">
+                    <v-btn
+                      size="small"
+                      color="teal"
+                      variant="tonal"
+                      rounded="lg"
+                      class="font-weight-bold"
+                      prepend-icon="mdi-school"
+                      @click="drillDownToDirectorate(item)"
+                    >
+                      المدارس
+                    </v-btn>
+                    <v-btn
+                      size="small"
+                      color="teal"
+                      variant="flat"
+                      rounded="lg"
+                      class="font-weight-bold"
+                      prepend-icon="mdi-account-group-outline"
+                      @click="openDirectorateRoster(item)"
+                    >
+                      كشف الطلاب
+                    </v-btn>
+                  </div>
+                </template>
               </template>
-            </v-data-table>
+            </custom-data-table>
           </v-window-item>
 
           <!-- 3. تبويب المراكز الامتحانية والمدارس / الجامعات / المعاهد -->
           <v-window-item value="schools">
-            <v-data-table
+            <custom-data-table
+              v-model="selectedSchoolMasterRows"
+              :items="schoolMasterTableItems"
+              :getData="getSchoolMasterData"
               :headers="schoolMasterHeaders"
-              :items="filteredSchoolsTable"
-              :loading="loadingMaster"
-              density="comfortable"
-              hover
-              class="elevation-0"
-              no-data-text="لا توجد مدارس أو مراكز امتحانية مسجلة"
+              :customLoading="loadingMaster"
+              :hasFilter="false"
+              :log="false"
+              :restore="false"
+              :numbering="true"
+              :showSelect="true"
+              :actions="false"
+              :search="false"
+              class="bg-transparent"
             >
-              <template #item.school_name="{ item }">
-                <div class="d-flex align-center py-2">
-                  <v-avatar color="indigo" variant="tonal" size="36" class="me-3 rounded-lg">
-                    <v-icon color="indigo" size="20">mdi-school-outline</v-icon>
-                  </v-avatar>
-                  <div>
-                    <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name }}</div>
-                    <div class="text-caption text-medium-emphasis">{{ item.directorate_name }} • {{ item.governorate_name }}</div>
+              <template v-slot:item-slot="{ item, key, index }">
+                <template v-if="key === 'numbering'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
                   </div>
-                </div>
-              </template>
+                </template>
 
-              <template #item.institution_type="{ item }">
-                <v-chip size="x-small" :color="item.institution_type === 'university' ? 'purple' : (item.institution_type === 'institute' ? 'amber' : 'primary')" variant="tonal" class="font-weight-bold">
-                  {{ item.institution_type === 'university' ? 'جامعي' : (item.institution_type === 'institute' ? 'مهني/معهد' : 'مدرسي') }}
-                </v-chip>
-              </template>
+                <template v-else-if="key === 'name' || key === 'school_name'">
+                  <div class="d-flex align-center py-2" style="min-width: 280px;">
+                    <v-avatar color="indigo" variant="tonal" size="36" class="me-3 rounded-lg flex-shrink-0">
+                      <v-icon color="indigo" size="20">mdi-school-outline</v-icon>
+                    </v-avatar>
+                    <div>
+                      <div class="font-weight-bold text-subtitle-2 text-on-surface text-wrap">{{ item.name || item.school_name }}</div>
+                    </div>
+                  </div>
+                </template>
 
-              <template #item.exams_count="{ item }">
-                <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
-                  {{ item.exams_count }} اختبار
-                </v-chip>
-              </template>
+                <template v-else-if="key === 'institution_type'">
+                  <div class="d-flex justify-center align-center">
+                    <v-chip size="x-small" :color="item.institution_type === 'university' ? 'purple' : (item.institution_type === 'institute' ? 'amber' : 'primary')" variant="tonal" class="font-weight-bold">
+                      {{ item.institution_type === 'university' ? 'جامعي' : (item.institution_type === 'institute' ? 'مهني/معهد' : 'مدرسي') }}
+                    </v-chip>
+                  </div>
+                </template>
 
-              <template #item.total_students="{ item }">
-                <span class="font-weight-bold text-subtitle-2">{{ item.total_students }} طالب</span>
-              </template>
+                <template v-else-if="key === 'directorate_name'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="text-body-2">{{ item.directorate_name }} • {{ item.governorate_name }}</span>
+                  </div>
+                </template>
 
-              <template #item.completed_count="{ item }">
-                <span class="font-weight-bold text-success">{{ item.completed_count }} ورقة</span>
-              </template>
+                <template v-else-if="key === 'subject_name'">
+                  <div class="d-flex align-center justify-center flex-wrap gap-1 py-1" style="min-width: 150px;">
+                    <template v-if="item.subjects && item.subjects.length > 0">
+                      <v-chip
+                        v-for="(subj, sIdx) in item.subjects.slice(0, 2)"
+                        :key="sIdx"
+                        size="x-small"
+                        color="teal"
+                        variant="tonal"
+                        class="font-weight-bold"
+                      >
+                        {{ subj }}
+                      </v-chip>
+                      <v-tooltip v-if="item.subjects.length > 2" location="top">
+                        <template #activator="{ props: tProps }">
+                          <v-chip
+                            v-bind="tProps"
+                            size="x-small"
+                            color="primary"
+                            variant="flat"
+                            class="font-weight-bold cursor-pointer"
+                            @click.stop="openSchoolExamsDialog(item)"
+                          >
+                            +{{ item.subjects.length - 2 }}
+                          </v-chip>
+                        </template>
+                        <span>{{ item.subjects.slice(2).join('، ') }}</span>
+                      </v-tooltip>
+                    </template>
+                    <span v-else class="text-caption text-medium-emphasis">{{ item.subject_name || '—' }}</span>
+                  </div>
+                </template>
 
-              <template #item.average_score="{ item }">
-                <span class="font-weight-bold">{{ item.average_score }}%</span>
-              </template>
+                <template v-else-if="key === 'exams_count'">
+                  <div class="d-flex justify-center align-center">
+                    <v-tooltip location="top" text="انقر لمعاينة قائمة الاختبارات والمواد لهذا المركز">
+                      <template #activator="{ props }">
+                        <v-chip
+                          v-bind="props"
+                          size="small"
+                          color="primary"
+                          variant="tonal"
+                          class="font-weight-bold cursor-pointer elevation-0"
+                          prepend-icon="mdi-format-list-bulleted"
+                          @click.stop="openSchoolExamsDialog(item)"
+                        >
+                          {{ item.exams_count }} اختبار
+                        </v-chip>
+                      </template>
+                    </v-tooltip>
+                  </div>
+                </template>
 
-              <template #item.completion_rate="{ item }">
-                <div class="d-flex align-center gap-2">
-                  <v-progress-linear
-                    :model-value="item.completion_rate"
-                    color="indigo"
-                    height="8"
-                    rounded
-                    class="flex-grow-1"
-                  />
-                  <span class="text-caption font-weight-bold">{{ item.completion_rate }}%</span>
-                </div>
-              </template>
+                <template v-else-if="key === 'total_students'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.total_students }} طالب</span>
+                  </div>
+                </template>
 
-              <template #item.actions="{ item }">
-                <div class="d-flex align-center justify-center gap-2">
-                  <v-btn
-                    size="small"
-                    color="indigo"
-                    variant="tonal"
-                    rounded="lg"
-                    class="font-weight-bold"
-                    prepend-icon="mdi-clipboard-list-outline"
-                    @click="openSchoolRoster(item)"
-                  >
-                    كشف درجات الطلاب
-                  </v-btn>
-                </div>
+                <template v-else-if="key === 'completed_count'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-indigo">{{ item.completed_count || 0 }} ورقة</span>
+                  </div>
+                </template>
+
+                <template v-else-if="key === 'completion_rate'">
+                  <div class="d-flex align-center justify-center gap-2 px-1">
+                    <v-progress-linear
+                      :model-value="item.completion_rate || 0"
+                      :color="(item.completion_rate >= 100) ? 'success' : (item.completion_rate > 0 ? 'warning' : 'indigo')"
+                      height="8"
+                      rounded
+                      style="min-width: 60px; max-width: 80px;"
+                    />
+                    <span class="text-caption font-weight-bold">{{ item.completion_rate || 0 }}%</span>
+                  </div>
+                </template>
+
+                <template v-else-if="key === 'average_score'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold">{{ item.average_score || 0 }}%</span>
+                  </div>
+                </template>
+
+                <template v-else-if="key === 'actions'">
+                  <div class="d-flex align-center justify-center gap-1">
+                    <v-tooltip location="top" text="استعراض تفاصيل الاختبارات والمواد">
+                      <template #activator="{ props }">
+                        <v-btn
+                          v-bind="props"
+                          size="small"
+                          color="secondary"
+                          variant="tonal"
+                          icon="mdi-format-list-text"
+                          rounded="lg"
+                          @click.stop="openSchoolExamsDialog(item)"
+                        />
+                      </template>
+                    </v-tooltip>
+                    <v-btn
+                      size="small"
+                      color="indigo"
+                      variant="tonal"
+                      rounded="lg"
+                      class="font-weight-bold"
+                      prepend-icon="mdi-clipboard-list-outline"
+                      @click="openSchoolRoster(item)"
+                    >
+                      كشف درجات الطلاب
+                    </v-btn>
+                  </div>
+                </template>
               </template>
-            </v-data-table>
+            </custom-data-table>
           </v-window-item>
 
           <!-- 4. تبويب الاختبارات الأكاديمية -->
           <v-window-item value="exams">
-            <v-data-table
+            <custom-data-table
+              v-model="selectedExamMasterRows"
+              :items="examMasterTableItems"
+              :getData="getExamMasterData"
               :headers="examMasterHeaders"
-              :items="filteredExamsTable"
-              :loading="loadingMaster"
-              density="comfortable"
-              hover
-              class="elevation-0"
-              no-data-text="لا توجد اختبارات مسجلة في هذا النطاق"
+              :customLoading="loadingMaster"
+              :hasFilter="false"
+              :log="false"
+              :restore="false"
+              :numbering="true"
+              :showSelect="true"
+              :actions="false"
+              :search="false"
+              class="bg-transparent"
             >
-              <template #item.exam_title="{ item }">
-                <div class="d-flex align-center py-2">
-                  <v-avatar color="primary" variant="tonal" size="36" class="me-3 rounded-lg">
-                    <v-icon color="primary" size="20">mdi-file-document-check-outline</v-icon>
-                  </v-avatar>
-                  <div>
-                    <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.title }}</div>
-                    <div class="text-caption text-medium-emphasis">
-                      <v-chip size="x-small" color="primary" variant="tonal" class="me-1 font-mono font-weight-black">
-                        {{ item.uniqueCode }}
-                      </v-chip>
-                      <span>{{ item.subject_name }}</span>
-                    </div>
+              <template v-slot:item-slot="{ item, key, index }">
+                <template v-if="key === 'numbering'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
                   </div>
-                </div>
-              </template>
+                </template>
 
-              <template #item.geo_info="{ item }">
-                <div class="text-caption font-weight-bold">
-                  {{ item.governorate_name || 'كافة المناطق' }}
-                  <span v-if="item.directorate_name" class="text-medium-emphasis"> • {{ item.directorate_name }}</span>
-                </div>
-              </template>
+                <template v-else-if="key === 'uniqueCode'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-mono font-weight-bold text-caption px-2 py-1 rounded bg-grey-lighten-4 border">
+                      {{ item.uniqueCode }}
+                    </span>
+                  </div>
+                </template>
 
-              <template #item.schools_count="{ item }">
-                <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold">
-                  <v-icon start size="14">mdi-school-outline</v-icon>
-                  {{ item.schools_count }} {{ item.schools_count === 1 ? 'مدرسة/مركز' : 'مدارس/مراكز' }}
-                </v-chip>
-              </template>
+                <template v-else-if="key === 'title' || key === 'exam_title'">
+                  <div class="py-2" style="min-width: 280px;">
+                    <div class="font-weight-bold text-subtitle-2 text-on-surface text-wrap">{{ item.title }}</div>
+                    <div class="text-caption text-medium-emphasis">المادة: {{ item.subject_name || 'عام' }}</div>
+                  </div>
+                </template>
 
-              <template #item.total_students="{ item }">
-                <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
-                  <v-icon start size="14">mdi-account-group</v-icon>
-                  {{ item.total_students }} طالب
-                </v-chip>
-              </template>
+                <template v-else-if="key === 'schools_count'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.schools_count ?? 0 }}</span>
+                  </div>
+                </template>
 
-              <template #item.completed_count="{ item }">
-                <v-chip size="small" color="teal" variant="tonal" class="font-weight-bold">
-                  <v-icon start size="14">mdi-check-decagram-outline</v-icon>
-                  {{ item.completed_count }} ورقة
-                </v-chip>
-              </template>
+                <template v-else-if="key === 'total_students'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-subtitle-2">{{ item.total_students || item.total_registered || 0 }}</span>
+                  </div>
+                </template>
 
-              <template #item.completion_rate="{ item }">
-                <div class="d-flex align-center gap-2">
-                  <v-progress-linear
-                    :model-value="item.completion_rate"
-                    color="success"
-                    height="8"
-                    rounded
-                    class="flex-grow-1"
-                  />
-                  <span class="text-caption font-weight-bold">{{ item.completion_rate }}%</span>
-                </div>
-              </template>
+                <template v-else-if="key === 'completed_count'">
+                  <div class="d-flex justify-center align-center">
+                    <span class="font-weight-bold text-primary">{{ item.completed_count || 0 }} ورقة</span>
+                  </div>
+                </template>
 
-              <template #item.dispatch_status="{ item }">
-                <v-chip
-                  size="small"
-                  :color="item.dispatch_status === 'dispatched' ? 'success' : (item.dispatch_status === 'partial' ? 'warning' : 'grey')"
-                  variant="tonal"
-                  class="font-weight-bold"
-                >
-                  {{ item.dispatch_status === 'dispatched' ? 'مرحل بالكامل' : (item.dispatch_status === 'partial' ? 'ترحيل جزئي' : 'غير مرحل') }}
-                </v-chip>
-              </template>
+                <template v-else-if="key === 'completion_rate'">
+                  <div class="d-flex align-center justify-center gap-2 px-1">
+                    <v-progress-linear
+                      :model-value="item.completion_rate || 0"
+                      :color="(item.completion_rate >= 100) ? 'success' : (item.completion_rate > 0 ? 'warning' : 'primary')"
+                      height="8"
+                      rounded
+                      style="min-width: 60px; max-width: 80px;"
+                    />
+                    <span class="text-caption font-weight-bold">{{ item.completion_rate || 0 }}%</span>
+                  </div>
+                </template>
 
-              <template #item.actions="{ item }">
-                <div class="d-flex align-center justify-center gap-2">
-                  <v-btn
-                    size="small"
-                    color="primary"
-                    variant="flat"
-                    rounded="lg"
-                    class="font-weight-bold px-3"
-                    prepend-icon="mdi-clipboard-list-outline"
-                    @click="openExamRoster(item)"
-                  >
-                    فتح كشف الدرجات
-                  </v-btn>
-                </div>
+                <template v-else-if="key === 'dispatch_status'">
+                  <div class="d-flex justify-center align-center">
+                    <v-chip
+                      size="small"
+                      :color="item.dispatch_status === 'dispatched' ? 'success' : (item.dispatch_status === 'partial' ? 'warning' : 'grey')"
+                      variant="tonal"
+                      class="font-weight-bold"
+                    >
+                      {{ item.dispatch_status === 'dispatched' ? 'مرحل بالكامل' : (item.dispatch_status === 'partial' ? 'ترحيل جزئي' : 'غير مرحل') }}
+                    </v-chip>
+                  </div>
+                </template>
+
+                <template v-else-if="key === 'actions'">
+                  <div class="d-flex align-center justify-center gap-2">
+                    <v-btn
+                      size="small"
+                      color="primary"
+                      variant="flat"
+                      rounded="lg"
+                      class="font-weight-bold px-3"
+                      prepend-icon="mdi-clipboard-list-outline"
+                      @click="openExamRoster(item)"
+                    >
+                      فتح كشف الدرجات
+                    </v-btn>
+                  </div>
+                </template>
               </template>
-            </v-data-table>
+            </custom-data-table>
           </v-window-item>
         </v-window>
       </div>
@@ -753,13 +1019,20 @@
         :hasFilter="false"
         :log="false"
         :restore="false"
+        :numbering="true"
         :showSelect="false"
         :itemValue="'registration_id'"
         :actions="false"
       >
-        <template v-slot:item-slot="{ item, key }">
+        <template v-slot:item-slot="{ item, key, index }">
+          <template v-if="key === 'numbering'">
+            <div class="d-flex justify-center align-center">
+              <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+            </div>
+          </template>
+
           <!-- Selection Checkbox Column -->
-          <template v-if="key === 'select'">
+          <template v-else-if="key === 'select'">
             <v-checkbox-btn
               :model-value="selectedStudentIds.includes(item.registration_id)"
               color="primary"
@@ -1295,6 +1568,179 @@
       </div>
     </div>
 
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- 4. نافذة تفاصيل اختبارات ومواد المدرسة / المركز الامتحاني      -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <v-dialog v-model="schoolExamsDialog" width="1180px" max-width="95vw" scrollable>
+      <v-card rounded="2xl" class="border elevation-6 overflow-hidden main-card">
+        <v-card-title class="d-flex align-center justify-space-between bg-surface pa-4 px-6 border-b">
+          <div class="d-flex align-center gap-3">
+            <v-avatar color="primary" variant="tonal" size="44" class="rounded-xl flex-shrink-0">
+              <v-icon color="primary" size="24">mdi-school</v-icon>
+            </v-avatar>
+            <div>
+              <div class="text-subtitle-1 font-weight-black text-on-surface">{{ selectedSchoolDialogItem?.name || selectedSchoolDialogItem?.school_name }}</div>
+              <div class="text-caption text-medium-emphasis d-flex align-center gap-2 flex-wrap mt-0.5">
+                <span>{{ selectedSchoolDialogItem?.directorate_name }} • {{ selectedSchoolDialogItem?.governorate_name }}</span>
+                <span>|</span>
+                <span>إجمالي الطلاب: <strong class="text-primary">{{ selectedSchoolDialogItem?.total_students || 0 }} طالب</strong></span>
+                <span>|</span>
+                <span>عدد الاختبارات: <strong class="text-teal">{{ selectedSchoolDialogItem?.exams?.length || selectedSchoolDialogItem?.exams_count || 0 }} اختبار</strong></span>
+              </div>
+            </div>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" @click="schoolExamsDialog = false" />
+        </v-card-title>
+
+        <v-card-text class="pa-4 pa-md-5 bg-surface">
+          <div v-if="!selectedSchoolDialogItem?.exams || selectedSchoolDialogItem.exams.length === 0" class="text-center py-8">
+            <v-icon size="48" color="grey">mdi-file-document-outline</v-icon>
+            <div class="text-body-1 text-medium-emphasis mt-2">لا توجد اختبارات مسجلة لهذه المدرسة حالياً</div>
+          </div>
+
+          <div v-else class="d-flex flex-column gap-3">
+            <v-alert
+              type="info"
+              variant="tonal"
+              density="compact"
+              rounded="xl"
+              class="mb-2 text-caption font-weight-medium"
+            >
+              <template v-slot:prepend>
+                <v-icon size="20" color="info">mdi-information-outline</v-icon>
+              </template>
+              كل صف أدناه يمثل <strong>اختباراً معتمداً</strong> مقيد به طلاب المدرسة، وموضح أمامه <strong>النماذج الامتحانية</strong> وتوزيع الطلاب، مع إمكانية فتح كشف الدرجات مباشرة.
+            </v-alert>
+
+            <!-- الجدول الموحد للاختبارات والمواد المعتمدة للمدرسة -->
+            <div class="main-card rounded-2xl overflow-hidden border">
+              <custom-data-table
+                :items="schoolExamsTableItems"
+                :getData="getSchoolExamsData"
+                :headers="schoolExamsHeaders"
+                :hasFilter="false"
+                :log="false"
+                :restore="false"
+                :numbering="true"
+                :showSelect="false"
+                :actions="false"
+                :search="false"
+              >
+                <template v-slot:item-slot="{ item, key, index }">
+                  <template v-if="key === 'numbering'">
+                    <div class="d-flex justify-center align-center">
+                      <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                    </div>
+                  </template>
+
+                  <template v-else-if="key === 'code'">
+                    <div class="d-flex justify-center align-center">
+                      <v-chip size="small" color="primary" variant="tonal" class="font-mono font-weight-bold px-2">
+                        {{ item.code }}
+                      </v-chip>
+                    </div>
+                  </template>
+
+                  <template v-else-if="key === 'title'">
+                    <div class="d-flex align-center gap-2.5 py-1.5">
+                      <v-avatar color="teal" variant="tonal" size="32" class="rounded-lg flex-shrink-0">
+                        <v-icon color="teal" size="18">mdi-book-education-outline</v-icon>
+                      </v-avatar>
+                      <div class="text-truncate">
+                        <div class="font-weight-bold text-body-2 text-on-surface text-truncate" :title="item.title">
+                          {{ item.title }}
+                        </div>
+                        <div class="d-flex align-center gap-1.5 mt-0.5">
+                          <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold px-1.5">
+                            اختبار معتمد
+                          </v-chip>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+
+                  <template v-else-if="key === 'subject'">
+                    <div class="d-flex justify-center align-center">
+                      <v-chip size="small" color="teal" variant="flat" class="font-weight-bold px-2.5">
+                        <v-icon size="13" start>mdi-book-outline</v-icon>
+                        {{ item.subject || 'عام' }}
+                      </v-chip>
+                    </div>
+                  </template>
+
+                  <template v-else-if="key === 'students_count'">
+                    <div class="d-flex justify-center align-center">
+                      <v-chip size="small" color="primary" variant="tonal" class="font-weight-black px-2.5">
+                        <v-icon size="13" start>mdi-account-group-outline</v-icon>
+                        {{ item.students_count || 0 }} طالب
+                      </v-chip>
+                    </div>
+                  </template>
+
+                  <template v-else-if="key === 'versions'">
+                    <div v-if="item.versions && item.versions.length > 0" class="d-flex align-center justify-center gap-1.5 flex-wrap py-1">
+                      <v-chip
+                        v-for="v in item.versions"
+                        :key="v.code"
+                        size="x-small"
+                        color="indigo"
+                        variant="tonal"
+                        class="font-weight-bold"
+                      >
+                        <v-icon size="11" start>mdi-file-document-check-outline</v-icon>
+                        نموذج {{ v.code }} ({{ v.students_count }} طالب)
+                      </v-chip>
+                    </div>
+                    <div v-else class="text-center text-caption text-medium-emphasis">—</div>
+                  </template>
+
+                  <template v-else-if="key === 'actions'">
+                    <div class="d-flex justify-center align-center">
+                      <v-btn
+                        size="small"
+                        color="primary"
+                        variant="flat"
+                        rounded="lg"
+                        prepend-icon="mdi-clipboard-list-outline"
+                        class="font-weight-bold px-3"
+                        @click="schoolExamsDialog = false; openExamRoster(item);"
+                      >
+                        فتح كشف الدرجات
+                      </v-btn>
+                    </div>
+                  </template>
+                </template>
+              </custom-data-table>
+            </div>
+          </div>
+        </v-card-text>
+
+        <v-divider />
+        <v-card-actions class="pa-4 bg-surface d-flex justify-space-between align-center flex-wrap gap-2">
+          <div class="text-caption text-medium-emphasis d-flex align-center gap-1">
+            <v-icon size="16" color="primary">mdi-cursor-default-click-outline</v-icon>
+            يمكنك فتح كشف رصد أي اختبار مستقل أو استعراض الكشف الشامل للمركز
+          </div>
+          <div class="d-flex gap-2">
+            <v-btn variant="tonal" color="grey" rounded="lg" class="font-weight-bold px-4" @click="schoolExamsDialog = false">
+              إغلاق
+            </v-btn>
+            <v-btn
+              color="indigo"
+              variant="flat"
+              rounded="lg"
+              prepend-icon="mdi-clipboard-list-outline"
+              class="font-weight-bold px-4"
+              @click="openSchoolRoster(selectedSchoolDialogItem); schoolExamsDialog = false;"
+            >
+              فتح كشف درجات المركز بالكامل
+            </v-btn>
+          </div>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Snackbar Notifications -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="4000" location="top left">
       {{ snackbar.text }}
@@ -1320,6 +1766,11 @@ export default {
   data() {
     return {
       institutionType: 'school', // 'school' | 'university' | 'institute'
+      sectorOptions: [
+        { title: 'التعليم العام (المدرسي)', value: 'school', icon: 'mdi-school' },
+        { title: 'التعليم الجامعي (كليات وجامعات)', value: 'university', icon: 'mdi-domain' },
+        { title: 'التعليم الفني والمهني (معاهد)', value: 'institute', icon: 'mdi-tools' }
+      ],
       currentView: 'master', // 'master' | 'detail'
       masterTab: 'offices',  // 'offices' | 'directorates' | 'schools' | 'exams'
       loadingMaster: false,
@@ -1330,54 +1781,100 @@ export default {
       officesList: [],
       directoratesList: [],
       schoolsList: [],
+      subjectsList: [],
 
       selectedOfficeId: null,
       selectedDirectorateId: null,
       selectedSchoolId: null,
+      selectedSubjectId: null,
+      selectedSubjectName: '',
+
+      selectedOfficeMasterRows: [],
+      selectedDirectorateMasterRows: [],
+      selectedSchoolMasterRows: [],
+      selectedExamMasterRows: [],
+
+      schoolExamsDialog: false,
+      selectedSchoolDialogItem: null,
+      schoolExamsHeaders: [
+        { title: "رمز الاختبار", key: "code", sortable: true, align: "center", width: "135px" },
+        { title: "عنوان الاختبار والمواصفات", key: "title", sortable: true, align: "start" },
+        { title: "المادة الدراسية", key: "subject", sortable: true, align: "center", width: "120px" },
+        { title: "طلاب المركز", key: "students_count", sortable: true, align: "center", width: "105px" },
+        { title: "النماذج المخصصة للطلاب وتوزيعها", key: "versions", sortable: false, align: "center", width: "230px" },
+        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "140px" },
+      ],
+      schoolExamsTableItems: {
+        results: [],
+        count: 0,
+        pagination: { count: 0, total: 0, num_pages: 1, current_page: 1 }
+      },
+
+      officeMasterTableItems: {
+        results: [],
+        count: 0,
+        pagination: { count: 0, total: 0, num_pages: 1, current_page: 1 }
+      },
+      directorateMasterTableItems: {
+        results: [],
+        count: 0,
+        pagination: { count: 0, total: 0, num_pages: 1, current_page: 1 }
+      },
+      schoolMasterTableItems: {
+        results: [],
+        count: 0,
+        pagination: { count: 0, total: 0, num_pages: 1, current_page: 1 }
+      },
+      examMasterTableItems: {
+        results: [],
+        count: 0,
+        pagination: { count: 0, total: 0, num_pages: 1, current_page: 1 }
+      },
 
       officeMasterHeaders: [
-        { title: "مكتب التربية والتعليم (المحافظة)", key: "office_name", sortable: true, align: "start" },
-        { title: "المديريات", key: "directorates_count", sortable: true, align: "center", width: "110px" },
-        { title: "المدارس / المراكز", key: "schools_count", sortable: true, align: "center", width: "130px" },
-        { title: "الاختبارات", key: "exams_count", sortable: true, align: "center", width: "110px" },
-        { title: "إجمالي الطلاب", key: "total_students", sortable: true, align: "center", width: "120px" },
+        { title: "مكتب التربية والتعليم (المحافظة)", key: "office_name", sortable: true, align: "start", width: "340px", minWidth: "320px" },
+        { title: "المديريات", key: "directorates_count", sortable: true, align: "center", width: "95px" },
+        { title: "المراكز والمدارس", key: "schools_count", sortable: true, align: "center", width: "125px" },
+        { title: "الاختبارات", key: "exams_count", sortable: true, align: "center", width: "95px" },
+        { title: "إجمالي الطلاب", key: "total_students", sortable: true, align: "center", width: "110px" },
         { title: "أوراق مصححة", key: "completed_count", sortable: true, align: "center", width: "120px" },
-        { title: "نسبة الإنجاز", key: "completion_rate", sortable: true, align: "center", width: "140px" },
-        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "230px" },
+        { title: "نسبة الإنجاز", key: "completion_rate", sortable: true, align: "center", width: "130px" },
+        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "220px" },
       ],
 
       directorateMasterHeaders: [
-        { title: "إدارة التربية والتعليم (المديرية)", key: "name", sortable: true, align: "start" },
-        { title: "المكتب التابع له (المحافظة)", key: "office_name", sortable: true, align: "center", width: "180px" },
-        { title: "المدارس / المراكز", key: "schools_count", sortable: true, align: "center", width: "130px" },
-        { title: "الاختبارات", key: "exams_count", sortable: true, align: "center", width: "110px" },
-        { title: "إجمالي الطلاب", key: "total_students", sortable: true, align: "center", width: "120px" },
+        { title: "إدارة التربية والتعليم (المديرية)", key: "name", sortable: true, align: "start", width: "340px", minWidth: "320px" },
+        { title: "المكتب التابع له", key: "office_name", sortable: true, align: "center", width: "180px" },
+        { title: "المراكز والمدارس", key: "schools_count", sortable: true, align: "center", width: "125px" },
+        { title: "الاختبارات", key: "exams_count", sortable: true, align: "center", width: "95px" },
+        { title: "إجمالي الطلاب", key: "total_students", sortable: true, align: "center", width: "110px" },
         { title: "أوراق مصححة", key: "completed_count", sortable: true, align: "center", width: "120px" },
-        { title: "نسبة الإنجاز", key: "completion_rate", sortable: true, align: "center", width: "140px" },
-        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "230px" },
+        { title: "نسبة الإنجاز", key: "completion_rate", sortable: true, align: "center", width: "130px" },
+        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "220px" },
       ],
 
       schoolMasterHeaders: [
-        { title: "المدرسة / المركز الامتحاني / المؤسسة", key: "school_name", sortable: true, align: "start" },
-        { title: "نوع المؤسسة", key: "institution_type", sortable: true, align: "center", width: "110px" },
-        { title: "المحافظة والمديرية", key: "directorate_name", sortable: true, align: "center", width: "160px" },
-        { title: "الاختبارات", key: "exams_count", sortable: true, align: "center", width: "100px" },
+        { title: "المدرسة / المركز الامتحاني", key: "name", sortable: true, align: "start", width: "320px", minWidth: "280px" },
+        { title: "نوع المؤسسة", key: "institution_type", sortable: true, align: "center", width: "105px" },
+        { title: "المحافظة والمديرية", key: "directorate_name", sortable: true, align: "center", width: "170px" },
+        { title: "المادة الدراسية", key: "subject_name", sortable: true, align: "center", width: "160px" },
+        { title: "الاختبارات", key: "exams_count", sortable: true, align: "center", width: "105px" },
         { title: "إجمالي الطلاب", key: "total_students", sortable: true, align: "center", width: "110px" },
-        { title: "أوراق مصححة", key: "completed_count", sortable: true, align: "center", width: "110px" },
-        { title: "نسبة الإنجاز", key: "completion_rate", sortable: true, align: "center", width: "125px" },
+        { title: "أوراق مصححة", key: "completed_count", sortable: true, align: "center", width: "115px" },
+        { title: "نسبة الإنجاز", key: "completion_rate", sortable: true, align: "center", width: "120px" },
         { title: "متوسط الدرجات", key: "average_score", sortable: true, align: "center", width: "110px" },
-        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "140px" },
+        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "190px" },
       ],
 
       examMasterHeaders: [
-        { title: "اسم الاختبار والمادة", key: "exam_title", sortable: true, align: "start" },
-        { title: "النطاق الإداري / المكاتب", key: "geo_info", sortable: true, align: "center", width: "180px" },
-        { title: "المراكز / المدارس", key: "schools_count", sortable: true, align: "center", width: "130px" },
-        { title: "المقيدون", key: "total_students", sortable: true, align: "center", width: "100px" },
-        { title: "أوراق مصححة", key: "completed_count", sortable: true, align: "center", width: "110px" },
-        { title: "نسبة التصحيح", key: "completion_rate", sortable: true, align: "center", width: "125px" },
+        { title: "رمز الاختبار", key: "uniqueCode", sortable: true, align: "center", width: "140px" },
+        { title: "عنوان الاختبار والمادة", key: "title", sortable: true, align: "start", width: "340px", minWidth: "300px" },
+        { title: "المدارس المشاركة", key: "schools_count", sortable: true, align: "center", width: "125px" },
+        { title: "المقيدون", key: "total_students", sortable: true, align: "center", width: "110px" },
+        { title: "أوراق مصححة", key: "completed_count", sortable: true, align: "center", width: "120px" },
+        { title: "نسبة التصحيح", key: "completion_rate", sortable: true, align: "center", width: "130px" },
         { title: "حالة الكنترول", key: "dispatch_status", sortable: true, align: "center", width: "130px" },
-        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "140px" },
+        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "160px" },
       ],
 
 
@@ -1503,6 +2000,36 @@ export default {
   },
 
   computed: {
+    directoratesOptions() {
+      if (this.selectedOfficeId) {
+        return (this.directoratesList || []).filter(d => d.office_id === this.selectedOfficeId)
+      }
+      return this.directoratesList || []
+    },
+
+    schoolsOptions() {
+      let list = this.schoolsList || []
+      if (this.institutionType !== 'all') {
+        list = list.filter(s => !s.institution_type || s.institution_type === this.institutionType)
+      }
+      if (this.selectedDirectorateId) {
+        const dObj = (this.directoratesList || []).find(d => d.id === this.selectedDirectorateId)
+        const dName = dObj?.name?.replace(/^(إدارة التربية والتعليم - مديرية |مديرية )/, '').trim()
+        list = list.filter(s => 
+          s.directorate_id === this.selectedDirectorateId ||
+          (dName && s.directorate_name && s.directorate_name.includes(dName))
+        )
+      } else if (this.selectedOfficeId) {
+        const oObj = (this.officesList || []).find(o => o.id === this.selectedOfficeId)
+        const oGov = oObj?.governorate_name?.trim()
+        list = list.filter(s => 
+          s.office_id === this.selectedOfficeId ||
+          (oGov && s.governorate_name && s.governorate_name.includes(oGov))
+        )
+      }
+      return list
+    },
+
     realOfficesList() {
       return (this.educationalOrgs || []).filter(o => o.company_level === 30)
     },
@@ -1537,8 +2064,8 @@ export default {
 
     filteredOfficesTable() {
       let list = this.officesList || []
-      if (this.selectedOfficeId) {
-        list = list.filter(o => o.id === this.selectedOfficeId)
+      if (this.selectedSubjectId) {
+        list = list.filter(o => (o.exams_count || 0) > 0)
       }
       if (this.masterSearchQuery && this.masterSearchQuery.trim()) {
         const q = this.masterSearchQuery.trim().toLowerCase()
@@ -1552,8 +2079,8 @@ export default {
       if (this.selectedOfficeId) {
         list = list.filter(d => d.office_id === this.selectedOfficeId)
       }
-      if (this.selectedDirectorateId) {
-        list = list.filter(d => d.id === this.selectedDirectorateId)
+      if (this.selectedSubjectId) {
+        list = list.filter(d => (d.exams_count || 0) > 0)
       }
       if (this.masterSearchQuery && this.masterSearchQuery.trim()) {
         const q = this.masterSearchQuery.trim().toLowerCase()
@@ -1564,12 +2091,42 @@ export default {
 
     filteredSchoolsTable() {
       let list = this.schoolsList || []
-      if (this.selectedSchoolId) {
-        list = list.filter(s => s.id === this.selectedSchoolId)
+      if (this.institutionType !== 'all') {
+        list = list.filter(s => !s.institution_type || s.institution_type === this.institutionType)
+      }
+      if (this.selectedDirectorateId) {
+        const dObj = (this.directoratesList || []).find(d => d.id === this.selectedDirectorateId)
+        const dName = dObj?.name?.replace(/^(إدارة التربية والتعليم - مديرية |مديرية )/, '').trim()
+        list = list.filter(s => 
+          s.directorate_id === this.selectedDirectorateId ||
+          (dName && s.directorate_name && s.directorate_name.includes(dName))
+        )
+      } else if (this.selectedOfficeId) {
+        const oObj = (this.officesList || []).find(o => o.id === this.selectedOfficeId)
+        const oGov = oObj?.governorate_name?.trim()
+        list = list.filter(s => 
+          s.office_id === this.selectedOfficeId ||
+          (oGov && s.governorate_name && s.governorate_name.includes(oGov))
+        )
+      }
+      if (this.selectedSubjectId) {
+        const sObj = (this.subjectsList || []).find(s => s.id === this.selectedSubjectId)
+        const sName = sObj?.name?.trim()
+        list = list.filter(s => {
+          if (s.subjects && Array.isArray(s.subjects)) {
+            return s.subjects.some(sub => sub === sName || (sName && sub.includes(sName)))
+          }
+          return s.subject_name === sName || (sName && s.subject_name && s.subject_name.includes(sName))
+        })
       }
       if (this.masterSearchQuery && this.masterSearchQuery.trim()) {
         const q = this.masterSearchQuery.trim().toLowerCase()
-        list = list.filter(s => (s.name || '').toLowerCase().includes(q) || (s.directorate_name || '').toLowerCase().includes(q))
+        list = list.filter(s => 
+          (s.name && s.name.toLowerCase().includes(q)) ||
+          (s.directorate_name && s.directorate_name.toLowerCase().includes(q)) ||
+          (s.governorate_name && s.governorate_name.toLowerCase().includes(q)) ||
+          (s.subject_name && s.subject_name.toLowerCase().includes(q))
+        )
       }
       return list
     },
@@ -1578,6 +2135,14 @@ export default {
       let list = this.examsList || []
       if (this.institutionType && this.institutionType !== 'all') {
         list = list.filter(e => e.institution_type === this.institutionType)
+      }
+      if (this.selectedDirectorateId) {
+        list = list.filter(e => e.directorate_id === this.selectedDirectorateId)
+      } else if (this.selectedOfficeId) {
+        list = list.filter(e => e.governorate_id === this.selectedOfficeId || e.office_id === this.selectedOfficeId)
+      }
+      if (this.selectedSubjectId) {
+        list = list.filter(e => e.subject_id === this.selectedSubjectId || e.subject === this.selectedSubjectId)
       }
       if (this.masterSearchQuery && this.masterSearchQuery.trim()) {
         const q = this.masterSearchQuery.trim().toLowerCase()
@@ -1590,7 +2155,6 @@ export default {
       }
       return list
     },
-
 
     printRecordsList() {
       if (this.printRecords && this.printRecords.length > 0) {
@@ -1772,9 +2336,36 @@ export default {
       return count
     },
   },
+  watch: {
+    filteredOfficesTable: {
+      handler() {
+        this.getOfficeMasterData()
+      },
+      immediate: true,
+    },
+    filteredDirectoratesTable: {
+      handler() {
+        this.getDirectorateMasterData()
+      },
+      immediate: true,
+    },
+    filteredSchoolsTable: {
+      handler() {
+        this.getSchoolMasterData()
+      },
+      immediate: true,
+    },
+    filteredExamsTable: {
+      handler() {
+        this.getExamMasterData()
+      },
+      immediate: true,
+    },
+  },
 
   async created() {
     await this.loadEducationalHierarchy()
+    await this.loadSubjects()
     await this.refreshMasterData()
 
     const queryExam = this.$route.query.exam || this.$route.query.open_exam_id
@@ -1789,6 +2380,58 @@ export default {
   },
 
   methods: {
+    async loadSubjects() {
+      try {
+        const res = await gradebookAPI.getSubjects()
+        this.subjectsList = res.data?.results || []
+      } catch (err) {
+        console.error('Failed to load subjects:', err)
+      }
+    },
+
+    async resetHierarchyFilters() {
+      this.institutionType = 'school'
+      this.selectedOfficeId = null
+      this.selectedDirectorateId = null
+      this.selectedSchoolId = null
+      this.selectedSubjectId = null
+      this.selectedSubjectName = ''
+      this.masterSearchQuery = ''
+      await this.refreshMasterData()
+    },
+
+    onSubjectFilterChange(subjId) {
+      this.selectedSubjectId = subjId
+      const s = (this.subjectsList || []).find(item => item.id === subjId)
+      this.selectedSubjectName = s ? s.name : ''
+      this.refreshMasterData()
+    },
+
+    openSchoolExamsDialog(schoolItem) {
+      this.selectedSchoolDialogItem = schoolItem
+      this.schoolExamsDialog = true
+      this.getSchoolExamsData()
+    },
+
+    getSchoolExamsData(params = {}) {
+      const p = params?.params || params || {}
+      const page = p.page || 1
+      const pageSize = p.page_size || 10
+      const all = this.selectedSchoolDialogItem?.exams || []
+      const start = (page - 1) * pageSize
+      this.schoolExamsTableItems = {
+        results: all.slice(start, start + pageSize),
+        count: all.length,
+        pagination: {
+          count: all.length,
+          total: all.length,
+          num_pages: Math.ceil(all.length / pageSize) || 1,
+          current_page: page,
+        },
+      }
+      return this.schoolExamsTableItems
+    },
+
     notify(text, color = 'success') {
       this.snackbar.text = text
       this.snackbar.color = color
@@ -1803,6 +2446,82 @@ export default {
       }
     },
 
+    async getOfficeMasterData(params = {}) {
+      const p = params?.params || params || {}
+      const page = p.page || 1
+      const pageSize = p.page_size || 20
+      const all = this.filteredOfficesTable || []
+      const start = (page - 1) * pageSize
+      this.officeMasterTableItems = {
+        results: all.slice(start, start + pageSize),
+        count: all.length,
+        pagination: {
+          count: all.length,
+          total: all.length,
+          num_pages: Math.ceil(all.length / pageSize) || 1,
+          current_page: page,
+        },
+      }
+      return this.officeMasterTableItems
+    },
+
+    async getDirectorateMasterData(params = {}) {
+      const p = params?.params || params || {}
+      const page = p.page || 1
+      const pageSize = p.page_size || 20
+      const all = this.filteredDirectoratesTable || []
+      const start = (page - 1) * pageSize
+      this.directorateMasterTableItems = {
+        results: all.slice(start, start + pageSize),
+        count: all.length,
+        pagination: {
+          count: all.length,
+          total: all.length,
+          num_pages: Math.ceil(all.length / pageSize) || 1,
+          current_page: page,
+        },
+      }
+      return this.directorateMasterTableItems
+    },
+
+    async getSchoolMasterData(params = {}) {
+      const p = params?.params || params || {}
+      const page = p.page || 1
+      const pageSize = p.page_size || 20
+      const all = this.filteredSchoolsTable || []
+      const start = (page - 1) * pageSize
+      this.schoolMasterTableItems = {
+        results: all.slice(start, start + pageSize),
+        count: all.length,
+        pagination: {
+          count: all.length,
+          total: all.length,
+          num_pages: Math.ceil(all.length / pageSize) || 1,
+          current_page: page,
+        },
+      }
+      return this.schoolMasterTableItems
+    },
+
+    async getExamMasterData(params = {}) {
+      const p = params?.params || params || {}
+      const page = p.page || 1
+      const pageSize = p.page_size || 20
+      const all = this.filteredExamsTable || []
+      const start = (page - 1) * pageSize
+      this.examMasterTableItems = {
+        results: all.slice(start, start + pageSize),
+        count: all.length,
+        pagination: {
+          count: all.length,
+          total: all.length,
+          num_pages: Math.ceil(all.length / pageSize) || 1,
+          current_page: page,
+        },
+      }
+      return this.examMasterTableItems
+    },
+
     async loadEducationalHierarchy() {
       try {
         const res = await api.get('/api/exams/distributions/educational-hierarchy/')
@@ -1815,22 +2534,24 @@ export default {
     async refreshMasterData() {
       this.loadingMaster = true
       try {
-        const params = { institution_type: this.institutionType }
+        const params = {
+          institution_type: this.institutionType !== 'all' ? this.institutionType : undefined,
+          subject: this.selectedSubjectId || undefined,
+        }
         if (this.selectedOfficeId) params.office_id = this.selectedOfficeId
         if (this.selectedDirectorateId) params.directorate_id = this.selectedDirectorateId
         if (this.selectedSchoolId) params.school_id = this.selectedSchoolId
 
-        const promises = [
-          this.fetchExamsList(params),
-          gradebookAPI.getBySchool(params).then(res => { this.schoolsList = res.data?.results || [] }),
-        ]
-        if (this.institutionType === 'school') {
-          promises.push(
-            gradebookAPI.getByOffice().then(res => { this.officesList = res.data?.results || [] }),
-            gradebookAPI.getByDirectorate({ office_id: this.selectedOfficeId || undefined }).then(res => { this.directoratesList = res.data?.results || [] })
-          )
-        }
-        await Promise.all(promises)
+        const [officesRes, directoratesRes, schoolsRes, examsRes] = await Promise.all([
+          gradebookAPI.getByOffice(params).catch(() => ({ data: { results: [] } })),
+          gradebookAPI.getByDirectorate(params).catch(() => ({ data: { results: [] } })),
+          gradebookAPI.getBySchool(params).catch(() => ({ data: { results: [] } })),
+          gradebookAPI.list(params).catch(() => ({ data: { results: [] } }))
+        ])
+        this.officesList = officesRes.data?.results || []
+        this.directoratesList = directoratesRes.data?.results || []
+        this.schoolsList = schoolsRes.data?.results || []
+        this.examsList = examsRes.data?.results || []
       } catch (err) {
         console.error('Error refreshing master data:', err)
       } finally {
@@ -1843,6 +2564,8 @@ export default {
       this.selectedOfficeId = null
       this.selectedDirectorateId = null
       this.selectedSchoolId = null
+      this.selectedSubjectId = null
+      this.selectedSubjectName = ''
       if (val === 'school') {
         this.masterTab = 'offices'
       } else {

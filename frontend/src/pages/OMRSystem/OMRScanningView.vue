@@ -195,9 +195,21 @@
             density="compact"
             prepend-inner-icon="mdi-barcode"
             hide-details
-            append-inner-icon="mdi-refresh"
-            @click:append-inner="generateEnvelopeBarcode"
-          />
+          >
+            <template #append-inner>
+              <v-btn
+                icon="mdi-refresh"
+                variant="text"
+                density="comfortable"
+                size="small"
+                color="primary"
+                aria-label="توليد كود المظروف تلقائياً"
+                title="توليد كود المظروف تلقائياً"
+                @click.stop="generateEnvelopeBarcode"
+                style="min-width: 32px; min-height: 32px;"
+              />
+            </template>
+          </v-text-field>
         </v-col>
 
         <!-- 7. سعة القاعة المقيدة (الطلاب المقيدون) -->
@@ -690,7 +702,7 @@
                   <!-- حالة التصحيح -->
                   <template v-else-if="key === 'status'">
                     <v-chip
-                      v-if="item.status === 'NEEDS_REVIEW' || item.needs_review"
+                      v-if="String(item.status || '').toLowerCase() === 'needs_review' || item.needs_review || item.error_message"
                       size="small"
                       color="warning"
                       variant="flat"
@@ -830,7 +842,15 @@
               </p>
             </div>
           </div>
-          <v-btn icon="mdi-close" variant="text" size="small" color="medium-emphasis" @click="previewDialog = false" />
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            size="small"
+            color="medium-emphasis"
+            aria-label="إغلاق المعاينة"
+            title="إغلاق المعاينة"
+            @click="previewDialog = false"
+          />
         </v-card-title>
 
         <!-- ── شريط بيانات ورقة الطالب خفيف كشرائح مستطيلة منتظمة (ليست بيضاوية) ── -->
@@ -849,13 +869,13 @@
             size="small"
             variant="tonal"
             rounded="md"
-            :color="activePreviewSheet.status === 'NEEDS_REVIEW' || activePreviewSheet.needs_review ? 'warning' : 'success'"
+            :color="String(activePreviewSheet.status || '').toLowerCase() === 'needs_review' || activePreviewSheet.needs_review || activePreviewSheet.error_message ? 'warning' : 'success'"
             class="font-weight-bold"
           >
             <v-icon start size="14">
-              {{ activePreviewSheet.status === 'NEEDS_REVIEW' || activePreviewSheet.needs_review ? 'mdi-alert-circle-outline' : 'mdi-check-circle-outline' }}
+              {{ String(activePreviewSheet.status || '').toLowerCase() === 'needs_review' || activePreviewSheet.needs_review || activePreviewSheet.error_message ? 'mdi-alert-circle-outline' : 'mdi-check-circle-outline' }}
             </v-icon>
-            {{ activePreviewSheet.status === 'NEEDS_REVIEW' || activePreviewSheet.needs_review ? 'يحتاج تدقيق' : 'معتمد وسليم' }}
+            {{ String(activePreviewSheet.status || '').toLowerCase() === 'needs_review' || activePreviewSheet.needs_review || activePreviewSheet.error_message ? 'يحتاج تدقيق' : 'معتمد وسليم' }}
           </v-chip>
 
           <v-chip
@@ -889,6 +909,22 @@
             لم يُجب (فارغة): {{ previewCounts.empty }}
           </v-chip>
         </div>
+
+        <!-- تنبيه تفصيلي عند وجود خطأ في مطابقة الطالب أو الاختبار -->
+        <v-alert
+          v-if="activePreviewSheet.error_message"
+          type="warning"
+          variant="tonal"
+          density="comfortable"
+          class="mx-4 mt-3 mb-1 rounded-xl"
+          icon="mdi-alert-octagon-outline"
+          border="start"
+        >
+          <div class="text-subtitle-2 font-weight-black">تنبيه تدقيق ومطابقة الورقة:</div>
+          <div class="text-caption font-weight-bold mt-1" style="white-space: pre-wrap; line-height: 1.6;">
+            {{ activePreviewSheet.error_message }}
+          </div>
+        </v-alert>
 
         <!-- تبويبات العرض الموحدة (v-tabs) -->
         <v-tabs v-model="previewMode" color="primary" density="comfortable" class="border-b px-4 bg-surface">
@@ -1471,17 +1507,24 @@ export default {
       if (path.startsWith('data:') || path.startsWith('blob:')) {
         return path
       }
+      let finalUrl = path
       if (path.startsWith('http://') || path.startsWith('https://')) {
         try {
           const u = new URL(path)
           if (u.pathname.startsWith('/media/')) {
-            return u.pathname
+            finalUrl = u.pathname
           }
         } catch (e) {}
-        return path
+      } else {
+        finalUrl = path.startsWith('/') ? path : `/${path}`
       }
-      const clean = path.startsWith('/') ? path : `/${path}`
-      return clean
+
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || localStorage.getItem('access_token')
+      if (token && finalUrl.startsWith('/media/')) {
+        const sep = finalUrl.includes('?') ? '&' : '?'
+        return `${finalUrl}${sep}token=${encodeURIComponent(token)}`
+      }
+      return finalUrl
     }
 
     // Expected Present Sheets (Real count)
@@ -1548,12 +1591,17 @@ export default {
       return batchResult.value?.sheets || []
     })
 
+    const isNeedsReview = (s) => {
+      const st = String(s?.status || '').toLowerCase()
+      return st === 'needs_review' || Boolean(s?.needs_review) || Boolean(s?.error_message)
+    }
+
     const successfulSheets = computed(() => {
-      return displaySheets.value.filter((s) => s.status !== 'NEEDS_REVIEW' && !s.needs_review)
+      return displaySheets.value.filter((s) => !isNeedsReview(s))
     })
 
     const needsReviewSheets = computed(() => {
-      return displaySheets.value.filter((s) => s.status === 'NEEDS_REVIEW' || s.needs_review)
+      return displaySheets.value.filter((s) => isNeedsReview(s))
     })
 
     const currentEnvelopeAvgScore = computed(() => {
@@ -1824,8 +1872,10 @@ export default {
         }
         isCommitted.value = true
       } catch (err) {
-        console.warn('Dispatch API call notice:', err)
-        isCommitted.value = true
+        console.error('Dispatch API call failed:', err)
+        isCommitted.value = false
+        const msg = err.response?.data?.message || err.message || 'حدث خطأ أثناء ترحيل المظروف لنظام الكنترول'
+        alert(`فشل اعتماد المظروف وترحيله للكنترول:\n${msg}`)
       }
     }
 

@@ -10,6 +10,7 @@ class OMRQuestionResult(SoftDeleteModel):
         CROSSED = "crossed", _("مشطوب")
         AMBIGUOUS = "ambiguous", _("ملتبس")
         MULTIPLE = "multiple", _("تظليل متعدد")
+        VISION_UNCERTAIN = "vision_uncertain", _("غير مؤكد بصرياً")
 
     sheet_result = models.ForeignKey(
         'omr.OMRSheetResult',
@@ -19,6 +20,10 @@ class OMRQuestionResult(SoftDeleteModel):
 
     question_number = models.PositiveIntegerField(verbose_name=_("رقم السؤال"))
     marked_choice = models.CharField(max_length=5, blank=True, null=True, verbose_name=_("الخيار المظلل"))
+    candidate_choice = models.CharField(max_length=5, blank=True, null=True, verbose_name=_("الخيار المرشح"))
+    final_marked_choice = models.CharField(max_length=5, blank=True, null=True, verbose_name=_("الخيار المعتمد النهائي"))
+    original_marked_choice = models.CharField(max_length=5, blank=True, null=True, verbose_name=_("الخيار الأصلي من الماسح"))
+    original_bubble_state = models.CharField(max_length=20, blank=True, null=True, verbose_name=_("حالة الدائرة الأصلية"))
     correct_choice = models.CharField(max_length=5, blank=True, null=True, verbose_name=_("الخيار الصحيح"))
     is_correct = models.BooleanField(null=True, verbose_name=_("هل هو صحيح؟"))
     bubble_state = models.CharField(
@@ -33,6 +38,20 @@ class OMRQuestionResult(SoftDeleteModel):
         help_text='{"A": 0.05, "B": 0.10, "C": 0.82, "D": 0.03}'
     )
     final_confidence = models.FloatField(default=0.0)
+    decision_confidence = models.FloatField(default=1.0, verbose_name=_("ثقة القاعدة اللائحية"))
+    needs_review = models.BooleanField(default=False, verbose_name=_("يحتاج مراجعة؟"))
+    review_priority = models.CharField(
+        max_length=20,
+        choices=[
+            ("NONE", _("لا يتطلب")),
+            ("MEDIUM", _("متوسط")),
+            ("HIGH", _("عالي")),
+            ("CRITICAL", _("حرج"))
+        ],
+        default="NONE",
+        verbose_name=_("أولوية المراجعة")
+    )
+    is_manually_overridden = models.BooleanField(default=False, verbose_name=_("تم تعديله يدوياً؟"))
 
     region_coordinates = models.JSONField(
         null=True, blank=True,
@@ -44,7 +63,8 @@ class OMRQuestionResult(SoftDeleteModel):
         help_text='{"A": 0.05, "B": 0.08, "C": 0.82, "D": 0.06}'
     )
 
-    marks_awarded = models.DecimalField(max_digits=4, decimal_places=2, default=0, verbose_name=_("الدرجة الممنوحة"))
+    assigned_weight = models.DecimalField(max_digits=5, decimal_places=2, default=1.00, verbose_name=_("وزن السؤال الفعلي"))
+    marks_awarded = models.DecimalField(max_digits=5, decimal_places=2, default=0, verbose_name=_("الدرجة الممنوحة"))
 
     class Meta:
         db_table = "omr_question_results"
