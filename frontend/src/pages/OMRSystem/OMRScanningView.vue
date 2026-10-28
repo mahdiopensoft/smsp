@@ -1015,7 +1015,7 @@
               <!-- ═══════════ التبويب 2: حافظة كشف الطلاب والمطابقة اللحظية ═══════════ -->
               <div v-else-if="activeConsoleTab === 'roster'">
                 <!-- شريط توضيحي يشرح فائدة كشف الحافظة ومعادلة المطابقة -->
-                <div class="pa-3 mb-3 rounded-xl border bg-surface d-flex align-center justify-space-between flex-wrap gap-3">
+                <div class="pa-3 mb-3 rounded-0 border bg-surface d-flex align-center justify-space-between flex-wrap gap-3">
                   <div class="d-flex align-center gap-2">
                     <v-avatar color="info" variant="tonal" size="32" class="rounded-lg">
                       <v-icon color="info" size="18">mdi-shield-account-outline</v-icon>

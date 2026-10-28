@@ -70,14 +70,17 @@
           :student-name="config.header?.student_name || '................................'"
           :seat-number="config.header?.seat_number || '418485'"
           :serial-number="config.header?.serial_number || '101'"
-          :label-seat-number="activeProfile.labels.seatNumber"
-          :label-serial-number="activeProfile.labels.serialNumber"
-          :label-subject="activeProfile.labels.examSubject"
-          :label-center="activeProfile.labels.centerName"
-          :label-center-code="activeProfile.labels.centerCode"
-          :label-governorate="activeProfile.labels.area1"
-          :label-directorate="activeProfile.labels.area2"
+          :label-seat-number="activeProfile.sheetLabels?.seatNumber || activeProfile.labels.seatNumber"
+          :label-serial-number="activeProfile.sheetLabels?.serialNumber || activeProfile.labels.serialNumber"
+          :label-subject="activeProfile.sheetLabels?.examSubject || activeProfile.labels.examSubject"
+          :label-center="activeProfile.sheetLabels?.centerName || activeProfile.labels.centerName"
+          :label-center-code="activeProfile.sheetLabels?.centerCode || activeProfile.labels.centerCode"
+          :label-governorate="activeProfile.sheetLabels?.area1 || activeProfile.labels.area1"
+          :label-directorate="activeProfile.sheetLabels?.area2 || activeProfile.labels.area2"
           :primary-color="config.header?.primary_color || activeProfile.themeColor"
+          :emblem-type="config.header?.emblem_type || activeProfile.defaultEmblem || 'republic_eagle'"
+          :custom-logo="activeEmblemLogo"
+          :show-emblem="config.header?.show_emblem !== false"
           :model-code="config.header?.model_code || '1'"
           :center-name="config.header?.center_name || 'المركز الاختباري الرئيسي'"
           :center-code="config.header?.center_code || '101'"
@@ -117,6 +120,9 @@
           :bubble-type="config.questions?.layout?.bubble_type || 'numbers'"
           :layout-direction="config.questions?.layout?.layout_direction || 'rtl'"
           :primary-color="config.header?.primary_color || '#1976D2'"
+          :emblem-type="config.header?.emblem_type || activeProfile.defaultEmblem || 'university_seal'"
+          :custom-logo="activeEmblemLogo"
+          :show-emblem="config.header?.show_emblem !== false"
           :institution-name="config.header?.institution_name || 'الجمهورية اليمنية — وزارة التعليم العالي والبحث العلمي'"
           :sub-title="config.header?.sub_title || 'الإدارة العامة للامتحانات والتقويم الآلي'"
           :exam-name="config.header?.exam_name || 'اختبار نهائي'"
@@ -158,6 +164,22 @@ const YemeniAuditReportSheet = defineAsyncComponent(() =>
 const { printSheet, exportPNG, exportJson } = useCanvasExport()
 
 const activeProfile = computed(() => getProfileById(props.config?.institution_type))
+
+const activeEmblemLogo = computed<string>(() => {
+  const h = props.config?.header
+  if (!h) return ''
+  const instType = props.config?.institution_type || 'school'
+  if (instType === 'university' || h.emblem_type === 'university_seal') {
+    return h.university_logo || ''
+  }
+  if (instType === 'institute' || h.emblem_type === 'institute_seal') {
+    return h.institute_logo || ''
+  }
+  if (instType === 'school' || h.emblem_type === 'republic_eagle') {
+    return h.school_logo || ''
+  }
+  return h.custom_logo || ''
+})
 
 const presentationMode = ref<'audit_a4' | 'compact_a5' | 'university_180'>(
   props.config?.display_mode === 'compact_a5'

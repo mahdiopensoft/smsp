@@ -91,14 +91,17 @@
             :student-name="templateData?.header?.student_name || 'عمرو عبدالباسط عبدالله قائد الزمر'"
             :seat-number="templateData?.header?.seat_number || '418485'"
             :serial-number="templateData?.header?.serial_number || '148'"
-            :label-seat-number="activeProfile.labels.seatNumber"
-            :label-serial-number="activeProfile.labels.serialNumber"
-            :label-subject="activeProfile.labels.examSubject"
-            :label-center="activeProfile.labels.centerName"
-            :label-center-code="activeProfile.labels.centerCode"
-            :label-governorate="activeProfile.labels.area1"
-            :label-directorate="activeProfile.labels.area2"
+            :label-seat-number="activeProfile.sheetLabels?.seatNumber || activeProfile.labels.seatNumber"
+            :label-serial-number="activeProfile.sheetLabels?.serialNumber || activeProfile.labels.serialNumber"
+            :label-subject="activeProfile.sheetLabels?.examSubject || activeProfile.labels.examSubject"
+            :label-center="activeProfile.sheetLabels?.centerName || activeProfile.labels.centerName"
+            :label-center-code="activeProfile.sheetLabels?.centerCode || activeProfile.labels.centerCode"
+            :label-governorate="activeProfile.sheetLabels?.area1 || activeProfile.labels.area1"
+            :label-directorate="activeProfile.sheetLabels?.area2 || activeProfile.labels.area2"
             :primary-color="templateData?.header?.primary_color || activeProfile.themeColor"
+            :emblem-type="templateData?.header?.emblem_type || activeProfile.defaultEmblem || 'republic_eagle'"
+            :custom-logo="previewEmblemLogo"
+            :show-emblem="templateData?.header?.show_emblem !== false"
             :center-name="templateData?.header?.center_name || 'سالم قطن — معين'"
             :center-code="templateData?.header?.center_code || '164'"
             :envelope-no="templateData?.header?.envelope_no || '2'"
@@ -129,6 +132,9 @@
             :total-columns="templateData?.questions?.layout?.columns_count || templateData?.metadata?.columns_count || 4"
             :choices-per-question="templateData?.questions?.layout?.choices_count || templateData?.metadata?.choices_count || 4"
             :primary-color="templateData?.header?.primary_color || '#e6007e'"
+            :emblem-type="templateData?.header?.emblem_type || activeProfile.defaultEmblem || 'university_seal'"
+            :custom-logo="previewEmblemLogo"
+            :show-emblem="templateData?.header?.show_emblem !== false"
             :institution-name="templateData?.header?.institution_name || template?.name || 'نموذج اختبار معياري'"
             :sub-title="templateData?.header?.sub_title || template?.description || 'ورقة إجابة التصحيح الضوئي الآلي'"
             :exam-name="templateData?.header?.exam_name || template?.name"
@@ -170,6 +176,22 @@ const YemeniAuditReportSheet = defineAsyncComponent(() =>
 const templateData = computed(() => props.template?.template_data || {})
 const displayMode = computed(() => templateData.value?.display_mode)
 const activeProfile = computed(() => getProfileById(templateData.value?.institution_type || props.template?.institution_type))
+
+const previewEmblemLogo = computed<string>(() => {
+  const h = templateData.value?.header
+  if (!h) return ''
+  const instType = templateData.value?.institution_type || props.template?.institution_type || 'school'
+  if (instType === 'university' || h.emblem_type === 'university_seal') {
+    return h.university_logo || ''
+  }
+  if (instType === 'institute' || h.emblem_type === 'institute_seal') {
+    return h.institute_logo || ''
+  }
+  if (instType === 'school' || h.emblem_type === 'republic_eagle') {
+    return h.school_logo || ''
+  }
+  return h.custom_logo || ''
+})
 
 const isYemeni = computed(() => {
   const t = props.template

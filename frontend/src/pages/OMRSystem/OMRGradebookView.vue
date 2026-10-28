@@ -277,7 +277,7 @@
 
       <!-- تبويبات الاستعراض الهيكلي (Master Tabs) -->
       <div class="main-card rounded-2xl overflow-hidden mb-6 elevation-1 bg-surface border">
-        <div class="d-flex align-center justify-space-between flex-wrap gap-2 px-4 pt-3 border-b">
+        <div class="d-flex align-center flex-wrap gap-2 px-4 pt-3 border-b">
           <v-tabs v-model="masterTab" color="primary" density="compact">
             <v-tab v-if="institutionType === 'school'" value="offices" class="font-weight-bold">
               <v-icon start size="18">mdi-office-building-outline</v-icon>
@@ -296,20 +296,6 @@
               الاختبارات الأكاديمية ({{ filteredExamsTable.length }})
             </v-tab>
           </v-tabs>
-
-          <!-- شريط بحث الجدول السريع -->
-          <div style="max-width: 280px;" class="pb-2">
-            <v-text-field
-              v-model="masterSearchQuery"
-              placeholder="بحث سريع في الجدول..."
-              prepend-inner-icon="mdi-magnify"
-              density="compact"
-              variant="outlined"
-              hide-details
-              clearable
-              class="rounded-lg"
-            />
-          </div>
         </div>
 
         <v-window v-model="masterTab">

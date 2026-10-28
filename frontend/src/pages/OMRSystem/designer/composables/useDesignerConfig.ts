@@ -29,6 +29,12 @@ export interface DesignerConfig {
     primary_color: string
     model_code?: string
     exam_stage_title?: string
+    emblem_type?: 'republic_eagle' | 'university_seal' | 'institute_seal' | 'custom' | 'none' | string
+    custom_logo?: string
+    university_logo?: string
+    institute_logo?: string
+    school_logo?: string
+    show_emblem?: boolean
   }
   metadata: {
     academic_year: string
@@ -123,6 +129,12 @@ export const DEFAULT_CONFIG = (): DesignerConfig => ({
     seat_number: '418485',
     serial_number: '148',
     primary_color: '#000000',
+    emblem_type: 'republic_eagle',
+    custom_logo: '',
+    university_logo: '',
+    institute_logo: '',
+    school_logo: '',
+    show_emblem: true,
   },
   metadata: {
     academic_year: '1444هـ — 2022-2023م',

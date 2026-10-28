@@ -64,6 +64,9 @@
         </div>
       </div>
 
+      <!-- ── Official Institution Emblem / Eagle Switcher Card ── -->
+      <EmblemSettingsCard :config="config" :institution-type="currentInstitutionType" />
+
       <!-- Institutional Header & Seal (Dynamic Labels) -->
       <div class="pa-4 rounded-xl border bg-surface mb-4">
         <label class="text-subtitle-2 font-weight-bold mb-2 d-block">
@@ -222,6 +225,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { INSTITUTION_PROFILES, getProfileById, type InstitutionProfile } from '../composables/useInstitutionProfiles'
+import EmblemSettingsCard from './student/EmblemSettingsCard.vue'
 
 const props = defineProps<{
   config: any
@@ -262,6 +266,9 @@ function applyProfileDefaults(prof: InstitutionProfile) {
     props.config.header.center_code = prof.defaults.center_code
     if (prof.defaults.primary_color) {
       props.config.header.primary_color = prof.defaults.primary_color
+    }
+    if (prof.defaults.emblem_type) {
+      props.config.header.emblem_type = prof.defaults.emblem_type
     }
   }
   if (props.config.metadata) {

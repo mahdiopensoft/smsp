@@ -104,7 +104,10 @@
             <!-- Panels Sub-Tabs -->
             <v-tabs v-model="designerTab" density="compact" color="primary" class="mb-4 border-b" grow>
               <v-tab value="layout" class="font-weight-bold">الصفحة</v-tab>
-              <v-tab value="student" class="font-weight-bold">بطاقة الطالب</v-tab>
+              <v-tab value="student" class="font-weight-bold">
+                <v-icon start size="16">mdi-shield-star-outline</v-icon>
+                بطاقة الطالب والشعار
+              </v-tab>
               <v-tab value="questions" class="font-weight-bold">الأسئلة</v-tab>
               <v-tab value="codes" class="font-weight-bold">الباركود</v-tab>
               <v-tab value="detection" class="font-weight-bold">الذكاء الاصطناعي</v-tab>

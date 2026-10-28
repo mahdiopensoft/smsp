@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { EAGLE_OFFICIAL_BASE64 } from '@/assets/eagleBase64'
+import { resolveEmblemSrc } from '@/assets/omrEmblems'
 import JsBarcode from 'jsbarcode'
 import QRCode from 'qrcode'
 
@@ -48,6 +49,11 @@ const props = withDefaults(
     sectorName?: string
     committeeName?: string
     examStageTitle?: string
+    // Dynamic Emblem / Seal (الطير / شعار المؤسسة)
+    emblemType?: 'republic_eagle' | 'university_seal' | 'institute_seal' | 'custom' | 'none' | string
+    customLogo?: string
+    showEmblem?: boolean
+    emblemSrc?: string
     // Dynamic Metadata Labels
     labelSeatNumber?: string
     labelSerialNumber?: string
@@ -120,6 +126,10 @@ const props = withDefaults(
     sectorName: 'قطاع المناهج والتوجيه — لجان الاختبارات',
     committeeName: 'لجنة المطبعة السرية المركزية',
     examStageTitle: 'اختبار الشهادة الثانوية العامة (القسم العلمي)',
+    emblemType: 'republic_eagle',
+    customLogo: '',
+    showEmblem: true,
+    emblemSrc: '',
     labelSeatNumber: 'رقم الجلوس',
     labelSerialNumber: 'رقم تسلسلي',
     labelSubject: 'المادة',
@@ -138,6 +148,16 @@ const props = withDefaults(
 
 const displaySerialNumber = computed(() => props.serialNumber || props.modelCode || '148')
 const displayCenterName = computed(() => props.centerName || props.schoolName || 'سالم قطن — معين')
+
+const resolvedEmblemSrc = computed<string>(() => {
+  if (props.showEmblem === false || props.emblemType === 'none') {
+    return ''
+  }
+  if (props.emblemSrc) {
+    return props.emblemSrc
+  }
+  return resolveEmblemSrc(props.emblemType, props.customLogo)
+})
 const displayExamYear = computed(() => {
   const y = String(props.examYear || '').trim()
   if (!y || y === '1' || y === '0' || y.length < 4) {
@@ -145,6 +165,22 @@ const displayExamYear = computed(() => {
   }
   return y
 })
+
+const displayExamYearFormatted = computed(() => {
+  const y = displayExamYear.value
+  if (!y) return ''
+  if (y.startsWith('العام') || y.startsWith('عام') || y.includes('للعام')) {
+    return y
+  }
+  return `للعام الدراسي ${y}`
+})
+
+function fitCellFontSize(text: string | number | undefined, maxChars: number, baseSize: number, minSize = 0.9): number {
+  const str = String(text ?? '').trim()
+  if (str.length <= maxChars) return baseSize
+  const scaled = baseSize * (maxChars / str.length)
+  return Math.max(minSize, Number(scaled.toFixed(2)))
+}
 
 // ── Real Scannable Barcode & QR Code Engine ──
 const computedBarcodeValue = computed(() => {
@@ -870,8 +906,8 @@ function handleBubbleClick(q: number, choice: string) {
 
     <!-- ── 1. Official Header Across Top ───────────────────────────── -->
     <g id="top-header-banner" transform="translate(14, 12)">
-      <!-- Eagle Emblem -->
-      <image :href="EAGLE_OFFICIAL_BASE64" :xlink:href="EAGLE_OFFICIAL_BASE64" x="160" y="0" width="22" height="17" preserveAspectRatio="xMidYMid meet" />
+      <!-- Official Emblem / Eagle -->
+      <image v-if="resolvedEmblemSrc" :href="resolvedEmblemSrc" :xlink:href="resolvedEmblemSrc" x="160" y="0" width="22" height="17" preserveAspectRatio="xMidYMid meet" />
 
       <!-- Official Text -->
       <text x="95" y="4" font-size="3" font-weight="bold" text-anchor="middle" font-family="Arial, sans-serif">الجمهورية اليمنية</text>
@@ -1185,24 +1221,33 @@ function handleBubbleClick(q: number, choice: string) {
 
     <!-- ── Right Side: Authentic Student Information Card (12mm Margin: x=136 to 198) ── -->
     <g id="student-info-card-a5">
-      <!-- 1. Header Box (Eagle on Right, Official Texts on Left) -->
+      <!-- 1. Header Box (Emblem on Right if present, Official Texts on Left) -->
       <rect x="136" y="19.5" width="62" height="15.5" fill="#ffffff" stroke="#000000" stroke-width="0.5" />
-      <line x1="168" y1="19.5" x2="168" y2="35.0" stroke="#000000" stroke-width="0.4" />
-      <!-- Republic Eagle Emblem (Right Half: x=168 to 198) -->
-      <image :href="EAGLE_OFFICIAL_BASE64" :xlink:href="EAGLE_OFFICIAL_BASE64" x="170.0" y="20.2" width="26" height="14.0" preserveAspectRatio="xMidYMid meet" />
-      <!-- Ministry Official Text (Left Half: x=136 to 168) -->
-      <text x="152.0" y="22.8" font-size="2.2" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ republicName }}</text>
-      <text x="152.0" y="26.0" font-size="1.8" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ ministryName }}</text>
-      <text x="152.0" y="29.0" font-size="1.3" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ sectorName }}</text>
-      <text x="152.0" y="32.0" font-size="1.3" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ committeeName }}</text>
+      <template v-if="resolvedEmblemSrc">
+        <line x1="168" y1="19.5" x2="168" y2="35.0" stroke="#000000" stroke-width="0.4" />
+        <!-- Emblem (Right Half: x=168 to 198) -->
+        <image :href="resolvedEmblemSrc" :xlink:href="resolvedEmblemSrc" x="170.0" y="20.2" width="26" height="14.0" preserveAspectRatio="xMidYMid meet" />
+        <!-- Ministry / Institution Official Text (Left Half: x=136 to 168) -->
+        <text x="152.0" y="22.8" :font-size="fitCellFontSize(republicName, 20, 2.2, 1.2)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ republicName }}</text>
+        <text x="152.0" y="26.0" :font-size="fitCellFontSize(ministryName, 22, 1.8, 1.1)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ ministryName }}</text>
+        <text x="152.0" y="29.0" :font-size="fitCellFontSize(sectorName, 26, 1.3, 0.95)" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ sectorName }}</text>
+        <text x="152.0" y="32.0" :font-size="fitCellFontSize(committeeName, 24, 1.3, 0.95)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ committeeName }}</text>
+      </template>
+      <template v-else>
+        <!-- Full-width Official Text without Emblem (x=136 to 198, centered at 167.0) -->
+        <text x="167.0" y="23.0" :font-size="fitCellFontSize(republicName, 32, 2.4, 1.4)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ republicName }}</text>
+        <text x="167.0" y="26.4" :font-size="fitCellFontSize(ministryName, 34, 2.0, 1.3)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ ministryName }}</text>
+        <text x="167.0" y="29.5" :font-size="fitCellFontSize(sectorName, 40, 1.5, 1.05)" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ sectorName }}</text>
+        <text x="167.0" y="32.5" :font-size="fitCellFontSize(committeeName, 38, 1.5, 1.05)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ committeeName }}</text>
+      </template>
 
       <!-- 2. Title Banner Box -->
       <rect x="136" y="35.0" width="62" height="6.5" fill="#ffffff" stroke="#000000" stroke-width="0.5" />
-      <text x="167.0" y="38.0" font-size="2.0" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">
+      <text x="167.0" y="38.0" :font-size="fitCellFontSize(examStageTitle, 36, 2.0, 1.3)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">
         {{ examStageTitle }}
       </text>
       <text x="167.0" y="40.4" font-size="1.45" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">
-        للعام الدراسي {{ displayExamYear }}
+        {{ displayExamYearFormatted }}
       </text>
 
       <!-- 3. Metadata Table (4 Rows: x=136 to 198) -->
@@ -1213,28 +1258,28 @@ function handleBubbleClick(q: number, choice: string) {
       <line x1="136" y1="53.5" x2="198" y2="53.5" stroke="#000000" stroke-width="0.35" />
 
       <!-- Row 1: المادة -->
-      <text x="192.5" y="44.2" font-size="1.5" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelSubject }}</text>
-      <text x="161.5" y="44.3" font-size="2.2" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ examSubject }}</text>
+      <text x="192.5" y="44.2" :font-size="fitCellFontSize(labelSubject, 6, 1.5, 0.9)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelSubject }}</text>
+      <text x="161.5" y="44.3" :font-size="fitCellFontSize(examSubject, 24, 2.2, 1.2)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ examSubject }}</text>
 
       <!-- Row 2: المحافظة والمديرية -->
-      <text x="192.5" y="48.2" font-size="1.4" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelGovernorate }}</text>
-      <text x="179.5" y="48.2" font-size="1.6" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ governorate }}</text>
+      <text x="192.5" y="48.2" :font-size="fitCellFontSize(labelGovernorate, 6, 1.4, 0.9)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelGovernorate }}</text>
+      <text x="179.5" y="48.2" :font-size="fitCellFontSize(governorate, 8, 1.6, 1.0)" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ governorate }}</text>
       <line x1="172" y1="45.5" x2="172" y2="49.5" stroke="#000000" stroke-width="0.3" />
-      <text x="166.0" y="48.2" font-size="1.4" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelDirectorate }}</text>
+      <text x="166.0" y="48.2" :font-size="fitCellFontSize(labelDirectorate, 6, 1.4, 0.9)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelDirectorate }}</text>
       <line x1="160" y1="45.5" x2="160" y2="49.5" stroke="#000000" stroke-width="0.3" />
-      <text x="148.0" y="48.2" font-size="1.6" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ directorate }}</text>
+      <text x="148.0" y="48.2" :font-size="fitCellFontSize(directorate, 15, 1.6, 1.0)" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ directorate }}</text>
 
       <!-- Row 3: المركز -->
-      <text x="192.5" y="52.2" font-size="1.4" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelCenter }}</text>
-      <text x="161.5" y="52.2" font-size="1.8" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ displayCenterName }}</text>
+      <text x="192.5" y="52.2" :font-size="fitCellFontSize(labelCenter, 6, 1.4, 0.9)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelCenter }}</text>
+      <text x="161.5" y="52.2" :font-size="fitCellFontSize(displayCenterName, 26, 1.8, 1.1)" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ displayCenterName }}</text>
 
       <!-- Row 4: رقم المركز والمظروف -->
-      <text x="192.5" y="56.2" font-size="1.3" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelCenterCode }}</text>
-      <text x="175.5" y="56.2" font-size="2.2" font-weight="bold" text-anchor="middle" font-family="'Courier New', monospace">{{ centerCode }}</text>
+      <text x="192.5" y="56.2" :font-size="fitCellFontSize(labelCenterCode, 6, 1.3, 0.85)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelCenterCode }}</text>
+      <text x="175.5" y="56.2" :font-size="fitCellFontSize(centerCode, 10, 2.2, 1.2)" font-weight="bold" text-anchor="middle" font-family="'Courier New', monospace">{{ centerCode }}</text>
       <line x1="164" y1="53.5" x2="164" y2="57.5" stroke="#000000" stroke-width="0.3" />
-      <text x="157.0" y="56.2" font-size="1.3" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelEnvelope }}</text>
+      <text x="157.0" y="56.2" :font-size="fitCellFontSize(labelEnvelope, 6, 1.3, 0.85)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelEnvelope }}</text>
       <line x1="150" y1="53.5" x2="150" y2="57.5" stroke="#000000" stroke-width="0.3" />
-      <text x="143.0" y="56.2" font-size="2.2" font-weight="bold" text-anchor="middle" font-family="'Courier New', monospace">{{ envelopeNo }}</text>
+      <text x="143.0" y="56.2" :font-size="fitCellFontSize(envelopeNo, 6, 2.2, 1.2)" font-weight="bold" text-anchor="middle" font-family="'Courier New', monospace">{{ envelopeNo }}</text>
 
       <!-- 4. Student Printed Name Row 1 (Computer-Printed) -->
       <rect x="136" y="57.5" width="62" height="5.5" fill="#ffffff" stroke="#000000" stroke-width="0.4" />
@@ -1260,7 +1305,7 @@ function handleBubbleClick(q: number, choice: string) {
       <!-- 6 & 7. Authentic Seat Number Box, Serial Number Box, and Separate Right Marker Box (Matches media_1789821869125.png) -->
       <!-- Seat Number Box (width: 44mm, x=136 to 180) -->
       <rect x="136" y="69.0" width="44" height="11.5" fill="#ffffff" stroke="#000000" stroke-width="0.5" />
-      <text x="158.0" y="72.2" font-size="2.1" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelSeatNumber }}</text>
+      <text x="158.0" y="72.2" :font-size="fitCellFontSize(labelSeatNumber, 18, 2.1, 1.4)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelSeatNumber }}</text>
       <line x1="137" y1="73.8" x2="179" y2="73.8" stroke="#888888" stroke-width="0.3" stroke-dasharray="0.8 0.8" />
       <text x="158.0" y="78.8" font-size="5.6" font-weight="bold" font-family="'Arial', 'Cairo', sans-serif" letter-spacing="1.0" text-anchor="middle">
         {{ seatNumber }}
@@ -1269,7 +1314,7 @@ function handleBubbleClick(q: number, choice: string) {
       <!-- Serial Number Row (width: 44mm, x=136 to 180) -->
       <rect x="136" y="80.5" width="44" height="5.0" fill="#ffffff" stroke="#000000" stroke-width="0.4" />
       <line x1="158" y1="80.5" x2="158" y2="85.5" stroke="#000000" stroke-width="0.4" />
-      <text x="169.0" y="84.2" font-size="2.0" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelSerialNumber }}</text>
+      <text x="169.0" y="84.2" :font-size="fitCellFontSize(labelSerialNumber, 12, 2.0, 1.3)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelSerialNumber }}</text>
       <text x="147.0" y="84.4" font-size="2.8" font-weight="bold" text-anchor="middle" font-family="'Courier New', monospace">{{ displaySerialNumber }}</text>
 
       <!-- Right Marker Box: Separate Column (x=180 to 198, width: 18mm, height: 16.5mm) with Registration Triangle -->

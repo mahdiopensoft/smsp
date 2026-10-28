@@ -8,6 +8,7 @@ from django.db.models import Q
 from omr.models.OMRSheetResult import OMRSheetResult
 from omr.models.OMRQuestionResult import OMRQuestionResult
 from omr.serializers.OMRSheetResult import OMRSheetResultSerializer
+from OpenSoftCoreV41.common.models.Branch import Organization as CoreOrg
 
 class OMRHumanReviewMVS(AllMVS):
     """
@@ -128,12 +129,80 @@ class OMRHumanReviewMVS(AllMVS):
         if exam_id:
             qs = qs.filter(submission__exam_id=exam_id)
 
+        # ── Hierarchy Filters (Office / Directorate / School) ──
+        office_id = self.request.query_params.get('office_id') or self.request.query_params.get('office')
+        directorate_id = self.request.query_params.get('directorate_id') or self.request.query_params.get('directorate')
+        school_id = self.request.query_params.get('school_id') or self.request.query_params.get('school')
+
+        if school_id and school_id != 'all':
+            sch_ids = [int(x) for x in str(school_id).split(',') if x.strip().isdigit()]
+            sch_names = [x.strip() for x in str(school_id).split(',') if not x.strip().isdigit() and x.strip()]
+            q_sch = Q()
+            if sch_ids:
+                q_sch |= Q(submission__registration__student_profile__organization_id__in=sch_ids)
+                core_names = list(CoreOrg.objects.filter(id__in=sch_ids, company_level=50).values_list('name_ar', flat=True))
+                if core_names:
+                    q_sch |= Q(submission__registration__student_profile__organization__name_ar__in=core_names)
+            if sch_names:
+                q_sch |= Q(submission__registration__student_profile__organization__name_ar__in=sch_names)
+            qs = qs.filter(q_sch)
+
+        elif directorate_id and directorate_id != 'all':
+            dir_ids = [int(x) for x in str(directorate_id).split(',') if x.strip().isdigit()]
+            dir_names = [x.strip() for x in str(directorate_id).split(',') if not x.strip().isdigit() and x.strip()]
+            child_school_names = []
+            if dir_ids:
+                core_dirs = CoreOrg.objects.filter(id__in=dir_ids, company_level=40)
+                for cd in core_dirs:
+                    clean = cd.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip()
+                    dir_names.extend([cd.name_ar, clean])
+                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=dir_ids, is_deleted=False)
+                child_school_names = list(child_schools.values_list('name_ar', flat=True))
+            qs = qs.filter(
+                Q(submission__registration__student_profile__directorate_id__in=dir_ids) |
+                Q(submission__registration__student_profile__directorate__name_ar__in=dir_names) |
+                Q(submission__registration__student_profile__organization__name_ar__in=child_school_names)
+            )
+
+        elif office_id and office_id != 'all':
+            off_ids = [int(x) for x in str(office_id).split(',') if x.strip().isdigit()]
+            gov_names = [x.strip() for x in str(office_id).split(',') if not x.strip().isdigit() and x.strip()]
+            child_school_names = []
+            if off_ids:
+                core_offs = CoreOrg.objects.filter(id__in=off_ids, company_level=30)
+                for co in core_offs:
+                    clean_gov = co.name_ar.replace('مكتب التربية والتعليم - ', '').strip()
+                    gov_names.extend([co.name_ar, clean_gov])
+                dir_ids = list(CoreOrg.objects.filter(company_level=40, fk_parent_organization__in=off_ids).values_list('id', flat=True))
+                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=dir_ids, is_deleted=False)
+                child_school_names = list(child_schools.values_list('name_ar', flat=True))
+            qs = qs.filter(
+                Q(submission__registration__student_profile__directorate__fk_governorate__name_ar__in=gov_names) |
+                Q(submission__registration__student_profile__organization__name_ar__in=child_school_names)
+            )
+
+        # ── Status and Metric Filters ──
         review_status = self.request.query_params.get('status')
         if review_status:
             if review_status == 'pending':
                 qs = qs.filter(Q(status='needs_review') | Q(confidence__lt=0.85) | Q(ambiguous_count__gt=0))
             elif review_status == 'verified':
                 qs = qs.filter(status='verified')
+
+        metric_filter = self.request.query_params.get('metric_filter') or self.request.query_params.get('filter')
+        if metric_filter and metric_filter != 'all':
+            if metric_filter == 'pending':
+                qs = qs.filter(Q(status='needs_review') | Q(confidence__lt=0.85) | Q(ambiguous_count__gt=0))
+            elif metric_filter == 'verified':
+                qs = qs.filter(status='verified')
+            elif metric_filter == 'ambiguous':
+                qs = qs.filter(ambiguous_count__gt=0)
+            elif metric_filter == 'perfect':
+                qs = qs.filter(confidence__gte=0.85, ambiguous_count=0, answered_questions__gt=0)
+            elif metric_filter == 'low_score':
+                qs = qs.filter(mcq_score__lt=50)
+            elif metric_filter == 'zero':
+                qs = qs.filter(answered_questions=0)
 
         search = self.request.query_params.get('search')
         if search:
@@ -152,15 +221,20 @@ class OMRHumanReviewMVS(AllMVS):
     def stats(self, request):
         """Statistics of sheets requiring human review."""
         base_qs = self.get_queryset()
-        pending_review = base_qs.filter(confidence__lt=0.85).count()
+        total_count = base_qs.count()
+        pending_review = base_qs.filter(Q(status='needs_review') | Q(confidence__lt=0.85) | Q(ambiguous_count__gt=0)).count()
         ambiguous_total = base_qs.filter(ambiguous_count__gt=0).count()
-        completed = base_qs.filter(confidence__gte=0.85).count()
+        completed = base_qs.filter(status='verified').count()
+        perfect_total = base_qs.filter(confidence__gte=0.85, ambiguous_count=0, answered_questions__gt=0).count()
+        zero_total = base_qs.filter(answered_questions=0).count()
 
         return Response({
+            "totalSheets": total_count,
             "pendingReview": pending_review,
-            "ambiguousSheets": ambiguous_total,
             "verifiedSheets": completed,
-            "totalSheets": base_qs.count()
+            "ambiguousSheets": ambiguous_total,
+            "perfectSheets": perfect_total,
+            "zeroSheets": zero_total,
         })
 
     @action(detail=True, methods=['post'], url_path='approve-review')

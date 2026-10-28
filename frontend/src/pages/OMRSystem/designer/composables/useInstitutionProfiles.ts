@@ -6,12 +6,23 @@ export interface InstitutionProfile {
   color: string
   themeColor: string
   defaultDisplayMode: 'compact_a5' | 'audit_a4' | 'university_180'
+  defaultEmblem: 'republic_eagle' | 'university_seal' | 'institute_seal' | 'custom' | 'none' | string
+  emblemLabel: string
   labels: {
     institution: string
     subTitle: string
     examStage: string
     examSubject: string
     academicYear: string
+    area1: string
+    area2: string
+    centerName: string
+    centerCode: string
+    seatNumber: string
+    serialNumber: string
+  }
+  sheetLabels: {
+    examSubject: string
     area1: string
     area2: string
     centerName: string
@@ -30,6 +41,7 @@ export interface InstitutionProfile {
     center_code: string
     exam_name: string
     primary_color: string
+    emblem_type?: 'republic_eagle' | 'university_seal' | 'institute_seal' | 'custom' | 'none' | string
   }
 }
 
@@ -42,6 +54,8 @@ export const INSTITUTION_PROFILES: InstitutionProfile[] = [
     color: 'primary',
     themeColor: '#000000',
     defaultDisplayMode: 'compact_a5',
+    defaultEmblem: 'republic_eagle',
+    emblemLabel: 'طير الجمهورية (وزارة التربية والتعليم)',
     labels: {
       institution: 'اسم الدولة والوزارة',
       subTitle: 'القطاع / لجنة الاختبارات',
@@ -55,6 +69,15 @@ export const INSTITUTION_PROFILES: InstitutionProfile[] = [
       seatNumber: 'رقم الجلوس',
       serialNumber: 'الرقم التسلسلي / السري',
     },
+    sheetLabels: {
+      examSubject: 'المادة',
+      area1: 'المحافظة',
+      area2: 'المديرية',
+      centerName: 'المركز',
+      centerCode: 'رقم المركز',
+      seatNumber: 'رقم الجلوس',
+      serialNumber: 'رقم تسلسلي',
+    },
     defaults: {
       institution_name: 'الجمهورية اليمنية — وزارة التربية والتعليم',
       sub_title: 'قطاع المناهج والتوجيه — لجان الاختبارات',
@@ -66,6 +89,7 @@ export const INSTITUTION_PROFILES: InstitutionProfile[] = [
       center_code: '164',
       exam_name: 'القرآن الكريم',
       primary_color: '#000000',
+      emblem_type: 'republic_eagle',
     },
   },
   {
@@ -76,6 +100,8 @@ export const INSTITUTION_PROFILES: InstitutionProfile[] = [
     color: 'purple',
     themeColor: '#1976D2',
     defaultDisplayMode: 'university_180',
+    defaultEmblem: 'university_seal',
+    emblemLabel: 'شعار الجامعات والتعليم العالي (الختم الأكاديمي)',
     labels: {
       institution: 'اسم الدولة والجامعة',
       subTitle: 'الكلية / نيابة شؤون الطلاب والامتحانات',
@@ -89,6 +115,15 @@ export const INSTITUTION_PROFILES: InstitutionProfile[] = [
       seatNumber: 'الرقم الأكاديمي / القيد',
       serialNumber: 'رقم المقعد / التسلسلي',
     },
+    sheetLabels: {
+      examSubject: 'المقرر',
+      area1: 'الفرع',
+      area2: 'المبنى',
+      centerName: 'القاعة',
+      centerCode: 'الشعبة',
+      seatNumber: 'الرقم الأكاديمي',
+      serialNumber: 'رقم المقعد',
+    },
     defaults: {
       institution_name: 'الجمهورية اليمنية — وزارة التعليم العالي والبحث العلمي',
       sub_title: 'جامعة صنعاء — كلية الحاسوب وتكنولوجيا المعلومات',
@@ -100,6 +135,7 @@ export const INSTITUTION_PROFILES: InstitutionProfile[] = [
       center_code: 'A1',
       exam_name: 'هياكل البيانات والخوارزميات',
       primary_color: '#1976D2',
+      emblem_type: 'university_seal',
     },
   },
   {
@@ -110,6 +146,8 @@ export const INSTITUTION_PROFILES: InstitutionProfile[] = [
     color: 'teal',
     themeColor: '#00796B',
     defaultDisplayMode: 'compact_a5',
+    defaultEmblem: 'institute_seal',
+    emblemLabel: 'شعار التعليم الفني والتدريب المهني (المعاهد التقنية)',
     labels: {
       institution: 'اسم الدولة والوزارة / الهيئة',
       subTitle: 'المعهد / قسم شؤون المتدربين والتقويم',
@@ -123,6 +161,15 @@ export const INSTITUTION_PROFILES: InstitutionProfile[] = [
       seatNumber: 'رقم القيد التدريبي / الجلوس',
       serialNumber: 'رقم الحافظة / التسلسلي',
     },
+    sheetLabels: {
+      examSubject: 'المادة',
+      area1: 'الفرع',
+      area2: 'القسم',
+      centerName: 'المعمل',
+      centerCode: 'الفترة',
+      seatNumber: 'رقم القيد',
+      serialNumber: 'رقم الحافظة',
+    },
     defaults: {
       institution_name: 'الجمهورية اليمنية — وزارة التعليم الفني والتدريب المهني',
       sub_title: 'المعهد التقني الصناعي — إدارة الاختبارات والتقويم الآلي',
@@ -134,6 +181,7 @@ export const INSTITUTION_PROFILES: InstitutionProfile[] = [
       center_code: 'T-01',
       exam_name: 'شبكات الحاسوب والتقنيات الرقمية',
       primary_color: '#00796B',
+      emblem_type: 'institute_seal',
     },
   },
 ]

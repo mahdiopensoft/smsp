@@ -1,1321 +1,466 @@
 <template>
   <div class="qb-human-review-v4 pa-4 pa-md-6">
-    <!-- Filters Control Bar (Standard filter-fields matching students-master) -->
-    <filter-fields label="خيارات تصفية أوراق المراجعة والتدقيق" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
-      <v-row dense class="align-center">
-        <!-- 1. نوع المؤسسة التعليمية (حقل واحد قياسي موحد بنمط students-master) -->
-        <v-col cols="12" sm="6" md="3">
-          <auto-list
-            v-model="filterInstitutionType"
-            name="InstitutionType"
-            placeholder="نوع المؤسسة التعليمية"
-            label="نوع المؤسسة التعليمية"
-            cols="12"
-            :add="false"
-            @update:model-value="onInstitutionTypeChange"
-          />
-        </v-col>
+    <!-- 1. MASTER VIEW: الهيكل الإداري ومراجعة أوراق الاختبارات -->
+    <ReviewMasterView
+      v-if="currentView === 'master'"
+      v-model:institution-type="institutionType"
+      v-model:master-tab="masterTab"
+      v-model:selected-office-id="selectedOfficeId"
+      v-model:selected-directorate-id="selectedDirectorateId"
+      v-model:selected-school-id="selectedSchoolId"
+      v-model:selected-subject-id="selectedSubjectId"
+      :sector-options="sectorOptions"
+      :all-offices-list="allOfficesList"
+      :offices-list="officesList"
+      :directorates-options="directoratesOptions"
+      :schools-options="schoolsOptions"
+      :subjects-list="subjectsList"
+      :loading-master="loadingMaster"
+      :filtered-offices-table="filteredOfficesTable"
+      :filtered-directorates-table="filteredDirectoratesTable"
+      :filtered-schools-table="filteredSchoolsTable"
+      :filtered-master-exams-table="filteredMasterExamsTable"
+      @refresh="refreshMasterData"
+      @reset="resetHierarchyFilters"
+      @select-exam="openExamReviewDetail"
+    />
 
-        <!-- Search Query Input -->
-        <v-col cols="12" sm="6" md="3">
-          <v-text-field
-            v-model="searchQuery"
-            label="اسم الطالب أو رقم القيد"
-            placeholder="بحث برقم السجل أو الطالب..."
-            prepend-inner-icon="mdi-magnify"
-            clearable
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            class="mb-3"
-            hide-details
-            @keyup.enter="fetchData"
-          />
-        </v-col>
+    <!-- 2. DETAIL VIEW: كشف فحص وتدقيق أوراق الطلاب التفصيلي -->
+    <ReviewDetailView
+      v-else
+      :institution-type="institutionType"
+      :active-exam="activeExam"
+      :active-breadcrumb="activeBreadcrumb"
+      :detail-table-items="detailTableItems"
+      :loading-detail="loadingDetail"
+      :detail-stats="detailStats"
+      :detail-headers="detailHeaders"
+      :directorates-options="detailDirectoratesOptions"
+      :schools-options="detailSchoolsOptions"
+      :status-options="statusOptions"
+      :get-detail-data="getDetailData"
+      @return-to-master="returnToMaster"
+      @review-sheet="openReviewModal"
+      @approve-sheet="approveSheet"
+      @filter-change="handleDetailFilterChange"
+      @reset-filters="resetDetailFilters"
+    />
 
-        <!-- Status Filter -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterStatus"
-            :items="statusOptions"
-            item-title="title"
-            item-value="value"
-            label="حالة المراجعة"
-            placeholder="حالة المراجعة"
-            prepend-inner-icon="mdi-list-status"
-            clearable
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            class="mb-3"
-            hide-details
-            @update:model-value="fetchData"
-          />
-        </v-col>
-
-        <!-- Exam Filter -->
-        <v-col cols="12" sm="6" md="3">
-          <auto-list
-            v-model="filterExam"
-            name="Exam"
-            :param="examFilterParam"
-            placeholder="الاختبار"
-            label="الاختبار"
-            cols="12"
-            :add="false"
-            @update:model-value="fetchData"
-          />
-        </v-col>
-
-        <!-- Common Subject Filter (School or All) -->
-        <v-col v-if="filterInstitutionType === 'school' || filterInstitutionType === 'all'" cols="12" sm="6" md="3">
-          <auto-list
-            v-model="filterSubject"
-            name="Subject"
-            placeholder="المادة الدراسية"
-            label="المادة الدراسية"
-            cols="12"
-            :add="false"
-          />
-        </v-col>
-
-        <!-- فلاتر المدارس -->
-        <template v-if="filterInstitutionType === 'school'">
-          <v-col cols="12" sm="6" md="3">
-            <auto-list
-              v-model="filterStage"
-              name="Stage"
-              placeholder="المرحلة الدراسية"
-              label="المرحلة الدراسية"
-              cols="12"
-              :add="false"
-              @update:model-value="onStageChange"
-            />
-          </v-col>
-          <v-col cols="12" sm="6" md="3">
-            <auto-list
-              v-model="filterClassTrack"
-              name="ClassTrackByStage"
-              :param="filterStage"
-              placeholder="الصف والمسار"
-              label="الصف والمسار المدرسي"
-              cols="12"
-              :add="false"
-              :disabled="!filterStage"
-            />
-          </v-col>
-        </template>
-
-        <!-- فلاتر الجامعات -->
-        <template v-if="filterInstitutionType === 'university'">
-          <v-col cols="12" sm="6" md="3">
-            <auto-list
-              v-model="filterCollege"
-              name="College"
-              placeholder="الكلية الجامعية"
-              label="الكلية الجامعية"
-              cols="12"
-              :add="false"
-              @update:model-value="onCollegeChange"
-            />
-          </v-col>
-          <v-col cols="12" sm="6" md="3">
-            <auto-list
-              v-model="filterDepartment"
-              name="DepartmentByCollege"
-              :param="filterCollege"
-              placeholder="القسم الأكاديمي"
-              label="القسم الأكاديمي"
-              cols="12"
-              :add="false"
-              :disabled="!filterCollege"
-              @update:model-value="filterSpecialization = null"
-            />
-          </v-col>
-          <v-col cols="12" sm="6" md="3">
-            <auto-list
-              v-model="filterSpecialization"
-              name="Specialization"
-              :param="filterDepartment"
-              placeholder="التخصص والبرنامج"
-              label="التخصص والبرنامج"
-              cols="12"
-              :add="false"
-              :disabled="!filterDepartment"
-            />
-          </v-col>
-          <v-col cols="12" sm="6" md="3">
-            <auto-list
-              v-model="filterSemesterSubject"
-              name="SemesterSubject"
-              :param="filterSpecialization"
-              placeholder="مقرر الفصل الجامعي"
-              label="مقرر الفصل الجامعي"
-              cols="12"
-              :add="false"
-            />
-          </v-col>
-        </template>
-
-        <!-- فلاتر المعاهد -->
-        <template v-if="filterInstitutionType === 'institute'">
-          <v-col cols="12" sm="6" md="3">
-            <auto-list
-              v-model="filterInstituteField"
-              name="InstituteField"
-              placeholder="المجال المهني / التقني"
-              label="المجال المهني / التقني"
-              cols="12"
-              :add="false"
-              @update:model-value="onInstituteFieldChange"
-            />
-          </v-col>
-          <v-col cols="12" sm="6" md="3">
-            <auto-list
-              v-model="filterInstituteEducationSystem"
-              name="InstituteEducationSystem"
-              :param="filterInstituteField"
-              placeholder="نظام التعليم والتدريب"
-              label="نظام التعليم والتدريب"
-              cols="12"
-              :add="false"
-              :disabled="!filterInstituteField"
-              @update:model-value="onInstituteEducationSystemChange"
-            />
-          </v-col>
-          <v-col cols="12" sm="6" md="3">
-            <auto-list
-              v-model="filterInstituteSpecialization"
-              name="InstituteSpecialization"
-              :param="instituteSpecParam"
-              placeholder="التخصص المهني"
-              label="التخصص المهني"
-              cols="12"
-              :add="false"
-              :disabled="!filterInstituteEducationSystem"
-            />
-          </v-col>
-          <v-col cols="12" sm="6" md="3">
-            <auto-list
-              v-model="filterInstituteSubject"
-              name="InstituteSubject"
-              :param="instituteSubjectParam"
-              placeholder="المادة الدراسية للمعهد"
-              label="المادة الدراسية للمعهد"
-              cols="12"
-              :add="false"
-            />
-          </v-col>
-        </template>
-
-        <!-- Filter Action Buttons (Standard style matching students-master) -->
-        <v-col cols="12" class="d-flex align-center justify-end gap-2 mb-3">
-          <custom-btn
-            type="show"
-            label="تصفية النتائج"
-            color="primary"
-            icon="mdi-filter"
-            class="font-weight-bold px-5"
-            :click="fetchData"
-          />
-          <custom-btn
-            type="cancel_filter"
-            :click="resetFilters"
-            variant="tonal"
-            color="error"
-            label="تفريغ الفلاتر"
-            icon="mdi-filter-off"
-            class="font-weight-bold"
-          />
-        </v-col>
-      </v-row>
-    </filter-fields>
-
-    <!-- Unified Data Table (matching standard /levels) -->
-    <div class="main-card rounded-2xl overflow-hidden mb-8">
-      <custom-data-table
-        v-bind="{
-          items: tableItems,
-          getData,
-          headers,
-        }"
-        :customLoading="loading"
-        :hasFilter="false"
-        :log="false"
-        :restore="false"
-      >
-        <template v-slot:item-slot="{ item, key }">
-          <!-- Student Info -->
-          <template v-if="key === 'student_info'">
-            <div class="py-1">
-              <div class="font-weight-bold text-body-2 text-on-surface">
-                {{ item.student_name || ('ورقة #' + item.id) }}
-              </div>
-              <div v-if="item.seat_number" class="text-caption text-medium-emphasis mt-1">
-                {{ item.institution_type === 'university' ? 'رقم القيد:' : 'رقم الجلوس:' }}
-                <span class="font-weight-bold text-on-surface ms-1">{{ item.seat_number }}</span>
-              </div>
-            </div>
-          </template>
-
-          <!-- Exam -->
-          <template v-else-if="key === 'exam_title'">
-            <div class="py-1">
-              <div class="text-body-2 font-weight-medium text-truncate" style="max-width: 250px;">
-                {{ item.exam_title || 'اختبار عام' }}
-              </div>
-              <div class="text-caption text-medium-emphasis mt-1">
-                {{ item.institution_type === 'university' ? 'جامعي' : 'مدرسي' }}
-              </div>
-            </div>
-          </template>
-
-          <!-- Confidence -->
-          <template v-else-if="key === 'confidence'">
-            <v-chip
-              size="small"
-              :color="item.confidence >= 0.85 ? 'success' : 'warning'"
-              variant="tonal"
-              class="font-weight-bold unified-table-chip"
-            >
-              {{ Math.round((item.confidence || 0) * 100) }}%
-            </v-chip>
-          </template>
-
-          <!-- Ambiguous questions -->
-          <template v-else-if="key === 'ambiguous_count'">
-            <v-chip
-              v-if="item.ambiguous_count > 0"
-              size="small"
-              color="error"
-              variant="tonal"
-              class="font-weight-bold unified-table-chip"
-            >
-              <v-icon start size="13">mdi-alert-circle-outline</v-icon>
-              {{ item.ambiguous_count }} أسئلة
-            </v-chip>
-            <span v-else class="text-medium-emphasis text-caption">-</span>
-          </template>
-
-          <!-- Score -->
-          <template v-else-if="key === 'score'">
-            <span class="font-weight-bold text-body-2">
-              {{ item.mcq_score != null ? item.mcq_score : 0 }} / {{ item.mcq_max_score != null ? item.mcq_max_score : 0 }}
-            </span>
-          </template>
-
-          <!-- Status -->
-          <template v-else-if="key === 'status'">
-            <v-chip
-              size="small"
-              :color="item.status === 'verified' ? 'success' : 'warning'"
-              variant="tonal"
-              class="font-weight-bold unified-table-chip"
-            >
-              <v-icon start size="14">{{ item.status === 'verified' ? 'mdi-check-circle' : 'mdi-clock-outline' }}</v-icon>
-              {{ item.status === 'verified' ? 'معتمد' : 'قيد التدقيق' }}
-            </v-chip>
-          </template>
-
-          <!-- Actions -->
-          <template v-else-if="key === 'actions'">
-            <div class="d-flex align-center justify-center gap-1">
-              <v-btn
-                size="small"
-                color="primary"
-                variant="tonal"
-                class="font-weight-bold px-2"
-                prepend-icon="mdi-file-find-outline"
-                @click="openReviewModal(item)"
-              >
-                تدقيق وتعديل
-              </v-btn>
-              <custom-btn
-                v-if="item.status !== 'verified'"
-                type="ok"
-                is-icon
-                label="اعتماد ومصادقة النتيجة"
-                :click="() => approveSheet(item)"
-              />
-              <custom-btn
-                v-else
-                type="done"
-                is-icon
-                label="تم الاعتماد مسبقاً"
-                disabled
-              />
-            </div>
-          </template>
-        </template>
-      </custom-data-table>
-    </div>
-
-    <!-- ── نافذة المراجعة والتدقيق وتعديل الإجابات الملتبسة (الجدول الموحد custom-data-table) ── -->
-    <v-dialog v-model="reviewDialog" max-width="1180" scrollable>
-      <v-card class="rounded-2xl overflow-hidden main-card" v-if="activeReviewSheet">
-        <!-- Dialog Header -->
-        <v-card-title class="d-flex align-center justify-space-between bg-surface px-6 py-4 border-b">
-          <div class="d-flex align-center gap-3">
-            <v-avatar color="primary" variant="tonal" rounded="lg" size="44">
-              <v-icon size="24" color="primary">mdi-file-eye-outline</v-icon>
-            </v-avatar>
-            <div>
-              <div class="d-flex align-center gap-2 flex-wrap">
-                <h3 class="text-h6 font-weight-black text-on-surface mb-0">
-                  {{ activeReviewSheet.student_name || 'ورقة بدون اسم' }}
-                </h3>
-                <v-chip size="small" color="primary" variant="flat" class="font-weight-bold px-2 unified-table-chip">
-                  {{ activeReviewSheet.seat_number ? (activeReviewSheet.institution_type === 'university' ? 'رقم القيد: ' : 'رقم الجلوس: ') + activeReviewSheet.seat_number : 'ورقة #' + activeReviewSheet.id }}
-                </v-chip>
-                <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold px-2 unified-table-chip">
-                  النموذج: {{ activeReviewSheet.version_code || 'A' }}
-                </v-chip>
-              </div>
-              <p class="text-caption text-medium-emphasis mb-0 mt-1">
-                {{ activeReviewSheet.exam_title || 'اختبار عام' }} • نسبة الثقة: 
-                <strong :class="(activeReviewSheet.confidence || 0) >= 0.85 ? 'text-success' : 'text-warning'">
-                  {{ Math.round((activeReviewSheet.confidence || 0) * 100) }}%
-                </strong>
-              </p>
-            </div>
-          </div>
-
-          <div class="d-flex align-center gap-3">
-            <div class="d-flex align-center gap-2 px-3 py-1.5 rounded-xl border bg-surface">
-              <v-icon size="18" color="success">mdi-check-decagram</v-icon>
-              <div class="d-flex flex-column text-end">
-                <span class="text-caption text-medium-emphasis" style="font-size: 10px; line-height: 1;">الدرجة الحالية</span>
-                <span class="font-weight-black text-body-1 text-success" style="line-height: 1.2;">
-                  {{ activeReviewSheet.mcq_score != null ? activeReviewSheet.mcq_score : 0 }} <span class="text-caption text-medium-emphasis">/ {{ activeReviewSheet.mcq_max_score || 0 }}</span>
-                </span>
-              </div>
-            </div>
-            <v-btn icon="mdi-close" variant="text" size="small" color="medium-emphasis" @click="reviewDialog = false" />
-          </div>
-        </v-card-title>
-
-        <v-card-text class="pa-4 bg-surface" style="max-height: 72vh;">
-          <!-- تنبيه الأسئلة الملتبسة -->
-          <v-alert
-            v-if="dialogCounts.ambiguous > 0"
-            type="warning"
-            variant="tonal"
-            density="compact"
-            class="mb-3 rounded-xl font-weight-bold"
-          >
-            <div class="d-flex align-center justify-space-between flex-wrap gap-2">
-              <div class="d-flex align-center gap-2">
-                <v-icon size="20">mdi-alert-circle</v-icon>
-                <span>يوجد <strong>{{ dialogCounts.ambiguous }}</strong> أسئلة بها تظليل ملتبس تتطلب تدقيقاً.</span>
-              </div>
-              <v-btn
-                size="x-small"
-                variant="flat"
-                color="warning"
-                class="font-weight-bold"
-                @click="dialogQuestionFilter = 'ambiguous'"
-              >
-                تصفية الملتبسة فقط
-              </v-btn>
-            </div>
-          </v-alert>
-
-          <!-- شريط الفلاتر والبحث السريع -->
-          <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3">
-            <v-btn-toggle
-              v-model="dialogQuestionFilter"
-              mandatory
-              density="compact"
-              rounded="lg"
-              color="primary"
-              variant="tonal"
-              class="border"
-            >
-              <v-btn value="all" size="small" class="font-weight-bold">
-                الكل ({{ dialogCounts.all }})
-              </v-btn>
-              <v-btn
-                v-if="dialogCounts.ambiguous > 0"
-                value="ambiguous"
-                size="small"
-                color="warning"
-                class="font-weight-bold"
-              >
-                الملتبسة ({{ dialogCounts.ambiguous }})
-              </v-btn>
-              <v-btn
-                value="wrong"
-                size="small"
-                color="error"
-                class="font-weight-bold"
-              >
-                الخاطئة ({{ dialogCounts.wrong }})
-              </v-btn>
-              <v-btn
-                value="correct"
-                size="small"
-                color="success"
-                class="font-weight-bold"
-              >
-                الصحيحة ({{ dialogCounts.correct }})
-              </v-btn>
-              <v-btn
-                value="empty"
-                size="small"
-                color="secondary"
-                class="font-weight-bold"
-              >
-                الفارغة ({{ dialogCounts.empty }})
-              </v-btn>
-            </v-btn-toggle>
-
-            <div style="width: 220px;">
-              <v-text-field
-                v-model="dialogSearchQuery"
-                density="compact"
-                variant="outlined"
-                placeholder="بحث برقم السؤال أو الخيار..."
-                prepend-inner-icon="mdi-magnify"
-                hide-details
-                clearable
-              />
-            </div>
-          </div>
-
-          <!-- ── الجدول الموحد للأسئلة (custom-data-table) ── -->
-          <div class="main-card rounded-2xl overflow-hidden mb-2">
-            <custom-data-table
-              v-bind="{
-                items: dialogTableItems,
-                getData: getDialogData,
-                headers: dialogHeaders,
-              }"
-              :customLoading="false"
-              :hasFilter="false"
-              :log="false"
-              :restore="false"
-              :numbering="false"
-              :showSelect="false"
-              class="bg-transparent"
-            >
-              <template v-slot:item-slot="{ item, key }">
-                <!-- رقم السؤال -->
-                <template v-if="key === 'question_number'">
-                  <div class="text-center py-1">
-                    <span class="font-weight-black text-body-2 text-primary bg-blue-lighten-5 px-3 py-1 rounded-pill border">
-                      #{{ item.question_number }}
-                    </span>
-                  </div>
-                </template>
-
-                <!-- نوع السؤال -->
-                <template v-else-if="key === 'question_type'">
-                  <div class="text-center">
-                    <v-chip
-                      size="small"
-                      variant="tonal"
-                      :color="isTrueFalse(item) ? 'teal' : 'indigo'"
-                      class="font-weight-bold unified-table-chip px-2.5"
-                    >
-                      <v-icon start size="13">{{ isTrueFalse(item) ? 'mdi-check-all' : 'mdi-format-list-bulleted' }}</v-icon>
-                      {{ item.question_type }}
-                    </v-chip>
-                  </div>
-                </template>
-
-                <!-- الإجابة النموذجية -->
-                <template v-else-if="key === 'correct_choice_display'">
-                  <div class="text-center">
-                    <v-chip
-                      v-if="item.correct_choice && item.correct_choice !== 'لم تُحدد'"
-                      size="small"
-                      color="success"
-                      variant="tonal"
-                      class="font-weight-black unified-table-chip px-3 border"
-                    >
-                      <v-icon start size="13" color="success">mdi-check-circle-outline</v-icon>
-                      {{ item.correct_choice }}
-                    </v-chip>
-                    <v-chip
-                      v-else
-                      size="x-small"
-                      variant="tonal"
-                      color="blue-grey"
-                      class="font-weight-medium px-2 text-caption"
-                    >
-                      لم تُحدد
-                    </v-chip>
-                  </div>
-                </template>
-
-                <!-- تظليل الطالب المكتشف -->
-                <template v-else-if="key === 'marked_choice_display'">
-                  <div class="text-center">
-                    <v-chip
-                      size="small"
-                      :color="getStatusChipColor(item)"
-                      variant="tonal"
-                      class="font-weight-bold unified-table-chip px-3"
-                    >
-                      <v-icon start size="13">{{ getStatusChipIcon(item) }}</v-icon>
-                      {{ (item.marked_choice && item.marked_choice !== 'لم يُجب (فارغ)') ? item.marked_choice : 'فارغ' }}
-                    </v-chip>
-                  </div>
-                </template>
-
-                <!-- التدقيق والتعديل السريع -->
-                <template v-else-if="key === 'override'">
-                  <div class="review-buttons-row">
-                    <v-btn
-                      v-for="opt in getQuestionOptions(item)"
-                      :key="opt"
-                      size="small"
-                      density="comfortable"
-                      :variant="isOptionSelected(item, opt) ? 'flat' : 'tonal'"
-                      :color="getOptionBtnColor(item, opt)"
-                      :class="[
-                        'rounded-lg review-choice-btn',
-                        isOptionSelected(item, opt) ? 'font-weight-black shadow-sm' : 'text-medium-emphasis border font-weight-medium'
-                      ]"
-                      :loading="overridingLoading === `${item.question_number}_${opt}`"
-                      @click="overrideQuestionChoice(item, opt)"
-                    >
-                      <v-icon
-                        v-if="isOptionSelected(item, opt)"
-                        start
-                        size="13"
-                        class="me-1"
-                      >
-                        {{ item.is_correct ? 'mdi-check' : 'mdi-close' }}
-                      </v-icon>
-                      {{ opt }}
-                    </v-btn>
-
-                    <!-- فاصل عمودي ناعم -->
-                    <div class="review-btn-divider"></div>
-
-                    <!-- زر مسح التظليل -->
-                    <v-btn
-                      size="small"
-                      density="comfortable"
-                      variant="tonal"
-                      :color="item.marked_choice ? 'error' : 'secondary'"
-                      class="rounded-lg review-eraser-btn"
-                      title="مسح إجابة هذا السؤال"
-                      :disabled="!item.marked_choice"
-                      :loading="overridingLoading === `${item.question_number}_clear`"
-                      @click="overrideQuestionChoice(item, '')"
-                    >
-                      <v-icon size="15">mdi-eraser</v-icon>
-                    </v-btn>
-                  </div>
-                </template>
-
-                <!-- حالة السؤال -->
-                <template v-else-if="key === 'status'">
-                  <div class="text-center">
-                    <v-chip
-                      size="small"
-                      :color="getStatusChipColor(item)"
-                      variant="tonal"
-                      class="font-weight-bold unified-table-chip px-3"
-                    >
-                      {{ getStatusChipText(item) }}
-                    </v-chip>
-                  </div>
-                </template>
-
-                <!-- الدرجة -->
-                <template v-else-if="key === 'score'">
-                  <div class="text-center">
-                    <v-chip
-                      size="x-small"
-                      :color="item.is_correct ? 'success' : 'grey'"
-                      variant="tonal"
-                      class="font-weight-black px-2.5"
-                    >
-                      {{ item.is_correct ? (item.marks_awarded != null && Number(item.marks_awarded) > 0 ? Number(item.marks_awarded).toFixed(1).replace('.0', '') : '1.0') : '0.0' }}
-                    </v-chip>
-                  </div>
-                </template>
-              </template>
-            </custom-data-table>
-          </div>
-        </v-card-text>
-
-        <!-- Dialog Footer -->
-        <v-card-actions class="px-6 py-3 bg-surface border-t">
-          <v-btn
-            variant="text"
-            color="medium-emphasis"
-            class="font-weight-bold px-4"
-            @click="reviewDialog = false"
-          >
-            إغلاق النافذة
-          </v-btn>
-          <v-spacer />
-          <v-btn
-            color="success"
-            rounded="lg"
-            elevation="1"
-            class="font-weight-black px-6"
-            prepend-icon="mdi-check-decagram"
-            :loading="approvingLoading"
-            @click="approveCurrentSheet"
-          >
-            اعتماد ومصادقة الورقة نهائياً
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <!-- 3. REVIEW MODAL: نافذة المراجعة والتدقيق المتقدمة -->
+    <ReviewAuditDialog
+      v-model="reviewDialog"
+      :active-review-sheet="activeReviewSheet"
+      :has-prev-sheet="hasPrevSheet"
+      :has-next-sheet="hasNextSheet"
+      :approving-loading="approvingLoading"
+      :overriding-loading="overridingLoading"
+      @prev-sheet="prevSheet"
+      @next-sheet="nextSheet"
+      @approve-sheet="approveActiveSheet"
+      @override-question="handleOverrideQuestion"
+    />
   </div>
 </template>
 
-<script setup>
-import { ref, computed, watch, onMounted, getCurrentInstance } from 'vue'
-import { humanReviewAPI } from '@/services/omr/endpoints.js'
+<script>
+import { humanReviewAPI, verificationAPI } from '@/services/omr/endpoints.js'
+import api from '@/services/api'
+import ReviewMasterView from './review/ReviewMasterView.vue'
+import ReviewDetailView from './review/ReviewDetailView.vue'
+import ReviewAuditDialog from './review/ReviewAuditDialog.vue'
+import { detailHeaders } from './review/useReviewMaster'
 
-const { proxy } = getCurrentInstance()
-const loading = ref(false)
-const sheets = ref([])
-const stats = ref({ pendingReview: 0, ambiguousSheets: 0, verifiedSheets: 0, totalSheets: 0 })
+export default {
+  name: 'OMRHumanReviewView',
+  components: { ReviewMasterView, ReviewDetailView, ReviewAuditDialog },
 
-// Dialog & Override state
-const reviewDialog = ref(false)
-const activeReviewSheet = ref(null)
-const overridingLoading = ref('')
-const approvingLoading = ref(false)
-const dialogSearchQuery = ref('')
-const sheetImageError = ref(false)
+  data() {
+    return {
+      currentView: 'master',
+      institutionType: 'school',
+      masterTab: 'exams',
+      selectedOfficeId: null,
+      selectedDirectorateId: null,
+      selectedSchoolId: null,
+      selectedSubjectId: null,
+      allOfficesList: [],
+      officesList: [],
+      directoratesList: [],
+      schoolsList: [],
+      subjectsList: [],
+      examsList: [],
+      educationalOrgs: [],
+      loadingMaster: false,
+      detailHeaders,
 
-// Table headers (Clean & Professional; CustomDataTable automatically appends header_actions)
-const headers = computed(() => [
-  { title: "الطالب ورقم الجلوس / القيد", key: "student_info", sortable: true },
-  { title: "الاختبار", key: "exam_title", sortable: true },
-  { title: "نسبة الثقة", key: "confidence", sortable: true, align: "center", width: "120px" },
-  { title: "الأسئلة الملتبسة", key: "ambiguous_count", sortable: true, align: "center", width: "130px" },
-  { title: "الدرجة المقدرة", key: "score", sortable: false, align: "center", width: "130px" },
-  { title: "حالة المراجعة", key: "status", sortable: true, align: "center", width: "120px" },
-])
+      sectorOptions: [
+        { title: 'التعليم العام (مدرسي)', value: 'school', icon: 'mdi-school' },
+        { title: 'التعليم الجامعي (أكاديمي)', value: 'university', icon: 'mdi-domain' },
+        { title: 'التعليم الفني والمهني (معاهد)', value: 'institute', icon: 'mdi-tools' },
+      ],
 
-// Bound items for custom-data-table (Main Table Pagination)
-const sheetsPagination = ref({
-  count: 0,
-  current_page: 1,
-  num_pages: 1,
-  page_size: 10,
-})
+      // Detail State
+      activeExam: null,
+      selectedExamId: null,
+      loadingDetail: false,
+      detailSheets: [],
+      detailStats: { pendingReview: 0, ambiguousSheets: 0, verifiedSheets: 0, totalSheets: 0 },
+      detailPagination: { count: 0, current_page: 1, num_pages: 1, page_size: 10 },
+      detailActiveMetricFilter: 'all',
+      detailFilterDirectorate: 'all',
+      detailFilterSchool: 'all',
+      detailFilterStatus: 'all',
+      detailSearchQuery: '',
+      availableDirectoratesForExam: [],
+      availableSchoolsForExam: [],
 
-const tableItems = computed(() => ({
-  results: sheets.value,
-  count: sheetsPagination.value.count || sheets.value.length,
-  pagination: sheetsPagination.value,
-}))
+      activeBreadcrumb: { institution_type_name: 'التعليم العام', office_name: '', directorate_name: '', school_name: '', exam_title: '' },
+      statusOptions: [
+        { title: 'كافة الحالات', value: 'all' },
+        { title: 'تتطلب تدقيق يدوي', value: 'pending' },
+        { title: 'معتمدة ومحققة', value: 'verified' },
+      ],
 
-// Dialog Headers & Items (Matching unified custom-data-table)
-const dialogHeaders = computed(() => [
-  { title: "رقم السؤال", key: "question_number", sortable: true, align: "center", width: "95px" },
-  { title: "نوع السؤال", key: "question_type", sortable: false, align: "center", width: "120px" },
-  { title: "الإجابة النموذجية", key: "correct_choice_display", sortable: true, align: "center", width: "130px" },
-  { title: "تظليل الطالب", key: "marked_choice_display", sortable: true, align: "center", width: "140px" },
-  { title: "التدقيق والتعديل السريع", key: "override", sortable: false, align: "center", width: "270px" },
-  { title: "حالة السؤال", key: "status", sortable: true, align: "center", width: "125px" },
-  { title: "الدرجة", key: "score", sortable: true, align: "center", width: "85px" },
-])
-
-// Dialog Client-Side Pagination State
-const dialogPage = ref(1)
-const dialogPageSize = ref(10)
-const dialogTableItems = ref({
-  results: [],
-  count: 0,
-  pagination: {
-    count: 0,
-    total: 0,
-    num_pages: 1,
-    current_page: 1,
-  },
-})
-
-// Filters
-const filterInstitutionType = ref('all')
-const institutionTypeOptions = [
-  { text: "الكل (مدارس وجامعات ومعاهد)", value: "all" },
-  { text: "مدارس فقط", value: "school" },
-  { text: "جامعات فقط", value: "university" },
-  { text: "معاهد وتدريب مهني", value: "institute" },
-]
-const filterCollege = ref(null)
-const filterDepartment = ref(null)
-const filterSpecialization = ref(null)
-const filterSemesterSubject = ref(null)
-const filterInstituteField = ref(null)
-const filterInstituteEducationSystem = ref(null)
-const filterInstituteSpecialization = ref(null)
-const filterInstituteSubject = ref(null)
-const filterStage = ref(null)
-const filterClassTrack = ref(null)
-const filterSubject = ref(null)
-const filterExam = ref(null)
-const filterStatus = ref(null)
-const searchQuery = ref('')
-
-const instituteSpecParam = computed(() => {
-  const p = {}
-  if (filterInstituteField.value) p.field = filterInstituteField.value
-  if (filterInstituteEducationSystem.value) p.education_system = filterInstituteEducationSystem.value
-  return Object.keys(p).length ? p : null
-})
-
-const instituteSubjectParam = computed(() => {
-  if (filterInstituteField.value) return { field: filterInstituteField.value }
-  return null
-})
-
-const examFilterParam = computed(() => {
-  const p = {}
-  if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
-    p.institution_type = filterInstitutionType.value
-  }
-  if (filterInstitutionType.value === 'school') {
-    if (filterClassTrack.value) p.class_track = filterClassTrack.value
-    if (filterStage.value) p.stage = filterStage.value
-    if (filterSubject.value) p.subject = filterSubject.value
-  } else if (filterInstitutionType.value === 'university') {
-    if (filterSemesterSubject.value) p.semester_subject = filterSemesterSubject.value
-    if (filterSpecialization.value) p.specialization = filterSpecialization.value
-    if (filterDepartment.value) p.department = filterDepartment.value
-    if (filterCollege.value) p.college = filterCollege.value
-  } else if (filterInstitutionType.value === 'institute') {
-    if (filterInstituteField.value) p.institute_field = filterInstituteField.value
-    if (filterInstituteEducationSystem.value) p.institute_education_system = filterInstituteEducationSystem.value
-    if (filterInstituteSpecialization.value) p.institute_specialization = filterInstituteSpecialization.value
-    if (filterInstituteSubject.value) p.institute_subject = filterInstituteSubject.value
-  } else {
-    if (filterSubject.value) p.subject = filterSubject.value
-  }
-  return Object.keys(p).length > 0 ? p : null
-})
-
-const statusOptions = [
-  { title: 'كافة الحالات', value: null },
-  { title: 'تتطلب تدقيق يدوي', value: 'pending' },
-  { title: 'معتمدة ومحققة', value: 'verified' },
-]
-
-const onInstitutionTypeChange = () => {
-  filterStage.value = null
-  filterClassTrack.value = null
-  filterCollege.value = null
-  filterDepartment.value = null
-  filterSpecialization.value = null
-  filterSemesterSubject.value = null
-  filterInstituteField.value = null
-  filterInstituteEducationSystem.value = null
-  filterInstituteSpecialization.value = null
-  filterInstituteSubject.value = null
-  filterSubject.value = null
-  filterExam.value = null
-  fetchData()
-}
-
-const onCollegeChange = () => {
-  filterDepartment.value = null
-  filterSpecialization.value = null
-  filterSemesterSubject.value = null
-}
-
-const onInstituteFieldChange = () => {
-  filterInstituteEducationSystem.value = null
-  filterInstituteSpecialization.value = null
-  filterInstituteSubject.value = null
-}
-
-const onInstituteEducationSystemChange = () => {
-  filterInstituteSpecialization.value = null
-}
-
-const onStageChange = () => {
-  filterClassTrack.value = null
-}
-
-const resetFilters = () => {
-  filterInstitutionType.value = 'all'
-  filterCollege.value = null
-  filterDepartment.value = null
-  filterSpecialization.value = null
-  filterSemesterSubject.value = null
-  filterInstituteField.value = null
-  filterInstituteEducationSystem.value = null
-  filterInstituteSpecialization.value = null
-  filterInstituteSubject.value = null
-  filterStage.value = null
-  filterClassTrack.value = null
-  filterSubject.value = null
-  filterExam.value = null
-  filterStatus.value = null
-  searchQuery.value = ''
-  fetchData()
-}
-
-const getData = async (params = {}) => {
-  return await fetchData(params)
-}
-
-let activeFetchPromise = null
-const fetchData = async (params = {}) => {
-  if (loading.value && activeFetchPromise) {
-    return activeFetchPromise
-  }
-  loading.value = true
-  activeFetchPromise = (async () => {
-    try {
-      const p = params?.params || params || {}
-      const pageNum = Number(p.page) || sheetsPagination.value.current_page || 1
-      const pageSizeNum = Number(p.page_size) || sheetsPagination.value.page_size || 10
-      const queryParams = {
-        page: pageNum,
-        page_size: pageSizeNum,
-        institution_type: (filterInstitutionType.value && filterInstitutionType.value !== 'all') ? filterInstitutionType.value : undefined,
-        college: filterCollege.value || undefined,
-        department: filterDepartment.value || undefined,
-        specialization: filterSpecialization.value || undefined,
-        semester_subject: filterSemesterSubject.value || undefined,
-        institute_field: filterInstituteField.value || undefined,
-        institute_education_system: filterInstituteEducationSystem.value || undefined,
-        institute_specialization: filterInstituteSpecialization.value || undefined,
-        institute_subject: filterInstituteSubject.value || undefined,
-        stage: filterStage.value || undefined,
-        class_track: filterClassTrack.value || undefined,
-        subject: filterSubject.value || undefined,
-        exam: filterExam.value || undefined,
-        status: filterStatus.value || undefined,
-        search: p.search || searchQuery.value || undefined,
-      }
-      const [statsRes, listRes] = await Promise.all([
-        humanReviewAPI.getStats(),
-        humanReviewAPI.list(queryParams)
-      ])
-      stats.value = statsRes?.data || stats.value
-      const results = listRes?.data?.results || listRes?.data || []
-      sheets.value = Array.isArray(results) ? results : []
-      if (listRes?.data?.pagination) {
-        sheetsPagination.value = listRes.data.pagination
-      } else {
-        sheetsPagination.value = {
-          count: sheets.value.length,
-          total: sheets.value.length,
-          current_page: pageNum,
-          num_pages: Math.ceil(sheets.value.length / pageSizeNum) || 1,
-          page_size: pageSizeNum,
-        }
-      }
-      return tableItems.value
-    } catch (err) {
-      console.error('Failed to load human review data', err)
-      return { results: [], count: 0 }
-    } finally {
-      loading.value = false
-      activeFetchPromise = null
+      // Dialog State
+      reviewDialog: false,
+      activeReviewSheet: null,
+      currentSheetIndex: 0,
+      overridingLoading: '',
+      approvingLoading: false,
     }
-  })()
-  return activeFetchPromise
-}
+  },
 
-const approveSheet = async (sheet) => {
-  try {
-    await humanReviewAPI.approveReview(sheet.id)
-    proxy.$alert('success', { message: 'تم اعتماد نتيجة ورقة الإجابة بنجاح' })
-    await fetchData()
-  } catch (err) {
-    proxy.$alert('errorData', { message: 'فشل اعتماد الورقة' })
-    console.error(err)
-  }
-}
+  computed: {
+    directoratesOptions() {
+      const officeIds = this.normalizeIds(this.selectedOfficeId)
+      return officeIds.length > 0 ? (this.directoratesList || []).filter(d => officeIds.includes(Number(d.office_id))) : (this.directoratesList || [])
+    },
 
-// Dialog Question Filtering & Counts
-const dialogQuestionFilter = ref('all')
+    schoolsOptions() {
+      let list = this.schoolsList || []
+      if (this.institutionType !== 'all') list = list.filter(s => !s.institution_type || s.institution_type === this.institutionType)
+      const dirIds = this.normalizeIds(this.selectedDirectorateId)
+      const officeIds = this.normalizeIds(this.selectedOfficeId)
+      if (dirIds.length > 0) return list.filter(s => dirIds.includes(Number(s.directorate_id)))
+      if (officeIds.length > 0) return list.filter(s => officeIds.includes(Number(s.office_id)))
+      return list
+    },
 
-const isTrueFalse = (q) => {
-  const opts = getQuestionOptions(q)
-  return opts.length === 2 && (opts.includes('صح') || opts.includes('خطأ') || opts.includes('T') || opts.includes('F'))
-}
+    filteredOfficesTable() {
+      const selIds = this.normalizeIds(this.selectedOfficeId)
+      return selIds.length > 0 ? (this.officesList || []).filter(o => selIds.includes(Number(o.id))) : (this.officesList || [])
+    },
 
-const enrichQuestion = (q) => {
-  if (!q) return q
-  const isTF = isTrueFalse(q)
-  q.question_type = isTF ? 'صح وخطأ' : 'اختيارات'
-  q.correct_choice_display = q.correct_choice || 'لم تُحدد'
-  q.marked_choice_display = (q.marked_choice && q.marked_choice !== 'لم يُجب (فارغ)') ? q.marked_choice : 'لم يُجب (فارغ)'
-  q.status = getStatusChipText(q)
-  q.score = q.is_correct ? (q.marks_awarded != null && Number(q.marks_awarded) > 0 ? Number(q.marks_awarded).toFixed(1).replace('.0', '') : '1.0') : '0.0'
-  q.override = q.marked_choice ? `تظليل حالي: ${q.marked_choice}` : 'متاح للتعديل السريع'
-  return q
-}
+    filteredDirectoratesTable() {
+      const officeIds = this.normalizeIds(this.selectedOfficeId)
+      return officeIds.length > 0 ? (this.directoratesList || []).filter(d => officeIds.includes(Number(d.office_id))) : (this.directoratesList || [])
+    },
 
-const isOptionSelected = (item, opt) => {
-  return String(item?.marked_choice || '').trim() === String(opt || '').trim()
-}
+    filteredSchoolsTable() { return this.schoolsOptions || [] },
+    filteredMasterExamsTable() { return this.examsList || [] },
 
-const getOptionBtnColor = (item, opt) => {
-  if (isOptionSelected(item, opt)) {
-    if (item.is_correct === true) return 'success'
-    if (item.is_correct === false && item.marked_choice && item.marked_choice !== 'لم يُجب (فارغ)') return 'error'
-    return 'primary'
-  }
-  return undefined
-}
+    detailDirectoratesOptions() {
+      const dirs = (this.availableDirectoratesForExam || [])
+        .map(d => typeof d === 'string' ? d : (d.value !== 'all' ? (d.value || d.title) : null))
+        .filter(d => d && d !== 'all')
+      return [{ title: 'كافة المديريات (الكل)', value: 'all' }, ...dirs.map(d => ({ title: d, value: d }))]
+    },
 
-const filteredDialogQuestions = computed(() => {
-  let qs = activeReviewSheet.value?.questions || []
-  if (dialogQuestionFilter.value === 'ambiguous') {
-    qs = qs.filter(q => q.bubble_state === 'ambiguous' || (q.final_confidence && q.final_confidence < 0.7))
-  } else if (dialogQuestionFilter.value === 'wrong') {
-    qs = qs.filter(q => q.is_correct === false && q.marked_choice)
-  } else if (dialogQuestionFilter.value === 'correct') {
-    qs = qs.filter(q => q.is_correct === true)
-  } else if (dialogQuestionFilter.value === 'empty') {
-    qs = qs.filter(q => !q.marked_choice || q.marked_choice === 'لم يُجب (فارغ)')
-  }
+    detailSchoolsOptions() {
+      const schools = (this.availableSchoolsForExam || [])
+        .map(s => typeof s === 'string' ? s : (s.value !== 'all' ? (s.value || s.title) : null))
+        .filter(s => s && s !== 'all')
+      return [{ title: 'كافة المدارس والمراكز (الكل)', value: 'all' }, ...schools.map(s => ({ title: s, value: s }))]
+    },
 
-  if (dialogSearchQuery.value && dialogSearchQuery.value.trim()) {
-    const qTerm = dialogSearchQuery.value.trim().toLowerCase()
-    qs = qs.filter(q => 
-      String(q.question_number).includes(qTerm) || 
-      String(q.marked_choice || '').toLowerCase().includes(qTerm) || 
-      String(q.correct_choice || '').toLowerCase().includes(qTerm)
-    )
-  }
-  return qs.map(enrichQuestion)
-})
+    detailTableItems() {
+      return { results: this.detailSheets, count: this.detailPagination.count || this.detailSheets.length, pagination: this.detailPagination }
+    },
 
-const dialogCounts = computed(() => {
-  const qs = activeReviewSheet.value?.questions || []
-  return {
-    all: qs.length,
-    ambiguous: qs.filter(q => q.bubble_state === 'ambiguous' || (q.final_confidence && q.final_confidence < 0.7)).length,
-    wrong: qs.filter(q => q.is_correct === false && q.marked_choice && q.marked_choice !== 'لم يُجب (فارغ)').length,
-    correct: qs.filter(q => q.is_correct === true).length,
-    empty: qs.filter(q => !q.marked_choice || q.marked_choice === 'لم يُجب (فارغ)').length,
-  }
-})
+    hasPrevSheet() { return this.currentSheetIndex > 0 },
+    hasNextSheet() { return this.currentSheetIndex < this.detailSheets.length - 1 },
+  },
 
-const getDialogData = async (params = {}) => {
-  const p = params?.params || params || {}
-  const page = Number(p.page) || dialogPage.value || 1
-  const pageSize = Number(p.page_size) || dialogPageSize.value || 10
-  dialogPage.value = page
-  dialogPageSize.value = pageSize
+  async mounted() {
+    await this.loadEducationalHierarchy()
+    await this.refreshMasterData()
 
-  const all = filteredDialogQuestions.value || []
-  const total = all.length
-  const numPages = Math.ceil(total / pageSize) || 1
-  const validPage = Math.min(Math.max(1, page), numPages)
-  const start = (validPage - 1) * pageSize
+    const examParam = this.$route?.query?.exam
+    if (examParam) {
+      const exObj = (this.examsList || []).find(e => String(e.id) === String(examParam))
+      if (exObj) {
+        this.openExamReviewDetail(exObj)
+      } else {
+        this.selectedExamId = Number(examParam)
+        this.currentView = 'detail'
+        this.fetchDetailSchools()
+        this.fetchDetailSheets()
+      }
+    }
+  },
 
-  dialogTableItems.value = {
-    results: all.slice(start, start + pageSize),
-    count: total,
-    pagination: {
-      count: total,
-      total: total,
-      num_pages: numPages,
-      current_page: validPage,
+  methods: {
+    normalizeIds(val) {
+      if (!val) return []
+      if (Array.isArray(val)) {
+        return val.map(x => (typeof x === 'object' && x !== null) ? Number(x.id ?? x.value ?? x.raw?.id) : Number(x)).filter(n => !isNaN(n) && n > 0)
+      }
+      const num = Number(typeof val === 'object' && val !== null ? (val.id ?? val.value) : val)
+      return (!isNaN(num) && num > 0) ? [num] : []
+    },
+
+    async loadEducationalHierarchy() {
+      try {
+        const res = await api.get('/api/exams/distributions/educational-hierarchy/')
+        this.educationalOrgs = res.data?.data || []
+      } catch (err) {
+        console.error('Error fetching educational hierarchy:', err)
+      }
+    },
+
+    async refreshMasterData() {
+      this.loadingMaster = true
+      try {
+        const officeIds = this.normalizeIds(this.selectedOfficeId)
+        const dirIds = this.normalizeIds(this.selectedDirectorateId)
+        const schoolIds = this.normalizeIds(this.selectedSchoolId)
+
+        const baseParams = {
+          institution_type: this.institutionType !== 'all' ? this.institutionType : undefined,
+          subject: this.selectedSubjectId || undefined,
+        }
+        const officeParams = { ...baseParams }
+        if (officeIds.length > 0) officeParams.office_id = officeIds.join(',')
+
+        const dirParams = { ...officeParams }
+        if (dirIds.length > 0) dirParams.directorate_id = dirIds.join(',')
+
+        const schoolParams = { ...dirParams }
+        if (schoolIds.length > 0) schoolParams.school_id = schoolIds.join(',')
+
+        const [allOfficesRes, officesRes, directoratesRes, schoolsRes, examsRes] = await Promise.all([
+          (!this.allOfficesList || !this.allOfficesList.length)
+            ? verificationAPI.getByOffice(baseParams).catch(() => ({ data: { results: [] } }))
+            : Promise.resolve({ data: { results: this.allOfficesList } }),
+          verificationAPI.getByOffice(officeParams).catch(() => ({ data: { results: [] } })),
+          verificationAPI.getByDirectorate(dirParams).catch(() => ({ data: { results: [] } })),
+          verificationAPI.getBySchool(schoolParams).catch(() => ({ data: { results: [] } })),
+          verificationAPI.list(schoolParams).catch(() => ({ data: { results: [] } }))
+        ])
+        if (!this.allOfficesList || !this.allOfficesList.length) {
+          this.allOfficesList = allOfficesRes.data?.results || []
+        }
+        this.officesList = officesRes.data?.results || []
+        this.directoratesList = directoratesRes.data?.results || []
+        this.schoolsList = schoolsRes.data?.results || []
+        this.examsList = examsRes.data?.results || []
+      } catch (err) {
+        console.error('Error refreshing master data:', err)
+      } finally {
+        this.loadingMaster = false
+      }
+    },
+
+    resetHierarchyFilters() {
+      this.institutionType = 'school'
+      this.selectedOfficeId = null
+      this.selectedDirectorateId = null
+      this.selectedSchoolId = null
+      this.selectedSubjectId = null
+      this.masterTab = 'exams'
+      this.refreshMasterData()
+    },
+
+    async openExamReviewDetail(exam) {
+      this.activeExam = exam
+      this.selectedExamId = exam.id
+      this.detailActiveMetricFilter = 'all'
+      this.detailFilterStatus = 'all'
+      this.detailSearchQuery = ''
+      this.detailFilterDirectorate = 'all'
+      this.detailFilterSchool = 'all'
+
+      this.activeBreadcrumb = {
+        institution_type_name: this.institutionType === 'university' ? 'التعليم الجامعي' : (this.institutionType === 'institute' ? 'التعليم الفني' : 'التعليم العام'),
+        office_name: exam.governorate_name || exam.office_name || '',
+        directorate_name: 'كافة المديريات',
+        school_name: exam.schools_count === 1 ? (exam.school_name || '') : (exam.schools_count > 1 ? `كافة المدارس (${exam.schools_count})` : ''),
+        exam_title: exam.title,
+      }
+      this.currentView = 'detail'
+      await this.fetchDetailSchools()
+      await this.fetchDetailSheets()
+    },
+
+    async fetchDetailSchools() {
+      try {
+        const res = await verificationAPI.retrieve(this.selectedExamId, { page_size: 1 })
+        const filterOpts = res.data?.filter_options || {}
+        this.availableDirectoratesForExam = filterOpts.directorates || []
+        this.availableSchoolsForExam = filterOpts.schools || []
+      } catch (e) {
+        this.availableDirectoratesForExam = []
+        this.availableSchoolsForExam = []
+      }
+    },
+
+    returnToMaster() {
+      this.currentView = 'master'
+      this.activeExam = null
+      this.refreshMasterData()
+    },
+
+    handleDetailFilterChange(filters) {
+      this.detailActiveMetricFilter = filters.metricFilter
+      this.detailFilterDirectorate = filters.directorate
+      this.detailFilterSchool = filters.school
+      this.detailFilterStatus = filters.status
+      this.detailSearchQuery = filters.search
+      this.fetchDetailSheets()
+    },
+
+    resetDetailFilters() {
+      this.detailFilterDirectorate = 'all'
+      this.detailFilterSchool = 'all'
+      this.detailFilterStatus = 'all'
+      this.detailActiveMetricFilter = 'all'
+      this.detailSearchQuery = ''
+      this.fetchDetailSheets()
+    },
+
+    async getDetailData(params = {}) {
+      return await this.fetchDetailSheets(params)
+    },
+
+    async fetchDetailSheets(params = {}) {
+      this.loadingDetail = true
+      try {
+        const p = params?.params || params || {}
+        const pageNum = Number(p.page) || this.detailPagination.current_page || 1
+        const pageSizeNum = Number(p.page_size) || this.detailPagination.page_size || 10
+
+        const queryParams = {
+          page: pageNum,
+          page_size: pageSizeNum,
+          exam: this.selectedExamId || undefined,
+          directorate: (this.detailFilterDirectorate && this.detailFilterDirectorate !== 'all') ? this.detailFilterDirectorate : undefined,
+          school: (this.detailFilterSchool && this.detailFilterSchool !== 'all') ? this.detailFilterSchool : undefined,
+          status: (this.detailFilterStatus && this.detailFilterStatus !== 'all') ? this.detailFilterStatus : undefined,
+          metric_filter: (this.detailActiveMetricFilter && this.detailActiveMetricFilter !== 'all') ? this.detailActiveMetricFilter : undefined,
+          search: p.search || this.detailSearchQuery || undefined,
+        }
+
+        const [statsRes, listRes] = await Promise.all([
+          humanReviewAPI.getStats(queryParams),
+          humanReviewAPI.list(queryParams)
+        ])
+
+        this.detailStats = statsRes?.data || {}
+        const results = listRes?.data?.results || listRes?.data || []
+        this.detailSheets = Array.isArray(results) ? results : []
+
+        if (listRes?.data?.pagination) {
+          this.detailPagination = listRes.data.pagination
+        } else {
+          this.detailPagination = {
+            count: this.detailSheets.length,
+            total: this.detailSheets.length,
+            current_page: pageNum,
+            num_pages: Math.ceil(this.detailSheets.length / pageSizeNum) || 1,
+            page_size: pageSizeNum,
+          }
+        }
+        return this.detailTableItems
+      } catch (err) {
+        console.error('Failed to load human review detail data', err)
+        return { results: [], count: 0 }
+      } finally {
+        this.loadingDetail = false
+      }
+    },
+
+    async approveSheet(sheet) {
+      try {
+        await humanReviewAPI.approveReview(sheet.id)
+        this.$alert?.('success', { message: 'تم اعتماد ومصادقة النتيجة بنجاح' })
+        await this.fetchDetailSheets()
+      } catch (err) {
+        this.$alert?.('errorData', { message: 'فشل اعتماد الورقة' })
+        console.error(err)
+      }
+    },
+
+    openReviewModal(sheet) {
+      const idx = this.detailSheets.findIndex(s => s.id === sheet.id)
+      this.currentSheetIndex = idx >= 0 ? idx : 0
+      this.activeReviewSheet = { ...sheet }
+      this.reviewDialog = true
+    },
+
+    prevSheet() {
+      if (this.hasPrevSheet) {
+        this.currentSheetIndex -= 1
+        this.activeReviewSheet = { ...this.detailSheets[this.currentSheetIndex] }
+      }
+    },
+
+    nextSheet() {
+      if (this.hasNextSheet) {
+        this.currentSheetIndex += 1
+        this.activeReviewSheet = { ...this.detailSheets[this.currentSheetIndex] }
+      }
+    },
+
+    async handleOverrideQuestion({ question, choice }) {
+      if (!this.activeReviewSheet) return
+      this.overridingLoading = `${question.question_number}-${choice}`
+      try {
+        const res = await humanReviewAPI.overrideQuestion(this.activeReviewSheet.id, {
+          question_number: question.question_number,
+          marked_choice: choice
+        })
+        const updated = res.data?.sheet || res.data?.data || res.data
+        if (updated) {
+          this.activeReviewSheet = { ...this.activeReviewSheet, ...updated }
+          const idx = this.detailSheets.findIndex(s => s.id === this.activeReviewSheet.id)
+          if (idx !== -1) {
+            this.detailSheets[idx] = { ...this.detailSheets[idx], ...updated }
+          }
+        }
+        this.$alert?.('success', { message: 'تم تعديل الإجابة وتوثيق التدقيق بنجاح' })
+      } catch (err) {
+        this.$alert?.('errorData', { message: 'فشل تعديل الإجابة' })
+        console.error(err)
+      } finally {
+        this.overridingLoading = ''
+      }
+    },
+
+    async approveActiveSheet(sheet) {
+      this.approvingLoading = true
+      try {
+        await humanReviewAPI.approveReview(sheet.id)
+        this.$alert?.('success', { message: 'تم اعتماد ومصادقة النتيجة بنجاح' })
+        if (this.hasNextSheet) {
+          this.nextSheet()
+        } else {
+          this.reviewDialog = false
+        }
+        await this.fetchDetailSheets()
+      } catch (err) {
+        this.$alert?.('errorData', { message: 'فشل اعتماد الورقة' })
+        console.error(err)
+      } finally {
+        this.approvingLoading = false
+      }
     },
   }
-  return dialogTableItems.value
 }
-
-watch([filteredDialogQuestions, dialogQuestionFilter, dialogSearchQuery], () => {
-  dialogPage.value = 1
-  getDialogData({ page: 1, page_size: dialogPageSize.value })
-}, { immediate: true })
-
-const openReviewModal = (sheet) => {
-  activeReviewSheet.value = { ...sheet }
-  dialogQuestionFilter.value = 'all'
-  dialogSearchQuery.value = ''
-  dialogPage.value = 1
-  sheetImageError.value = false
-  if (Array.isArray(activeReviewSheet.value.questions)) {
-    activeReviewSheet.value.questions.forEach(enrichQuestion)
-  }
-  getDialogData({ page: 1, page_size: dialogPageSize.value })
-  reviewDialog.value = true
-}
-
-const normalizeChoiceValue = (val) => {
-  if (!val) return ''
-  const c = String(val).trim().toUpperCase()
-  const map = {
-    '1': 'A', '2': 'B', '3': 'C', '4': 'D', '5': 'E',
-    'أ': 'A', 'ا': 'A', 'ب': 'B', 'ج': 'C', 'د': 'D', 'هـ': 'E', 'ه': 'E',
-    'صح': 'A', 'ص': 'A', 'T': 'A', 'TRUE': 'A', '✓': 'A',
-    'خطأ': 'B', 'خ': 'B', 'F': 'B', 'FALSE': 'B', '✗': 'B'
-  }
-  return map[c] || c
-}
-
-const getQuestionOptions = (q) => {
-  if (!q) return ['1', '2', '3', '4']
-
-  // 1. Check choice_confidences keys if present
-  if (q.choice_confidences && typeof q.choice_confidences === 'object' && Object.keys(q.choice_confidences).length > 0) {
-    const keys = Object.keys(q.choice_confidences)
-    if (keys.every(k => !isNaN(Number(k)))) {
-      return keys.sort((a, b) => Number(a) - Number(b))
-    }
-    return keys
-  }
-
-  // 2. Check darkness_values keys if present
-  if (q.darkness_values && typeof q.darkness_values === 'object' && Object.keys(q.darkness_values).length > 0) {
-    const keys = Object.keys(q.darkness_values)
-    if (keys.every(k => !isNaN(Number(k)))) {
-      return keys.sort((a, b) => Number(a) - Number(b))
-    }
-    return keys
-  }
-
-  // 3. Check choices array if provided
-  if (Array.isArray(q.choices) && q.choices.length > 0) {
-    return q.choices
-  }
-
-  // 4. Infer from correct_choice or marked_choice
-  const ref = String(q.correct_choice || q.marked_choice || '').trim()
-  if (['صح', 'خطأ', 'T', 'F', 'True', 'False', 'true', 'false'].includes(ref)) {
-    return ['صح', 'خطأ']
-  }
-  if (['1', '2', '3', '4', '5'].includes(ref)) {
-    return ['1', '2', '3', '4']
-  }
-  if (['أ', 'ب', 'ج', 'د', 'هـ'].includes(ref)) {
-    return ['أ', 'ب', 'ج', 'د']
-  }
-  if (['A', 'B', 'C', 'D', 'E'].includes(ref)) {
-    return ['A', 'B', 'C', 'D']
-  }
-
-  // Check if exam mostly uses numeric choices
-  const allQs = activeReviewSheet.value?.questions || []
-  const hasNumbers = allQs.some(item => ['1', '2', '3', '4'].includes(String(item.correct_choice || '').trim()))
-  if (hasNumbers) {
-    return ['1', '2', '3', '4']
-  }
-
-  return ['A', 'B', 'C', 'D']
-}
-
-const getBubbleClass = (q, opt) => {
-  const isMarked = String(q.marked_choice || '').trim() === String(opt).trim()
-  const isCorrectKey = String(q.correct_choice || '').trim() === String(opt).trim()
-
-  if (isMarked) {
-    return q.is_correct ? 'bubble-marked-correct' : 'bubble-marked-wrong'
-  }
-  if (isCorrectKey) {
-    return 'bubble-model-key'
-  }
-  return 'bubble-default'
-}
-
-const getBubbleTooltip = (q, opt) => {
-  const isMarked = String(q.marked_choice || '').trim() === String(opt).trim()
-  const isCorrectKey = String(q.correct_choice || '').trim() === String(opt).trim()
-
-  if (isMarked && q.is_correct) {
-    return `الخيار ${opt}: تظليل الطالب الصحيح`
-  }
-  if (isMarked && !q.is_correct) {
-    return `الخيار ${opt}: تظليل الطالب (إجابة خاطئة)`
-  }
-  if (isCorrectKey) {
-    return `الخيار ${opt}: الإجابة النموذجية الصحيحة (انقر للتعيين)`
-  }
-  return `الخيار ${opt}: انقر لتعيينه كتظليل للطالب`
-}
-
-const getCardStatusClass = (q) => {
-  if (q.bubble_state === 'ambiguous' || (q.final_confidence && q.final_confidence < 0.7)) {
-    return 'card-ambiguous'
-  }
-  if (q.is_correct === true) {
-    return 'card-correct'
-  }
-  if (q.is_correct === false && q.marked_choice && q.marked_choice !== 'لم يُجب (فارغ)') {
-    return 'card-wrong'
-  }
-  return 'card-empty'
-}
-
-const getStatusChipColor = (q) => {
-  if (!q) return 'secondary'
-  if (q.bubble_state === 'ambiguous') return 'warning'
-  if (q.is_correct === true) return 'success'
-  if (q.is_correct === false && q.marked_choice && q.marked_choice !== 'لم يُجب (فارغ)') return 'error'
-  return 'secondary'
-}
-
-const getStatusChipIcon = (q) => {
-  if (!q) return 'mdi-circle-outline'
-  if (q.bubble_state === 'ambiguous') return 'mdi-alert-outline'
-  if (q.is_correct === true) return 'mdi-check-circle-outline'
-  if (q.is_correct === false && q.marked_choice && q.marked_choice !== 'لم يُجب (فارغ)') return 'mdi-close-circle-outline'
-  return 'mdi-circle-outline'
-}
-
-const getStatusChipText = (q) => {
-  if (!q) return 'لم يُجب (فارغ)'
-  if (q.bubble_state === 'ambiguous') return 'ملتبس'
-  if (q.is_correct === true) return 'صحيحة'
-  if (q.is_correct === false && q.marked_choice && q.marked_choice !== 'لم يُجب (فارغ)') return 'خاطئة'
-  return 'لم يُجب (فارغ)'
-}
-
-const overrideQuestionChoice = async (q, choice) => {
-  if (!activeReviewSheet.value) return
-  const key = `${q.question_number}_${choice || 'clear'}`
-  overridingLoading.value = key
-  try {
-    const res = await humanReviewAPI.overrideQuestion(activeReviewSheet.value.id, {
-      question_number: q.question_number,
-      marked_choice: choice
-    })
-    q.marked_choice = choice
-    q.is_correct = choice ? (normalizeChoiceValue(choice) === normalizeChoiceValue(q.correct_choice)) : false
-    q.bubble_state = choice ? 'filled' : 'empty'
-    enrichQuestion(q)
-    getDialogData({ page: dialogPage.value, page_size: dialogPageSize.value })
-
-    if (res.data?.mcq_score != null) {
-      activeReviewSheet.value.mcq_score = res.data.mcq_score
-    }
-    if (res.data?.correct_answers != null) {
-      activeReviewSheet.value.correct_answers = res.data.correct_answers
-    }
-    if (res.data?.ambiguous_count != null) {
-      activeReviewSheet.value.ambiguous_count = res.data.ambiguous_count
-    }
-
-    proxy.$alert('success', { message: `تم تحديث إجابة السؤال ${q.question_number} بنجاح` })
-  } catch (err) {
-    console.error('Error overriding question choice:', err)
-    proxy.$alert('errorData', { message: 'تعذر تعديل إجابة السؤال' })
-  } finally {
-    overridingLoading.value = ''
-  }
-}
-
-const approveCurrentSheet = async () => {
-  if (!activeReviewSheet.value) return
-  approvingLoading.value = true
-  try {
-    await humanReviewAPI.approveReview(activeReviewSheet.value.id)
-    proxy.$alert('success', { message: 'تم اعتماد ومصادقة الورقة بنجاح' })
-    reviewDialog.value = false
-    await fetchData()
-  } catch (err) {
-    proxy.$alert('errorData', { message: 'فشل اعتماد الورقة' })
-    console.error(err)
-  } finally {
-    approvingLoading.value = false
-  }
-}
-
-onMounted(() => {
-  // custom-data-table automatically triggers getData() upon mount, avoiding duplicate API requests
-})
 </script>
 
 <style scoped>
 .qb-human-review-v4 {
-  color: rgb(var(--v-theme-on-surface));
+  background-color: rgb(var(--v-theme-background));
+  min-height: 100vh;
 }
-
-.main-card, .stat-card {
-  background: rgb(var(--v-theme-surface)) !important;
-  border: 1px solid rgba(var(--v-border-color), 0.12);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-}
-
-.unified-table-chip {
-  border-radius: 6px !important;
-  font-weight: 700 !important;
-}
-
-/* ── Modern Dialog Header & Footer Styling ── */
-.dialog-header {
-  border-bottom: 1px solid #e2e8f0 !important;
-  background-color: #ffffff !important;
-}
-
-.dialog-footer {
-  border-top: 1px solid #e2e8f0 !important;
-  background-color: #ffffff !important;
-}
-
-.dialog-icon-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background-color: #eff6ff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #dbeafe;
-}
-
-.header-score-pill {
-  background-color: #ecfdf5;
-  border: 1px solid #a7f3d0;
-}
-
-/* ── Review Choice & Eraser Buttons Row ── */
-.review-buttons-row {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  flex-wrap: nowrap !important;
-  gap: 6px !important;
-  padding: 2px 0 !important;
-}
-
-.review-choice-btn {
-  min-width: 36px !important;
-  height: 30px !important;
-  padding: 0 10px !important;
-  font-weight: 800 !important;
-  border-radius: 8px !important;
-  font-size: 0.85rem !important;
-  letter-spacing: 0.2px;
-  border: 1px solid rgba(var(--v-border-color), 0.25) !important;
-  transition: all 0.15s ease-in-out !important;
-}
-
-.review-choice-btn:hover {
-  transform: translateY(-1px);
-  border-color: rgba(var(--v-theme-primary), 0.5) !important;
-}
-
-.review-btn-divider {
-  width: 1px;
-  height: 20px;
-  background-color: rgba(var(--v-border-color), 0.25);
-  margin: 0 2px;
-}
-
-.review-eraser-btn {
-  height: 30px !important;
-  min-width: 30px !important;
-  padding: 0 6px !important;
-  border-radius: 8px !important;
-  border: 1px solid rgba(var(--v-border-color), 0.2) !important;
-  transition: all 0.15s ease-in-out !important;
-}
-
-.review-eraser-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
 </style>
