@@ -16,8 +16,7 @@ import settings from "./settings";
 // Dynamic detection of shared-project-v4 path across local, Windows, and Linux environments
 const candidatePaths = [
   fileURLToPath(new URL("./shared-project-v4", import.meta.url)),
-  "C:/Users/ibrahim/Desktop/question_bank/smsp/frontend/shared-project-v4",
-  "C:/Users/ibrahim/Desktop/ibrahim/2026/portal/frontend/src/shared-project-v4",
+  "C:/Users/ebrahim/Desktop/MyWork/sharing/shared-project-v4",
   path.resolve("./shared-project-v4"),
   path.resolve("../shared-project-v4"),
   path.resolve("../../shared-project-v4"),
@@ -72,8 +71,7 @@ export default defineConfig({
       allow: [
         ".",
         sharedProjectPath,
-        "C:/Users/ibrahim/Desktop/question_bank/smsp/frontend/shared-project-v4",
-        "C:/Users/ibrahim/Desktop/question_bank/shared-project-v4",
+        "C:/Users/ebrahim/Desktop/MyWork/sharing/shared-project-v4"
       ],
     },
   },
