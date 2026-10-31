@@ -26,52 +26,51 @@ class OrganizationMVS(AllMVS):
         if inst_type and inst_type != 'all':
             qs = qs.filter(institution_type=inst_type)
 
-        gov_id = self.request.query_params.get('governorate') or self.request.query_params.get('governorate_id')
-        dir_id = self.request.query_params.get('directorate') or self.request.query_params.get('directorate_id')
+        gov_raw = self.request.query_params.getlist('governorate') or [self.request.query_params.get('governorate') or self.request.query_params.get('governorate_id') or '']
+        gov_ids = [int(p.strip()) for item in gov_raw for p in str(item).split(',') if p.strip().isdigit()]
+
+        dir_raw = self.request.query_params.getlist('directorate') or [self.request.query_params.get('directorate') or self.request.query_params.get('directorate_id') or '']
+        dir_ids = [int(p.strip()) for item in dir_raw for p in str(item).split(',') if p.strip().isdigit()]
 
         # قاعدة النظام الصارمة: عدم عرض المؤسسات إلا بعد الفلترة الجغرافية/الهيكلية
         effective_inst_type = inst_type or 'school'
         if effective_inst_type == 'school':
-            if not gov_id or not dir_id:
+            if not gov_ids or not dir_ids:
                 return qs.none()
         elif effective_inst_type in ['university', 'institute']:
-            if not gov_id:
+            if not gov_ids:
                 return qs.none()
-        elif not gov_id:
+        elif not gov_ids:
             return qs.none()
 
-        if gov_id or dir_id:
+        if gov_ids or dir_ids:
             try:
                 from OpenSoftCoreV41.common.models.Branch import Organization as CoreOrg
                 from django.db.models import Q
                 core_qs = CoreOrg.objects.filter(is_deleted=False)
-                if gov_id:
-                    try:
-                        g_int = int(gov_id)
+                if gov_ids:
+                    g_q = Q(fk_governorate_id__in=gov_ids)
+                    for g_int in gov_ids:
                         gov_org = CoreOrg.objects.filter(id=g_int).first()
-                        g_q = (
+                        cur_g_q = (
                             Q(fk_parent_organization__fk_parent_organization_id=g_int) |
                             Q(fk_parent_organization_id=g_int) |
                             Q(id=g_int)
                         )
                         if gov_org and getattr(gov_org, 'fk_governorate_id', None):
-                            g_q |= Q(fk_governorate_id=gov_org.fk_governorate_id)
-                        g_q |= Q(fk_governorate_id=g_int)
-                        core_qs = core_qs.filter(g_q)
-                    except (ValueError, TypeError):
-                        pass
+                            cur_g_q |= Q(fk_governorate_id=gov_org.fk_governorate_id)
+                        g_q |= cur_g_q
+                    core_qs = core_qs.filter(g_q)
 
-                if dir_id:
-                    try:
-                        d_int = int(dir_id)
+                if dir_ids:
+                    d_q = Q(fk_directorate_id__in=dir_ids)
+                    for d_int in dir_ids:
                         dir_org = CoreOrg.objects.filter(id=d_int).first()
-                        d_q = Q(fk_parent_organization_id=d_int) | Q(id=d_int)
+                        cur_d_q = Q(fk_parent_organization_id=d_int) | Q(id=d_int)
                         if dir_org and getattr(dir_org, 'fk_directorate_id', None):
-                            d_q |= Q(fk_directorate_id=dir_org.fk_directorate_id)
-                        d_q |= Q(fk_directorate_id=d_int)
-                        core_qs = core_qs.filter(d_q)
-                    except (ValueError, TypeError):
-                        pass
+                            cur_d_q |= Q(fk_directorate_id=dir_org.fk_directorate_id)
+                        d_q |= cur_d_q
+                    core_qs = core_qs.filter(d_q)
 
                 matching_names = list(core_qs.values_list('name_ar', flat=True))
                 if matching_names:

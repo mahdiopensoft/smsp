@@ -52,7 +52,7 @@ class ExamModelsMVS(AllMVS):
                         "image": opt.image.url if opt.image else None,
                         "latex": opt.latex,
                     }
-                    for opt in q.options.filter(is_deleted=False)
+                    for opt in q.options.filter(is_deleted=False).order_by('order_index')
                 ]
 
                 unit_name = 'عام'

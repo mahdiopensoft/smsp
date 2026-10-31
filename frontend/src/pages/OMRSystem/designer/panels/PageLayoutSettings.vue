@@ -1,7 +1,7 @@
 <template>
   <div class="page-layout-settings">
     <!-- Preset Template Selector -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">النموذج القياسي المعتمد (Preset Pattern)</label>
         <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold">موصى به</v-chip>
@@ -24,7 +24,7 @@
     </div>
 
     <!-- Document Output & Layout Mode (For Yemeni Ministry 50) -->
-    <div v-if="isYemeniPreset" class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div v-if="isYemeniPreset" class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">نوع مخرج ونموذج الورقة المعيارية</label>
         <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold">تنسيق مخصص</v-chip>
@@ -54,7 +54,7 @@
     </div>
 
     <!-- Paper Size & Dimensions -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <label class="text-subtitle-2 font-weight-bold mb-2 d-block">مقاس الورقة القياسي</label>
       <v-btn-toggle
         v-model="config.paper.size"
@@ -101,7 +101,7 @@
     </div>
 
     <!-- Target Print DPI & Colors -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">دقة المسح الضوئي والطباعة</label>
         <v-chip size="small" color="success" variant="tonal" class="font-weight-bold">
@@ -127,7 +127,7 @@
     </div>
 
     <!-- Direction -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5">
+    <div class="pa-4 rounded-xl border bg-surface">
       <label class="text-subtitle-2 font-weight-bold mb-2 d-block">اتجاه القراءة وترتيب الأعمدة</label>
       <v-btn-toggle
         v-model="config.questions.layout.layout_direction"
@@ -171,37 +171,61 @@ const isYemeniPreset = computed(() => {
 const presets = [
   {
     id: 'YEMEN_MINISTRY_40',
-    title: 'نموذج وزارة التربية والتعليم اليمنية (40 سؤال)',
+    title: '🏫 مدارس: نموذج وزارة التربية (40 سؤال)',
     subtitle: '20 سؤال صح/خطأ + 20 سؤال اختيار متعدد (المعتمد في الشهادة الثانوية)',
+    category: 'school',
   },
   {
     id: 'YEMEN_MINISTRY_50',
-    title: 'نموذج وزارة التربية والتعليم اليمنية (50 سؤال هجين)',
+    title: '🏫 مدارس: نموذج وزارة التربية (50 سؤال هجين)',
     subtitle: '20 سؤال صح/خطأ + 30 سؤال اختيار متعدد + بطاقة بيانات الطالب والباركودات',
+    category: 'school',
   },
   {
     id: 'YEMEN_MINISTRY_60',
-    title: 'نموذج وزارة التربية والتعليم اليمنية (60 سؤال موسع)',
+    title: '🏫 مدارس: نموذج وزارة التربية (60 سؤال موسع)',
     subtitle: '20 سؤال صح/خطأ + 40 سؤال اختيار متعدد',
+    category: 'school',
   },
   {
     id: 'YEMEN_UNIVERSITY_180',
-    title: 'نموذج الجامعات اليمنية العام (180 سؤال - 4 أعمدة)',
+    title: '🏛️ جامعات: نموذج الجامعات اليمنية (180 سؤال - 4 أعمدة)',
     subtitle: 'اختبارات القبول والمقررات الشاملة في جامعة صنعاء والجامعات الحكومية',
+    category: 'university',
+  },
+  {
+    id: 'YEMEN_UNIVERSITY_100',
+    title: '🏛️ جامعات: نموذج الكليات والأقسام (100 سؤال)',
+    subtitle: 'مقررات الفصول الأكاديمية واختبارات الأقسام التخصصية',
+    category: 'university',
+  },
+  {
+    id: 'YEMEN_INSTITUTE_60',
+    title: '📜 معاهد: نموذج المعاهد التقنية والمهنية (60 سؤال)',
+    subtitle: '20 سؤال صح/خطأ + 40 سؤال متعدد (دبلوم تقني ومسارات مهنية)',
+    category: 'institute',
+  },
+  {
+    id: 'YEMEN_INSTITUTE_80',
+    title: '📜 معاهد: نموذج الدبلوم الشامل للمعاهد (80 سؤال)',
+    subtitle: '20 سؤال صح/خطأ + 60 سؤال اختيار متعدد للمسارات التطبيقية',
+    category: 'institute',
   },
   {
     id: 'GENERAL_100',
-    title: 'النموذج المعياري العام (100 سؤال)',
-    subtitle: 'مناسب للمدارس والمعاهد والامتحانات النصفية والفصلية',
+    title: '⚙️ عام: النموذج المعياري العام (100 سؤال)',
+    subtitle: 'مناسب لكافة المؤسسات والامتحانات النصفية والفصلية',
+    category: 'general',
   },
 ]
 
 const themeColors = [
-  { hex: '#000000', label: 'أسود معتمد (وزارة التربية)' },
+  { hex: '#000000', label: 'أسود معتمد (وزارة التربية والمدارس)' },
+  { hex: '#00796B', label: 'أخضر تقني (المعاهد والتدريب المهني)' },
+  { hex: '#1976D2', label: 'أزرق جامعي (التعليم العالي)' },
   { hex: '#e6007e', label: 'وردي أمني (جامعة صنعاء)' },
-  { hex: '#1e40af', label: 'أزرق ملكي' },
-  { hex: '#047857', label: 'أخضر معتمد' },
-  { hex: '#b91c1c', label: 'أحمر داكن' },
+  { hex: '#1e40af', label: 'أزرق ملكي داكن' },
+  { hex: '#b91c1c', label: 'عنابي أمني' },
 ]
 
 function onPresetChange(presetId: string) {

@@ -196,11 +196,64 @@ class OpenCVOMREngine(BaseEngine):
                     M = cv2.getPerspectiveTransform(src_pts, dst_pts)
                     aligned = cv2.warpPerspective(image, M, (target_w, target_h), borderValue=(255, 255, 255))
                     logger.info(f"Aligned sheet using fiducials (target: {target_w}x{target_h} @ {scan_dpi} DPI)")
+                    aligned, _ = self._validate_and_orient_aligned_sheet(aligned, template)
                     return aligned
         except Exception as e:
             logger.warning(f"Fiducial alignment skipped: {e}")
 
         return image
+
+    def _validate_and_orient_aligned_sheet(self, aligned: np.ndarray, template: dict) -> tuple:
+        """
+        Multi-stage orientation and geometry validation:
+        Detects 180° upside-down rotation via header/footer text density and barcode location,
+        rotating 180° if needed.
+        """
+        meta = {"rotated_180": False, "geometry_valid": True, "orientation_confidence": 1.0}
+        try:
+            h, w = aligned.shape[:2]
+            if h < 50 or w < 50:
+                meta["geometry_valid"] = False
+                return aligned, meta
+
+            gray = cv2.cvtColor(aligned, cv2.COLOR_BGR2GRAY) if len(aligned.shape) == 3 else aligned
+            _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+            # 1. Header band (top 18%) vs Footer band (bottom 18%)
+            top_band_h = int(h * 0.18)
+            bottom_band_y = int(h * 0.82)
+
+            top_ink = cv2.countNonZero(binary[0:top_band_h, :])
+            bottom_ink = cv2.countNonZero(binary[bottom_band_y:h, :])
+
+            is_inverted = False
+            if bottom_ink > 1.65 * max(1, top_ink):
+                is_inverted = True
+                logger.info(f"Orientation check: bottom_ink ({bottom_ink}) > 1.65 * top_ink ({top_ink}) -> 180° inversion detected.")
+
+            # 2. Check barcode location if zxingcpp is available
+            try:
+                import zxingcpp
+                barcodes = zxingcpp.read_barcodes(gray)
+                for b in barcodes:
+                    pos = b.position
+                    avg_y = (pos.top_left.y + pos.top_right.y + pos.bottom_left.y + pos.bottom_right.y) / 4.0
+                    if avg_y < h * 0.35:
+                        is_inverted = True
+                        logger.info(f"Barcode detected at y={avg_y:.1f} (< {h*0.35:.1f}) -> confirming 180° inversion.")
+                        break
+            except Exception:
+                pass
+
+            if is_inverted:
+                aligned = cv2.rotate(aligned, cv2.ROTATE_180)
+                meta["rotated_180"] = True
+                meta["orientation_confidence"] = 0.99
+                logger.info("Successfully rotated inverted sheet 180° to standard upright orientation.")
+        except Exception as e:
+            logger.warning(f"Orientation validation error: {e}")
+
+        return aligned, meta
 
     def _process(self, input_data: dict, context: dict = None) -> EngineResult:
         image_path = input_data.get("image_path")
@@ -458,58 +511,38 @@ class OpenCVOMREngine(BaseEngine):
                         f"({pred['confidence']:.0%})"
                     )
 
-        # ── Classify question state from AI results ─────────────────────────
-        filled_choices  = [lbl for lbl, st in ai_results.items() if st == "filled"]
-        crossed_choices = [lbl for lbl, st in ai_results.items() if st == "crossed"]
-        erased_choices  = [lbl for lbl, st in ai_results.items() if st == "erased"]
-        half_choices    = [lbl for lbl, st in ai_results.items() if st == "half_filled"]
+        # ── Pass 3: Formal Bubble Decision Matrix Evaluation ─────────────────
+        from omr.providers.decision_matrix import evaluate_question_bubbles
 
-        # Compute question-level confidence from AI data
-        question_confidence = 1.0
-        for key, pred in ai_conf_data.items():
-            if pred.get("needs_review", False):
-                question_confidence = min(question_confidence, pred["confidence"])
+        vis_confs = {k: pred.get("confidence", 1.0) for k, pred in ai_conf_data.items()}
+        dec_res = evaluate_question_bubbles(
+            choice_states=ai_results,
+            vision_confidences=vis_confs,
+            darkness_values=darkness_values,
+            roi_valid=True
+        )
 
-
-        if len(filled_choices) == 1:
-            marked_choice   = filled_choices[0]
-            bubble_state    = "filled"
-            final_confidence = question_confidence
-            if crossed_choices or half_choices:
-                final_confidence = min(final_confidence, 0.85)
-        elif len(filled_choices) > 1:
-            marked_choice   = None
-            bubble_state    = "ambiguous"
-            final_confidence = 0.20
-        elif len(crossed_choices) == 1:
-            # إذا وضع الطالب إشارة/شطب على خيار وحيد (X أو شطب بالقلم كإجابة وحيدة)
-            marked_choice   = crossed_choices[0]
-            bubble_state    = "crossed"
-            final_confidence = min(question_confidence, 0.85)
-        elif len(crossed_choices) > 1:
-            # شطب متعدد على أكثر من خيار
-            marked_choice   = None
-            bubble_state    = "ambiguous"
-            final_confidence = 0.20
-        elif len(half_choices) == 1:
-            marked_choice   = half_choices[0]
-            bubble_state    = "half_filled"
-            final_confidence = min(question_confidence, 0.70)
-        else:
-            marked_choice = None
-            if erased_choices:
-                bubble_state    = "erased"
-                final_confidence = question_confidence
-            else:
-                bubble_state    = "empty"
-                final_confidence = 1.0
+        candidate_choice    = dec_res.candidate_choice
+        final_marked_choice = dec_res.final_marked_choice
+        marked_choice       = final_marked_choice  # backward compat: None if needs_review
+        bubble_state        = dec_res.bubble_state
+        final_confidence    = dec_res.vision_confidence
+        decision_confidence = dec_res.decision_confidence
+        needs_review        = dec_res.needs_review
+        review_priority     = dec_res.review_priority
+        reason_code         = dec_res.reason_code
 
         correct_choice = answer_key.get(str(question_id)) or answer_key.get(int(question_id))
-        is_correct = (normalize_choice(marked_choice) == normalize_choice(correct_choice)) if (marked_choice and correct_choice) else (False if marked_choice else None)
+        if final_marked_choice and correct_choice:
+            is_correct = (normalize_choice(final_marked_choice) == normalize_choice(correct_choice))
+        elif final_marked_choice:
+            is_correct = False
+        else:
+            is_correct = None
 
         # Dynamic marks weight calculation
         q_weight = float(marks_by_q.get(str(question_id), marks_by_q.get(int(question_id), marks_per_q))) if marks_by_q else marks_per_q
-        marks_awarded = q_weight if is_correct else 0.0
+        marks_awarded = q_weight if (is_correct is True) else 0.0
 
         # Convert crops to base64 data URLs for visual proof in UI
         import base64
@@ -520,18 +553,24 @@ class OpenCVOMREngine(BaseEngine):
                 choice_crops_b64[ch_key] = "data:image/png;base64," + base64.b64encode(buf).decode()
 
         return {
-            "question_id":       question_id,
-            "choices":           [c["choice"] for c in choices],
-            "marked_choice":     marked_choice,
-            "correct_choice":    correct_choice,
-            "is_correct":        is_correct,
-            "marks_awarded":     round(marks_awarded, 2),
-            "max_mark":          round(q_weight, 2),
-            "bubble_state":      bubble_state,
-            "choice_confidences": darkness_values,
-            "ai_results":        ai_results,
-            "ai_confidence":     ai_conf_data,     # per-choice confidence data
-            "choice_crops":      choice_crops_b64, # real crop images in base64
-            "actual_centers":    actual_centers,   # physical bubble centers (px)
-            "final_confidence":  round(final_confidence, 4),
+            "question_id":         question_id,
+            "choices":             [c["choice"] for c in choices],
+            "marked_choice":       marked_choice,
+            "candidate_choice":    candidate_choice,
+            "final_marked_choice": final_marked_choice,
+            "correct_choice":      correct_choice,
+            "is_correct":          is_correct,
+            "marks_awarded":       round(marks_awarded, 2),
+            "max_mark":            round(q_weight, 2),
+            "bubble_state":        bubble_state,
+            "choice_confidences":  darkness_values,
+            "ai_results":          ai_results,
+            "ai_confidence":       ai_conf_data,
+            "choice_crops":        choice_crops_b64,
+            "actual_centers":      actual_centers,
+            "final_confidence":    round(final_confidence, 4),
+            "decision_confidence": round(decision_confidence, 4),
+            "needs_review":        needs_review,
+            "review_priority":     review_priority,
+            "reason_code":         reason_code,
         }

@@ -67,6 +67,12 @@ export default defineConfig({
   },
   server: {
     port: settings.port,
+    proxy: {
+      '/media': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+      },
+    },
     fs: {
       allow: [
         ".",

@@ -21,6 +21,7 @@ from exams.models.ExamVersion import ExamVersion
 from exams.models.StudentExamRegistration import StudentExamRegistration
 from submissions.models.Submission import Submission
 from bank.models.AuditLog import AuditLog
+from OpenSoftCoreV41.common.models.Branch import Organization as CoreOrg
 
 
 def _calculate_grade_letter(percent: float) -> dict:
@@ -49,7 +50,8 @@ class ExamGradebookMVS(ViewSet):
     """
     سجل درجات الاختبارات والترحيل لنظام الكنترول المركزي.
     """
-    permission_classes = [permissions.AllowAny]
+    from omr.permissions import IsControlOfficer
+    permission_classes = [permissions.IsAuthenticated, IsControlOfficer]
 
     def list(self, request):
         """
@@ -67,8 +69,94 @@ class ExamGradebookMVS(ViewSet):
             qs = qs.filter(Q(title__icontains=search) | Q(uniqueCode__icontains=search))
         if institution_type and institution_type != 'all':
             qs = qs.filter(institution_type=institution_type)
-        if subject_id:
-            qs = qs.filter(subject_id=subject_id)
+        office_id = request.query_params.get('office_id') or request.query_params.get('office')
+        directorate_id = request.query_params.get('directorate_id') or request.query_params.get('directorate')
+        school_id = request.query_params.get('school_id') or request.query_params.get('school')
+
+        # فلترة الاختبارات حسب المدرسة / المركز المحدد
+        if school_id:
+            matched_school_names = []
+            if str(school_id).isdigit():
+                core_sch = CoreOrg.objects.filter(id=int(school_id), company_level=50).first()
+                if core_sch:
+                    matched_school_names.append(core_sch.name_ar)
+                try:
+                    from academic.models.common.Organization import Organization as AcademicOrg
+                    ac_sch = AcademicOrg.objects.filter(id=int(school_id)).first()
+                    if ac_sch and ac_sch.name_ar not in matched_school_names:
+                        matched_school_names.append(ac_sch.name_ar)
+                except Exception:
+                    pass
+            else:
+                matched_school_names.append(str(school_id).strip())
+
+            exam_ids_for_school = StudentExamRegistration.objects.filter(
+                is_deleted=False
+            ).filter(
+                Q(student_profile__organization_id=school_id) |
+                Q(student_profile__organization__name_ar__in=matched_school_names)
+            ).values_list('examVersion__exam_id', flat=True).distinct()
+
+            qs = qs.filter(id__in=exam_ids_for_school)
+
+        # فلترة الاختبارات حسب إدارة التربية بالمديرية
+        elif directorate_id:
+            dir_names = []
+            child_school_names = []
+            if str(directorate_id).isdigit():
+                core_dir = CoreOrg.objects.filter(id=int(directorate_id), company_level=40).first()
+                if core_dir:
+                    clean_name = core_dir.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip()
+                    dir_names.extend([core_dir.name_ar, clean_name])
+                    child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization=core_dir.id, is_deleted=False)
+                    child_school_names = list(child_schools.values_list('name_ar', flat=True))
+            else:
+                dir_names.append(str(directorate_id).strip())
+
+            dir_exam_ids = StudentExamRegistration.objects.filter(is_deleted=False).filter(
+                Q(student_profile__directorate__name_ar__in=dir_names) |
+                Q(student_profile__organization__name_ar__in=child_school_names)
+            ).values_list('examVersion__exam_id', flat=True).distinct()
+
+            dir_q = Q(id__in=dir_exam_ids)
+            if str(directorate_id).isdigit():
+                dir_q |= Q(directorate_id=int(directorate_id))
+            for d_name in dir_names:
+                dir_q |= Q(directorate__name_ar__icontains=d_name)
+
+            qs = qs.filter(dir_q)
+
+        # فلترة الاختبارات حسب مكتب التربية والتعليم بالمحافظة
+        elif office_id:
+            off_ids = [int(x) for x in str(office_id).split(',') if x.strip().isdigit()] if (office_id and office_id != 'all') else []
+            gov_names = []
+            child_school_names = []
+            gov_ids = []
+            if off_ids:
+                core_offs = CoreOrg.objects.filter(id__in=off_ids, company_level=30)
+                for core_off in core_offs:
+                    clean_gov = core_off.name_ar.replace('مكتب التربية والتعليم - ', '').strip()
+                    gov_names.extend([core_off.name_ar, clean_gov])
+                    if core_off.fk_governorate_id:
+                        gov_ids.append(core_off.fk_governorate_id)
+                child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization__in=off_ids, is_deleted=False)
+                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=child_dirs.values_list('id', flat=True), is_deleted=False)
+                child_school_names = list(child_schools.values_list('name_ar', flat=True))
+            else:
+                gov_names.append(str(office_id).strip())
+
+            off_exam_ids = StudentExamRegistration.objects.filter(is_deleted=False).filter(
+                Q(student_profile__directorate__fk_governorate__name_ar__in=gov_names) |
+                Q(student_profile__organization__name_ar__in=child_school_names)
+            ).values_list('examVersion__exam_id', flat=True).distinct()
+
+            off_q = Q(id__in=off_exam_ids)
+            if gov_ids:
+                off_q |= Q(governorate_id__in=gov_ids)
+            for g_name in gov_names:
+                off_q |= Q(governorate__name_ar__icontains=g_name)
+
+            qs = qs.filter(off_q)
 
         # School Filters
         stage_id = request.query_params.get('stage')
@@ -147,7 +235,7 @@ class ExamGradebookMVS(ViewSet):
         exams = list(qs[:100])
         exam_ids = [e.id for e in exams]
 
-        # 1. تجميع عدد الطلاب المسجلين لكل اختبار بدفعة واحدة (استعلام واحد)
+        # 1. تجميع عدد الطلاب المسجلين والمدارس لكل اختبار بدفعة واحدة
         reg_counts = dict(
             StudentExamRegistration.objects.filter(
                 examVersion__exam_id__in=exam_ids, is_deleted=False
@@ -156,10 +244,19 @@ class ExamGradebookMVS(ViewSet):
             .values_list('examVersion__exam_id', 'cnt')
         )
 
+        schools_counts = dict(
+            StudentExamRegistration.objects.filter(
+                examVersion__exam_id__in=exam_ids, is_deleted=False, student_profile__organization__isnull=False
+            ).values('examVersion__exam_id')
+            .annotate(cnt=Count('student_profile__organization_id', distinct=True))
+            .values_list('examVersion__exam_id', 'cnt')
+        )
+
         # 2. تجميع إحصائيات التسليمات لكل اختبار بدفعة واحدة (استعلام واحد)
         sub_counts = {}
         completed_counts = {}
         needs_review_counts = {}
+        dispatched_counts = {}
         for row in (
             Submission.objects.filter(exam_id__in=exam_ids, is_deleted=False)
             .values('exam_id', 'status')
@@ -185,18 +282,29 @@ class ExamGradebookMVS(ViewSet):
         ):
             score_aggregates[row['exam_id']] = row
 
+        gov_to_office_map = {
+            o.fk_governorate_id: o.id 
+            for o in CoreOrg.objects.filter(company_level=30, fk_governorate__isnull=False, is_deleted=False)
+        }
+
         exams_list = []
         for exam in exams:
             total_registered = reg_counts.get(exam.id, 0)
             total_submissions = sub_counts.get(exam.id, 0)
             completed_subs = completed_counts.get(exam.id, 0)
             needs_review_subs = needs_review_counts.get(exam.id, 0)
+            schools_cnt = schools_counts.get(exam.id, 0)
             exam_max_score = float(getattr(exam, 'total_score', 100) or 100)
 
             aggr = score_aggregates.get(exam.id, {})
             avg_val = float(aggr.get('avg_score') or 0.0)
             highest_sc = float(aggr.get('max_score') or 0.0)
             lowest_sc = float(aggr.get('min_score') or 0.0)
+
+            completion_rate = round((completed_subs / max(1, total_registered)) * 100, 1) if total_registered > 0 else 0.0
+
+            prn_cnt = StudentExamRegistration.objects.filter(is_deleted=False, examVersion__exam=exam, is_printed=True).count()
+            prn_rate = round((prn_cnt / max(1, total_registered)) * 100, 1) if total_registered > 0 else 0.0
 
             exams_list.append({
                 "id": exam.id,
@@ -206,14 +314,25 @@ class ExamGradebookMVS(ViewSet):
                 "institution_type_display": "مدرسي" if exam.institution_type == 'school' else ("جامعي" if exam.institution_type == 'university' else "معاهد"),
                 "subject_name": getattr(exam.subject, 'name_ar', str(exam.subject)) if exam.subject else "غير محدد",
                 "year_name": exam.year.gregorian_year if (exam.year and hasattr(exam.year, 'gregorian_year')) else (str(exam.year) if exam.year else "العام الحالي"),
+                "office_id": gov_to_office_map.get(exam.governorate_id) or exam.governorate_id,
+                "governorate_id": exam.governorate_id,
+                "governorate_name": getattr(exam.governorate, 'name_ar', str(exam.governorate)) if exam.governorate else "",
+                "directorate_id": exam.directorate_id,
+                "directorate_name": getattr(exam.directorate, 'name_ar', str(exam.directorate)) if exam.directorate else "",
+                "schools_count": schools_cnt,
                 "max_score": exam_max_score,
                 "total_registered": total_registered,
+                "total_students": total_registered,
                 "total_submissions": total_submissions,
                 "completed_count": completed_subs,
                 "needs_review_count": needs_review_subs,
                 "absent_count": max(0, total_registered - total_submissions),
+                "completion_rate": completion_rate,
+                "printed_count": prn_cnt,
+                "printed_rate": prn_rate,
+                "print_status": "printed" if (prn_cnt > 0 and prn_cnt == total_registered) else ("partial" if prn_cnt > 0 else "none"),
                 "dispatched_count": 0,
-                "dispatch_status": "none",
+                "dispatch_status": "dispatched" if (completed_subs > 0 and completed_subs == total_submissions) else ("partial" if completed_subs > 0 else "none"),
                 "average_score": round(avg_val, 2),
                 "highest_score": highest_sc,
                 "lowest_score": lowest_sc,
@@ -226,6 +345,437 @@ class ExamGradebookMVS(ViewSet):
             "count": len(exams_list),
             "results": exams_list
         })
+
+    @action(detail=False, methods=['get'], url_path='by-office')
+    def by_office(self, request):
+        """
+        تجميع إحصائيات الرصد والكنترول حسب مكاتب التربية والتعليم بالمحافظات (المستوى 30 الحقيقي).
+        """
+        search = request.query_params.get('search', '').strip()
+        office_id = request.query_params.get('office_id') or request.query_params.get('office')
+        off_ids = [int(x) for x in str(office_id).split(',') if x.strip().isdigit()] if (office_id and office_id != 'all') else []
+        subj_filter = request.query_params.get('subject') or request.query_params.get('subject_id')
+
+        offices = CoreOrg.objects.filter(company_level=30, is_deleted=False).order_by('branch_no', 'id')
+        if off_ids:
+            offices = offices.filter(id__in=off_ids)
+        if search:
+            offices = offices.filter(name_ar__icontains=search)
+
+        results = []
+        for off in offices:
+            child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization=off.id, is_deleted=False)
+            child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=child_dirs.values_list('id', flat=True), is_deleted=False)
+            school_names = list(child_schools.values_list('name_ar', flat=True))
+            dir_names = list(child_dirs.values_list('name_ar', flat=True))
+            clean_dir_names = [d.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip() for d in dir_names]
+
+            regs = StudentExamRegistration.objects.filter(is_deleted=False, examVersion__exam__is_deleted=False).filter(
+                Q(student_profile__organization__name_ar__in=school_names) |
+                Q(student_profile__directorate__name_ar__in=clean_dir_names) |
+                Q(student_profile__directorate__name_ar__in=dir_names)
+            )
+            if subj_filter and subj_filter != 'all':
+                if str(subj_filter).isdigit():
+                    regs = regs.filter(examVersion__exam__subject_id=int(subj_filter))
+                else:
+                    regs = regs.filter(Q(examVersion__exam__subject__name_ar__icontains=subj_filter) | Q(examVersion__exam__subject__name_en__icontains=subj_filter))
+
+            tot = regs.count()
+            exams_cnt = regs.values('examVersion__exam_id').distinct().count()
+            subjs = [s for s in regs.values_list('examVersion__exam__subject__name_ar', flat=True).distinct() if s]
+            comp = Submission.objects.filter(
+                is_deleted=False, 
+                status=Submission.Status.COMPLETED, 
+                registration__in=regs
+            ).count()
+
+            printed = regs.filter(is_printed=True).count()
+
+            results.append({
+                "id": off.id,
+                "office_name": off.name_ar,
+                "governorate_name": off.name_ar.replace('مكتب التربية والتعليم - ', ''),
+                "directorates_count": child_dirs.count(),
+                "schools_count": child_schools.count(),
+                "exams_count": exams_cnt,
+                "subjects": subjs,
+                "subject_name": subjs[0] if len(subjs) == 1 else (", ".join(subjs[:2]) + ("..." if len(subjs) > 2 else "") if subjs else "—"),
+                "total_students": tot,
+                "completed_count": comp,
+                "absent_count": max(0, tot - comp),
+                "completion_rate": round((comp / max(1, tot)) * 100, 1) if tot > 0 else 0.0,
+                "printed_count": printed,
+                "printed_rate": round((printed / max(1, tot)) * 100, 1) if tot > 0 else 0.0,
+                "print_status": "printed" if (printed > 0 and printed == tot) else ("partial" if printed > 0 else "none"),
+            })
+
+        return Response({
+            "success": True,
+            "count": len(results),
+            "results": results
+        })
+
+    @action(detail=False, methods=['get'], url_path='by-directorate')
+    def by_directorate(self, request):
+        """
+        تجميع إحصائيات الرصد والكنترول حسب إدارات التربية والتعليم بالمديريات (المستوى 40).
+        """
+        search = request.query_params.get('search', '').strip()
+        office_id = request.query_params.get('office_id') or request.query_params.get('office')
+        off_ids = [int(x) for x in str(office_id).split(',') if x.strip().isdigit()] if (office_id and office_id != 'all') else []
+        subj_filter = request.query_params.get('subject') or request.query_params.get('subject_id')
+
+        dirs_qs = CoreOrg.objects.filter(company_level=40, is_deleted=False)
+        if off_ids:
+            dirs_qs = dirs_qs.filter(fk_parent_organization_id__in=off_ids)
+        if search:
+            dirs_qs = dirs_qs.filter(name_ar__icontains=search)
+
+        results = []
+        for d in dirs_qs.order_by('branch_no', 'id'):
+            child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization=d.id, is_deleted=False)
+            school_names = list(child_schools.values_list('name_ar', flat=True))
+            clean_dir_name = d.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip()
+
+            regs = StudentExamRegistration.objects.filter(is_deleted=False, examVersion__exam__is_deleted=False).filter(
+                Q(student_profile__organization__name_ar__in=school_names) |
+                Q(student_profile__directorate__name_ar__icontains=clean_dir_name) |
+                Q(student_profile__directorate__name_ar__icontains=d.name_ar)
+            )
+            if subj_filter and subj_filter != 'all':
+                if str(subj_filter).isdigit():
+                    regs = regs.filter(examVersion__exam__subject_id=int(subj_filter))
+                else:
+                    regs = regs.filter(Q(examVersion__exam__subject__name_ar__icontains=subj_filter) | Q(examVersion__exam__subject__name_en__icontains=subj_filter))
+
+            tot = regs.count()
+            exams_cnt = regs.values('examVersion__exam_id').distinct().count()
+            subjs = [s for s in regs.values_list('examVersion__exam__subject__name_ar', flat=True).distinct() if s]
+            comp = Submission.objects.filter(
+                is_deleted=False, 
+                status=Submission.Status.COMPLETED, 
+                registration__in=regs
+            ).count()
+
+            printed = regs.filter(is_printed=True).count()
+
+            parent_office = d.fk_parent_organization
+            results.append({
+                "id": d.id,
+                "name": d.name_ar,
+                "office_id": d.fk_parent_organization_id,
+                "office_name": parent_office.name_ar if parent_office else "—",
+                "governorate_name": parent_office.name_ar.replace('مكتب التربية والتعليم - ', '') if parent_office else "—",
+                "schools_count": child_schools.count(),
+                "exams_count": exams_cnt,
+                "subjects": subjs,
+                "subject_name": subjs[0] if len(subjs) == 1 else (", ".join(subjs[:2]) + ("..." if len(subjs) > 2 else "") if subjs else "—"),
+                "total_students": tot,
+                "completed_count": comp,
+                "absent_count": max(0, tot - comp),
+                "completion_rate": round((comp / max(1, tot)) * 100, 1) if tot > 0 else 0.0,
+                "printed_count": printed,
+                "printed_rate": round((printed / max(1, tot)) * 100, 1) if tot > 0 else 0.0,
+                "print_status": "printed" if (printed > 0 and printed == tot) else ("partial" if printed > 0 else "none"),
+            })
+
+        return Response({
+            "success": True,
+            "count": len(results),
+            "results": results
+        })
+
+    @action(detail=False, methods=['get'], url_path='by-school')
+    def by_school(self, request):
+        """
+        تجميع إحصائيات الرصد والكنترول حسب المدرسة / المركز الامتحاني / الجامعة / المعهد.
+        """
+        search = request.query_params.get('search', '').strip()
+        office_id = request.query_params.get('office_id') or request.query_params.get('office')
+        directorate_id = request.query_params.get('directorate_id') or request.query_params.get('directorate')
+        institution_type = request.query_params.get('institution_type')
+        subj_filter = request.query_params.get('subject') or request.query_params.get('subject_id')
+
+        regs_qs = StudentExamRegistration.objects.filter(
+            is_deleted=False, 
+            examVersion__exam__is_deleted=False,
+            student_profile__organization__isnull=False
+        )
+        if subj_filter and subj_filter != 'all':
+            if str(subj_filter).isdigit():
+                regs_qs = regs_qs.filter(examVersion__exam__subject_id=int(subj_filter))
+            else:
+                regs_qs = regs_qs.filter(Q(examVersion__exam__subject__name_ar__icontains=subj_filter) | Q(examVersion__exam__subject__name_en__icontains=subj_filter))
+
+        if search:
+            regs_qs = regs_qs.filter(
+                Q(student_profile__organization__name_ar__icontains=search) |
+                Q(student_profile__organization__name_en__icontains=search)
+            )
+
+        off_ids = [int(x) for x in str(office_id).split(',') if x.strip().isdigit()] if (office_id and office_id != 'all') else []
+        dir_ids = [int(x) for x in str(directorate_id).split(',') if x.strip().isdigit()] if (directorate_id and directorate_id != 'all') else []
+
+        if dir_ids:
+            core_dirs = CoreOrg.objects.filter(id__in=dir_ids, company_level=40)
+            if core_dirs.exists():
+                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=core_dirs.values_list('id', flat=True), is_deleted=False)
+                school_names = list(child_schools.values_list('name_ar', flat=True))
+                clean_names = [d.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip() for d in core_dirs]
+                dir_names = list(core_dirs.values_list('name_ar', flat=True))
+                regs_qs = regs_qs.filter(
+                    Q(student_profile__organization__name_ar__in=school_names) |
+                    Q(student_profile__directorate__name_ar__in=clean_names) |
+                    Q(student_profile__directorate__name_ar__in=dir_names)
+                )
+            else:
+                regs_qs = regs_qs.filter(student_profile__directorate_id__in=dir_ids)
+        elif off_ids:
+            core_offices = CoreOrg.objects.filter(id__in=off_ids, company_level=30)
+            if core_offices.exists():
+                child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization__in=core_offices.values_list('id', flat=True), is_deleted=False)
+                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=child_dirs.values_list('id', flat=True), is_deleted=False)
+                school_names = list(child_schools.values_list('name_ar', flat=True))
+                regs_qs = regs_qs.filter(student_profile__organization__name_ar__in=school_names)
+
+        if institution_type and institution_type != 'all':
+            regs_qs = regs_qs.filter(student_profile__organization__institution_type=institution_type)
+
+        # خريطة إدارات ومحافظات المدارس من الهيكل المؤسسي المعتمد CoreOrg (المستوى 50)
+        core_schools = CoreOrg.objects.filter(company_level=50, is_deleted=False).select_related(
+            'fk_parent_organization', 'fk_parent_organization__fk_parent_organization'
+        )
+        core_map = {}
+        for cs in core_schools:
+            dir_name = cs.fk_parent_organization.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip() if cs.fk_parent_organization else "—"
+            gov_name = cs.fk_parent_organization.fk_parent_organization.name_ar.replace('مكتب التربية والتعليم - ', '').strip() if (cs.fk_parent_organization and cs.fk_parent_organization.fk_parent_organization) else "—"
+            dir_id = cs.fk_parent_organization_id
+            off_id = cs.fk_parent_organization.fk_parent_organization_id if cs.fk_parent_organization else None
+            core_map[cs.name_ar] = (dir_name, gov_name, dir_id, off_id)
+
+        student_geo_map = {}
+        for row in regs_qs.values(
+            'student_profile__organization_id',
+            'student_profile__directorate__name_ar',
+            'student_profile__directorate__fk_governorate__name_ar'
+        ).exclude(student_profile__directorate__name_ar__isnull=True):
+            oid = row['student_profile__organization_id']
+            if oid not in student_geo_map:
+                student_geo_map[oid] = (
+                    row['student_profile__directorate__name_ar'] or "—",
+                    row['student_profile__directorate__fk_governorate__name_ar'] or "—"
+                )
+
+        # تجميع المدارس والمؤسسات التعليمية بشكل وحيد ومطلق دون أي تكرار
+        schools_agg = regs_qs.values(
+            'student_profile__organization_id',
+            'student_profile__organization__name_ar',
+            'student_profile__organization__institution_type',
+        ).annotate(
+            total_students=Count('id', distinct=True),
+            exams_count=Count('examVersion__exam_id', distinct=True)
+        ).order_by('-total_students')
+
+        org_ids = [s['student_profile__organization_id'] for s in schools_agg]
+        subs_completed = dict(
+            Submission.objects.filter(
+                is_deleted=False, 
+                status=Submission.Status.COMPLETED,
+                registration__student_profile__organization_id__in=org_ids
+            ).values('registration__student_profile__organization_id')
+            .annotate(cnt=Count('id'))
+            .values_list('registration__student_profile__organization_id', 'cnt')
+        )
+        subs_scores = dict(
+            Submission.objects.filter(
+                is_deleted=False, 
+                status=Submission.Status.COMPLETED,
+                registration__student_profile__organization_id__in=org_ids
+            ).values('registration__student_profile__organization_id')
+            .annotate(avg=Avg('total_score'))
+            .values_list('registration__student_profile__organization_id', 'avg')
+        )
+        subs_printed = dict(
+            StudentExamRegistration.objects.filter(
+                is_deleted=False,
+                examVersion__exam__is_deleted=False,
+                student_profile__organization_id__in=org_ids,
+                is_printed=True
+            ).values('student_profile__organization_id')
+            .annotate(cnt=Count('id'))
+            .values_list('student_profile__organization_id', 'cnt')
+        )
+
+        results = []
+        for s in schools_agg:
+            org_id = s['student_profile__organization_id']
+            name = s['student_profile__organization__name_ar'] or "مؤسسة تعليمية غير محددة"
+            tot = s['total_students']
+            comp = subs_completed.get(org_id, 0)
+            avg_sc = subs_scores.get(org_id, 0.0) or 0.0
+            prn = subs_printed.get(org_id, 0)
+
+            dir_info = core_map.get(name, (None, None, None, None))
+            dir_name, gov_name, dir_id, off_id = dir_info
+            if not dir_name:
+                geo_tuple = student_geo_map.get(org_id, ("—", "—"))
+                dir_name, gov_name = geo_tuple[0], geo_tuple[1]
+
+            # تفاصيل المواد والاختبارات التابعة للمدرسة ونماذجها المقيدة للطلاب
+            school_regs = regs_qs.filter(student_profile__organization_id=org_id).select_related(
+                'examVersion', 'examVersion__exam', 'examVersion__exam__subject'
+            )
+            school_subjs = [sb for sb in school_regs.values_list('examVersion__exam__subject__name_ar', flat=True).distinct() if sb]
+
+            exam_groups = {}
+            for reg in school_regs:
+                ev = reg.examVersion
+                ex = ev.exam if ev else None
+                if not ex:
+                    continue
+                eid = ex.id
+                if eid not in exam_groups:
+                    sub_name = ex.subject.name_ar if ex.subject else "عام"
+                    exam_groups[eid] = {
+                        "id": eid,
+                        "title": ex.title,
+                        "code": ex.uniqueCode,
+                        "subject": sub_name,
+                        "models_mode": getattr(ex, 'models_mode', 'uniform'),
+                        "versions_dict": {},
+                        "students_count": 0,
+                    }
+                v_code = ev.versionCode or "A"
+                exam_groups[eid]["versions_dict"][v_code] = exam_groups[eid]["versions_dict"].get(v_code, 0) + 1
+                exam_groups[eid]["students_count"] += 1
+
+            formatted_exams = []
+            for eid, edata in exam_groups.items():
+                v_list = [
+                    {"code": code, "students_count": count}
+                    for code, count in sorted(edata["versions_dict"].items())
+                ]
+                v_parts = []
+                for code, count in sorted(edata["versions_dict"].items()):
+                    if count == 1:
+                        c_str = "طالب واحد"
+                    elif count == 2:
+                        c_str = "طالبان"
+                    elif 3 <= count <= 10:
+                        c_str = f"{count} طلاب"
+                    else:
+                        c_str = f"{count} طالب"
+                    v_parts.append(f"نموذج {code} ({c_str})")
+                versions_summary = "، ".join(v_parts) if v_parts else "كافة النماذج"
+
+                formatted_exams.append({
+                    "id": eid,
+                    "title": edata["title"],
+                    "code": edata["code"],
+                    "subject": edata["subject"],
+                    "models_mode": edata["models_mode"],
+                    "students_count": edata["students_count"],
+                    "versions": v_list,
+                    "versions_summary": versions_summary,
+                })
+
+            results.append({
+                "id": org_id,
+                "name": name,
+                "institution_type": s['student_profile__organization__institution_type'] or "school",
+                "directorate_id": dir_id,
+                "office_id": off_id,
+                "directorate_name": dir_name or "—",
+                "governorate_name": gov_name or "—",
+                "total_students": tot,
+                "exams_count": len(formatted_exams),
+                "subjects": school_subjs,
+                "subject_name": school_subjs[0] if len(school_subjs) == 1 else (", ".join(school_subjs[:2]) + ("..." if len(school_subjs) > 2 else "") if school_subjs else "—"),
+                "primary_subject": school_subjs[0] if school_subjs else "—",
+                "exams": formatted_exams,
+                "completed_count": comp,
+                "absent_count": max(0, tot - comp),
+                "completion_rate": round((comp / max(1, tot)) * 100, 1) if tot > 0 else 0.0,
+                "average_score": round(float(avg_sc), 1),
+                "printed_count": prn,
+                "printed_rate": round((prn / max(1, tot)) * 100, 1) if tot > 0 else 0.0,
+                "print_status": "printed" if (prn > 0 and prn == tot) else ("partial" if prn > 0 else "none"),
+            })
+
+        return Response({
+            "success": True,
+            "count": len(results),
+            "results": results
+        })
+
+    @action(detail=False, methods=['get'], url_path='subjects')
+    def available_subjects(self, request):
+        """
+        قائمة المواد الدراسية المعتمدة بالاختبارات المصدرة لفلترة شاشات الطباعة والرصد،
+        مع دعم التصفية الدقيقة حسب نوع المؤسسة (مدرسي / جامعي / معاهد) والمحافظات والمديريات.
+        """
+        from exams.models.Exam import Exam
+        institution_type = request.query_params.get('institution_type')
+        office_id = request.query_params.get('office_id')
+        directorate_id = request.query_params.get('directorate_id')
+        school_id = request.query_params.get('school_id')
+
+        exams_qs = Exam.objects.filter(is_deleted=False, subject__isnull=False)
+
+        if institution_type and institution_type != 'all':
+            exams_qs = exams_qs.filter(institution_type=institution_type)
+
+        from OpenSoftCoreV41.common.models.Branch import Organization as CoreOrg
+        from exams.models.StudentExamRegistration import StudentExamRegistration
+
+        if directorate_id and directorate_id != 'all':
+            dir_ids = [int(x) for x in str(directorate_id).split(',') if x.strip().isdigit()]
+            if dir_ids:
+                core_dirs = CoreOrg.objects.filter(id__in=dir_ids, company_level=40)
+                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=core_dirs.values_list('id', flat=True), is_deleted=False)
+                school_names = list(child_schools.values_list('name_ar', flat=True))
+                reg_exam_ids = StudentExamRegistration.objects.filter(
+                    is_deleted=False,
+                    student_profile__organization__name_ar__in=school_names
+                ).values_list('examVersion__exam_id', flat=True)
+                exams_qs = exams_qs.filter(Q(directorate_id__in=dir_ids) | Q(id__in=reg_exam_ids))
+        elif office_id and office_id != 'all':
+            off_ids = [int(x) for x in str(office_id).split(',') if x.strip().isdigit()]
+            if off_ids:
+                core_offices = CoreOrg.objects.filter(id__in=off_ids, company_level=30)
+                child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization__in=core_offices.values_list('id', flat=True), is_deleted=False)
+                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=child_dirs.values_list('id', flat=True), is_deleted=False)
+                school_names = list(child_schools.values_list('name_ar', flat=True))
+                reg_exam_ids = StudentExamRegistration.objects.filter(
+                    is_deleted=False,
+                    student_profile__organization__name_ar__in=school_names
+                ).values_list('examVersion__exam_id', flat=True)
+                exams_qs = exams_qs.filter(Q(governorate_id__in=off_ids) | Q(id__in=reg_exam_ids))
+
+        if school_id and school_id != 'all':
+            sch_ids = [int(x) for x in str(school_id).split(',') if x.strip().isdigit()]
+            if sch_ids:
+                reg_exam_ids = StudentExamRegistration.objects.filter(
+                    is_deleted=False,
+                    student_profile__organization_id__in=sch_ids
+                ).values_list('examVersion__exam_id', flat=True)
+                exams_qs = exams_qs.filter(id__in=reg_exam_ids)
+
+        subjects_qs = exams_qs.values(
+            'subject_id', 'subject__name_ar', 'subject__name_en'
+        ).distinct()
+
+        results = [
+            {
+                "id": s['subject_id'],
+                "name": s['subject__name_ar'] or s['subject__name_en'],
+                "name_ar": s['subject__name_ar'] or '',
+                "name_en": s['subject__name_en'] or ''
+            }
+            for s in subjects_qs if (s['subject__name_ar'] or s['subject__name_en'])
+        ]
+        return Response({"success": True, "results": results})
 
     def retrieve(self, request, pk=None):
         """
@@ -374,64 +924,104 @@ class ExamGradebookMVS(ViewSet):
             'examVersion'
         )
 
-        # 3.1 فلتر المحافظة (يدعم المعرف الرقمي واسم المحافظة بالعربية والإنجليزية)
-        governorate = request.query_params.get('governorate') or request.query_params.get('governorate_name')
-        if governorate and governorate != 'all' and str(governorate).strip() != '':
-            gov_str = str(governorate).strip()
-            gov_q = (
-                Q(student_profile__directorate__fk_governorate__name_ar=gov_str) |
-                Q(student_profile__directorate__fk_governorate__name_en=gov_str) |
-                Q(student__student_profile__directorate__fk_governorate__name_ar=gov_str) |
-                Q(student__student_profile__directorate__fk_governorate__name_en=gov_str) |
-                Q(examVersion__exam__governorate__name_ar=gov_str) |
-                Q(examVersion__exam__governorate__name_en=gov_str)
+        # 3.0 فلتر مكتب التربية والتعليم بالمحافظة (المستوى 30)
+        office_id = request.query_params.get('office_id')
+        if office_id and str(office_id).isdigit():
+            child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization=int(office_id), is_deleted=False)
+            child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=child_dirs.values_list('id', flat=True), is_deleted=False)
+            school_names = list(child_schools.values_list('name_ar', flat=True))
+            dir_names = list(child_dirs.values_list('name_ar', flat=True))
+            clean_dir_names = [d.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip() for d in dir_names]
+            registrations = registrations.filter(
+                Q(student_profile__organization__name_ar__in=school_names) |
+                Q(student_profile__directorate__name_ar__in=clean_dir_names) |
+                Q(student_profile__directorate__name_ar__in=dir_names)
             )
-            if gov_str.isdigit():
-                gov_id = int(gov_str)
-                gov_q |= (
-                    Q(student_profile__directorate__fk_governorate_id=gov_id) |
-                    Q(student__student_profile__directorate__fk_governorate_id=gov_id) |
-                    Q(examVersion__exam__governorate_id=gov_id)
+
+        # 3.0.1 فلتر إدارة التربية والتعليم بالمديرية (المستوى 40)
+        dir_id = request.query_params.get('directorate_id')
+        if dir_id and str(dir_id).isdigit():
+            try:
+                dir_org = CoreOrg.objects.get(id=int(dir_id), is_deleted=False)
+                clean_name = dir_org.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip()
+                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization=int(dir_id), is_deleted=False)
+                school_names = list(child_schools.values_list('name_ar', flat=True))
+                registrations = registrations.filter(
+                    Q(student_profile__directorate__name_ar__icontains=clean_name) |
+                    Q(student_profile__directorate__name_ar__icontains=dir_org.name_ar) |
+                    Q(student_profile__organization__name_ar__in=school_names)
                 )
+            except CoreOrg.DoesNotExist:
+                pass
+
+        # 3.1 فلتر المحافظة (يدعم تحديد مفرد أو متعدد عبر المعرفات الرقمية والأسماء)
+        gov_raw = request.query_params.getlist('governorate') or [request.query_params.get('governorate') or request.query_params.get('governorate_name') or '']
+        gov_list = [p.strip() for item in gov_raw for p in str(item).split(',') if p.strip() and p != 'all']
+        if gov_list:
+            gov_ids = [int(p) for p in gov_list if p.isdigit()]
+            gov_names = [p for p in gov_list if not p.isdigit()]
+            gov_q = Q()
+            if gov_ids:
+                gov_q |= (
+                    Q(student_profile__directorate__fk_governorate_id__in=gov_ids) |
+                    Q(student__student_profile__directorate__fk_governorate_id__in=gov_ids) |
+                    Q(examVersion__exam__governorate_id__in=gov_ids)
+                )
+            if gov_names:
+                for g_name in gov_names:
+                    gov_q |= (
+                        Q(student_profile__directorate__fk_governorate__name_ar__icontains=g_name) |
+                        Q(student_profile__directorate__fk_governorate__name_en__icontains=g_name) |
+                        Q(student__student_profile__directorate__fk_governorate__name_ar__icontains=g_name) |
+                        Q(examVersion__exam__governorate__name_ar__icontains=g_name)
+                    )
             registrations = registrations.filter(gov_q)
 
-        # 3.2 فلتر المديرية (يدعم المعرف الرقمي واسم المديرية بالعربية والإنجليزية)
-        directorate = request.query_params.get('directorate') or request.query_params.get('directorate_name')
-        if directorate and directorate != 'all' and str(directorate).strip() != '':
-            dir_str = str(directorate).strip()
-            dir_q = (
-                Q(student_profile__directorate__name_ar=dir_str) |
-                Q(student_profile__directorate__name_en=dir_str) |
-                Q(student__student_profile__directorate__name_ar=dir_str) |
-                Q(student__student_profile__directorate__name_en=dir_str) |
-                Q(examVersion__exam__directorate__name_ar=dir_str) |
-                Q(examVersion__exam__directorate__name_en=dir_str)
-            )
-            if dir_str.isdigit():
-                dir_id = int(dir_str)
+        # 3.2 فلتر المديرية (يدعم تحديد مفرد أو متعدد عبر المعرفات والأسماء)
+        dir_raw = request.query_params.getlist('directorate') or [request.query_params.get('directorate') or request.query_params.get('directorate_name') or '']
+        dir_list = [p.strip() for item in dir_raw for p in str(item).split(',') if p.strip() and p != 'all']
+        if dir_list:
+            dir_ids = [int(p) for p in dir_list if p.isdigit()]
+            dir_names = [p for p in dir_list if not p.isdigit()]
+            dir_q = Q()
+            if dir_ids:
                 dir_q |= (
-                    Q(student_profile__directorate_id=dir_id) |
-                    Q(student__student_profile__directorate_id=dir_id) |
-                    Q(examVersion__exam__directorate_id=dir_id)
+                    Q(student_profile__directorate_id__in=dir_ids) |
+                    Q(student__student_profile__directorate_id__in=dir_ids) |
+                    Q(examVersion__exam__directorate_id__in=dir_ids)
                 )
+            if dir_names:
+                for d_name in dir_names:
+                    dir_q |= (
+                        Q(student_profile__directorate__name_ar__icontains=d_name) |
+                        Q(student_profile__directorate__name_en__icontains=d_name) |
+                        Q(student__student_profile__directorate__name_ar__icontains=d_name) |
+                        Q(examVersion__exam__directorate__name_ar__icontains=d_name)
+                    )
             registrations = registrations.filter(dir_q)
 
-        # 3.3 فلتر المدرسة / المؤسسة (يدعم المعرف الرقمي والاسم)
-        school = request.query_params.get('school') or request.query_params.get('school_name') or request.query_params.get('organization')
-        if school and school != 'all' and str(school).strip() != '':
-            sch_str = str(school).strip()
-            sch_q = (
-                Q(student_profile__organization__name_ar=sch_str) |
-                Q(student_profile__organization__name_en=sch_str) |
-                Q(student__student_profile__organization__name_ar=sch_str) |
-                Q(student__student_profile__organization__name_en=sch_str)
-            )
-            if sch_str.isdigit():
-                sch_id = int(sch_str)
+        # 3.3 فلتر المدرسة / المركز الامتحاني (يدعم تحديد مفرد أو متعدد)
+        sch_raw = request.query_params.getlist('school') or [request.query_params.get('school') or request.query_params.get('school_name') or request.query_params.get('organization') or '']
+        req_school_id = request.query_params.get('school_id')
+        if req_school_id and str(req_school_id).strip():
+            sch_raw.append(str(req_school_id).strip())
+        sch_list = [p.strip() for item in sch_raw for p in str(item).split(',') if p.strip() and p != 'all']
+        if sch_list:
+            sch_ids = [int(p) for p in sch_list if p.isdigit()]
+            sch_names = [p for p in sch_list if not p.isdigit()]
+            sch_q = Q()
+            if sch_ids:
                 sch_q |= (
-                    Q(student_profile__organization_id=sch_id) |
-                    Q(student__student_profile__organization_id=sch_id)
+                    Q(student_profile__organization_id__in=sch_ids) |
+                    Q(student__student_profile__organization_id__in=sch_ids)
                 )
+            if sch_names:
+                for s_name in sch_names:
+                    sch_q |= (
+                        Q(student_profile__organization__name_ar__icontains=s_name) |
+                        Q(student_profile__organization__name_en__icontains=s_name) |
+                        Q(student__student_profile__organization__name_ar__icontains=s_name)
+                    )
             registrations = registrations.filter(sch_q)
 
         # 3.4 فلتر النموذج
@@ -790,7 +1380,11 @@ class ExamGradebookMVS(ViewSet):
         except Exam.DoesNotExist:
             return Response({"success": False, "message": "الاختبار غير موجود"}, status=status.HTTP_404_NOT_FOUND)
 
-        # جلب جميع بيانات الطلاب والتسليمات للاختبار
+        # Gate 8 & P1: جلب كافة بيانات الطلاب (100%) بدون التقيد ببجنشن العرض (10 طلاب)
+        req_params = request.query_params.copy()
+        req_params['all'] = 'true'
+        if hasattr(request, '_request'):
+            request._request.GET = req_params
         roster_response = self.retrieve(request, pk=pk)
         records = roster_response.data.get('records', []) if hasattr(roster_response, 'data') else []
 

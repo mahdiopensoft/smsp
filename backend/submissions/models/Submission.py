@@ -50,6 +50,7 @@ class Submission(SoftDeleteModel):
 
     status = models.CharField(max_length=30, choices=Status.choices, default=Status.PENDING, db_index=True, verbose_name=_("الحالة"))
     current_engine = models.CharField(max_length=50, blank=True, verbose_name=_("المحرك الحالي"))
+    expected_pages = models.PositiveSmallIntegerField(default=1, verbose_name=_("عدد الصفحات المتوقع"))
 
     alignment_result = models.JSONField(null=True, blank=True)
     layout_result = models.JSONField(null=True, blank=True)

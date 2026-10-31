@@ -26,8 +26,6 @@ class SubmissionMVS(AllMVS):
     filterset_fields = {
         'status': ['exact'],
         'batch': ['exact'],
-        'exam': ['exact'],
-        'exam_version': ['exact'],
     }
 
     def get_queryset(self):
@@ -38,12 +36,32 @@ class SubmissionMVS(AllMVS):
             qs = qs.filter(exam__institution_type=inst_type)
 
         exam_id = self.request.query_params.get('exam') or self.request.query_params.get('exam_id')
-        if exam_id:
-            qs = qs.filter(exam_id=exam_id)
+        if exam_id and exam_id != 'all':
+            if str(exam_id).isdigit():
+                qs = qs.filter(exam_id=int(exam_id))
+            else:
+                qs = qs.filter(Q(exam__uniqueCode=exam_id) | Q(exam__title__icontains=exam_id))
 
-        version_id = self.request.query_params.get('exam_version') or self.request.query_params.get('examVersion')
-        if version_id:
-            qs = qs.filter(exam_version_id=version_id)
+        version_param = (
+            self.request.query_params.get('exam_version') or 
+            self.request.query_params.get('examVersion') or 
+            self.request.query_params.get('version_code') or 
+            self.request.query_params.get('version')
+        )
+        if version_param and version_param != 'all':
+            if str(version_param).isdigit():
+                qs = qs.filter(exam_version_id=int(version_param))
+            else:
+                qs = qs.filter(
+                    Q(exam_version__versionCode__iexact=str(version_param)) |
+                    Q(omr_result__model_code__iexact=str(version_param)) |
+                    Q(omr_result__detected_model__iexact=str(version_param)) |
+                    Q(omr_result__barcode_data__model_code__iexact=str(version_param))
+                )
+
+        institution_type = self.request.query_params.get('institution_type')
+        if institution_type and institution_type != 'all':
+            qs = qs.filter(exam__institution_type=institution_type)
 
         subject_id = self.request.query_params.get('subject') or self.request.query_params.get('subject_id')
         if subject_id:
@@ -52,6 +70,74 @@ class SubmissionMVS(AllMVS):
                 Q(exam__versions__question_orders__question__lesson__unit__class_subject__subject_id=subject_id) |
                 Q(exam__versions__question_orders__question__lesson__unit__semester_subject__fk_subject_id=subject_id)
             )
+
+        # Administrative & School Organization Hierarchy (الهيكل الإداري والمؤسسي)
+        # يدعم معرّفاً واحداً أو قائمة معرّفات مفصولة بفواصل مثل: office_id=3 أو office_id=3,5
+        raw_office = self.request.query_params.get('office_id') or self.request.query_params.get('office')
+        office_ids = []
+        if raw_office and raw_office != 'all':
+            office_ids = [int(x) for x in str(raw_office).split(',') if x.strip().isdigit()]
+
+        if office_ids:
+            from OpenSoftCoreV41.common.models.Branch import Organization as CoreOrg
+            core_offices = CoreOrg.objects.filter(id__in=office_ids, company_level=30)
+            if core_offices.exists():
+                child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization__in=core_offices.values_list('id', flat=True), is_deleted=False)
+                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=child_dirs.values_list('id', flat=True), is_deleted=False)
+                school_names = list(child_schools.values_list('name_ar', flat=True))
+                dir_names = list(child_dirs.values_list('name_ar', flat=True))
+                clean_dir_names = [d.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip() for d in dir_names]
+                qs = qs.filter(
+                    Q(registration__student_profile__organization__name_ar__in=school_names) |
+                    Q(registration__student_profile__directorate__name_ar__in=clean_dir_names) |
+                    Q(registration__student_profile__directorate__name_ar__in=dir_names) |
+                    Q(exam__governorate_id__in=office_ids)
+                )
+            else:
+                qs = qs.filter(
+                    Q(registration__student_profile__governorate_id__in=office_ids) |
+                    Q(exam__governorate_id__in=office_ids)
+                )
+
+        raw_directorate = self.request.query_params.get('directorate_id') or self.request.query_params.get('directorate')
+        directorate_ids = []
+        if raw_directorate and raw_directorate != 'all':
+            directorate_ids = [int(x) for x in str(raw_directorate).split(',') if x.strip().isdigit()]
+
+        if directorate_ids:
+            from OpenSoftCoreV41.common.models.Branch import Organization as CoreOrg
+            core_dirs = CoreOrg.objects.filter(id__in=directorate_ids, company_level=40)
+            if core_dirs.exists():
+                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=core_dirs.values_list('id', flat=True), is_deleted=False)
+                school_names = list(child_schools.values_list('name_ar', flat=True))
+                clean_names = [d.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip() for d in core_dirs]
+                dir_names = list(core_dirs.values_list('name_ar', flat=True))
+                qs = qs.filter(
+                    Q(registration__student_profile__organization__name_ar__in=school_names) |
+                    Q(registration__student_profile__directorate__name_ar__in=clean_names) |
+                    Q(registration__student_profile__directorate__name_ar__in=dir_names) |
+                    Q(exam__directorate_id__in=directorate_ids)
+                )
+            else:
+                qs = qs.filter(
+                    Q(registration__student_profile__directorate_id__in=directorate_ids) |
+                    Q(exam__directorate_id__in=directorate_ids)
+                )
+
+        school_id = self.request.query_params.get('school_id') or self.request.query_params.get('school')
+        if school_id and school_id != 'all':
+            if str(school_id).isdigit():
+                from OpenSoftCoreV41.common.models.Branch import Organization as CoreOrg
+                sch_org = CoreOrg.objects.filter(id=int(school_id), company_level=50).first()
+                if sch_org:
+                    qs = qs.filter(
+                        Q(registration__student_profile__organization_id=int(school_id)) |
+                        Q(registration__student_profile__organization__name_ar=sch_org.name_ar)
+                    )
+                else:
+                    qs = qs.filter(registration__student_profile__organization_id=int(school_id))
+            else:
+                qs = qs.filter(registration__student_profile__organization__name_ar__icontains=school_id)
 
         # School Filters
         stage_id = self.request.query_params.get('stage') or self.request.query_params.get('stage_id')
@@ -313,28 +399,11 @@ class SubmissionMVS(AllMVS):
             batch_record.save()
             return Response({"success": False, "message": "لم يتم العثور على صور أوراق صالحة داخل الملفات المرفوعة"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # تجهيز مفاتيح الإجابة وأوزان الدرجات لجميع نماذج الاختبار (A, B, C, D)
+        # تجهيز مفاتيح الإجابة وأوزان الدرجات لجميع نماذج الاختبار من اللقطة المجمدة والمشفرة (A, B, C, D)
         versions_keys = {}
         if exam_obj:
-            for v in exam_obj.versions.filter(is_deleted=False).prefetch_related('question_orders__question__options'):
-                v_key = {}
-                v_marks = {}
-                for qo in v.question_orders.filter(is_deleted=False).order_by('orderIndex'):
-                    q = qo.question
-                    opts = list(q.options.filter(is_deleted=False))
-                    ans_letter = 'A'
-                    for idx, opt in enumerate(opts):
-                        if opt.isTrue:
-                            ans_letter = chr(65 + idx)
-                            break
-                    # معالجة أسئلة الصواب والخطأ ديناميكياً
-                    if (q.questionType in ['True/False', 'true_false', 'صح وخطأ']) or (q.isTrue is not None):
-                        ans_letter = 'A' if q.isTrue is True else ('B' if q.isTrue is False else ans_letter)
-
-                    q_order_key = str(qo.orderIndex)
-                    v_key[q_order_key] = ans_letter
-                    v_marks[q_order_key] = float(q.defaultMark or 1.0)
-
+            for v in exam_obj.versions.filter(is_deleted=False):
+                v_key, v_marks = v.get_answer_key_and_weights()
                 versions_keys[v.versionCode] = (v, v_key, v_marks)
 
         default_version = list(versions_keys.values())[0][0] if versions_keys else None
@@ -383,39 +452,86 @@ class SubmissionMVS(AllMVS):
                 qr_val = grading_result.get("qr") or ""
                 student_info = grading_result.get("student_info", {})
                 seat_num = student_info.get("seat_number") or ""
-                s_name = student_info.get("name") or "طالب اختبار"
+                s_name = student_info.get("name") or ""
 
-                # 1. مطابقة نموذج الاختبار الدقيق (A, B, C, D) من الباركود أو الـ QR
-                target_version = default_version
-                if barcode_val and "_VER_" in barcode_val:
-                    try:
-                        v_code = barcode_val.split("_VER_")[1].split("_")[0]
-                        if v_code in versions_keys:
-                            target_version = versions_keys[v_code][0]
-                    except Exception:
-                        pass
-                elif qr_val and "|" in qr_val:
-                    parts = qr_val.split("|")
-                    if len(parts) >= 2 and parts[1] in versions_keys:
-                        target_version = versions_keys[parts[1]][0]
-
-                # 2. مطابقة الطالب ورقم جلوسه الفعلي من قاعدة البيانات
+                # 1. استخراج وفحص الأكواد المشفرة من الباركود والـ QR
                 import re
                 candidate_seats = []
+                candidate_versions = []
+
                 if seat_num:
                     candidate_seats.append(str(seat_num).strip())
-                if barcode_val:
-                    if "_SEAT_" in barcode_val:
-                        candidate_seats.append(barcode_val.split("_SEAT_")[-1].split("_")[0].strip())
-                    clean_b = barcode_val.strip()
+
+                for c_val in [barcode_val, qr_val]:
+                    if not c_val:
+                        continue
+                    if "_SEAT_" in c_val:
+                        candidate_seats.insert(0, c_val.split("_SEAT_")[-1].split("_")[0].strip())
+                    if "_VER_" in c_val:
+                        candidate_versions.append(c_val.split("_VER_")[1].split("_")[0].strip())
+                    if "|" in c_val:
+                        parts = [p.strip() for p in c_val.split("|")]
+                        if len(parts) >= 2:
+                            candidate_versions.append(parts[1])
+                        if len(parts) >= 3 and parts[2].isdigit():
+                            candidate_seats.insert(0, parts[2])
+                        if len(parts) >= 4 and parts[3].isdigit():
+                            candidate_seats.append(parts[3])
+                        tokens = [t.strip() for t in re.split(r'[-|_/]', c_val) if t.strip().isdigit()]
+                        candidate_seats.extend(tokens)
+                    clean_b = c_val.strip()
                     candidate_seats.append(clean_b)
                     if len(clean_b) >= 6:
                         candidate_seats.append(clean_b[:6])
-                if qr_val:
-                    tokens = [t.strip() for t in re.split(r'[-|_/]', qr_val) if t.strip().isdigit()]
-                    candidate_seats.extend(tokens)
 
+                # إزالة التكرارات مع الحفاظ على الترتيب
+                seen_s = set()
+                dedup_seats = []
+                for s in candidate_seats:
+                    if s and s not in seen_s:
+                        seen_s.add(s)
+                        dedup_seats.append(s)
+                candidate_seats = dedup_seats
+
+                if not seat_num and candidate_seats:
+                    seat_num = candidate_seats[0]
+
+                # 2. فحص ما إذا كان الباركود يتبع اختباراً آخر (Mismatched Exam Detection)
+                extracted_exam_code = None
+                extracted_exam_id = None
+                for c_val in [barcode_val, qr_val]:
+                    if not c_val:
+                        continue
+                    if "EXAM_" in c_val:
+                        try:
+                            p_id = c_val.split("EXAM_")[1].split("_")[0]
+                            if p_id.isdigit():
+                                extracted_exam_id = int(p_id)
+                        except Exception:
+                            pass
+                    if "|" in c_val:
+                        p_code = c_val.split("|")[0].strip()
+                        if p_code and not p_code.isdigit():
+                            extracted_exam_code = p_code
+
+                foreign_exam = None
+                if exam_obj:
+                    if extracted_exam_id and extracted_exam_id != exam_obj.id:
+                        foreign_exam = Exam.objects.filter(id=extracted_exam_id, is_deleted=False).first()
+                    elif extracted_exam_code and (not exam_obj.uniqueCode or exam_obj.uniqueCode != extracted_exam_code):
+                        foreign_exam = Exam.objects.filter(uniqueCode=extracted_exam_code, is_deleted=False).first()
+
+                # 3. تحديد نموذج الاختبار (A, B, C, D)
+                target_version = default_version
+                for v_cand in candidate_versions:
+                    if v_cand in versions_keys:
+                        target_version = versions_keys[v_cand][0]
+                        break
+
+                # 4. مطابقة الطالب ورقم جلوسه الفعلي من قاعدة البيانات (Gate 3: عزل التسجيلات داخل الاختبار)
                 matched_reg = None
+                unregistered_error = ""
+
                 if exam_obj:
                     reg_qs = StudentExamRegistration.objects.filter(examVersion__exam=exam_obj, is_deleted=False).select_related('student', 'student_profile__organization', 'examVersion')
                     for c_seat in candidate_seats:
@@ -434,9 +550,38 @@ class SubmissionMVS(AllMVS):
                     if matched_reg.student_profile and matched_reg.student_profile.name_ar:
                         s_name = matched_reg.student_profile.name_ar
                     elif matched_reg.student:
-                        s_name = matched_reg.student.first_name or matched_reg.student.username
-                    if not seat_num:
+                        st = matched_reg.student
+                        s_name = getattr(st, 'get_full_name', lambda: '')() or f"{st.first_name or ''} {st.last_name or ''}".strip() or st.username
+                    if matched_reg.seatNumber:
                         seat_num = matched_reg.seatNumber
+                else:
+                    # عزل وتحليل حالة الطالب غير المسجل في هذا الاختبار بدقة قطعية
+                    if foreign_exam:
+                        foreign_reg = None
+                        if seat_num:
+                            foreign_reg = StudentExamRegistration.objects.filter(
+                                examVersion__exam=foreign_exam, seatNumber=seat_num, is_deleted=False
+                            ).select_related('student_profile', 'student').first()
+
+                        if foreign_reg:
+                            f_name = foreign_reg.student_profile.name_ar if (foreign_reg.student_profile and foreign_reg.student_profile.name_ar) else str(foreign_reg.student)
+                            s_name = f"{f_name} (ورقة تابعة لاختبار آخر)"
+                            unregistered_error = (
+                                f"MISMATCHED_EXAM: الورقة تتبع اختبار آخر ('{foreign_exam.title}' - كود: {foreign_exam.uniqueCode or foreign_exam.id}) "
+                                f"وليست لهذا الاختبار المختار ('{exam_obj.title}'). الطالبة/الطالب: {f_name} (رقم الجلوس: {seat_num}). تم عزل الورقة للتدقيق البشري."
+                            )
+                        else:
+                            s_name = f"طالب من اختبار آخر (رقم الجلوس: {seat_num})" if seat_num else "طالب من اختبار آخر"
+                            unregistered_error = (
+                                f"MISMATCHED_EXAM: الورقة تتبع اختبار آخر ('{foreign_exam.title}') وليست لهذا الاختبار المختار ('{exam_obj.title}'). "
+                                f"رقم الجلوس: {seat_num or 'غير محدد'}. تم عزل الورقة للتدقيق البشري."
+                            )
+                    elif seat_num or barcode_val:
+                        s_name = f"طالب غير مسجل (رقم الجلوس: {seat_num})" if seat_num else "طالب غير مسجل"
+                        unregistered_error = f"UNREGISTERED_STUDENT_IN_EXAM: رقم الجلوس ({seat_num or 'غير محدد'}) غير مسجل في قوائم هذا الاختبار ('{exam_obj.title}')."
+                    else:
+                        s_name = "طالب غير محدد (تعذر قراءة الباركود)"
+                        unregistered_error = "MISSING_STUDENT_IDENTITY: تعذر قراءة رقم الجلوس أو الباركود التعريفي للورقة الضوئية. يرجى التدقيق اليدوي."
 
                 # ═══ فحص قفل الكنترول المركزي (Control Lock) ═══
                 locked_sub = None
@@ -496,73 +641,149 @@ class SubmissionMVS(AllMVS):
                 max_score_val = round(max_score_val if max_score_val > 0 else float(total_q), 2)
                 score_percent = round((score_val / max(max_score_val, 1.0)) * 100.0, 1)
 
-                # تحديد حالة الورقة بناء على الثقة والالتباس
+                # تحديد حالة الورقة بناء على الثقة والالتباس والتسجيل
                 ambiguous_c = grading_result.get("ambiguous_count", 0)
                 avg_conf = float(grading_result.get("overall_confidence") or 0.95)
-                sheet_status = Submission.Status.NEEDS_REVIEW if (ambiguous_c > 0 or avg_conf < 0.82) else Submission.Status.COMPLETED
+                sheet_status = Submission.Status.NEEDS_REVIEW if (ambiguous_c > 0 or avg_conf < 0.82 or bool(unregistered_error)) else Submission.Status.COMPLETED
 
-                # إنشاء كائن التسليم
-                sub_record = Submission(
-                    batch=batch_record,
-                    exam=exam_obj,
-                    exam_version=target_version,
-                    registration=matched_reg if (matched_reg and not Submission.objects.filter(registration=matched_reg).exists()) else None,
-                    status=sheet_status,
-                    current_engine="opencv_omr",
-                    mcq_score=score_val,
-                    total_score=score_val,
-                    overall_confidence=avg_conf,
-                    processing_time_ms=grading_result.get("processing_ms", 0.0),
-                    omr_result=grading_result.get("questions", []),
-                    layout_result={
-                        "student_name": s_name,
-                        "seat_number": seat_num,
-                        "template_id": grading_result.get("template_id"),
-                        "template_name": grading_result.get("template_name"),
-                        "version_code": actual_v_code,
-                        "barcode": barcode_val,
-                        "qr": qr_val,
-                        "score_percent": score_percent,
-                        "total_questions": total_q,
-                        "total_correct": total_c,
-                        "max_score": max_score_val,
-                    }
-                )
+                # فحص التسليم المسبق لنفس الطالب/المقعد لتفادي التكرار (Deduplication)
+                existing_sub = None
+                if matched_reg:
+                    existing_sub = Submission.objects.filter(exam=exam_obj, registration=matched_reg, is_deleted=False).first()
+                if not existing_sub and seat_num and exam_obj:
+                    existing_sub = Submission.objects.filter(exam=exam_obj, layout_result__seat_number=str(seat_num), is_deleted=False).first()
+
+                layout_data = {
+                    "student_name": s_name,
+                    "seat_number": seat_num,
+                    "template_id": grading_result.get("template_id"),
+                    "template_name": grading_result.get("template_name"),
+                    "version_code": actual_v_code,
+                    "barcode": barcode_val,
+                    "qr": qr_val,
+                    "score_percent": score_percent,
+                    "total_questions": total_q,
+                    "total_correct": total_c,
+                    "max_score": max_score_val,
+                    "is_cross_exam": False,
+                    "cross_exam_title": None,
+                }
+
+                if existing_sub:
+                    sub_record = existing_sub
+                    sub_record.batch = batch_record
+                    sub_record.exam_version = target_version
+                    sub_record.registration = matched_reg
+                    sub_record.status = sheet_status
+                    if unregistered_error:
+                        sub_record.error_message = unregistered_error
+                    sub_record.current_engine = "opencv_omr"
+                    sub_record.mcq_score = score_val
+                    sub_record.total_score = score_val
+                    sub_record.overall_confidence = avg_conf
+                    sub_record.processing_time_ms = grading_result.get("processing_ms", 0.0)
+                    sub_record.omr_result = grading_result.get("questions", [])
+                    sub_record.layout_result = layout_data
+                else:
+                    sub_record = Submission(
+                        batch=batch_record,
+                        exam=exam_obj,
+                        exam_version=target_version,
+                        registration=matched_reg,
+                        status=sheet_status,
+                        current_engine="opencv_omr",
+                        mcq_score=score_val,
+                        total_score=score_val,
+                        overall_confidence=avg_conf,
+                        processing_time_ms=grading_result.get("processing_ms", 0.0),
+                        omr_result=grading_result.get("questions", []),
+                        layout_result=layout_data,
+                        error_message=unregistered_error,
+                    )
+
                 sub_record.original_image.save(img_name, ContentFile(img_bytes), save=False)
                 annotated_raw = grading_result.get("annotated_image")
                 if annotated_raw:
                     sub_record.aligned_image.save(f"annotated_{img_name}", ContentFile(annotated_raw), save=False)
                 sub_record.save()
 
-                # حفظ النتيجة التفصيلية في OMRSheetResult و OMRQuestionResult
-                sheet_res = OMRSheetResult.objects.create(
-                    submission=sub_record,
-                    status="success",
-                    confidence=avg_conf,
-                    total_questions=total_q,
-                    answered_questions=total_c + total_w,
-                    correct_answers=total_c,
-                    wrong_answers=total_w,
-                    unanswered=total_empty,
-                    ambiguous_count=ambiguous_c,
-                    mcq_score=score_val,
-                    mcq_max_score=max_score_val,
-                    provider_used=grading_result.get("engine_used", "opencv_omr"),
-                    processing_time_ms=grading_result.get("processing_ms", 0.0),
-                )
+                # حفظ وتحديث النتيجة التفصيلية في OMRSheetResult و OMRQuestionResult
+                sheet_res = OMRSheetResult.objects.filter(submission=sub_record).first()
+                if not sheet_res:
+                    sheet_res = OMRSheetResult(submission=sub_record)
+
+                sheet_res.status = "verified" if sheet_status == Submission.Status.COMPLETED else "needs_review"
+                sheet_res.confidence = avg_conf
+                sheet_res.total_questions = total_q
+                sheet_res.answered_questions = total_c + total_w
+                sheet_res.correct_answers = total_c
+                sheet_res.wrong_answers = total_w
+                sheet_res.unanswered = total_empty
+                sheet_res.ambiguous_count = ambiguous_c
+                sheet_res.mcq_score = score_val
+                sheet_res.mcq_max_score = max_score_val
+                sheet_res.provider_used = grading_result.get("engine_used", "opencv_omr")
+                sheet_res.processing_time_ms = grading_result.get("processing_ms", 0.0)
+                sheet_res.is_deleted = False
+                sheet_res.save()
+
+                sheet_res.questions.all().delete()
 
                 for q_item in grading_result.get("questions", []):
                     q_num = int(q_item.get("question_id") or q_item.get("q") or 1)
+                    c_choice = q_item.get("candidate_choice") or q_item.get("marked_choice")
+                    f_choice = q_item.get("final_marked_choice") or q_item.get("marked_choice")
+                    b_state = q_item.get("bubble_state", "filled" if f_choice else "empty")
+                    q_weight = float(q_item.get("max_mark", 1.0))
                     OMRQuestionResult.objects.create(
                         sheet_result=sheet_res,
                         question_number=q_num,
-                        marked_choice=q_item.get("marked_choice") or q_item.get("marked"),
+                        marked_choice=f_choice,
+                        candidate_choice=c_choice,
+                        final_marked_choice=f_choice,
+                        original_marked_choice=c_choice,
+                        original_bubble_state=b_state,
                         correct_choice=q_item.get("correct_choice"),
                         is_correct=q_item.get("is_correct"),
-                        marks_awarded=q_item.get("score_awarded", 0.0),
+                        assigned_weight=q_weight,
+                        marks_awarded=float(q_item.get("marks_awarded", q_item.get("score_awarded", 0.0))),
                         final_confidence=float(q_item.get("final_confidence") or 0.95),
-                        bubble_state=q_item.get("bubble_state", "filled" if q_item.get("marked_choice") else "empty"),
+                        decision_confidence=float(q_item.get("decision_confidence", 1.0)),
+                        needs_review=bool(q_item.get("needs_review", False)),
+                        review_priority=q_item.get("review_priority", "NONE"),
+                        bubble_state=b_state,
                     )
+
+                # Gate 5: تسجيل صفحة التسليم وتجميع النتائج متعددة الصفحات
+                page_num = 1
+                if qr_val:
+                    m_page = re.search(r'(?:page|p)[_:\-]?([0-9]+)', qr_val, re.IGNORECASE)
+                    if m_page:
+                        try:
+                            page_num = int(m_page.group(1))
+                        except Exception:
+                            page_num = 1
+                elif barcode_val:
+                    m_page = re.search(r'(?:page|p)[_:\-]?([0-9]+)', barcode_val, re.IGNORECASE)
+                    if m_page:
+                        try:
+                            page_num = int(m_page.group(1))
+                        except Exception:
+                            page_num = 1
+
+                from submissions.services.aggregation import SubmissionAggregationService
+                SubmissionAggregationService.register_page(
+                    submission=sub_record,
+                    page_number=page_num,
+                    sheet_result=sheet_res,
+                    source_file_hash=grading_result.get("file_hash", ""),
+                    image=sub_record.original_image,
+                    aligned_image=sub_record.aligned_image,
+                    layout_result=layout_data,
+                    omr_result=grading_result.get("questions", []),
+                )
+                sub_record.refresh_from_db()
+                sheet_status = sub_record.status
 
                 if sheet_status == Submission.Status.COMPLETED:
                     success_count += 1
@@ -570,8 +791,9 @@ class SubmissionMVS(AllMVS):
                     needs_review_count += 1
                 total_scores += score_val
 
-                img_url = sub_record.original_image.url if (sub_record.original_image and hasattr(sub_record.original_image, 'url')) else ""
-                annotated_url = sub_record.aligned_image.url if (sub_record.aligned_image and hasattr(sub_record.aligned_image, 'url')) else ""
+                img_url = request.build_absolute_uri(sub_record.original_image.url) if (sub_record.original_image and hasattr(sub_record.original_image, 'url')) else ""
+                annotated_url = request.build_absolute_uri(sub_record.aligned_image.url) if (sub_record.aligned_image and hasattr(sub_record.aligned_image, 'url')) else ""
+                err_msg = sub_record.error_message or unregistered_error or ""
                 processed_sheets.append({
                     "id": sub_record.id,
                     "filename": img_name,
@@ -585,6 +807,8 @@ class SubmissionMVS(AllMVS):
                     "percentage": score_percent,
                     "confidence": avg_conf,
                     "status": sheet_status,
+                    "needs_review": sheet_status == Submission.Status.NEEDS_REVIEW or bool(err_msg),
+                    "error_message": err_msg,
                     "ambiguous_count": ambiguous_c,
                     "barcode": barcode_val,
                     "qr": qr_val,
@@ -688,24 +912,11 @@ class SubmissionMVS(AllMVS):
             })
 
         try:
-            # استخراج مفتاح الحل وأوزان الأسئلة للاختبار
+            # استخراج مفتاح الحل وأوزان الأسئلة للاختبار من اللقطة المجمدة والمشفرة
             answer_key = {}
             marks_map = {}
             if submission.exam_version:
-                for qo in submission.exam_version.question_orders.filter(is_deleted=False).order_by('orderIndex'):
-                    q = qo.question
-                    opts = list(q.options.filter(is_deleted=False))
-                    ans_letter = 'A'
-                    for idx, opt in enumerate(opts):
-                        if opt.isTrue:
-                            ans_letter = chr(65 + idx)
-                            break
-                    if (q.questionType in ['True/False', 'true_false', 'صح وخطأ']) or (q.isTrue is not None):
-                        ans_letter = 'A' if q.isTrue is True else ('B' if q.isTrue is False else ans_letter)
-                    
-                    q_num_str = str(qo.orderIndex)
-                    answer_key[q_num_str] = ans_letter
-                    marks_map[q_num_str] = float(q.defaultMark or 1.0)
+                answer_key, marks_map = submission.exam_version.get_answer_key_and_weights()
 
             template_id = (submission.layout_result or {}).get("template_id") or "AUTO"
             grading_result = _grade_with_template(
@@ -751,20 +962,31 @@ class SubmissionMVS(AllMVS):
             sheet_res.mcq_max_score = max_score_val
             sheet_res.save()
 
-            # إعادة حفظ الأسئلة
+            # إعادة حفظ الأسئلة مع الحقول المحصنة
             OMRQuestionResult.objects.filter(sheet_result=sheet_res).delete()
             for q_item in grading_result.get("questions", []):
                 q_num = int(q_item.get("question_id") or q_item.get("q") or 1)
                 q_weight = float(marks_map.get(str(q_num), q_item.get("max_mark", 1.0)))
+                c_choice = q_item.get("candidate_choice") or q_item.get("marked_choice")
+                f_choice = q_item.get("final_marked_choice") or q_item.get("marked_choice")
+                b_state = q_item.get("bubble_state") or q_item.get("mode", "empty")
                 OMRQuestionResult.objects.create(
                     sheet_result=sheet_res,
                     question_number=q_num,
-                    marked_choice=q_item.get("marked_choice") or q_item.get("marked"),
+                    marked_choice=f_choice,
+                    candidate_choice=c_choice,
+                    final_marked_choice=f_choice,
+                    original_marked_choice=c_choice,
+                    original_bubble_state=b_state,
                     correct_choice=q_item.get("correct_choice") or q_item.get("correct"),
                     is_correct=q_item.get("is_correct"),
-                    bubble_state=q_item.get("bubble_state") or q_item.get("mode", "empty"),
+                    bubble_state=b_state,
                     choice_confidences=q_item.get("choice_confidences") or {},
-                    final_confidence=q_item.get("final_confidence") or q_item.get("confidence") or 0.95,
+                    final_confidence=float(q_item.get("final_confidence") or q_item.get("confidence") or 0.95),
+                    decision_confidence=float(q_item.get("decision_confidence", 1.0)),
+                    needs_review=bool(q_item.get("needs_review", False)),
+                    review_priority=q_item.get("review_priority", "NONE"),
+                    assigned_weight=q_weight,
                     marks_awarded=float(q_item.get("marks_awarded", q_weight if q_item.get("is_correct") else 0.0)),
                 )
 

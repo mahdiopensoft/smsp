@@ -84,7 +84,7 @@ export const batchesAPI = {
 // ── 1. شاشة المراجعة البشرية والتدقيق ──
 export const humanReviewAPI = {
   list: (params) => api.get('/api/omr/human-review/', { params }),
-  getStats: () => api.get('/api/omr/human-review/stats/'),
+  getStats: (params) => api.get('/api/omr/human-review/stats/', { params }),
   approveReview: (id) => api.post(`/api/omr/human-review/${id}/approve-review/`),
   overrideQuestion: (id, data) => api.post(`/api/omr/human-review/${id}/override-question/`, data),
 }
@@ -122,9 +122,23 @@ export const omrTemplatesAPI = {
 // ── 6. شاشة سجل الدرجات والترحيل لنظام الكنترول ──
 export const gradebookAPI = {
   list: (params) => api.get('/api/omr/gradebook/', { params }),
+  getByOffice: (params) => api.get('/api/omr/gradebook/by-office/', { params }),
+  getBySchool: (params) => api.get('/api/omr/gradebook/by-school/', { params }),
+  getByDirectorate: (params) => api.get('/api/omr/gradebook/by-directorate/', { params }),
   getRoster: (examId, params) => api.get(`/api/omr/gradebook/${examId}/`, { params }),
+  getSubjects: (params) => api.get('/api/omr/gradebook/subjects/', { params }),
   dispatchToControl: (examId, data) => api.post(`/api/omr/gradebook/${examId}/dispatch-to-control/`, data),
   rollbackDispatch: (examId, data) => api.post(`/api/omr/gradebook/${examId}/rollback-dispatch/`, data),
   getPsychometrics: (examId) => api.get(`/api/omr/gradebook/${examId}/psychometrics/`),
   exportControlSheetUrl: (examId) => `/api/omr/gradebook/${examId}/export-control-sheet/`,
+}
+
+// ── 7. شاشة المطابقة والتحقق من الأوراق المفقودة والرقابة الشاملة ──
+export const verificationAPI = {
+  list: (params) => api.get('/api/omr/verification/', { params }),
+  getByOffice: (params) => api.get('/api/omr/verification/by-office/', { params }),
+  getByDirectorate: (params) => api.get('/api/omr/verification/by-directorate/', { params }),
+  getBySchool: (params) => api.get('/api/omr/verification/by-school/', { params }),
+  getRoster: (examId, params) => api.get(`/api/omr/verification/${examId}/`, { params }),
+  getSubjects: (params) => api.get('/api/omr/verification/subjects/', { params }),
 }

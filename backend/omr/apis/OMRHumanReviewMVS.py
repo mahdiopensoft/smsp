@@ -8,6 +8,7 @@ from django.db.models import Q
 from omr.models.OMRSheetResult import OMRSheetResult
 from omr.models.OMRQuestionResult import OMRQuestionResult
 from omr.serializers.OMRSheetResult import OMRSheetResultSerializer
+from OpenSoftCoreV41.common.models.Branch import Organization as CoreOrg
 
 class OMRHumanReviewMVS(AllMVS):
     """
@@ -128,12 +129,80 @@ class OMRHumanReviewMVS(AllMVS):
         if exam_id:
             qs = qs.filter(submission__exam_id=exam_id)
 
+        # ── Hierarchy Filters (Office / Directorate / School) ──
+        office_id = self.request.query_params.get('office_id') or self.request.query_params.get('office')
+        directorate_id = self.request.query_params.get('directorate_id') or self.request.query_params.get('directorate')
+        school_id = self.request.query_params.get('school_id') or self.request.query_params.get('school')
+
+        if school_id and school_id != 'all':
+            sch_ids = [int(x) for x in str(school_id).split(',') if x.strip().isdigit()]
+            sch_names = [x.strip() for x in str(school_id).split(',') if not x.strip().isdigit() and x.strip()]
+            q_sch = Q()
+            if sch_ids:
+                q_sch |= Q(submission__registration__student_profile__organization_id__in=sch_ids)
+                core_names = list(CoreOrg.objects.filter(id__in=sch_ids, company_level=50).values_list('name_ar', flat=True))
+                if core_names:
+                    q_sch |= Q(submission__registration__student_profile__organization__name_ar__in=core_names)
+            if sch_names:
+                q_sch |= Q(submission__registration__student_profile__organization__name_ar__in=sch_names)
+            qs = qs.filter(q_sch)
+
+        elif directorate_id and directorate_id != 'all':
+            dir_ids = [int(x) for x in str(directorate_id).split(',') if x.strip().isdigit()]
+            dir_names = [x.strip() for x in str(directorate_id).split(',') if not x.strip().isdigit() and x.strip()]
+            child_school_names = []
+            if dir_ids:
+                core_dirs = CoreOrg.objects.filter(id__in=dir_ids, company_level=40)
+                for cd in core_dirs:
+                    clean = cd.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip()
+                    dir_names.extend([cd.name_ar, clean])
+                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=dir_ids, is_deleted=False)
+                child_school_names = list(child_schools.values_list('name_ar', flat=True))
+            qs = qs.filter(
+                Q(submission__registration__student_profile__directorate_id__in=dir_ids) |
+                Q(submission__registration__student_profile__directorate__name_ar__in=dir_names) |
+                Q(submission__registration__student_profile__organization__name_ar__in=child_school_names)
+            )
+
+        elif office_id and office_id != 'all':
+            off_ids = [int(x) for x in str(office_id).split(',') if x.strip().isdigit()]
+            gov_names = [x.strip() for x in str(office_id).split(',') if not x.strip().isdigit() and x.strip()]
+            child_school_names = []
+            if off_ids:
+                core_offs = CoreOrg.objects.filter(id__in=off_ids, company_level=30)
+                for co in core_offs:
+                    clean_gov = co.name_ar.replace('مكتب التربية والتعليم - ', '').strip()
+                    gov_names.extend([co.name_ar, clean_gov])
+                dir_ids = list(CoreOrg.objects.filter(company_level=40, fk_parent_organization__in=off_ids).values_list('id', flat=True))
+                child_schools = CoreOrg.objects.filter(company_level=50, fk_parent_organization__in=dir_ids, is_deleted=False)
+                child_school_names = list(child_schools.values_list('name_ar', flat=True))
+            qs = qs.filter(
+                Q(submission__registration__student_profile__directorate__fk_governorate__name_ar__in=gov_names) |
+                Q(submission__registration__student_profile__organization__name_ar__in=child_school_names)
+            )
+
+        # ── Status and Metric Filters ──
         review_status = self.request.query_params.get('status')
         if review_status:
             if review_status == 'pending':
                 qs = qs.filter(Q(status='needs_review') | Q(confidence__lt=0.85) | Q(ambiguous_count__gt=0))
             elif review_status == 'verified':
                 qs = qs.filter(status='verified')
+
+        metric_filter = self.request.query_params.get('metric_filter') or self.request.query_params.get('filter')
+        if metric_filter and metric_filter != 'all':
+            if metric_filter == 'pending':
+                qs = qs.filter(Q(status='needs_review') | Q(confidence__lt=0.85) | Q(ambiguous_count__gt=0))
+            elif metric_filter == 'verified':
+                qs = qs.filter(status='verified')
+            elif metric_filter == 'ambiguous':
+                qs = qs.filter(ambiguous_count__gt=0)
+            elif metric_filter == 'perfect':
+                qs = qs.filter(confidence__gte=0.85, ambiguous_count=0, answered_questions__gt=0)
+            elif metric_filter == 'low_score':
+                qs = qs.filter(mcq_score__lt=50)
+            elif metric_filter == 'zero':
+                qs = qs.filter(answered_questions=0)
 
         search = self.request.query_params.get('search')
         if search:
@@ -152,15 +221,20 @@ class OMRHumanReviewMVS(AllMVS):
     def stats(self, request):
         """Statistics of sheets requiring human review."""
         base_qs = self.get_queryset()
-        pending_review = base_qs.filter(confidence__lt=0.85).count()
+        total_count = base_qs.count()
+        pending_review = base_qs.filter(Q(status='needs_review') | Q(confidence__lt=0.85) | Q(ambiguous_count__gt=0)).count()
         ambiguous_total = base_qs.filter(ambiguous_count__gt=0).count()
-        completed = base_qs.filter(confidence__gte=0.85).count()
+        completed = base_qs.filter(status='verified').count()
+        perfect_total = base_qs.filter(confidence__gte=0.85, ambiguous_count=0, answered_questions__gt=0).count()
+        zero_total = base_qs.filter(answered_questions=0).count()
 
         return Response({
+            "totalSheets": total_count,
             "pendingReview": pending_review,
-            "ambiguousSheets": ambiguous_total,
             "verifiedSheets": completed,
-            "totalSheets": base_qs.count()
+            "ambiguousSheets": ambiguous_total,
+            "perfectSheets": perfect_total,
+            "zeroSheets": zero_total,
         })
 
     @action(detail=True, methods=['post'], url_path='approve-review')
@@ -194,18 +268,7 @@ class OMRHumanReviewMVS(AllMVS):
 
     @action(detail=True, methods=['post'], url_path='override-question')
     def override_question(self, request, pk=None):
-        """Manual human override of a specific question's detected bubble."""
-        sheet = self.get_object()
-
-        # ── فحص قفل الكنترول المركزي ─────────────────────────────────────
-        if hasattr(sheet, 'submission') and sheet.submission:
-            lr = sheet.submission.layout_result or {}
-            if lr.get("dispatched_to_control") is True or lr.get("dispatched_to_control") == "true":
-                return Response({
-                    "success": False,
-                    "message": "تم رفض التعديل: درجات هذا الاختبار مقفلة ومرحلة رسمياً لنظام الكنترول المركزي. يجب إلغاء الترحيل أولاً بطلب من إدارة الكنترول."
-                }, status=status.HTTP_403_FORBIDDEN)
-
+        """Manual human override of a specific question's detected bubble with audit logging and atomic locking."""
         q_num = request.data.get('question_number')
         choice = None
         for k in ['marked_choice', 'new_choice', 'choice']:
@@ -213,47 +276,100 @@ class OMRHumanReviewMVS(AllMVS):
                 choice = request.data[k]
                 break
 
-        if q_num is None or choice is None:
-            return Response({"success": False, "message": "يجب تحديد رقم السؤال والخيار المعدل"}, status=status.HTTP_400_BAD_REQUEST)
+        if q_num is None:
+            return Response({"success": False, "message": "يجب تحديد رقم السؤال"}, status=status.HTTP_400_BAD_REQUEST)
 
-        choice_str = str(choice).strip() if choice else ""
+        choice_str = str(choice).strip().upper() if (choice is not None and str(choice).strip()) else None
+
+        from omr.models.OMRReviewAuditLog import OMRReviewAuditLog
+        from omr.providers.opencv_omr import normalize_choice
 
         try:
-            from omr.providers.opencv_omr import normalize_choice
-            q_res = OMRQuestionResult.objects.get(sheet_result=sheet, question_number=q_num)
-            q_res.marked_choice = choice_str
-            is_right = (normalize_choice(choice_str) == normalize_choice(q_res.correct_choice)) if (q_res.correct_choice and choice_str) else False
-            q_res.is_correct = is_right
-            q_res.bubble_state = OMRQuestionResult.BubbleState.FILLED if choice_str else OMRQuestionResult.BubbleState.EMPTY
-            q_res.final_confidence = 1.0
-
-            if is_right:
-                if float(q_res.marks_awarded or 0.0) <= 0.0:
-                    unit_mark = float(sheet.mcq_max_score or sheet.total_questions) / max(1, sheet.total_questions)
-                    q_res.marks_awarded = round(unit_mark, 2)
-            else:
-                q_res.marks_awarded = 0.0
-
-            q_res.save()
-
-            # Recalculate sheet statistics & update student's submission score
             with transaction.atomic():
+                # Gate 6: قفل تنافسي صريح لمنع التعديل المتزامن
+                sheet = OMRSheetResult.objects.select_for_update().get(pk=pk)
+
+                # ── فحص قفل الكنترول المركزي ─────────────────────────────────────
+                if hasattr(sheet, 'submission') and sheet.submission:
+                    lr = sheet.submission.layout_result or {}
+                    if lr.get("dispatched_to_control") is True or str(lr.get("dispatched_to_control")).lower() == "true":
+                        return Response({
+                            "success": False,
+                            "message": "تم رفض التعديل: درجات هذا الاختبار مقفلة ومرحلة رسمياً لنظام الكنترول المركزي. يجب إلغاء الترحيل أولاً بطلب من إدارة الكنترول."
+                        }, status=status.HTTP_403_FORBIDDEN)
+
+                q_res = OMRQuestionResult.objects.select_for_update().get(sheet_result=sheet, question_number=q_num)
+
+                # حفظ لقطة السؤال قبل التعديل
+                before_snapshot = {
+                    "marked_choice": q_res.marked_choice,
+                    "candidate_choice": q_res.candidate_choice,
+                    "final_marked_choice": q_res.final_marked_choice,
+                    "bubble_state": q_res.bubble_state,
+                    "is_correct": q_res.is_correct,
+                    "marks_awarded": float(q_res.marks_awarded or 0.0),
+                    "needs_review": q_res.needs_review,
+                    "assigned_weight": float(q_res.assigned_weight or 1.0),
+                }
+
+                # تحديث القرار البشري مع الحفاظ على الأصل
+                q_res.marked_choice = choice_str or ""
+                q_res.final_marked_choice = choice_str
+                is_right = (normalize_choice(choice_str) == normalize_choice(q_res.correct_choice)) if (q_res.correct_choice and choice_str) else False
+                q_res.is_correct = is_right
+                q_res.bubble_state = OMRQuestionResult.BubbleState.FILLED if choice_str else OMRQuestionResult.BubbleState.EMPTY
+                q_res.final_confidence = 1.0
+                q_res.decision_confidence = 1.0
+                q_res.needs_review = False
+                q_res.review_priority = "NONE"
+
+                # احتساب الدرجة بالاعتماد على assigned_weight الحقيقي وليس المتوسط
+                q_weight = float(q_res.assigned_weight or 1.0)
+                q_res.marks_awarded = q_weight if is_right else 0.0
+                q_res.save()
+
+                # حفظ لقطة السؤال بعد التعديل
+                after_snapshot = {
+                    "marked_choice": q_res.marked_choice,
+                    "candidate_choice": q_res.candidate_choice,
+                    "final_marked_choice": q_res.final_marked_choice,
+                    "bubble_state": q_res.bubble_state,
+                    "is_correct": q_res.is_correct,
+                    "marks_awarded": float(q_res.marks_awarded),
+                    "needs_review": q_res.needs_review,
+                    "assigned_weight": q_weight,
+                }
+
+                # توثيق التدقيق الجنائي في OMRReviewAuditLog
+                reason_code = request.data.get('reason_code', OMRReviewAuditLog.ReasonCode.OTHER)
+                reason_text = request.data.get('reason_text', '')
+                reviewer_user = request.user if (request.user and request.user.is_authenticated) else None
+                ip_addr = request.META.get('REMOTE_ADDR')
+
+                OMRReviewAuditLog.objects.create(
+                    sheet_result=sheet,
+                    question_result=q_res,
+                    reviewer=reviewer_user,
+                    reason_code=reason_code,
+                    reason_text=reason_text,
+                    before_snapshot=before_snapshot,
+                    after_snapshot=after_snapshot,
+                    ip_address=ip_addr,
+                )
+
+                # إعادة احتساب إحصائيات الورقة ودرجة التسليم
                 all_q = list(OMRQuestionResult.objects.filter(sheet_result=sheet))
                 sheet.correct_answers = sum(1 for q in all_q if q.is_correct)
-                sheet.wrong_answers = sum(1 for q in all_q if q.is_correct is False and q.marked_choice)
-                sheet.unanswered = sum(1 for q in all_q if not q.marked_choice)
-                sheet.ambiguous_count = sum(1 for q in all_q if q.bubble_state == OMRQuestionResult.BubbleState.AMBIGUOUS)
+                sheet.wrong_answers = sum(1 for q in all_q if q.is_correct is False and q.final_marked_choice)
+                sheet.unanswered = sum(1 for q in all_q if not q.final_marked_choice)
+                sheet.ambiguous_count = sum(1 for q in all_q if q.needs_review)
 
-                # احتساب الدرجة المحرزة بناء على أوزان الأسئلة
-                computed_score = sum(float(q.marks_awarded) for q in all_q if q.is_correct)
-                if computed_score == 0 and sheet.correct_answers > 0:
-                    marks_per_q = float(sheet.mcq_max_score or sheet.total_questions) / max(1, sheet.total_questions)
-                    computed_score = round(sheet.correct_answers * marks_per_q, 2)
-
+                computed_score = sum(float(q.marks_awarded or 0.0) for q in all_q if q.is_correct)
                 sheet.mcq_score = round(computed_score, 2)
                 sheet.save()
 
                 if hasattr(sheet, 'submission') and sheet.submission:
+                    from submissions.models.Submission import Submission
                     sub = sheet.submission
                     sub.mcq_score = sheet.mcq_score
                     essay_sc = float(sub.essay_score or 0.0)
@@ -263,12 +379,16 @@ class OMRHumanReviewMVS(AllMVS):
                     max_sc = float(sheet.mcq_max_score or sheet.total_questions or 100)
                     lr["score_percent"] = round((float(sub.total_score) / max(1.0, max_sc)) * 100.0, 1)
                     sub.layout_result = lr
-                    sub.save(update_fields=['mcq_score', 'total_score', 'layout_result'])
+                    if sheet.ambiguous_count == 0 and not sub.error_message:
+                        sub.status = Submission.Status.REVIEWED
+                    sub.save(update_fields=['mcq_score', 'total_score', 'layout_result', 'status'])
 
             return Response({
                 "success": True,
-                "message": f"تم تعديل إجابة السؤال {q_num} وتحديث الدرجة الكلية بنجاح",
+                "message": f"تم تعديل إجابة السؤال {q_num} وتوثيق التدقيق بنجاح",
                 "data": self.get_serializer(sheet).data
             })
         except OMRQuestionResult.DoesNotExist:
             return Response({"success": False, "message": "السؤال غير موجود"}, status=status.HTTP_404_NOT_FOUND)
+        except OMRSheetResult.DoesNotExist:
+            return Response({"success": False, "message": "ورقة الإجابة غير موجودة"}, status=status.HTTP_404_NOT_FOUND)

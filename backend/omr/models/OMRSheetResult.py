@@ -3,10 +3,12 @@ from django.utils.translation import gettext_lazy as _
 from OpenSoftCoreV41.utils.abstract_models.soft_delete_model import SoftDeleteModel
 
 class OMRSheetResult(SoftDeleteModel):
-    submission = models.OneToOneField(
+    submission = models.ForeignKey(
         "submissions.Submission",
         on_delete=models.CASCADE,
-        related_name="omr_detail",
+        null=True,
+        blank=True,
+        related_name="omr_details",
         verbose_name=_("التسليم")
     )
     status = models.CharField(max_length=20, default="success", verbose_name=_("الحالة"))
@@ -24,6 +26,13 @@ class OMRSheetResult(SoftDeleteModel):
 
     provider_used = models.CharField(max_length=50, default="opencv", verbose_name=_("مزود الخدمة"))
     processing_time_ms = models.FloatField(default=0.0, verbose_name=_("زمن المعالجة"))
+
+    # حقول تتبع الإصدارات (Gate 9 & Section 7.5)
+    pipeline_version = models.CharField(max_length=20, default="3.0", verbose_name=_("إصدار خط المعالجة"))
+    opencv_engine_version = models.CharField(max_length=20, default="3.0", verbose_name=_("إصدار محرك OpenCV"))
+    vision_model_version = models.CharField(max_length=20, default="1.0", verbose_name=_("إصدار نموذج الرؤية"))
+    decision_matrix_version = models.CharField(max_length=20, default="3.0", verbose_name=_("إصدار مصفوفة القرار"))
+    template_version = models.CharField(max_length=50, blank=True, verbose_name=_("إصدار القالب"))
 
     class Meta:
         db_table = "omr_sheet_results"

@@ -1,60 +1,22 @@
 <template>
   <div class="qb-omr-exams-linking-v4 pa-4 pa-md-6">
-    <!-- ── Page Header (Institutional OpenSoftCore Style) ─────────────── -->
-    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-6">
-      <div class="d-flex align-center">
-        <v-avatar size="48" color="primary" variant="tonal" class="me-3 rounded-xl elevation-1">
-          <v-icon size="26">mdi-link-box-variant-outline</v-icon>
-        </v-avatar>
-        <div>
-          <h1 class="text-h5 font-weight-black text-on-surface mb-0">ربط الاختبارات والتصحيح الضوئي (OMR)</h1>
-          <p class="text-caption text-medium-emphasis mb-0">
-            استعراض كشوفات الطلاب، معاينة النماذج ومفاتيح الحل، وتوليد وطباعة أوراق التظليل الوزارية المعتمدة
-          </p>
-        </div>
-      </div>
 
-      <div class="d-flex align-center gap-2 flex-wrap">
-        <v-btn
-          color="secondary"
-          variant="tonal"
-          rounded="lg"
-          class="font-weight-bold"
-          prepend-icon="mdi-scanner"
-          to="/omr-scanner-lab"
-        >
-          مختبر المسح والتصحيح
-        </v-btn>
-        <v-btn
-          color="secondary"
-          variant="tonal"
-          rounded="lg"
-          class="font-weight-bold"
-          prepend-icon="mdi-card-text-outline"
-          to="/omr-templates"
-        >
-          مكتبة القوالب
-        </v-btn>
-        <v-btn
-          color="primary"
-          variant="flat"
-          rounded="lg"
-          class="font-weight-bold shadow-sm"
-          prepend-icon="mdi-refresh"
-          :loading="loading"
-          @click="fetchExams"
-        >
-          تحديث القائمة
-        </v-btn>
-      </div>
-    </div>
-
-    <!-- ── OMR Workflow Stepper (المرحلة 1: استلام وتجهيز الاختبار) ── -->
-    <omr-workflow-bar :active-step="1" :exam-id="selectedExam?.id" />
-
-    <!-- Unified Filter Fields (Standard Tripartite Institution Filters: Schools, Universities, Institutes) -->
-    <filter-fields label="خيارات التصفية والبحث المتقدم في الاختبارات" class="main-card border-0 pa-5 rounded-2xl mb-6">
+    <!-- Unified Filter Fields (Standard Tripartite Institution Filters matching students-master) -->
+    <filter-fields label="خيارات التصفية والبحث المتقدم في الاختبارات" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
       <v-row dense class="align-center">
+        <!-- 1. نوع المؤسسة التعليمية (حقل واحد قياسي موحد بنمط students-master) -->
+        <v-col cols="12" sm="6" md="3">
+          <auto-list
+            v-model="filterInstitutionType"
+            name="InstitutionType"
+            placeholder="نوع المؤسسة التعليمية"
+            label="نوع المؤسسة التعليمية"
+            cols="12"
+            :add="false"
+            @update:model-value="onInstitutionTypeChange"
+          />
+        </v-col>
+
         <!-- Search Query Input -->
         <v-col cols="12" sm="6" md="3">
           <v-text-field
@@ -66,175 +28,223 @@
             clearable
             density="compact"
             variant="outlined"
-            class="mb-6"
+            rounded="lg"
+            class="mb-3"
             hide-details
             @keyup.enter="fetchExams"
           />
         </v-col>
 
-        <!-- Institution Type Selector (مدارس / جامعات / معاهد / الكل) موحد كـ auto-list -->
-        <auto-list
-          v-model="filterInstitutionType"
-          name="InstitutionType"
-          placeholder="نوع المؤسسة التعليمية"
-          cols="3"
-          :add="false"
-          @update:model-value="onInstitutionTypeChange"
-        />
+        <!-- 2. المحافظة -->
+        <v-col cols="12" sm="6" md="3">
+          <auto-list
+            v-model="filterGovernorate"
+            name="Governorate"
+            placeholder="المحافظة"
+            label="المحافظة"
+            cols="12"
+            :add="false"
+            @update:model-value="onGovernorateChange"
+          />
+        </v-col>
+
+        <!-- 3. المديرية (تظهر للمدارس) -->
+        <v-col v-if="isSchoolFilter" cols="12" sm="6" md="3">
+          <auto-list
+            v-model="filterDirectorate"
+            name="Directorate"
+            :param="filterGovernorate"
+            :placeholder="filterGovernorate ? 'المديرية' : 'اختر المحافظة أولاً'"
+            label="المديرية"
+            cols="12"
+            :add="false"
+            :disabled="!filterGovernorate"
+            @update:model-value="onDirectorateChange"
+          />
+        </v-col>
+
+        <!-- 4. المركز الامتحاني / المدرسة -->
+        <v-col cols="12" sm="6" :md="isSchoolFilter ? 3 : 3">
+          <auto-list
+            v-model="filterOrganization"
+            name="Organization"
+            :param="orgParam"
+            :placeholder="orgPlaceholder"
+            :label="orgFieldLabel"
+            cols="12"
+            :add="false"
+            :disabled="isOrgDisabled"
+            @update:model-value="fetchExams"
+          />
+        </v-col>
 
         <!-- 🏫 School Filters (المرحلة، الصف والمسار، المادة) -->
         <template v-if="filterInstitutionType === 'school'">
-          <auto-list
-            v-model="filterStage"
-            name="Stage"
-            label="المرحلة الدراسية"
-            cols="3"
-            sm="6"
-            md="3"
-            :add="false"
-            @update:model-value="onStageChange"
-          />
-          <auto-list
-            v-model="filterClassTrack"
-            name="ClassTrackByStage"
-            :param="filterStage"
-            label="الصف والمسار المدرسي"
-            cols="3"
-            sm="6"
-            md="3"
-            :add="false"
-            :disabled="!filterStage"
-            @update:model-value="onClassTrackChange"
-          />
-          <auto-list
-            v-model="filterSubject"
-            name="Subject"
-            :param="subjectFilterParam"
-            label="المادة الدراسية"
-            cols="3"
-            sm="6"
-            md="3"
-            :add="false"
-            @update:model-value="fetchExams"
-          />
+          <v-col cols="12" sm="6" md="4">
+            <auto-list
+              v-model="filterStage"
+              name="Stage"
+              label="المرحلة الدراسية"
+              placeholder="المرحلة الدراسية"
+              cols="12"
+              :add="false"
+              @update:model-value="onStageChange"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="4">
+            <auto-list
+              v-model="filterClassTrack"
+              name="ClassTrackByStage"
+              :param="filterStage"
+              label="الصف والمسار المدرسي"
+              placeholder="الصف والمسار المدرسي"
+              cols="12"
+              :add="false"
+              :disabled="!filterStage"
+              @update:model-value="onClassTrackChange"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="4">
+            <auto-list
+              v-model="filterSubject"
+              name="Subject"
+              :param="subjectFilterParam"
+              label="المادة الدراسية"
+              placeholder="المادة الدراسية"
+              cols="12"
+              :add="false"
+              @update:model-value="fetchExams"
+            />
+          </v-col>
         </template>
 
         <!-- 🎓 University Filters (الكلية، القسم، التخصص، المقرر) -->
         <template v-if="filterInstitutionType === 'university'">
-          <auto-list
-            v-model="filterCollege"
-            name="College"
-            label="الكلية الجامعية"
-            cols="3"
-            sm="6"
-            md="3"
-            :add="false"
-            @update:model-value="onCollegeChange"
-          />
-          <auto-list
-            v-model="filterDepartment"
-            name="DepartmentByCollege"
-            :param="filterCollege"
-            label="القسم الأكاديمي"
-            cols="3"
-            sm="6"
-            md="3"
-            :add="false"
-            :disabled="!filterCollege"
-            @update:model-value="onDepartmentChange"
-          />
-          <auto-list
-            v-model="filterSpecialization"
-            name="Specialization"
-            :param="filterDepartment"
-            label="التخصص والبرنامج"
-            cols="3"
-            sm="6"
-            md="3"
-            :add="false"
-            :disabled="!filterDepartment"
-            @update:model-value="onSpecializationChange"
-          />
-          <auto-list
-            v-model="filterSemesterSubject"
-            name="SemesterSubject"
-            :param="filterSpecialization"
-            label="مقرر الفصل الجامعي"
-            cols="3"
-            sm="6"
-            md="3"
-            :add="false"
-            @update:model-value="fetchExams"
-          />
+          <v-col cols="12" sm="6" md="3">
+            <auto-list
+              v-model="filterCollege"
+              name="College"
+              label="الكلية الجامعية"
+              placeholder="الكلية الجامعية"
+              cols="12"
+              :add="false"
+              @update:model-value="onCollegeChange"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <auto-list
+              v-model="filterDepartment"
+              name="DepartmentByCollege"
+              :param="filterCollege"
+              label="القسم الأكاديمي"
+              placeholder="القسم الأكاديمي"
+              cols="12"
+              :add="false"
+              :disabled="!filterCollege"
+              @update:model-value="onDepartmentChange"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <auto-list
+              v-model="filterSpecialization"
+              name="Specialization"
+              :param="filterDepartment"
+              label="التخصص والبرنامج"
+              placeholder="التخصص والبرنامج"
+              cols="12"
+              :add="false"
+              :disabled="!filterDepartment"
+              @update:model-value="onSpecializationChange"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <auto-list
+              v-model="filterSemesterSubject"
+              name="SemesterSubject"
+              :param="filterSpecialization"
+              label="مقرر الفصل الجامعي"
+              placeholder="مقرر الفصل الجامعي"
+              cols="12"
+              :add="false"
+              @update:model-value="fetchExams"
+            />
+          </v-col>
         </template>
 
         <!-- 🏢 Institute Filters (المجال المهني، نظام التعليم، التخصص، المادة) -->
         <template v-if="filterInstitutionType === 'institute'">
-          <auto-list
-            v-model="filterInstituteField"
-            name="InstituteField"
-            label="المجال المهني / التقني"
-            cols="3"
-            sm="6"
-            md="3"
-            :add="false"
-            @update:model-value="onInstituteFieldChange"
-          />
-          <auto-list
-            v-model="filterInstituteEducationSystem"
-            name="InstituteEducationSystem"
-            :param="filterInstituteField"
-            label="نظام التعليم والتدريب"
-            cols="3"
-            sm="6"
-            md="3"
-            :add="false"
-            :disabled="!filterInstituteField"
-            @update:model-value="onInstituteEducationSystemChange"
-          />
-          <auto-list
-            v-model="filterInstituteSpecialization"
-            name="InstituteSpecialization"
-            :param="instituteSpecParam"
-            label="التخصص المهني"
-            cols="3"
-            sm="6"
-            md="3"
-            :add="false"
-            :disabled="!filterInstituteEducationSystem"
-            @update:model-value="fetchExams"
-          />
-          <auto-list
-            v-model="filterInstituteSubject"
-            name="InstituteSubject"
-            :param="instituteSubjectParam"
-            label="المادة الدراسية للمعهد"
-            cols="3"
-            sm="6"
-            md="3"
-            :add="false"
-            @update:model-value="fetchExams"
-          />
+          <v-col cols="12" sm="6" md="3">
+            <auto-list
+              v-model="filterInstituteField"
+              name="InstituteField"
+              label="المجال المهني / التقني"
+              placeholder="المجال المهني / التقني"
+              cols="12"
+              :add="false"
+              @update:model-value="onInstituteFieldChange"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <auto-list
+              v-model="filterInstituteEducationSystem"
+              name="InstituteEducationSystem"
+              :param="filterInstituteField"
+              label="نظام التعليم والتدريب"
+              placeholder="نظام التعليم والتدريب"
+              cols="12"
+              :add="false"
+              :disabled="!filterInstituteField"
+              @update:model-value="onInstituteEducationSystemChange"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <auto-list
+              v-model="filterInstituteSpecialization"
+              name="InstituteSpecialization"
+              :param="instituteSpecParam"
+              label="التخصص المهني"
+              placeholder="التخصص المهني"
+              cols="12"
+              :add="false"
+              :disabled="!filterInstituteEducationSystem"
+              @update:model-value="fetchExams"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <auto-list
+              v-model="filterInstituteSubject"
+              name="InstituteSubject"
+              :param="instituteSubjectParam"
+              label="المادة الدراسية للمعهد"
+              placeholder="المادة الدراسية للمعهد"
+              cols="12"
+              :add="false"
+              @update:model-value="fetchExams"
+            />
+          </v-col>
         </template>
 
         <!-- Fallback Subject if All / None selected -->
-        <auto-list
-          v-if="!filterInstitutionType || filterInstitutionType === 'all'"
-          v-model="filterSubject"
-          name="Subject"
-          placeholder="المادة الدراسية (عام)"
-          cols="3"
-          :add="false"
-          @update:model-value="fetchExams"
-        />
+        <v-col v-if="!filterInstitutionType || filterInstitutionType === 'all'" cols="12" sm="6" md="4">
+          <auto-list
+            v-model="filterSubject"
+            name="Subject"
+            placeholder="المادة الدراسية (عام)"
+            label="المادة الدراسية (عام)"
+            cols="12"
+            :add="false"
+            @update:model-value="fetchExams"
+          />
+        </v-col>
 
         <!-- Actions -->
-        <v-col cols="12" sm="6" md="3" class="d-flex align-center gap-2">
+        <v-col cols="12" class="d-flex align-center justify-end gap-2 mb-3">
           <custom-btn
             type="show"
-            label="تحديث"
+            label="تصفية النتائج"
             color="primary"
-            class="font-weight-bold flex-grow-1 mb-6"
+            icon="mdi-filter"
+            class="font-weight-bold px-5"
             :click="fetchExams"
           />
           <custom-btn
@@ -242,8 +252,9 @@
             :click="resetFilters"
             variant="tonal"
             color="error"
-            label="تفريغ"
-            class="font-weight-bold mb-6"
+            label="تفريغ الفلاتر"
+            icon="mdi-filter-off"
+            class="font-weight-bold"
           />
         </v-col>
       </v-row>
@@ -253,7 +264,8 @@
     <div class="main-card rounded-2xl mb-6 overflow-x-auto">
       <custom-data-table
         v-bind="{
-          items: tableItems,
+          items: examsTableItems,
+          getData: getExamsData,
           headers,
           loading,
         }"
@@ -285,8 +297,90 @@
 
           <!-- Subject & Year -->
           <template v-else-if="key === 'subject_info'">
-            <div class="font-weight-bold text-body-2">{{ item.subject_name }}</div>
+            <div class="font-weight-bold text-body-2 text-primary">{{ item.subject_name }}</div>
             <div class="text-caption text-medium-emphasis">{{ item.year_name }} ({{ item.institution_type_display }})</div>
+          </template>
+
+          <!-- 1. المحافظة (مستقلة ومفصولة تماماً) -->
+          <template v-else-if="key === 'governorate'">
+            <div class="d-flex align-center justify-center">
+              <v-tooltip v-if="item.governorates_count > 1" location="top">
+                <template #activator="{ props: tProps }">
+                  <v-chip v-bind="tProps" size="small" color="primary" variant="tonal" class="font-weight-bold">
+                    <v-icon size="13" start>mdi-map-marker</v-icon>
+                    {{ activeDisplayGovernorate(item) }}
+                    <span class="ms-1 text-caption font-weight-black">
+                      (+{{ item.governorates_count - 1 }})
+                    </span>
+                  </v-chip>
+                </template>
+                <span>المحافظات المشمولة: {{ item.governorates_list.join('، ') }}</span>
+              </v-tooltip>
+              <v-chip v-else size="small" color="primary" variant="tonal" class="font-weight-bold">
+                <v-icon size="13" start>mdi-map-marker</v-icon>
+                {{ activeDisplayGovernorate(item) }}
+              </v-chip>
+            </div>
+          </template>
+
+          <!-- 2. المديرية (مستقلة ومفصولة تماماً) -->
+          <template v-else-if="key === 'directorate'">
+            <div class="d-flex align-center justify-center">
+              <v-tooltip v-if="item.directorates_count > 1" location="top">
+                <template #activator="{ props: tProps }">
+                  <v-chip v-bind="tProps" size="small" color="teal" variant="tonal" class="font-weight-bold">
+                    <v-icon size="13" start>mdi-city-variant-outline</v-icon>
+                    {{ activeDisplayDirectorate(item) }}
+                    <span class="ms-1 text-caption font-weight-black">
+                      (+{{ item.directorates_count - 1 }})
+                    </span>
+                  </v-chip>
+                </template>
+                <span>المديريات المشمولة: {{ item.directorates_list.join('، ') }}</span>
+              </v-tooltip>
+              <v-chip v-else size="small" color="teal" variant="tonal" class="font-weight-bold">
+                <v-icon size="13" start>mdi-city-variant-outline</v-icon>
+                {{ activeDisplayDirectorate(item) }}
+              </v-chip>
+            </div>
+          </template>
+
+          <!-- 3. المركز الامتحاني / المدرسة (مستقلة ومفصولة تماماً ومطابقة للفلتر) -->
+          <template v-else-if="key === 'school_center'">
+            <div class="py-1">
+              <div class="d-flex align-center gap-1.5">
+                <v-icon size="15" color="indigo" class="flex-shrink-0">mdi-school-outline</v-icon>
+                <span class="font-weight-bold text-slate-700 text-truncate" style="max-width: 175px;" :title="item.school_center">
+                  {{ item.school_center }}
+                </span>
+                <v-tooltip v-if="item.schools_count > 1 || (item.all_schools_count && item.all_schools_count > 1)" location="top">
+                  <template #activator="{ props: tProps }">
+                    <v-chip v-bind="tProps" size="x-small" color="indigo" variant="tonal" class="font-weight-black cursor-pointer">
+                      +{{ (item.schools_count > 1 ? item.schools_count : item.all_schools_count) - 1 }}
+                    </v-chip>
+                  </template>
+                  <div>
+                    <div v-if="item.schools_list && item.schools_list.length > 1" class="font-weight-bold mb-1">
+                      المراكز في النطاق المحدد: {{ item.schools_list.join('، ') }}
+                    </div>
+                    <div class="text-caption">
+                      إجمالي كافة المراكز المقيدة للاختبار: {{ (item.all_schools_list || item.schools_list || []).join('، ') }}
+                    </div>
+                  </div>
+                </v-tooltip>
+              </div>
+              <div class="text-caption text-medium-emphasis mt-0.5">
+                <span v-if="item.all_schools_count && item.all_schools_count > item.schools_count">
+                  مركز بالمديرية (إجمالي: {{ item.all_schools_count }} مراكز)
+                </span>
+                <span v-else-if="item.schools_count > 1">
+                  إجمالي: {{ item.schools_count }} مراكز امتحانية
+                </span>
+                <span v-else>
+                  مركز امتحاني معتمد
+                </span>
+              </div>
+            </div>
           </template>
 
           <!-- Versions & Questions (Clickable to open Keys Tab) -->
@@ -296,7 +390,7 @@
               @click.stop="openExamHub(item, 'keys')"
               title="انقر لمعاينة نماذج الأسئلة ومفاتيح الحل المعتمدة"
             >
-              <div class="d-flex justify-center gap-1 mb-1">
+              <div class="d-flex justify-center gap-1 mb-1 flex-wrap">
                 <v-chip
                   v-for="v in item.versions"
                   :key="v.id"
@@ -308,6 +402,35 @@
                   {{ v.versionCode }}
                 </v-chip>
               </div>
+
+              <!-- مجموعات النماذج والتوزيع المناطقي -->
+              <div v-if="item.model_groups && item.model_groups.length > 1" class="d-flex justify-center mb-1">
+                <v-tooltip location="top">
+                  <template #activator="{ props: tProps }">
+                    <v-chip
+                      v-bind="tProps"
+                      size="x-small"
+                      color="deep-purple"
+                      variant="flat"
+                      class="font-weight-bold cursor-pointer"
+                    >
+                      <v-icon size="11" start>mdi-layers-triple</v-icon>
+                      {{ item.model_groups.length }} مجموعات صعوبة
+                    </v-chip>
+                  </template>
+                  <div>
+                    <div class="font-weight-black border-b pb-1 mb-1">جدول توزيع النماذج ومستويات الصعوبة:</div>
+                    <div v-for="g in item.model_groups" :key="g.group_index" class="mb-1 text-caption">
+                      <strong>{{ g.name }} (نماذج: {{ g.models_str }}):</strong>
+                      <span class="ms-1 font-weight-bold text-amber-lighten-2">صعوبة: {{ g.difficulty_profile_ar }}</span>
+                      <span v-if="g.target_regions && g.target_regions.length > 0" class="ms-1">
+                        ({{ g.target_regions_str }})
+                      </span>
+                    </div>
+                  </div>
+                </v-tooltip>
+              </div>
+
               <div class="text-caption font-weight-bold text-primary">
                 {{ item.total_questions }} سؤال (مفاتيح الحل)
               </div>
@@ -680,7 +803,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/omr/client.js'
 import ExamBookletTab from './exam_hub/ExamBookletTab.vue'
@@ -753,7 +876,67 @@ const debouncedFetchExams = () => {
   }, 180)
 }
 
+const filterGovernorate = ref(null)
+const filterDirectorate = ref(null)
+const filterOrganization = ref(null)
+
+const isSchoolFilter = computed(() => {
+  return !filterInstitutionType.value || filterInstitutionType.value === 'all' || filterInstitutionType.value === 'school'
+})
+
+const isOrgDisabled = computed(() => {
+  if (isSchoolFilter.value) {
+    return !filterGovernorate.value || !filterDirectorate.value
+  }
+  return !filterGovernorate.value
+})
+
+const orgFieldLabel = computed(() => {
+  if (filterInstitutionType.value === 'university') return 'الجامعة / الكلية'
+  if (filterInstitutionType.value === 'institute') return 'المعهد / مركز التدريب'
+  return 'المدرسة / المركز الامتحاني'
+})
+
+const orgPlaceholder = computed(() => {
+  const typeLabel = filterInstitutionType.value === 'university'
+    ? 'الكلية / الجامعة'
+    : (filterInstitutionType.value === 'institute' ? 'المعهد / المركز' : 'المدرسة / المركز الامتحاني')
+  if (isSchoolFilter.value) {
+    if (!filterGovernorate.value) return 'المدرسة / المركز (اختر المحافظة أولاً)'
+    if (!filterDirectorate.value) return 'المدرسة / المركز (اختر المديرية أولاً)'
+    return `${typeLabel} (التابعة للمديرية)`
+  }
+  if (!filterGovernorate.value) return 'المؤسسة (اختر المحافظة أولاً)'
+  return `${typeLabel} (التابعة للمحافظة)`
+})
+
+const orgParam = computed(() => {
+  const p = {}
+  if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
+    p.institution_type = filterInstitutionType.value
+  } else {
+    p.institution_type = 'school'
+  }
+  if (filterGovernorate.value) p.governorate = filterGovernorate.value
+  if (isSchoolFilter.value && filterDirectorate.value) p.directorate = filterDirectorate.value
+  return Object.keys(p).length > 0 ? p : undefined
+})
+
+const onGovernorateChange = () => {
+  filterDirectorate.value = null
+  filterOrganization.value = null
+  debouncedFetchExams()
+}
+
+const onDirectorateChange = () => {
+  filterOrganization.value = null
+  debouncedFetchExams()
+}
+
 const onInstitutionTypeChange = () => {
+  filterGovernorate.value = null
+  filterDirectorate.value = null
+  filterOrganization.value = null
   filterStage.value = null
   filterClassTrack.value = null
   filterSubject.value = null
@@ -843,13 +1026,28 @@ const totalStudentsCount = computed(() => {
 })
 
 const headers = computed(() => [
-  { title: "رمز وعنوان الاختبار", key: "exam_info", sortable: true, width: "230px" },
-  { title: "المادة والعام", key: "subject_info", sortable: true, align: "center", width: "115px" },
-  { title: "النماذج والأسئلة", key: "versions_info", sortable: false, align: "center", width: "115px" },
+  { title: "رمز وعنوان الاختبار", key: "exam_info", sortable: true, width: "220px" },
+  { title: "المادة والعام", key: "subject_info", sortable: true, align: "center", width: "120px" },
+  { title: "المحافظة", key: "governorate", sortable: true, align: "center", width: "130px" },
+  { title: "المديرية", key: "directorate", sortable: true, align: "center", width: "145px" },
+  { title: "المركز الامتحاني / المدرسة", key: "school_center", sortable: true, width: "190px" },
+  { title: "النماذج ومجموعاتها", key: "versions_info", sortable: false, align: "center", width: "140px" },
   { title: "كشف الطلاب", key: "students_count", sortable: true, align: "center", width: "95px" },
   { title: "حالة التصحيح", key: "progress", sortable: false, align: "center", width: "95px" },
-  { title: "الاجراءات", key: "actions", sortable: false, align: "center", width: "200px" },
+  { title: "الاجراءات", key: "actions", sortable: false, align: "center", width: "195px" },
 ])
+
+const activeDisplayGovernorate = (item) => {
+  return item.governorate || 'كافة المحافظات'
+}
+
+const activeDisplayDirectorate = (item) => {
+  return item.directorate || 'كافة المديريات'
+}
+
+const activeDisplaySchool = (item) => {
+  return item.school_center || item.primary_school || 'جميع مراكز المديرية'
+}
 
 const filteredExams = computed(() => {
   let list = exams.value
@@ -861,23 +1059,72 @@ const filteredExams = computed(() => {
     list = list.filter(e =>
       (e.title && e.title.toLowerCase().includes(q)) ||
       (e.uniqueCode && e.uniqueCode.toLowerCase().includes(q)) ||
-      (e.subject_name && e.subject_name.toLowerCase().includes(q))
+      (e.subject_name && e.subject_name.toLowerCase().includes(q)) ||
+      (e.governorate && e.governorate.toLowerCase().includes(q)) ||
+      (e.directorate && e.directorate.toLowerCase().includes(q)) ||
+      (e.primary_school && e.primary_school.toLowerCase().includes(q)) ||
+      (e.school_center && e.school_center.toLowerCase().includes(q)) ||
+      (e.schools_list && e.schools_list.some(s => s.toLowerCase().includes(q))) ||
+      (e.directorates_list && e.directorates_list.some(d => d.toLowerCase().includes(q))) ||
+      (e.governorates_list && e.governorates_list.some(g => g.toLowerCase().includes(q)))
     )
   }
   return list
 })
 
-const tableItems = computed(() => ({
-  results: filteredExams.value,
-  count: filteredExams.value.length,
+const examsPage = ref(1)
+const examsPageSize = ref(10)
+const examsTableItems = ref({
+  results: [],
+  count: 0,
   pagination: {
-    count: filteredExams.value.length,
-    total: filteredExams.value.length,
+    count: 0,
+    total: 0,
+    num_pages: 1,
+    current_page: 1,
+  },
+})
+
+const getExamsData = async (params = {}) => {
+  const p = params?.params || params || {}
+  const page = Number(p.page) || examsPage.value || 1
+  const pageSize = Number(p.page_size) || examsPageSize.value || 10
+  examsPage.value = page
+  examsPageSize.value = pageSize
+
+  const all = filteredExams.value || []
+  const total = all.length
+  const numPages = Math.ceil(total / pageSize) || 1
+  const validPage = Math.min(Math.max(1, page), numPages)
+  const start = (validPage - 1) * pageSize
+
+  examsTableItems.value = {
+    results: all.slice(start, start + pageSize),
+    count: total,
+    pagination: {
+      count: total,
+      total: total,
+      num_pages: numPages,
+      current_page: validPage,
+    },
   }
-}))
+  return examsTableItems.value
+}
+
+watch(filteredExams, () => {
+  examsPage.value = 1
+  getExamsData({ page: 1, page_size: examsPageSize.value })
+}, { immediate: true })
+
+// Backwards-compatible alias for any external bindings
+const tableItems = computed(() => examsTableItems.value)
 
 const resetFilters = () => {
   searchQuery.value = ''
+  _searchInput.value = ''
+  filterGovernorate.value = null
+  filterDirectorate.value = null
+  filterOrganization.value = null
   filterInstitutionType.value = 'all'
   filterStage.value = null
   filterClassTrack.value = null
@@ -897,6 +1144,15 @@ const fetchExams = async () => {
   loading.value = true
   try {
     const params = {}
+    if (filterGovernorate.value) {
+      params.governorate = filterGovernorate.value
+    }
+    if (filterDirectorate.value) {
+      params.directorate = filterDirectorate.value
+    }
+    if (filterOrganization.value) {
+      params.school = filterOrganization.value
+    }
     if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
       params.institution_type = filterInstitutionType.value
     }

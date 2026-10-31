@@ -190,6 +190,26 @@ const vuetify = createVuetify({
   components: {
     VTreeview,
   },
+  defaults: {
+    VTextField: {
+      clearIconProps: {
+        'aria-label': 'مسح الإدخال',
+        role: 'button',
+      },
+    },
+    VSelect: {
+      clearIconProps: {
+        'aria-label': 'مسح الاختيار',
+        role: 'button',
+      },
+    },
+    VAutocomplete: {
+      clearIconProps: {
+        'aria-label': 'مسح الاختيار',
+        role: 'button',
+      },
+    },
+  },
   theme: {
     defaultTheme: 'lightTheme',
 

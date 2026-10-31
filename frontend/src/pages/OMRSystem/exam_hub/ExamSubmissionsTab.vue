@@ -3,7 +3,8 @@
     <div class="main-card rounded-2xl overflow-hidden mb-4">
       <custom-data-table
         v-bind="{
-          items: submissionsTableItems,
+          items: subTableItems,
+          getData: getSubmissionsData,
           headers: submissionsHeaders,
         }"
         :hasFilter="false"
@@ -63,7 +64,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 const props = defineProps({
   activeExam: { type: Object, default: () => ({}) },
@@ -83,19 +84,55 @@ const submissionsHeaders = ref([
   { title: 'الإجراءات', key: 'actions', sortable: false, width: '90px' },
 ])
 
-const submissionsTableItems = computed(() => {
-  const subs = props.examDetails?.submissions || props.examDetails?.recent_submissions || []
-  return {
-    results: subs,
-    pagination: {
-      count: subs.length,
-      current_page: 1,
-      num_pages: 1,
-      page_size: subs.length || 10,
-      total: subs.length
-    }
-  }
+const subPage = ref(1)
+const subPageSize = ref(10)
+const subTableItems = ref({
+  results: [],
+  count: 0,
+  pagination: {
+    count: 0,
+    total: 0,
+    num_pages: 1,
+    current_page: 1,
+  },
 })
+
+const rawSubmissions = computed(() => {
+  return props.examDetails?.submissions || props.examDetails?.recent_submissions || []
+})
+
+const getSubmissionsData = async (params = {}) => {
+  const p = params?.params || params || {}
+  const page = Number(p.page) || subPage.value || 1
+  const pageSize = Number(p.page_size) || subPageSize.value || 10
+  subPage.value = page
+  subPageSize.value = pageSize
+
+  const all = rawSubmissions.value || []
+  const total = all.length
+  const numPages = Math.ceil(total / pageSize) || 1
+  const validPage = Math.min(Math.max(1, page), numPages)
+  const start = (validPage - 1) * pageSize
+
+  subTableItems.value = {
+    results: all.slice(start, start + pageSize),
+    count: total,
+    pagination: {
+      count: total,
+      total: total,
+      num_pages: numPages,
+      current_page: validPage,
+    },
+  }
+  return subTableItems.value
+}
+
+watch(rawSubmissions, () => {
+  subPage.value = 1
+  getSubmissionsData({ page: 1, page_size: subPageSize.value })
+}, { immediate: true })
+
+const submissionsTableItems = computed(() => subTableItems.value)
 </script>
 
 <style scoped>

@@ -1,7 +1,7 @@
 <template>
   <div class="codes-settings">
     <!-- 1D Linear Barcode Settings -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">الباركود الخطي (1D Linear Barcode)</label>
         <v-switch
@@ -37,7 +37,7 @@
     </div>
 
     <!-- 2D QR Code Settings -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">رمز الاستجابة السريعة (2D QR Code)</label>
         <v-switch
@@ -73,7 +73,7 @@
     </div>
 
     <!-- Shading Instructions & Rules Settings -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5 mb-4">
+    <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">تعليمات وتنبيهات تظليل ورقة الإجابة (Ministry Instructions & Rules)</label>
         <v-icon color="primary" size="20">mdi-format-list-checks</v-icon>
@@ -156,7 +156,7 @@
     </div>
 
     <!-- Fiducial Markers -->
-    <div class="pa-4 rounded-xl border bg-grey-lighten-5">
+    <div class="pa-4 rounded-xl border bg-surface">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">علامات المحاذاة البصرية (Optical Fiducials)</label>
         <v-chip size="x-small" color="success" variant="flat" class="font-weight-bold">4 زوايا إجبارية</v-chip>

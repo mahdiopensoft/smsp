@@ -60,7 +60,8 @@
             clearable
             density="compact"
             variant="outlined"
-            class="mb-6"
+            rounded="lg"
+            class="mb-3"
             hide-details
             @update:model-value="onStudentSearchInput"
             @keydown.enter="applyStudentFilters"
@@ -78,7 +79,8 @@
             prepend-inner-icon="mdi-format-list-bulleted-type"
             density="compact"
             variant="outlined"
-            class="mb-6"
+            rounded="lg"
+            class="mb-3"
             hide-details
             @update:model-value="applyStudentFilters"
           />
@@ -95,21 +97,23 @@
             prepend-inner-icon="mdi-school-outline"
             density="compact"
             variant="outlined"
-            class="mb-6"
+            rounded="lg"
+            class="mb-3"
             hide-details
             @update:model-value="applyStudentFilters"
           />
         </v-col>
 
         <!-- Action: Reset -->
-        <v-col cols="12" md="1" class="d-flex align-center">
+        <v-col cols="12" md="1" class="d-flex align-center mb-3">
           <custom-btn
             type="cancel_filter"
             :click="resetStudentFilters"
             variant="tonal"
             color="error"
             label="تفريغ"
-            class="font-weight-bold mb-6 w-100"
+            icon="mdi-filter-off"
+            class="font-weight-bold w-100"
           />
         </v-col>
       </v-row>
@@ -370,6 +374,7 @@ const fetchExamStudents = async (tableParams = null) => {
     if (data.schools && Array.isArray(data.schools) && data.schools.length) {
       availableSchools.value = data.schools
     }
+    return studentTableData.value
   } catch (err) {
     console.error('Failed to load exam students from backend:', err)
   } finally {

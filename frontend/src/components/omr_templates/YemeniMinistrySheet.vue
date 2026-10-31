@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { EAGLE_OFFICIAL_BASE64 } from '@/assets/eagleBase64'
+import { resolveEmblemSrc } from '@/assets/omrEmblems'
+import JsBarcode from 'jsbarcode'
+import QRCode from 'qrcode'
 
 const props = withDefaults(
   defineProps<{
@@ -46,6 +49,11 @@ const props = withDefaults(
     sectorName?: string
     committeeName?: string
     examStageTitle?: string
+    // Dynamic Emblem / Seal (الطير / شعار المؤسسة)
+    emblemType?: 'republic_eagle' | 'university_seal' | 'institute_seal' | 'custom' | 'none' | string
+    customLogo?: string
+    showEmblem?: boolean
+    emblemSrc?: string
     // Dynamic Metadata Labels
     labelSeatNumber?: string
     labelSerialNumber?: string
@@ -118,6 +126,10 @@ const props = withDefaults(
     sectorName: 'قطاع المناهج والتوجيه — لجان الاختبارات',
     committeeName: 'لجنة المطبعة السرية المركزية',
     examStageTitle: 'اختبار الشهادة الثانوية العامة (القسم العلمي)',
+    emblemType: 'republic_eagle',
+    customLogo: '',
+    showEmblem: true,
+    emblemSrc: '',
     labelSeatNumber: 'رقم الجلوس',
     labelSerialNumber: 'رقم تسلسلي',
     labelSubject: 'المادة',
@@ -136,6 +148,16 @@ const props = withDefaults(
 
 const displaySerialNumber = computed(() => props.serialNumber || props.modelCode || '148')
 const displayCenterName = computed(() => props.centerName || props.schoolName || 'سالم قطن — معين')
+
+const resolvedEmblemSrc = computed<string>(() => {
+  if (props.showEmblem === false || props.emblemType === 'none') {
+    return ''
+  }
+  if (props.emblemSrc) {
+    return props.emblemSrc
+  }
+  return resolveEmblemSrc(props.emblemType, props.customLogo)
+})
 const displayExamYear = computed(() => {
   const y = String(props.examYear || '').trim()
   if (!y || y === '1' || y === '0' || y.length < 4) {
@@ -143,6 +165,91 @@ const displayExamYear = computed(() => {
   }
   return y
 })
+
+const displayExamYearFormatted = computed(() => {
+  const y = displayExamYear.value
+  if (!y) return ''
+  if (y.startsWith('العام') || y.startsWith('عام') || y.includes('للعام')) {
+    return y
+  }
+  return `للعام الدراسي ${y}`
+})
+
+function fitCellFontSize(text: string | number | undefined, maxChars: number, baseSize: number, minSize = 0.9): number {
+  const str = String(text ?? '').trim()
+  if (str.length <= maxChars) return baseSize
+  const scaled = baseSize * (maxChars / str.length)
+  return Math.max(minSize, Number(scaled.toFixed(2)))
+}
+
+// ── Real Scannable Barcode & QR Code Engine ──
+const computedBarcodeValue = computed(() => {
+  if (props.barcodeValue && String(props.barcodeValue).trim()) {
+    return String(props.barcodeValue).trim()
+  }
+  const seat = String(props.seatNumber || '418485').trim()
+  const model = String(props.modelCode || 'A').trim()
+  return `SEAT_${seat}_VER_${model}`
+})
+
+const computedQrValue = computed(() => {
+  if (props.qrValue && String(props.qrValue).trim()) {
+    return String(props.qrValue).trim()
+  }
+  const seat = String(props.seatNumber || '418485').trim()
+  const model = String(props.modelCode || 'A').trim()
+  const subj = String(props.examSubject || 'EXAM').trim()
+  const center = String(props.centerCode || props.centerName || 'CENTER').trim()
+  return `${subj}|${model}|${seat}|${center}`
+})
+
+const barcodeDataUrl = ref('')
+const qrDataUrl = ref('')
+
+const updateBarcodeAndQr = async () => {
+  const bcVal = computedBarcodeValue.value
+  const qrVal = computedQrValue.value
+
+  // 1. Generate real Code-128 Barcode via JsBarcode
+  if (typeof document !== 'undefined') {
+    try {
+      const canvas = document.createElement('canvas')
+      JsBarcode(canvas, bcVal, {
+        format: 'CODE128',
+        displayValue: false,
+        margin: 10,
+        lineColor: '#000000',
+        background: '#ffffff',
+        width: 2,
+        height: 60,
+      })
+      barcodeDataUrl.value = canvas.toDataURL('image/png')
+    } catch (bcErr) {
+      console.warn('JsBarcode generation failed:', bcErr)
+      barcodeDataUrl.value = ''
+    }
+  }
+
+  // 2. Generate real 2D QR Code via QRCode
+  try {
+    qrDataUrl.value = await QRCode.toDataURL(qrVal, {
+      margin: 1,
+      width: 256,
+      errorCorrectionLevel: 'M',
+      color: {
+        dark: '#000000',
+        light: '#ffffff',
+      },
+    })
+  } catch (qrErr) {
+    console.warn('QRCode generation failed:', qrErr)
+    qrDataUrl.value = ''
+  }
+}
+
+watch([computedBarcodeValue, computedQrValue], () => {
+  updateBarcodeAndQr()
+}, { immediate: true })
 
 const emit = defineEmits<{
   (e: 'bubble-click', question: number, choice: string): void
@@ -799,8 +906,8 @@ function handleBubbleClick(q: number, choice: string) {
 
     <!-- ── 1. Official Header Across Top ───────────────────────────── -->
     <g id="top-header-banner" transform="translate(14, 12)">
-      <!-- Eagle Emblem -->
-      <image :href="EAGLE_OFFICIAL_BASE64" :xlink:href="EAGLE_OFFICIAL_BASE64" x="160" y="0" width="22" height="17" preserveAspectRatio="xMidYMid meet" />
+      <!-- Official Emblem / Eagle -->
+      <image v-if="resolvedEmblemSrc" :href="resolvedEmblemSrc" :xlink:href="resolvedEmblemSrc" x="160" y="0" width="22" height="17" preserveAspectRatio="xMidYMid meet" />
 
       <!-- Official Text -->
       <text x="95" y="4" font-size="3" font-weight="bold" text-anchor="middle" font-family="Arial, sans-serif">الجمهورية اليمنية</text>
@@ -1037,13 +1144,19 @@ function handleBubbleClick(q: number, choice: string) {
     <g id="bottom-zone-a4" transform="translate(14, 238)">
       <rect x="0" y="0" width="182" height="38" fill="#ffffff" stroke="#000000" stroke-width="0.6" />
 
-      <!-- Left: 1D Linear Barcode -->
+      <!-- Left: 1D Linear Barcode (Code-128) -->
       <g transform="translate(3, 4)">
-        <rect x="0" y="0" width="62" height="28" fill="#ffffff" stroke="#000000" stroke-width="0.2" />
-        <g transform="translate(3, 3)">
-          <line v-for="i in 34" :key="'bc-a4-' + i" :x1="i * 1.65" y1="1" :x2="i * 1.65" y2="18" stroke="#000000" :stroke-width="i % 3 === 0 ? '1.4' : i % 2 === 0 ? '0.9' : '0.4'" />
-        </g>
-        <text x="31" y="25.5" font-size="2.4" font-family="'Courier New', monospace" text-anchor="middle">{{ barcodeValue }}</text>
+        <rect x="0" y="0" width="62" height="28" fill="#ffffff" stroke="#000000" stroke-width="0.3" />
+        <image
+          v-if="barcodeDataUrl"
+          :href="barcodeDataUrl"
+          x="3"
+          y="2.5"
+          width="56"
+          height="18"
+          preserveAspectRatio="none"
+        />
+        <text x="31" y="24.5" font-size="2.3" font-family="'Courier New', monospace" font-weight="bold" text-anchor="middle">{{ computedBarcodeValue }}</text>
       </g>
 
       <!-- Center: Shading Guidelines Box -->
@@ -1059,29 +1172,19 @@ function handleBubbleClick(q: number, choice: string) {
         <text x="56" y="27.5" font-size="1.7" fill="#64748b" text-anchor="end">إدارة الاختبارات والتقويم الآلي — سرية تامة ومطابقة آلية معتمدة</text>
       </g>
 
-      <!-- Right: 2D QR Code Box -->
+      <!-- Right: 2D QR Code Box (Encrypted Payload) -->
       <g transform="translate(154, 4)">
-        <rect x="0" y="0" width="24" height="24" fill="#ffffff" stroke="#000000" stroke-width="0.5" />
-        <rect x="2" y="2" width="5.5" height="5.5" fill="#000000" />
-        <rect x="3.2" y="3.2" width="3.1" height="3.1" fill="#ffffff" />
-        <rect x="4" y="4" width="1.5" height="1.5" fill="#000000" />
-
-        <rect x="16.5" y="2" width="5.5" height="5.5" fill="#000000" />
-        <rect x="17.7" y="3.2" width="3.1" height="3.1" fill="#ffffff" />
-        <rect x="18.5" y="4" width="1.5" height="1.5" fill="#000000" />
-
-        <rect x="2" y="16.5" width="5.5" height="5.5" fill="#000000" />
-        <rect x="3.2" y="17.7" width="3.1" height="3.1" fill="#ffffff" />
-        <rect x="4" y="18.5" width="1.5" height="1.5" fill="#000000" />
-
-        <rect x="9" y="3" width="1.6" height="1.6" fill="#000" />
-        <rect x="12" y="5" width="1.6" height="1.6" fill="#000" />
-        <rect x="10" y="10" width="4.5" height="4.5" fill="#000" />
-        <rect x="11.5" y="11.5" width="1.5" height="1.5" fill="#fff" />
-        <rect x="16.5" y="10" width="1.6" height="1.6" fill="#000" />
-        <rect x="9" y="17" width="1.6" height="1.6" fill="#000" />
-        <rect x="13" y="19" width="1.6" height="1.6" fill="#000" />
-        <text x="12" y="30.5" font-size="1.9" font-weight="bold" text-anchor="middle">QR CODE</text>
+        <rect x="0" y="0" width="24" height="28" fill="#ffffff" stroke="#000000" stroke-width="0.3" />
+        <image
+          v-if="qrDataUrl"
+          :href="qrDataUrl"
+          x="1"
+          y="1"
+          width="22"
+          height="22"
+          preserveAspectRatio="xMidYMid meet"
+        />
+        <text x="12" y="26" font-size="1.8" font-weight="bold" font-family="'Courier New', monospace" text-anchor="middle">QR CODE</text>
       </g>
     </g>
 
@@ -1118,24 +1221,33 @@ function handleBubbleClick(q: number, choice: string) {
 
     <!-- ── Right Side: Authentic Student Information Card (12mm Margin: x=136 to 198) ── -->
     <g id="student-info-card-a5">
-      <!-- 1. Header Box (Eagle on Right, Official Texts on Left) -->
+      <!-- 1. Header Box (Emblem on Right if present, Official Texts on Left) -->
       <rect x="136" y="19.5" width="62" height="15.5" fill="#ffffff" stroke="#000000" stroke-width="0.5" />
-      <line x1="168" y1="19.5" x2="168" y2="35.0" stroke="#000000" stroke-width="0.4" />
-      <!-- Republic Eagle Emblem (Right Half: x=168 to 198) -->
-      <image :href="EAGLE_OFFICIAL_BASE64" :xlink:href="EAGLE_OFFICIAL_BASE64" x="170.0" y="20.2" width="26" height="14.0" preserveAspectRatio="xMidYMid meet" />
-      <!-- Ministry Official Text (Left Half: x=136 to 168) -->
-      <text x="152.0" y="22.8" font-size="2.2" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ republicName }}</text>
-      <text x="152.0" y="26.0" font-size="1.8" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ ministryName }}</text>
-      <text x="152.0" y="29.0" font-size="1.3" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ sectorName }}</text>
-      <text x="152.0" y="32.0" font-size="1.3" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ committeeName }}</text>
+      <template v-if="resolvedEmblemSrc">
+        <line x1="168" y1="19.5" x2="168" y2="35.0" stroke="#000000" stroke-width="0.4" />
+        <!-- Emblem (Right Half: x=168 to 198) -->
+        <image :href="resolvedEmblemSrc" :xlink:href="resolvedEmblemSrc" x="170.0" y="20.2" width="26" height="14.0" preserveAspectRatio="xMidYMid meet" />
+        <!-- Ministry / Institution Official Text (Left Half: x=136 to 168) -->
+        <text x="152.0" y="22.8" :font-size="fitCellFontSize(republicName, 20, 2.2, 1.2)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ republicName }}</text>
+        <text x="152.0" y="26.0" :font-size="fitCellFontSize(ministryName, 22, 1.8, 1.1)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ ministryName }}</text>
+        <text x="152.0" y="29.0" :font-size="fitCellFontSize(sectorName, 26, 1.3, 0.95)" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ sectorName }}</text>
+        <text x="152.0" y="32.0" :font-size="fitCellFontSize(committeeName, 24, 1.3, 0.95)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ committeeName }}</text>
+      </template>
+      <template v-else>
+        <!-- Full-width Official Text without Emblem (x=136 to 198, centered at 167.0) -->
+        <text x="167.0" y="23.0" :font-size="fitCellFontSize(republicName, 32, 2.4, 1.4)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ republicName }}</text>
+        <text x="167.0" y="26.4" :font-size="fitCellFontSize(ministryName, 34, 2.0, 1.3)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ ministryName }}</text>
+        <text x="167.0" y="29.5" :font-size="fitCellFontSize(sectorName, 40, 1.5, 1.05)" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ sectorName }}</text>
+        <text x="167.0" y="32.5" :font-size="fitCellFontSize(committeeName, 38, 1.5, 1.05)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ committeeName }}</text>
+      </template>
 
       <!-- 2. Title Banner Box -->
       <rect x="136" y="35.0" width="62" height="6.5" fill="#ffffff" stroke="#000000" stroke-width="0.5" />
-      <text x="167.0" y="38.0" font-size="2.0" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">
+      <text x="167.0" y="38.0" :font-size="fitCellFontSize(examStageTitle, 36, 2.0, 1.3)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">
         {{ examStageTitle }}
       </text>
       <text x="167.0" y="40.4" font-size="1.45" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">
-        للعام الدراسي {{ displayExamYear }}
+        {{ displayExamYearFormatted }}
       </text>
 
       <!-- 3. Metadata Table (4 Rows: x=136 to 198) -->
@@ -1146,28 +1258,28 @@ function handleBubbleClick(q: number, choice: string) {
       <line x1="136" y1="53.5" x2="198" y2="53.5" stroke="#000000" stroke-width="0.35" />
 
       <!-- Row 1: المادة -->
-      <text x="192.5" y="44.2" font-size="1.5" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelSubject }}</text>
-      <text x="161.5" y="44.3" font-size="2.2" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ examSubject }}</text>
+      <text x="192.5" y="44.2" :font-size="fitCellFontSize(labelSubject, 6, 1.5, 0.9)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelSubject }}</text>
+      <text x="161.5" y="44.3" :font-size="fitCellFontSize(examSubject, 24, 2.2, 1.2)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ examSubject }}</text>
 
       <!-- Row 2: المحافظة والمديرية -->
-      <text x="192.5" y="48.2" font-size="1.4" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelGovernorate }}</text>
-      <text x="179.5" y="48.2" font-size="1.6" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ governorate }}</text>
+      <text x="192.5" y="48.2" :font-size="fitCellFontSize(labelGovernorate, 6, 1.4, 0.9)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelGovernorate }}</text>
+      <text x="179.5" y="48.2" :font-size="fitCellFontSize(governorate, 8, 1.6, 1.0)" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ governorate }}</text>
       <line x1="172" y1="45.5" x2="172" y2="49.5" stroke="#000000" stroke-width="0.3" />
-      <text x="166.0" y="48.2" font-size="1.4" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelDirectorate }}</text>
+      <text x="166.0" y="48.2" :font-size="fitCellFontSize(labelDirectorate, 6, 1.4, 0.9)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelDirectorate }}</text>
       <line x1="160" y1="45.5" x2="160" y2="49.5" stroke="#000000" stroke-width="0.3" />
-      <text x="148.0" y="48.2" font-size="1.6" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ directorate }}</text>
+      <text x="148.0" y="48.2" :font-size="fitCellFontSize(directorate, 15, 1.6, 1.0)" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ directorate }}</text>
 
       <!-- Row 3: المركز -->
-      <text x="192.5" y="52.2" font-size="1.4" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelCenter }}</text>
-      <text x="161.5" y="52.2" font-size="1.8" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ displayCenterName }}</text>
+      <text x="192.5" y="52.2" :font-size="fitCellFontSize(labelCenter, 6, 1.4, 0.9)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelCenter }}</text>
+      <text x="161.5" y="52.2" :font-size="fitCellFontSize(displayCenterName, 26, 1.8, 1.1)" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ displayCenterName }}</text>
 
       <!-- Row 4: رقم المركز والمظروف -->
-      <text x="192.5" y="56.2" font-size="1.3" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelCenterCode }}</text>
-      <text x="175.5" y="56.2" font-size="2.2" font-weight="bold" text-anchor="middle" font-family="'Courier New', monospace">{{ centerCode }}</text>
+      <text x="192.5" y="56.2" :font-size="fitCellFontSize(labelCenterCode, 6, 1.3, 0.85)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelCenterCode }}</text>
+      <text x="175.5" y="56.2" :font-size="fitCellFontSize(centerCode, 10, 2.2, 1.2)" font-weight="bold" text-anchor="middle" font-family="'Courier New', monospace">{{ centerCode }}</text>
       <line x1="164" y1="53.5" x2="164" y2="57.5" stroke="#000000" stroke-width="0.3" />
-      <text x="157.0" y="56.2" font-size="1.3" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelEnvelope }}</text>
+      <text x="157.0" y="56.2" :font-size="fitCellFontSize(labelEnvelope, 6, 1.3, 0.85)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelEnvelope }}</text>
       <line x1="150" y1="53.5" x2="150" y2="57.5" stroke="#000000" stroke-width="0.3" />
-      <text x="143.0" y="56.2" font-size="2.2" font-weight="bold" text-anchor="middle" font-family="'Courier New', monospace">{{ envelopeNo }}</text>
+      <text x="143.0" y="56.2" :font-size="fitCellFontSize(envelopeNo, 6, 2.2, 1.2)" font-weight="bold" text-anchor="middle" font-family="'Courier New', monospace">{{ envelopeNo }}</text>
 
       <!-- 4. Student Printed Name Row 1 (Computer-Printed) -->
       <rect x="136" y="57.5" width="62" height="5.5" fill="#ffffff" stroke="#000000" stroke-width="0.4" />
@@ -1193,7 +1305,7 @@ function handleBubbleClick(q: number, choice: string) {
       <!-- 6 & 7. Authentic Seat Number Box, Serial Number Box, and Separate Right Marker Box (Matches media_1789821869125.png) -->
       <!-- Seat Number Box (width: 44mm, x=136 to 180) -->
       <rect x="136" y="69.0" width="44" height="11.5" fill="#ffffff" stroke="#000000" stroke-width="0.5" />
-      <text x="158.0" y="72.2" font-size="2.1" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelSeatNumber }}</text>
+      <text x="158.0" y="72.2" :font-size="fitCellFontSize(labelSeatNumber, 18, 2.1, 1.4)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelSeatNumber }}</text>
       <line x1="137" y1="73.8" x2="179" y2="73.8" stroke="#888888" stroke-width="0.3" stroke-dasharray="0.8 0.8" />
       <text x="158.0" y="78.8" font-size="5.6" font-weight="bold" font-family="'Arial', 'Cairo', sans-serif" letter-spacing="1.0" text-anchor="middle">
         {{ seatNumber }}
@@ -1202,7 +1314,7 @@ function handleBubbleClick(q: number, choice: string) {
       <!-- Serial Number Row (width: 44mm, x=136 to 180) -->
       <rect x="136" y="80.5" width="44" height="5.0" fill="#ffffff" stroke="#000000" stroke-width="0.4" />
       <line x1="158" y1="80.5" x2="158" y2="85.5" stroke="#000000" stroke-width="0.4" />
-      <text x="169.0" y="84.2" font-size="2.0" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelSerialNumber }}</text>
+      <text x="169.0" y="84.2" :font-size="fitCellFontSize(labelSerialNumber, 12, 2.0, 1.3)" font-weight="bold" text-anchor="middle" font-family="'Cairo', Arial, sans-serif">{{ labelSerialNumber }}</text>
       <text x="147.0" y="84.4" font-size="2.8" font-weight="bold" text-anchor="middle" font-family="'Courier New', monospace">{{ displaySerialNumber }}</text>
 
       <!-- Right Marker Box: Separate Column (x=180 to 198, width: 18mm, height: 16.5mm) with Registration Triangle -->
@@ -1362,11 +1474,21 @@ function handleBubbleClick(q: number, choice: string) {
       <!-- Outer Rectangle (x: 12 to 175, width: 163, height: 17.0mm) -->
       <rect x="12" y="114.0" width="163" height="17.0" fill="#ffffff" stroke="#000000" stroke-width="0.5" />
 
-      <!-- Left Compartment: Inner Frame around Barcode -->
+      <!-- Left Compartment: Official 1D Linear Barcode (x: 14.5 to 60.5, width: 46) -->
       <rect x="14.5" y="115.5" width="46" height="14.0" fill="#ffffff" stroke="#000000" stroke-width="0.35" />
-      <g transform="translate(16, 116.5)">
-        <line v-for="i in 34" :key="'bc-a5-' + i" :x1="i * 1.25" y1="0" :x2="i * 1.25" y2="9.5" stroke="#000000" :stroke-width="i % 4 === 0 ? '0.9' : i % 2 === 0 ? '0.6' : '0.35'" />
-        <text x="21.5" y="12.0" font-size="1.8" font-family="'Courier New', monospace" font-weight="bold" text-anchor="middle">{{ barcodeValue || '41848501164148' }}</text>
+
+      <!-- 1D Linear Barcode (Code-128) -->
+      <g transform="translate(16.0, 116.5)">
+        <image
+          v-if="barcodeDataUrl"
+          :href="barcodeDataUrl"
+          x="0"
+          y="0"
+          width="43"
+          height="8.8"
+          preserveAspectRatio="none"
+        />
+        <text x="21.5" y="11.5" font-size="1.6" font-family="'Courier New', monospace" font-weight="bold" text-anchor="middle">{{ computedBarcodeValue }}</text>
       </g>
 
       <!-- Clean Vertical Divider separating Barcode from Instructions (x=65) -->
@@ -1458,25 +1580,15 @@ function handleBubbleClick(q: number, choice: string) {
       <!-- Standalone 2D QR Code on the Right (Aligned with box from x=181 to 198, y=114.0 to 131.0) -->
       <g transform="translate(181, 114.0)">
         <rect x="0" y="0" width="17" height="17" fill="#ffffff" stroke="#000000" stroke-width="0.4" />
-        <rect x="1.0" y="1.0" width="4.8" height="4.8" fill="#000" />
-        <rect x="2.0" y="2.0" width="2.8" height="2.8" fill="#fff" />
-        <rect x="2.7" y="2.7" width="1.4" height="1.4" fill="#000" />
-
-        <rect x="11.2" y="1.0" width="4.8" height="4.8" fill="#000" />
-        <rect x="12.2" y="2.0" width="2.8" height="2.8" fill="#fff" />
-        <rect x="12.9" y="2.7" width="1.4" height="1.4" fill="#000" />
-
-        <rect x="1.0" y="11.2" width="4.8" height="4.8" fill="#000" />
-        <rect x="2.0" y="12.2" width="2.8" height="2.8" fill="#fff" />
-        <rect x="2.7" y="12.9" width="1.4" height="1.4" fill="#000" />
-
-        <!-- Interior QR modules -->
-        <rect x="7.0" y="1.8" width="2.0" height="2.0" fill="#000" />
-        <rect x="9.5" y="3.8" width="2.0" height="2.0" fill="#000" />
-        <rect x="7.0" y="7.0" width="3.2" height="3.2" fill="#000" />
-        <rect x="11.2" y="8.0" width="2.0" height="2.0" fill="#000" />
-        <rect x="7.0" y="11.8" width="2.0" height="2.0" fill="#000" />
-        <rect x="10.0" y="11.8" width="2.0" height="2.0" fill="#000" />
+        <image
+          v-if="qrDataUrl"
+          :href="qrDataUrl"
+          x="1"
+          y="1"
+          width="15"
+          height="15"
+          preserveAspectRatio="xMidYMid meet"
+        />
       </g>
     </g>
   </svg>

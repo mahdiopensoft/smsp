@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import OmrBarcode from './OmrBarcode.vue';
 import type { BarcodeField } from '../types';
+import { resolveEmblemSrc } from '@/assets/omrEmblems';
 
 const props = withDefaults(
   defineProps<{
@@ -28,6 +29,10 @@ const props = withDefaults(
     bubbleTextStyle?: 'faint' | 'solid' | 'empty';
     mcqQuestions?: any[];
     startY?: number;
+    emblemType?: string;
+    customLogo?: string;
+    showEmblem?: boolean;
+    emblemSrc?: string;
   }>(),
   {
     studentName: '................................',
@@ -52,10 +57,20 @@ const props = withDefaults(
     subTitle: 'جامعة صنعاء — الإدارة العامة للامتحانات والتقويم الآلي',
     mcqQuestions: () => [],
     startY: 88,
+    emblemType: 'university_seal',
+    customLogo: '',
+    showEmblem: true,
+    emblemSrc: '',
   }
 
 
 );
+
+const resolvedEmblemSrc = computed<string>(() => {
+  if (props.showEmblem === false || props.emblemType === 'none') return '';
+  if (props.emblemSrc) return props.emblemSrc;
+  return resolveEmblemSrc(props.emblemType, props.customLogo);
+});
 
 const pColor = computed(() => props.primaryColor || '#e6007e');
 const pColorFaint = computed(() => pColor.value + '10');
@@ -305,13 +320,25 @@ function handleBubbleMouseLeave() {
 
     <!-- HEADER LOGO & TITLE -->
     <g class="header-brand">
-      <g transform="translate(184, 5.5)">
-        <circle cx="9" cy="8" r="7" fill="#ffffff" :stroke="pColor" stroke-width="0.4" />
-        <circle cx="9" cy="8" r="6" fill="none" :stroke="pColor" stroke-width="0.2" stroke-dasharray="0.8 0.6" />
-        <rect x="5" y="4.5" width="8" height="2.3" fill="#ce1126" />
-        <rect x="5" y="6.8" width="8" height="2.3" fill="#ffffff" stroke="#e2e8f0" stroke-width="0.1" />
-        <rect x="5" y="9.1" width="8" height="2.3" fill="#000000" />
-        <text x="9" y="14" font-family="'Cairo', sans-serif" font-weight="bold" font-size="1.4" :fill="pColor" text-anchor="middle">&#x202B;صنعاء&#x202C;</text>
+      <g transform="translate(182, 4)">
+        <image
+          v-if="resolvedEmblemSrc"
+          :href="resolvedEmblemSrc"
+          :xlink:href="resolvedEmblemSrc"
+          x="0"
+          y="0"
+          width="20"
+          height="13"
+          preserveAspectRatio="xMidYMid meet"
+        />
+        <g v-else-if="props.showEmblem !== false" transform="translate(2, 1.5)">
+          <circle cx="9" cy="8" r="7" fill="#ffffff" :stroke="pColor" stroke-width="0.4" />
+          <circle cx="9" cy="8" r="6" fill="none" :stroke="pColor" stroke-width="0.2" stroke-dasharray="0.8 0.6" />
+          <rect x="5" y="4.5" width="8" height="2.3" fill="#ce1126" />
+          <rect x="5" y="6.8" width="8" height="2.3" fill="#ffffff" stroke="#e2e8f0" stroke-width="0.1" />
+          <rect x="5" y="9.1" width="8" height="2.3" fill="#000000" />
+          <text x="9" y="14" font-family="'Cairo', sans-serif" font-weight="bold" font-size="1.4" :fill="pColor" text-anchor="middle">&#x202B;صنعاء&#x202C;</text>
+        </g>
       </g>
 
       <text x="100" y="9.5" font-family="'Cairo', sans-serif" font-weight="800" font-size="4" :fill="pColor" text-anchor="middle">&#x202B;{{ props.institutionName || 'الجمهورية اليمنية — وزارة التعليم العالي والبحث العلمي' }}&#x202C;</text>

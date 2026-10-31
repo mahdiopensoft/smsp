@@ -1,6 +1,6 @@
 <template>
   <div class="qb-full-extraction-v4">
-    <!-- ── Page Header (Institutional OpenSoftCore Style) ─────────────── -->
+    <!-- ── Page Header ─────────────────────────────────────────── -->
     <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-6">
       <div class="d-flex align-center">
         <v-avatar size="44" color="primary" variant="tonal" class="me-3 rounded-xl">

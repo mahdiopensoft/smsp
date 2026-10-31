@@ -1,5 +1,6 @@
 <template>
-  <div class="omr-workflow-bar mb-4">
+  <!-- Hidden as requested by user -->
+  <div v-if="false" class="omr-workflow-bar mb-4">
     <div class="workflow-container">
       <div
         v-for="step in steps"

@@ -62,7 +62,7 @@
         <div class="d-flex align-center justify-space-between flex-wrap gap-2">
           <div>
             <div class="text-subtitle-2 font-weight-black">
-              🔒 هذه الورقة مقفلة ومرحلة للكنترول المركزي
+              هذه الورقة مقفلة ومرحلة للكنترول المركزي
             </div>
             <div class="text-caption">
               تم تثبيت ورصد درجات هذه الورقة رسمياً بموجب الإيصال الأكاديمي المشفر رقم:
@@ -88,7 +88,7 @@
         <div class="d-flex align-center justify-space-between flex-wrap gap-2">
           <div>
             <div class="text-subtitle-2 font-weight-black">
-              ✅ تم التصحيح والرصد الآلي بنجاح بمطابقة الذكاء الاصطناعي
+              تم التصحيح والرصد الآلي بنجاح بمطابقة الذكاء الاصطناعي
             </div>
             <div class="text-caption">
               تم التعرف على تظليلات الطالب بدقة عالية ومقارنتها بنموذج الإجابة الرسمي ({{ submission.exam_version_code || 'النموذج المعتمد' }}). يمكنك النقر على مقتطفات الدوائر الدقيقة (AI Crops) في الجدول أدناه لفحص كيفية رؤية الذكاء الاصطناعي لكل دائرة.
@@ -112,7 +112,7 @@
         <div class="d-flex align-center justify-space-between flex-wrap gap-2">
           <div>
             <div class="text-subtitle-2 font-weight-black">
-              🔍 تم فحص الورقة بالكامل ومطابقة الدوائر بالذكاء الاصطناعي
+              تم فحص الورقة بالكامل ومطابقة الدوائر بالذكاء الاصطناعي
             </div>
             <div class="text-caption">
               جميع دوائر الإجابة لهذه الورقة فارغة (لم يقم الطالب بتظليل أي خيار). تم اقتصاص مواضع الدوائر وتأكيد خلوها من الرصاص بنسبة ثقة عالية. يمكنك رؤية مقتطفات الدوائر الدقيقة (AI Crops) في الجدول أدناه بالنقر على أي دائرة.
@@ -236,7 +236,7 @@
 
               <!-- Visualizer Wrapper -->
               <div class="visualizer-wrapper bg-slate-900 rounded-xl pa-2 text-center position-relative overflow-hidden">
-                <div class="image-relative-container">
+                <div v-if="activeImage" class="image-relative-container">
                   <img
                     ref="sheetImg"
                     :src="getMediaUrl(activeImage)"
@@ -262,6 +262,27 @@
                       </template>
                     </template>
                   </template>
+                </div>
+
+                <!-- رسالة توضيحية عندما لا تحتوي الورقة على ملف صورة ممسوح ضوئياً -->
+                <div v-else class="pa-10 text-center text-white">
+                  <v-icon size="64" color="blue-grey-lighten-3" class="mb-3">mdi-image-off-outline</v-icon>
+                  <h4 class="text-subtitle-1 font-weight-black mb-1">ورقة الإجابة لا تتضمن ملف صورة مرفوع</h4>
+                  <p class="text-caption text-blue-grey-lighten-3 mb-4 mx-auto" style="max-width: 380px;">
+                    تم إنشاء درجات وسجلات هذه الورقة ضمن بيانات المحاكاة التجريبية (Seeder) لاختبار مادة التاريخ دون رفع صورة ماسح ضوئي.
+                  </p>
+                  <div class="d-flex align-center justify-center gap-2">
+                    <v-btn
+                      color="primary"
+                      variant="elevated"
+                      size="small"
+                      prepend-icon="mdi-file-eye-outline"
+                      class="font-weight-bold"
+                      @click="$router.push('/omr-submissions/36')"
+                    >
+                      استعراض ورقة مصححة ومفحوصة بالذكاء الاصطناعي (رقم 36)
+                    </v-btn>
+                  </div>
                 </div>
               </div>
             </div>
@@ -640,6 +661,8 @@ export default {
       selectedCrop: null,
 
       filterMode: 'all',
+      questionsPage: 1,
+      questionsPageSize: 10,
 
       paperWidth: 210.0,
       paperHeight: 297.0,
@@ -668,15 +691,21 @@ export default {
   computed: {
     questionsTableItems() {
       const qs = this.filteredQuestions.map(q => this.enrichQuestion(q))
+      const total = qs.length
+      const pageSize = this.questionsPageSize || 10
+      const numPages = Math.ceil(total / pageSize) || 1
+      const validPage = Math.min(Math.max(1, this.questionsPage), numPages)
+      const start = (validPage - 1) * pageSize
+
       return {
-        results: qs,
-        count: qs.length,
+        results: qs.slice(start, start + pageSize),
+        count: total,
         pagination: {
-          count: qs.length,
-          total: qs.length,
-          page_size: 10,
-          num_pages: Math.ceil(qs.length / 10) || 1,
-          current_page: 1,
+          count: total,
+          total: total,
+          page_size: pageSize,
+          num_pages: numPages,
+          current_page: validPage,
         },
       }
     },
@@ -940,8 +969,20 @@ export default {
       return q
     },
 
-    getQuestionsData() {
+    async getQuestionsData(params = {}) {
+      const p = params?.params || params || {}
+      if (p.page) this.questionsPage = Number(p.page) || 1
+      if (p.page_size) this.questionsPageSize = Number(p.page_size) || 10
       return this.questionsTableItems
+    },
+  },
+
+  watch: {
+    filterMode() {
+      this.questionsPage = 1
+    },
+    questionSearchQuery() {
+      this.questionsPage = 1
     },
   },
 

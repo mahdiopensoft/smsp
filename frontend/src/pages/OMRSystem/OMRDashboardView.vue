@@ -1,50 +1,5 @@
 <template>
   <div class="qb-omr-dashboard-v4">
-    <!-- ── Page Header (Institutional OpenSoftCore Style) ─────────────── -->
-    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-6">
-      <div class="d-flex align-center">
-        <v-avatar size="44" color="primary" variant="tonal" class="me-3 rounded-xl">
-          <v-icon size="24">mdi-view-dashboard-outline</v-icon>
-        </v-avatar>
-        <div>
-          <h1 class="text-h5 font-weight-black text-on-surface mb-0">لوحة تحكم القراءة والتصحيح</h1>
-          <p class="text-caption text-medium-emphasis mb-0">نظرة عامة شمولية على حالة المعالجة الضوئية والأوراق المرفوعة ونسب الثقة</p>
-        </div>
-      </div>
-
-      <div class="d-flex align-center gap-2 flex-wrap">
-        <custom-btn
-          type="add"
-          :click="() => $router.push('/omr-scanner')"
-          label="بدء مسح ضوئي جديد"
-          class="font-weight-bold"
-        />
-        <custom-btn
-          type="imports"
-          :click="() => $router.push('/omr-templates')"
-          label="مصمم القوالب"
-          color="secondary"
-          variant="tonal"
-          class="font-weight-bold"
-        />
-        <custom-btn
-          type="restore"
-          :click="() => $router.push('/omr-submissions')"
-          label="سجل الأوراق"
-          color="secondary"
-          variant="tonal"
-          class="font-weight-bold"
-        />
-        <custom-btn
-          type="show"
-          :click="() => $router.push('/omr-gradebook')"
-          label="سجل الدرجات والكنترول"
-          color="primary"
-          variant="tonal"
-          class="font-weight-bold"
-        />
-      </div>
-    </div>
 
     <!-- Stat Summary Cards Grid (4 Calm Institutional Cards) -->
     <v-row class="mb-6" dense>
@@ -137,7 +92,8 @@
             clearable
             density="compact"
             variant="outlined"
-            class="mb-6"
+            rounded="lg"
+            class="mb-3"
             hide-details
           />
         </v-col>
@@ -150,30 +106,35 @@
             item-title="label"
             item-value="value"
             label="حالة التصحيح"
+            placeholder="حالة التصحيح"
             prepend-inner-icon="mdi-check-decagram-outline"
+            clearable
             density="compact"
             variant="outlined"
-            class="mb-6"
+            rounded="lg"
+            class="mb-3"
             hide-details
           />
         </v-col>
 
         <!-- Actions -->
-        <v-col cols="12" sm="12" md="3" class="d-flex align-center gap-2">
+        <v-col cols="12" sm="12" md="3" class="d-flex align-center justify-end gap-2 mb-3">
+          <custom-btn
+            type="show"
+            label="تصفية النتائج"
+            color="primary"
+            icon="mdi-filter"
+            class="font-weight-bold px-5"
+            :click="fetchDashboardData"
+          />
           <custom-btn
             type="cancel_filter"
             :click="resetFilters"
             variant="tonal"
             color="error"
-            label="تفريغ"
-            class="font-weight-bold mb-6"
-          />
-          <custom-btn
-            type="show"
-            label="تحديث"
-            color="primary"
-            class="font-weight-bold flex-grow-1 mb-6"
-            :click="fetchDashboardData"
+            label="تفريغ الفلاتر"
+            icon="mdi-filter-off"
+            class="font-weight-bold"
           />
         </v-col>
       </v-row>
@@ -198,7 +159,8 @@
 
       <custom-data-table
         v-bind="{
-          items: tableItems,
+          items: dashboardTableItems,
+          getData: getDashboardData,
           headers,
           loading,
         }"
@@ -276,7 +238,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { submissionsAPI, examsAPI } from '../../services/omr/endpoints.js'
 
 const loading = ref(false)
@@ -325,14 +287,51 @@ const filteredSubmissions = computed(() => {
   return list
 })
 
-const tableItems = computed(() => ({
-  results: filteredSubmissions.value,
-  count: filteredSubmissions.value.length,
+const dashboardPage = ref(1)
+const dashboardPageSize = ref(10)
+const dashboardTableItems = ref({
+  results: [],
+  count: 0,
   pagination: {
-    count: filteredSubmissions.value.length,
-    total: filteredSubmissions.value.length,
+    count: 0,
+    total: 0,
+    num_pages: 1,
+    current_page: 1,
+  },
+})
+
+const getDashboardData = async (params = {}) => {
+  const p = params?.params || params || {}
+  const page = Number(p.page) || dashboardPage.value || 1
+  const pageSize = Number(p.page_size) || dashboardPageSize.value || 10
+  dashboardPage.value = page
+  dashboardPageSize.value = pageSize
+
+  const all = filteredSubmissions.value || []
+  const total = all.length
+  const numPages = Math.ceil(total / pageSize) || 1
+  const validPage = Math.min(Math.max(1, page), numPages)
+  const start = (validPage - 1) * pageSize
+
+  dashboardTableItems.value = {
+    results: all.slice(start, start + pageSize),
+    count: total,
+    pagination: {
+      count: total,
+      total: total,
+      num_pages: numPages,
+      current_page: validPage,
+    },
   }
-}))
+  return dashboardTableItems.value
+}
+
+watch(filteredSubmissions, () => {
+  dashboardPage.value = 1
+  getDashboardData({ page: 1, page_size: dashboardPageSize.value })
+}, { immediate: true })
+
+const tableItems = computed(() => dashboardTableItems.value)
 
 const resetFilters = () => {
   searchQuery.value = ''
