@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from academic.models.common.ExamPeriod import ExamPeriod
+from academic.models.universities.UniversityExamPeriod import UniversityExamPeriod as ExamPeriod
 
 class Command(BaseCommand):
     help = 'Seeds the database with default Exam Periods'

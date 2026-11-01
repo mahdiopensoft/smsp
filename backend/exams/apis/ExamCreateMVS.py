@@ -18,8 +18,8 @@ from exams.models.ExamTemplate import ExamTemplate
 from exams.serializers.Exam import ExamSerializer
 from exams.serializers.ExamTemplate import ExamTemplateSerializer
 from bank.models.Question import Question
-from academic.models.common.Lesson import Lesson
-from academic.models.common.Unit import Unit
+from academic.models.universities.UniversityLesson import UniversityLesson as Lesson
+from academic.models.universities.UniversityUnit import UniversityUnit as Unit
 
 class ExamCreateMVS(AllMVS):
     """
@@ -125,7 +125,7 @@ class ExamCreateMVS(AllMVS):
         # Resolve from institute subject
         if inst_type == 'institute' and institute_subject_id:
             from academic.models.institutes.InstituteSubject import InstituteSubject
-            from academic.models.common.Subject import Subject
+            from academic.models.universities.UniversitySubject import UniversitySubject as Subject
             try:
                 inst_sub = InstituteSubject.objects.get(id=institute_subject_id)
                 sub_match = Subject.objects.filter(name_ar=inst_sub.name_ar).first()

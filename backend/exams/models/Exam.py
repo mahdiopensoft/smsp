@@ -23,7 +23,7 @@ class Exam(SoftDeleteModel):
         verbose_name=_("السنة الدراسية")
     )
     subject = models.ForeignKey(
-        'academic.Subject', 
+        'academic.UniversitySubject', 
         on_delete=models.CASCADE, 
         verbose_name=_("المادة")
     )

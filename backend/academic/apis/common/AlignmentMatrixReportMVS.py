@@ -4,9 +4,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Count, Q
 from academic.models.common.LearningOutcome import LearningOutcome
-from academic.models.common.Subject import Subject
+from academic.models.universities.UniversitySubject import UniversitySubject as Subject
 from academic.models.universities.UniversitySemesterSubject import UniversitySemesterSubject as SemesterSubject
-from academic.models.common.Unit import Unit
+from academic.models.universities.UniversityUnit import UniversityUnit as Unit
 from bank.models.Question import Question
 
 class AlignmentMatrixReportMVS(AllMVS):

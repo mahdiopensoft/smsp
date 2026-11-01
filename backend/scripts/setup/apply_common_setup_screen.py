@@ -179,21 +179,27 @@ def apply_common_setup_screens():
 
     if ScreenSystemGroup:
         for gid in groups_in_sys8:
-            ScreenSystemGroup.objects.get_or_create(
-                group_id=gid,
-                fk_screen=common_folder,
-                fk_system_id=8,
-                defaults={'is_active': True}
-            )
+            try:
+                ScreenSystemGroup.objects.get_or_create(
+                    group_id=gid,
+                    fk_screen=common_folder,
+                    fk_system_id=8,
+                    defaults={'is_active': True}
+                )
+            except Exception:
+                pass
 
     if ScreenSystemUser:
         for uid in users_in_sys8:
-            ScreenSystemUser.objects.get_or_create(
-                user_id=uid,
-                fk_screen=common_folder,
-                fk_system_id=8,
-                defaults={'is_active': True, 'order': 1}
-            )
+            try:
+                ScreenSystemUser.objects.get_or_create(
+                    user_id=uid,
+                    fk_screen=common_folder,
+                    fk_system_id=8,
+                    defaults={'is_active': True, 'order': 1}
+                )
+            except Exception:
+                pass
 
     print(f"  🔑 تم منح وتأكيد صلاحية العرض للمجلد المشترك لـ ({copied_groups}) مجموعة مستخدمين.")
 
@@ -300,21 +306,27 @@ def apply_common_setup_screens():
 
             if ScreenSystemGroup:
                 for gid in groups_in_sys8:
-                    ScreenSystemGroup.objects.get_or_create(
-                        group_id=gid,
-                        fk_screen=screen,
-                        fk_system_id=8,
-                        defaults={'is_active': True}
-                    )
+                    try:
+                        ScreenSystemGroup.objects.get_or_create(
+                            group_id=gid,
+                            fk_screen=screen,
+                            fk_system_id=8,
+                            defaults={'is_active': True}
+                        )
+                    except Exception:
+                        pass
 
             if ScreenSystemUser:
                 for uid in users_in_sys8:
-                    ScreenSystemUser.objects.get_or_create(
-                        user_id=uid,
-                        fk_screen=screen,
-                        fk_system_id=8,
-                        defaults={'is_active': True, 'order': cfg["order"]}
-                    )
+                    try:
+                        ScreenSystemUser.objects.get_or_create(
+                            user_id=uid,
+                            fk_screen=screen,
+                            fk_system_id=8,
+                            defaults={'is_active': True, 'order': cfg["order"]}
+                        )
+                    except Exception:
+                        pass
 
             print(f"  ✓ [{cfg['order']}] تم ربط وتفعيل: {screen.name_ar} (ID: {screen.id}) تحت المجلد المشترك.")
 

@@ -50,10 +50,10 @@
         </v-col>
       </v-row>
 
-      <!-- الصف 2: المسار الأكاديمي، العام الدراسي، البحث والحالة -->
+      <!-- الصف 2: المسار الأكاديمي، العام الدراسي، الحالة وأزرار الإجراءات -->
       <v-row dense class="align-center">
         <!-- مسار الصف -->
-        <v-col cols="12" sm="6" md="3">
+        <v-col cols="12" sm="6" md="4">
           <auto-list
             v-model="filterClassTrack"
             name="SchoolClassTrack"
@@ -66,7 +66,7 @@
         </v-col>
 
         <!-- العام الدراسي -->
-        <v-col cols="12" sm="6" md="2">
+        <v-col cols="12" sm="6" md="3">
           <auto-list
             v-model="filterAcademicYear"
             name="AcademicYear"
@@ -96,24 +96,8 @@
           />
         </v-col>
 
-        <!-- البحث بالاسم والكود -->
-        <v-col cols="12" sm="6" md="3">
-          <v-text-field
-            v-model="searchQuery"
-            label="بحث بالاسم أو الكود..."
-            prepend-inner-icon="mdi-magnify"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-3"
-            hide-details
-            @keydown.enter="applyFilters"
-            @click:clear="onClearSearch"
-          />
-        </v-col>
-
         <!-- أزرار الإجراءات -->
-        <v-col cols="12" sm="12" md="2" class="d-flex align-center gap-2 mb-3">
+        <v-col cols="12" sm="6" md="3" class="d-flex align-center gap-2 mb-3">
           <custom-btn
             type="show"
             label="تصفية"
@@ -206,7 +190,6 @@ export default {
       data: {},
       items: {},
       drawer: false,
-      searchQuery: "",
       filterGovernorate: null,
       filterDirectorate: null,
       filterOrganization: null,
@@ -252,7 +235,6 @@ export default {
     async getData(params = {}) {
       const queryParams = {
         ...params,
-        search: this.searchQuery || undefined,
         governorate: this.filterGovernorate || undefined,
         directorate: this.filterDirectorate || undefined,
         organization: this.filterOrganization || undefined,
@@ -281,15 +263,10 @@ export default {
       this.filterOrganization = null;
       this.applyFilters();
     },
-    onClearSearch() {
-      this.searchQuery = "";
-      this.applyFilters();
-    },
     applyFilters() {
       this.getData();
     },
     resetFilters() {
-      this.searchQuery = "";
       this.filterGovernorate = null;
       this.filterDirectorate = null;
       this.filterOrganization = null;

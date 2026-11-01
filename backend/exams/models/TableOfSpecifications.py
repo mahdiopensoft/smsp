@@ -12,7 +12,7 @@ class TableOfSpecifications(SoftDeleteModel):
         verbose_name=_("نوع المؤسسة")
     )
     subject = models.ForeignKey(
-        'academic.Subject',
+        'academic.UniversitySubject',
         on_delete=models.CASCADE,
         related_name='specification_tables',
         verbose_name=_("المادة الدراسية")

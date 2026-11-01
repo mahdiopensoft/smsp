@@ -377,10 +377,13 @@ export default function DataAutoListAcademic(param) {
         if (raw && typeof raw === 'object') {
           if (raw.school_subject || raw.subject) queryParams.school_subject = raw.school_subject || raw.subject;
           if (raw.class_subject) queryParams.class_subject = raw.class_subject;
+          if (raw.class_track) queryParams.class_track = raw.class_track;
+          if (raw.semester) queryParams.semester = raw.semester;
+          if (raw.stage) queryParams.stage = raw.stage;
         } else if (raw) {
           queryParams.school_subject = raw;
         }
-        return (queryParams.school_subject || queryParams.class_subject) ? shared.getData({
+        return (queryParams.school_subject || queryParams.class_subject || queryParams.class_track) ? shared.getData({
           path: "api/academic/school-units/all/",
           params: queryParams,
         }) : Promise.resolve([]);

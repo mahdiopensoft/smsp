@@ -1,3 +1,7 @@
+from .UniversitySubject import UniversitySubject
+from .UniversityUnit import UniversityUnit
+from .UniversityLesson import UniversityLesson
+from .UniversityExamPeriod import UniversityExamPeriod
 from .UniversityCollege import UniversityCollege
 from .UniversityCollegeBranch import UniversityCollegeBranch
 from .UniversityCollegeSettings import UniversityCollegeSettings
@@ -15,7 +19,11 @@ from .UniversityGradingSystem import UniversityGradingSystem
 from .UniversityGradeDistribution import UniversityGradeDistribution
 from .UniversityTypeOfGrade import UniversityTypeOfGrade
 
-# Compatibility aliases
+# Aliases
+Subject = UniversitySubject
+Unit = UniversityUnit
+Lesson = UniversityLesson
+ExamPeriod = UniversityExamPeriod
 College = UniversityCollege
 CollegeBranch = UniversityCollegeBranch
 CollegeSettings = UniversityCollegeSettings
@@ -35,6 +43,10 @@ TypeOfGrade = UniversityTypeOfGrade
 
 __all__ = [
     # New University standard names
+    'UniversitySubject',
+    'UniversityUnit',
+    'UniversityLesson',
+    'UniversityExamPeriod',
     'UniversityCollege',
     'UniversityCollegeBranch',
     'UniversityCollegeSettings',
@@ -52,6 +64,10 @@ __all__ = [
     'UniversityGradeDistribution',
     'UniversityTypeOfGrade',
     # Aliases
+    'Subject',
+    'Unit',
+    'Lesson',
+    'ExamPeriod',
     'College',
     'CollegeBranch',
     'CollegeSettings',

@@ -9,7 +9,7 @@ import re
 
 from bank.models.Question import Question
 from exams.models.Exam import Exam
-from academic.models.common.Subject import Subject
+from academic.models.universities.UniversitySubject import UniversitySubject as Subject
 
 class DashboardMVS(ViewSet):
     """

@@ -3,8 +3,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Count, Q
 
-from academic.models.common.Lesson import Lesson
-from academic.serializers.common.Lesson import LessonSerializer
+from academic.models.universities.UniversityLesson import UniversityLesson as Lesson
+from academic.serializers.universities.UniversityLesson import UniversityLessonSerializer as LessonSerializer
 
 class CurriculumReportMVS(AllMVS):
     """

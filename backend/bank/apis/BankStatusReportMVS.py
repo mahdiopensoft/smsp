@@ -5,10 +5,10 @@ from django.db.models import Count, Q
 
 from bank.models.Question import Question
 from bank.serializers.Question import QuestionSerializer
-from academic.models.common.Subject import Subject
+from academic.models.universities.UniversitySubject import UniversitySubject as Subject
 from academic.models.universities.UniversitySemesterSubject import UniversitySemesterSubject as SemesterSubject
-from academic.models.common.Unit import Unit
-from academic.models.common.Lesson import Lesson
+from academic.models.universities.UniversityUnit import UniversityUnit as Unit
+from academic.models.universities.UniversityLesson import UniversityLesson as Lesson
 
 class BankStatusReportMVS(AllMVS):
     """

@@ -1,3 +1,7 @@
+from .UniversitySubjectMVS import UniversitySubjectMVS
+from .UniversityUnitMVS import UniversityUnitMVS
+from .UniversityLessonMVS import UniversityLessonMVS
+from .UniversityExamPeriodMVS import UniversityExamPeriodMVS
 from .UniversityCollegeMVS import UniversityCollegeMVS
 from .UniversityCollegeBranchMVS import UniversityCollegeBranchMVS
 from .UniversityCollegeSettingsMVS import UniversityCollegeSettingsMVS
@@ -16,6 +20,10 @@ from .UniversityGradeDistributionMVS import UniversityGradeDistributionMVS
 from .UniversityTypeOfGradeMVS import UniversityTypeOfGradeMVS
 
 # Compatibility aliases
+SubjectMVS = UniversitySubjectMVS
+UnitMVS = UniversityUnitMVS
+LessonMVS = UniversityLessonMVS
+ExamPeriodMVS = UniversityExamPeriodMVS
 CollegeMVS = UniversityCollegeMVS
 CollegeBranchMVS = UniversityCollegeBranchMVS
 CollegeSettingsMVS = UniversityCollegeSettingsMVS
@@ -35,6 +43,10 @@ TypeOfGradeMVS = UniversityTypeOfGradeMVS
 
 __all__ = [
     # New University standard names
+    'UniversitySubjectMVS',
+    'UniversityUnitMVS',
+    'UniversityLessonMVS',
+    'UniversityExamPeriodMVS',
     'UniversityCollegeMVS',
     'UniversityCollegeBranchMVS',
     'UniversityCollegeSettingsMVS',
@@ -52,6 +64,10 @@ __all__ = [
     'UniversityGradeDistributionMVS',
     'UniversityTypeOfGradeMVS',
     # Aliases
+    'SubjectMVS',
+    'UnitMVS',
+    'LessonMVS',
+    'ExamPeriodMVS',
     'CollegeMVS',
     'CollegeBranchMVS',
     'CollegeSettingsMVS',

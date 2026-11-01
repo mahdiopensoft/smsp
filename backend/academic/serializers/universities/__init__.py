@@ -1,3 +1,7 @@
+from .UniversitySubject import UniversitySubjectSerializer
+from .UniversityUnit import UniversityUnitSerializer
+from .UniversityLesson import UniversityLessonSerializer
+from .UniversityExamPeriod import UniversityExamPeriodSerializer
 from .UniversityCollege import UniversityCollegeSerializer
 from .UniversityCollegeBranch import UniversityCollegeBranchSerializer
 from .UniversityCollegeSettings import UniversityCollegeSettingsSerializer
@@ -16,6 +20,10 @@ from .UniversityGradeDistribution import UniversityGradeDistributionSerializer
 from .UniversityTypeOfGrade import UniversityTypeOfGradeSerializer
 
 # Compatibility aliases
+SubjectSerializer = UniversitySubjectSerializer
+UnitSerializer = UniversityUnitSerializer
+LessonSerializer = UniversityLessonSerializer
+ExamPeriodSerializer = UniversityExamPeriodSerializer
 CollegeSerializer = UniversityCollegeSerializer
 CollegeBranchSerializer = UniversityCollegeBranchSerializer
 CollegeSettingsSerializer = UniversityCollegeSettingsSerializer
@@ -35,6 +43,10 @@ TypeOfGradeSerializer = UniversityTypeOfGradeSerializer
 
 __all__ = [
     # New University standard names
+    'UniversitySubjectSerializer',
+    'UniversityUnitSerializer',
+    'UniversityLessonSerializer',
+    'UniversityExamPeriodSerializer',
     'UniversityCollegeSerializer',
     'UniversityCollegeBranchSerializer',
     'UniversityCollegeSettingsSerializer',
@@ -52,6 +64,10 @@ __all__ = [
     'UniversityGradeDistributionSerializer',
     'UniversityTypeOfGradeSerializer',
     # Aliases
+    'SubjectSerializer',
+    'UnitSerializer',
+    'LessonSerializer',
+    'ExamPeriodSerializer',
     'CollegeSerializer',
     'CollegeBranchSerializer',
     'CollegeSettingsSerializer',

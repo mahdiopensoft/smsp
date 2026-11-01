@@ -20,6 +20,10 @@ class SchoolUnitMVS(AllMVS):
     def get_queryset(self):
         qs = super().get_queryset()
 
+        stage_id = self.request.query_params.get('stage') or self.request.query_params.get('stage_id')
+        if stage_id:
+            qs = qs.filter(class_subject__class_track__level__stage_id=stage_id)
+
         subject_id = self.request.query_params.get('school_subject') or self.request.query_params.get('subject') or self.request.query_params.get('subject_id')
         if subject_id:
             qs = qs.filter(Q(school_subject_id=subject_id) | Q(class_subject__school_subject_id=subject_id))
@@ -30,7 +34,10 @@ class SchoolUnitMVS(AllMVS):
 
         class_track_id = self.request.query_params.get('class_track') or self.request.query_params.get('class_track_id')
         if class_track_id:
-            qs = qs.filter(class_subject__class_track_id=class_track_id)
+            qs = qs.filter(
+                Q(class_subject__class_track_id=class_track_id) |
+                Q(class_subject__isnull=True, school_subject__class_subjects__class_track_id=class_track_id)
+            )
 
         semester_id = self.request.query_params.get('semester') or self.request.query_params.get('semester_id')
         if semester_id:

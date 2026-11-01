@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
 from academic.models.schools.SchoolSubject import SchoolSubject
-from academic.models.common.Subject import Subject
+from academic.models.universities.UniversitySubject import UniversitySubject as Subject
 from academic.models.schools.SchoolClassTrack import SchoolClassTrack
 from academic.models.universities.UniversityGradingSystem import UniversityGradingSystem
 
@@ -169,7 +169,10 @@ class SchoolClassSubjectMVS(AllMVS):
 
         with transaction.atomic():
             for item in items:
-                rec_id = item.get('id')
+                raw_rec_id = item.get('id')
+                rec_id = raw_rec_id if (isinstance(raw_rec_id, int) or (isinstance(raw_rec_id, str) and raw_rec_id.isdigit())) else None
+                if rec_id is not None:
+                    rec_id = int(rec_id)
                 is_assigned = item.get('is_assigned', False)
                 school_sub_id = item.get('school_subject_id') or item.get('school_subject')
                 sub_id = item.get('subject_id') or item.get('subject')
