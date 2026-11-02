@@ -490,70 +490,33 @@
           <!-- Actions -->
           <template v-else-if="key === 'actions'">
             <div class="d-flex align-center justify-center gap-2">
-              <!-- 1. نقل إلى مرحلة الطباعة (المرحلة 2) - الإجراء المباشر والواضح -->
+              <!-- 1. إنشاء طلب طباعة رسمي (المرحلة 2) -->
               <v-btn
                 color="primary"
                 variant="flat"
                 rounded="lg"
                 size="small"
-                class="font-weight-bold px-2.5 shadow-sm"
-                prepend-icon="mdi-printer"
-                @click.stop.prevent="goToPrintRegistry(item)"
-                title="الانتقال إلى المرحلة 2 لطباعة وتصدير أوراق التظليل والأسئلة"
+                class="font-weight-bold px-3 shadow-sm"
+                prepend-icon="mdi-file-document-plus-outline"
+                @click.stop.prevent="openCreatePrintOrderDialog(item)"
+                title="إنشاء طلب طباعة رسمي للاختبار وتحديد مواعيد الطباعة والامتحان والجهة المستهدفة"
               >
-                نقل للطباعة
+                إنشاء طلب طباعة
               </v-btn>
 
-              <!-- 2. فحص وتجهيز الاختبار - معاينة الكشوفات والنماذج -->
+              <!-- 2. فحص وتجهيز الاختبار -->
               <v-btn
                 color="secondary"
                 variant="tonal"
                 rounded="lg"
                 size="small"
-                class="font-weight-bold px-2.5"
+                class="font-weight-bold px-3"
                 prepend-icon="mdi-clipboard-check-outline"
                 @click.stop.prevent="openExamHub(item, 'questions')"
-                title="فحص النماذج، كشوفات الطلاب، ومفاتيح الحل"
+                title="فحص كراسة الأسئلة، كشوفات الطلاب، ومفاتيح الحل"
               >
                 فحص وتجهيز
               </v-btn>
-
-              <!-- 3. قائمة الإجراءات الفنية المتقدمة -->
-              <v-menu location="bottom end">
-                <template #activator="{ props: menuProps }">
-                  <v-btn
-                    v-bind="menuProps"
-                    variant="text"
-                    color="medium-emphasis"
-                    rounded="lg"
-                    size="small"
-                    icon="mdi-dots-vertical"
-                    title="خيارات إضافية"
-                  />
-                </template>
-                <v-list density="compact" rounded="lg" elevation="3" class="py-1">
-                  <v-list-item
-                    prepend-icon="mdi-draw-pen"
-                    title="مصمم قوالب التظليل (OMR Designer)"
-                    @click="openInTemplateDesigner(item)"
-                  />
-                  <v-list-item
-                    prepend-icon="mdi-scanner"
-                    title="بدء التصحيح الضوئي (المرحلة 3)"
-                    @click="startGradingExam(item, 'A')"
-                  />
-                  <v-list-item
-                    prepend-icon="mdi-history"
-                    title="أوراق الإجابة المصححة"
-                    @click="viewSubmissions(item)"
-                  />
-                  <v-list-item
-                    prepend-icon="mdi-chart-box-outline"
-                    title="سجل الدرجات والرصد (المرحلة 6)"
-                    @click="viewGradebook(item)"
-                  />
-                </v-list>
-              </v-menu>
             </div>
           </template>
         </template>
@@ -585,26 +548,6 @@
           </div>
 
           <div class="d-flex align-center gap-2">
-            <v-btn
-              size="small"
-              variant="flat"
-              color="primary"
-              class="font-weight-bold rounded-lg px-3 shadow-sm"
-              prepend-icon="mdi-printer"
-              @click="goToPrintRegistry(activeExam)"
-            >
-              الانتقال للطباعة (المرحلة 2)
-            </v-btn>
-            <v-btn
-              size="small"
-              variant="tonal"
-              color="success"
-              class="font-weight-bold rounded-lg px-3"
-              prepend-icon="mdi-scanner"
-              @click="startGradingExam(activeExam, currentVersionObj?.versionCode || 'A')"
-            >
-              بدء التصحيح الضوئي (المرحلة 3)
-            </v-btn>
             <v-btn
               icon="mdi-close"
               variant="text"
@@ -681,23 +624,6 @@
                   {{ examDetails.versions.length }}
                 </span>
               </div>
-
-              <div
-                class="exam-hub-nav-item"
-                :class="{ 'is-active': hubActiveTab === 'submissions' }"
-                @click="hubActiveTab = 'submissions'; visitedTabs.add('submissions')"
-                role="button"
-                tabindex="0"
-              >
-                <v-icon size="17" class="nav-icon">mdi-check-decagram-outline</v-icon>
-                <span>أوراق الإجابة المصححة</span>
-                <span
-                  v-if="examDetails?.submissions?.length || examDetails?.recent_submissions?.length"
-                  class="hub-count-badge badge-green"
-                >
-                  {{ (examDetails?.submissions?.length || examDetails?.recent_submissions?.length) }}
-                </span>
-              </div>
             </div>
           </div>
         </div>
@@ -728,9 +654,6 @@
               ref="bubbleSheetTabRef"
               :active-exam="activeExam"
               :exam-details="examDetails"
-              @open-designer="openInTemplateDesigner"
-              @print-package="() => bookletTabRef?.printQuestionsAndSheets('package')"
-              @print-roster="() => rosterTabRef?.printRosterList()"
               @seed-students="seedSampleStudents"
               @refresh-details="() => fetchExamHubDetails(activeExam)"
             />
@@ -745,7 +668,6 @@
               :seeding-students="seedingStudents"
               @switch-to-template="(mode) => { hubActiveTab = 'template'; nextTick(() => bubbleSheetTabRef?.setMode(mode)); }"
               @select-student-for-sheet="(st) => { hubActiveTab = 'template'; nextTick(() => bubbleSheetTabRef?.setStudent(st.id)); }"
-              @print-student-sheet="(st) => { hubActiveTab = 'template'; nextTick(() => { bubbleSheetTabRef?.setStudent(st.id); bubbleSheetTabRef?.printSingleSheet(); }); }"
               @seed-students="seedSampleStudents"
             />
 
@@ -757,20 +679,7 @@
               :active-exam="activeExam"
               :exam-details="examDetails"
               v-model:active-version-tab="activeVersionTab"
-              @open-question-paper-modal="() => bookletTabRef?.openQuestionPaperModal()"
-              @print-questions-only="() => bookletTabRef?.printQuestionsAndSheets('questions_only')"
-              @print-package="() => bookletTabRef?.printQuestionsAndSheets('package')"
-              @start-grading="(code) => startGradingExam(activeExam, code)"
-            />
-
-            <!-- TAB 5: أوراق الإجابة المصححة (lazy mount — only when first visited) -->
-            <ExamSubmissionsTab
-              v-if="visitedTabs.has('submissions')"
-              v-show="hubActiveTab === 'submissions'"
-              ref="submissionsTabRef"
-              :active-exam="activeExam"
-              :exam-details="examDetails"
-              @view-submissions="viewSubmissions"
+              @open-question-paper-modal="() => { hubActiveTab = 'questions'; visitedTabs.add('questions'); }"
             />
           </div>
         </v-card-text>
@@ -784,21 +693,22 @@
             <custom-btn
               type="cancel"
               variant="outlined"
-              label="إغلاق"
+              label="إغلاق النافذة"
               :click="() => detailsDialog = false"
-            />
-            <custom-btn
-              icon="tune"
-              label="مختبر المعايرة والتجربة"
-              color="primary"
-              variant="tonal"
-              class="font-weight-bold"
-              :click="() => openScannerLab(activeExam)"
             />
           </div>
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <!-- DIALOG: نموذج إنشاء طلب طباعة رسمي للاختبار (المرحلة 2)       -->
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <CreatePrintOrderDialog
+      v-model="printOrderDialog"
+      :exam="selectedExamForPrint"
+      @order-created="onPrintOrderCreated"
+    />
   </div>
 </template>
 
@@ -806,11 +716,11 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/omr/client.js'
+import CreatePrintOrderDialog from './components/CreatePrintOrderDialog.vue'
 import ExamBookletTab from './exam_hub/ExamBookletTab.vue'
 import ExamStudentsRosterTab from './exam_hub/ExamStudentsRosterTab.vue'
 import ExamBubbleSheetTab from './exam_hub/ExamBubbleSheetTab.vue'
 import ExamAnswerKeysTab from './exam_hub/ExamAnswerKeysTab.vue'
-import ExamSubmissionsTab from './exam_hub/ExamSubmissionsTab.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -841,13 +751,6 @@ const filterInstituteField = ref(null)
 const filterInstituteEducationSystem = ref(null)
 const filterInstituteSpecialization = ref(null)
 const filterInstituteSubject = ref(null)
-
-const institutionTypeOptions = [
-  { text: 'الكل (مدارس وجامعات ومعاهد)', value: 'all', icon: 'mdi-domain' },
-  { text: 'تعليم مدرسي', value: 'school', icon: 'mdi-school' },
-  { text: 'تعليم جامعي', value: 'university', icon: 'mdi-domain' },
-  { text: 'معاهد وتدريب مهني', value: 'institute', icon: 'mdi-tools' },
-]
 
 const subjectFilterParam = computed(() => {
   const p = {}
@@ -992,29 +895,33 @@ const onInstituteEducationSystemChange = () => {
   debouncedFetchExams()
 }
 
-const stats = ref({
-  totalExams: 0,
-  totalVersions: 0,
-  totalStudents: 0,
-  totalSubmissions: 0,
-  avgScore: 0,
-})
-
 // Dialog State
 const detailsDialog = ref(false)
 const loadingDetails = ref(false)
 const activeExam = ref(null)
 const examDetails = ref(null)
-const hubActiveTab = ref('roster') // 'questions', 'template', 'roster', 'keys', 'submissions'
+const hubActiveTab = ref('questions') // 4 focused tabs: 'questions', 'template', 'roster', 'keys'
 const activeVersionTab = ref(0)
 const seedingStudents = ref(false)
+
+// Dialog State - Print Order Creation Dialog (المرحلة 2)
+const printOrderDialog = ref(false)
+const selectedExamForPrint = ref(null)
+
+const openCreatePrintOrderDialog = (exam) => {
+  selectedExamForPrint.value = exam
+  printOrderDialog.value = true
+}
+
+const onPrintOrderCreated = () => {
+  fetchExams()
+}
 
 // Subcomponent template refs
 const bookletTabRef = ref(null)
 const bubbleSheetTabRef = ref(null)
 const rosterTabRef = ref(null)
 const answerKeysTabRef = ref(null)
-const submissionsTabRef = ref(null)
 
 const currentVersionObj = computed(() => {
   if (!examDetails.value || !examDetails.value.versions) return null
@@ -1116,9 +1023,6 @@ watch(filteredExams, () => {
   getExamsData({ page: 1, page_size: examsPageSize.value })
 }, { immediate: true })
 
-// Backwards-compatible alias for any external bindings
-const tableItems = computed(() => examsTableItems.value)
-
 const resetFilters = () => {
   searchQuery.value = ''
   _searchInput.value = ''
@@ -1180,38 +1084,11 @@ const fetchExams = async () => {
     const resp = await api.get('/api/omr/exam-linking/', { params })
     if (resp.data && resp.data.results) {
       exams.value = resp.data.results
-      updateStats(resp.data.results)
     }
   } catch (err) {
     console.error('Error fetching linking exams:', err)
   } finally {
     loading.value = false
-  }
-}
-
-const updateStats = (data) => {
-  let vCount = 0
-  let sCount = 0
-  let stCount = 0
-  let totalScoreSum = 0
-  let scoredExams = 0
-
-  data.forEach(e => {
-    vCount += (e.versions_count || 0)
-    sCount += (e.submissions_completed || 0)
-    stCount += (e.registered_students_count || 0)
-    if (e.average_score > 0) {
-      totalScoreSum += e.average_score
-      scoredExams++
-    }
-  })
-
-  stats.value = {
-    totalExams: data.length,
-    totalVersions: vCount,
-    totalStudents: stCount,
-    totalSubmissions: sCount,
-    avgScore: scoredExams > 0 ? (totalScoreSum / scoredExams).toFixed(1) : '0',
   }
 }
 
@@ -1253,18 +1130,6 @@ const fetchExamHubDetails = async (exam) => {
   }
 }
 
-const quickBatchPrint = async (exam) => {
-  await openExamHub(exam, 'template')
-  await nextTick()
-  bubbleSheetTabRef.value?.batchPrintAllStudents()
-}
-
-const quickPrintRoster = async (exam) => {
-  await openExamHub(exam, 'roster')
-  await nextTick()
-  rosterTabRef.value?.printRosterList()
-}
-
 const seedSampleStudents = async () => {
   if (!activeExam.value) return
   seedingStudents.value = true
@@ -1274,63 +1139,12 @@ const seedSampleStudents = async () => {
     if (rosterTabRef.value?.fetchExamStudents) {
       rosterTabRef.value.fetchExamStudents({ page: 1, page_size: 10 })
     }
-    fetchExams() // update stats
+    fetchExams()
   } catch (err) {
     console.error('Failed to seed students:', err)
   } finally {
     seedingStudents.value = false
   }
-}
-
-const startGradingExam = (exam, versionCode = 'A') => {
-  router.push({
-    path: '/omr-scanner',
-    query: {
-      exam_id: exam.id,
-      exam_code: exam.uniqueCode,
-      exam_title: exam.title,
-      version: versionCode,
-    }
-  })
-}
-
-const openScannerLab = (exam, versionCode = 'A') => {
-  router.push({
-    path: '/omr-scanner-lab',
-    query: {
-      exam_id: exam.id,
-      exam_code: exam.uniqueCode,
-      exam_title: exam.title,
-      version: versionCode,
-    }
-  })
-}
-
-const viewSubmissions = (exam) => {
-  router.push({
-    path: '/omr-submissions',
-    query: {
-      exam_id: exam.id,
-    }
-  })
-}
-
-const viewGradebook = (exam) => {
-  if (!exam?.id) return
-  router.push({
-    path: '/omr-gradebook',
-    query: {
-      exam_id: exam.id,
-    }
-  })
-}
-
-const openInTemplateDesigner = (exam) => {
-  if (!exam?.id) return
-  const target = `/omr-template-builder?examId=${exam.id}&mode=designer`
-  router.push(target).catch(() => {
-    window.location.href = target
-  })
 }
 
 const goToPrintRegistry = (exam) => {

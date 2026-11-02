@@ -230,30 +230,6 @@
             </v-autocomplete>
           </div>
         </div>
-
-        <!-- Print Actions -->
-        <div class="d-flex align-center gap-2">
-          <v-btn
-            color="primary"
-            variant="flat"
-            rounded="lg"
-            class="font-weight-black px-4"
-            prepend-icon="mdi-printer"
-            @click="() => printQuestionsAndSheets('questions_only')"
-          >
-            طباعة ورقة الأسئلة الرسمية
-          </v-btn>
-          <v-btn
-            color="secondary"
-            variant="tonal"
-            rounded="lg"
-            class="font-weight-bold px-3"
-            prepend-icon="mdi-package-variant-closed"
-            @click="() => printQuestionsAndSheets('package')"
-          >
-            طباعة الحزمة المتكاملة
-          </v-btn>
-        </div>
       </div>
 
       <!-- Row 2: Model Selector & Paper Size -->
@@ -286,19 +262,47 @@
             rounded="lg"
           >
             <v-btn value="a4" class="font-weight-bold px-3" prepend-icon="mdi-file-outline">
-              مقاس A4 (النمط الوزاري المعتمد)
+              مقاس A4 (النمط المعتمد)
             </v-btn>
             <v-btn value="a3" class="font-weight-bold px-3" prepend-icon="mdi-file-document-outline">
               مقاس كبير A3 (ورقة واحدة عمودين)
             </v-btn>
           </v-btn-toggle>
+
+          <!-- ── زر المقارنة والتبديل بين النمطين (صورة الطالب vs ختم المركز) ── -->
+          <v-btn-toggle
+            v-model="headerPhotoStyle"
+            mandatory
+            density="compact"
+            color="primary"
+            variant="outlined"
+            rounded="lg"
+          >
+            <v-btn value="official_print" class="font-weight-bold px-3" prepend-icon="mdi-account-box-outline">
+              نمط الطباعة الرسمي (صورة الطالب)
+            </v-btn>
+            <v-btn value="center_stamp" class="font-weight-bold px-3" prepend-icon="mdi-stamper">
+              نمط كراسة المركز (ختم وتوقيع)
+            </v-btn>
+          </v-btn-toggle>
         </div>
 
-
+        <!-- شريط توضيحي فوري للفروق بين النمطين -->
+        <div class="d-flex align-center gap-2 px-3 py-1 rounded-lg bg-white border text-caption">
+          <v-icon size="16" :color="headerPhotoStyle === 'official_print' ? 'primary' : 'teal'">
+            {{ headerPhotoStyle === 'official_print' ? 'mdi-printer-check' : 'mdi-domain' }}
+          </v-icon>
+          <span class="font-weight-bold">
+            النمط النشط:
+            <span :class="headerPhotoStyle === 'official_print' ? 'text-primary' : 'text-teal'">
+              {{ headerPhotoStyle === 'official_print' ? 'النمط الوزاري الرسمي المعتمد بالمطبعة السرية (خانة صورة الطالب والشخصية مطابقة لأمر الطباعة)' : 'نمط الكراسة الميدانية للمراكز الامتحانية (خانة موضع ختم وتوقيع المركز)' }}
+            </span>
+          </span>
+        </div>
       </div>
     </div>
 
-    <!-- Official Question Paper Component Frame -->
+    <!-- Official Question Paper Component Frame (معاينة مطابقة بنسبة 100% لما يطبع) -->
     <div class="overflow-auto bg-grey-lighten-4 pa-4 rounded-2xl border d-flex justify-center mb-6">
       <YemeniOfficialQuestionPaper
         :exam-title="customStageTitle || activeExam?.title || ''"
@@ -321,64 +325,17 @@
         :model-code="currentVersionObj?.versionCode || 'A'"
         :questions="currentVersionObj?.questions || []"
         :default-layout="selectedQuestionPaperLayout"
+        :header-photo-style="headerPhotoStyle"
         :hide-toolbar="true"
         :show-diagnostics="false"
       />
     </div>
-
-    <!-- ── Official Question Paper (A3 Large Sheet) Preview Modal ── -->
-    <v-dialog v-model="showQuestionPaperDialog" max-width="1340" scrollable>
-      <v-card class="pa-4 rounded-2xl">
-        <div class="d-flex align-center justify-space-between pb-3 border-b mb-3">
-          <div class="d-flex align-center gap-2">
-            <v-avatar color="primary" variant="tonal" size="36" rounded="lg">
-              <v-icon size="20">mdi-newspaper-variant-outline</v-icon>
-            </v-avatar>
-            <div>
-              <h3 class="text-subtitle-1 font-weight-black mb-0">معاينة ورقة الأسئلة الرسمية المعتمدة (النمط الوزاري الموحد A4)</h3>
-              <span class="text-caption text-medium-emphasis">مطابقة تماماً للنسخة الرسمية الوزارية الصادرة عن لجنة المطبعة السرية المركزية</span>
-            </div>
-          </div>
-          <v-btn icon size="small" variant="text" @click="showQuestionPaperDialog = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </div>
-
-        <div v-if="showQuestionPaperDialog" class="overflow-auto bg-grey-lighten-4 pa-4 rounded-xl d-flex justify-center" style="max-height: 80vh;">
-          <YemeniOfficialQuestionPaper
-            :exam-title="activeExam?.title || ''"
-            :exam-subject="activeExam?.subject_name || ''"
-            :stage-title="activeExam?.stage_name ? `اختبار ${activeExam.stage_name}` : (activeExam?.title || '')"
-            :exam-year="activeExam?.year_name || ''"
-            :governorate="effectiveGovernorate"
-            :directorate="effectiveDirectorate"
-            :center-name="effectiveCenterName"
-            :center-code="effectiveCenterCode"
-            :exam-time="activeExam?.time_allowed || activeExam?.exam_time || ''"
-            :day-name="activeExam?.day_name || ''"
-            :exam-date="activeExam?.exam_date || ''"
-            :envelope-no="effectiveEnvelopeNo"
-            :student-name="activeStudent ? activeStudent.student_name : ''"
-            :seat-number="activeStudent ? activeStudent.seat_number : ''"
-            :secret-number="activeStudent ? (activeStudent.secret_number || '') : ''"
-            :student-photo="activeStudent ? (activeStudent.student_photo || activeStudent.photo || '') : ''"
-            :is-blank-mode="!activeStudent"
-            :model-code="currentVersionObj?.versionCode || '1'"
-            :questions="currentVersionObj?.questions || []"
-            :default-layout="'a4'"
-            :hide-toolbar="true"
-            :show-diagnostics="false"
-          />
-        </div>
-      </v-card>
-    </v-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed } from 'vue'
 import YemeniOfficialQuestionPaper from '@/components/omr_templates/YemeniOfficialQuestionPaper.vue'
-import { printExamPackage } from '../utils/omrPrint'
 
 const props = defineProps({
   activeExam: { type: Object, default: () => ({}) },
@@ -401,7 +358,7 @@ const paperTargetMode = ref('general_official')
 const showGeoFilter = ref(false)
 const selectedStudentId = ref(null)
 const selectedQuestionPaperLayout = ref('a4')
-const showQuestionPaperDialog = ref(false)
+const headerPhotoStyle = ref('official_print') // 'official_print' (صورة الطالب) | 'center_stamp' (ختم وتوقيع المركز)
 
 // ── Multi-Institution Type Adaptation (المدارس / الجامعات / المعاهد) ──
 const institutionType = computed(() => {
@@ -698,51 +655,12 @@ const versionSelectItems = computed(() => {
   }))
 })
 
-const printQuestionsAndSheets = async (mode = 'package') => {
-  await nextTick()
-  const targetVersion = currentVersionObj.value || props.examDetails?.versions?.[0]
-
-  if (!targetVersion || !targetVersion.questions || !targetVersion.questions.length) {
-    console.warn('No questions found to print.')
-    return
-  }
-
-  const activeVCode = targetVersion.versionCode || 'A'
-
-  await printExamPackage({
-    title: mode === 'package'
-      ? `حزمة_اختبار_${props.activeExam?.subject_name || 'الاختبار'}_النموذج_${activeVCode}`
-      : `كراسة_أسئلة_${props.activeExam?.subject_name || 'الاختبار'}_النموذج_${activeVCode}`,
-    examTitle: props.customStageTitle || props.activeExam?.title || '',
-    subjectName: props.activeExam?.subject_name || '',
-    stageName: props.customStageTitle || (props.activeExam?.stage_name ? `اختبار ${props.activeExam.stage_name}` : ''),
-    yearName: (props.customExamYear || (props.activeExam?.year_name && String(props.activeExam.year_name).length > 2 && props.activeExam.year_name !== '1') ? props.activeExam.year_name : ''),
-    governorate: effectiveGovernorate.value,
-    directorate: effectiveDirectorate.value,
-    centerName: effectiveCenterName.value,
-    centerCode: effectiveCenterCode.value,
-    dayName: props.activeExam?.day_name || '',
-    examDate: props.activeExam?.exam_date || '',
-    envelopeNo: effectiveEnvelopeNo.value,
-    timeAllowed: props.activeExam?.time_allowed || props.activeExam?.exam_time || '',
-    versionCode: activeVCode,
-    studentName: activeStudent.value ? activeStudent.value.student_name : '',
-    seatNumber: activeStudent.value ? activeStudent.value.seat_number : '',
-    secretNumber: activeStudent.value ? (activeStudent.value.secret_number || '') : '',
-    studentPhoto: activeStudent.value ? (activeStudent.value.student_photo || '') : '',
-    schoolName: effectiveCenterName.value,
-    institutionType: props.activeExam?.institution_type || 'school',
-    questions: targetVersion.questions,
-    omrElement: props.getOmrElement ? props.getOmrElement() : null,
-    mode: mode,
-    isA3: selectedQuestionPaperLayout.value === 'a3',
-    isA5: props.selectedSheetLayout === 'compact_a5'
-  })
-}
-
 defineExpose({
-  openQuestionPaperModal: () => { showQuestionPaperDialog.value = true },
-  printQuestionsAndSheets,
+  openQuestionPaperModal: () => {
+    // Scroll smoothly to question paper in tab without needing a nested dialog
+    const el = document.querySelector('.exam-booklet-tab .yemeni-official-question-paper')
+    if (el) el.scrollIntoView({ behavior: 'smooth' })
+  },
 })
 </script>
 

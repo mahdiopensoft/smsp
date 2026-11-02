@@ -24,16 +24,6 @@
           :click="() => $emit('switch-to-template', 'all_students')"
         />
         <custom-btn
-          type="show"
-          icon="format-list-numbered"
-          label="طباعة كشف المناداة والجلوس"
-          color="secondary"
-          variant="tonal"
-          class="font-weight-bold"
-          :disabled="!totalStudentsCount"
-          :click="printRosterList"
-        />
-        <custom-btn
           v-if="!totalStudentsCount"
           type="create"
           icon="account-multiple-plus"
@@ -203,13 +193,6 @@
                 label="معاينة وتوليد ورقة التظليل"
                 :click="() => $emit('select-student-for-sheet', item)"
               />
-              <custom-btn
-                is-icon
-                icon="printer"
-                color="secondary"
-                label="طباعة ورقة هذا الطالب"
-                :click="() => $emit('print-student-sheet', item)"
-              />
             </div>
           </template>
         </template>
@@ -232,7 +215,6 @@ const emit = defineEmits([
   'switch-to-template',
   'seed-students',
   'select-student-for-sheet',
-  'print-student-sheet',
 ])
 
 const loadingStudents = ref(false)
@@ -382,91 +364,6 @@ const fetchExamStudents = async (tableParams = null) => {
   }
 }
 
-const printRosterList = () => {
-  if (!props.examDetails?.registered_students?.length && !studentTableData.value?.results?.length) return
-
-  const students = filteredStudents.value.length ? filteredStudents.value : (props.examDetails?.registered_students || studentTableData.value.results)
-  const exam = props.activeExam
-
-  const iframe = document.createElement('iframe')
-  iframe.style.position = 'fixed'
-  iframe.style.width = '0'
-  iframe.style.height = '0'
-  iframe.style.border = '0'
-  document.body.appendChild(iframe)
-
-  const doc = iframe.contentWindow?.document
-  if (!doc) return
-
-  const rows = students.map((s, idx) => `
-    <tr>
-      <td style="text-align:center; padding: 6px; border: 1px solid #000;">${idx + 1}</td>
-      <td style="text-align:center; padding: 6px; border: 1px solid #000; font-weight:bold; font-family:monospace;">${s.seat_number}</td>
-      <td style="text-align:center; padding: 6px; border: 1px solid #000; font-family:monospace;">${s.secret_number || '-'}</td>
-      <td style="padding: 6px 10px; border: 1px solid #000; font-weight:bold;">${s.student_name}</td>
-      <td style="padding: 6px; border: 1px solid #000;">${s.school_name || ''}</td>
-      <td style="text-align:center; padding: 6px; border: 1px solid #000; font-weight:bold;">${s.model_code || 'A'}</td>
-      <td style="border: 1px solid #000; width: 120px;"></td>
-    </tr>
-  `).join('')
-
-  doc.open()
-  doc.write(`
-    <!DOCTYPE html>
-    <html dir="rtl" lang="ar">
-    <head>
-      <meta charset="utf-8">
-      <title>كشف مناداة وجلوس الطلاب</title>
-      <style>
-        @page { size: A4 portrait; margin: 12mm; }
-        body { font-family: 'Cairo', Arial, sans-serif; direction: rtl; margin: 0; padding: 0; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
-        th { background: #f0f0f0; border: 1px solid #000; padding: 8px; font-weight: bold; }
-        .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h2 style="margin: 0 0 5px 0;">${
-          exam?.institution_type === 'institute'
-            ? 'الجمهورية اليمنية — وزارة التعليم الفني والتدريب المهني'
-            : (exam?.institution_type === 'university'
-              ? 'الجمهورية اليمنية — وزارة التعليم العالي والبحث العلمي'
-              : 'الجمهورية اليمنية — وزارة التربية والتعليم')
-        }</h2>
-        <h3 style="margin: 0 0 5px 0;">كشف مناداة وتوقيع حضور الطلاب للاختبارات</h3>
-        <p style="margin: 0; font-size: 14px;"><strong>الاختبار:</strong> ${exam?.title || ''} (${exam?.uniqueCode || ''}) | <strong>المادة:</strong> ${exam?.subject_name || ''} | <strong>العام:</strong> ${exam?.year_name || ''}</p>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th style="width: 40px;">#</th>
-            <th style="width: 90px;">رقم الجلوس</th>
-            <th style="width: 80px;">الرقم السري</th>
-            <th>اسم الطالب الرباعي</th>
-            <th>${institutionLabel.value}</th>
-            <th style="width: 70px;">النموذج</th>
-            <th style="width: 120px;">توقيع الطالب</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows}
-        </tbody>
-      </table>
-    </body>
-    </html>
-  `)
-  doc.close()
-
-  setTimeout(() => {
-    iframe.contentWindow?.focus()
-    iframe.contentWindow?.print()
-    setTimeout(() => {
-      if (document.body.contains(iframe)) document.body.removeChild(iframe)
-    }, 3000)
-  }, 400)
-}
-
 onMounted(() => {
   if (props.activeExam?.id) {
     fetchExamStudents({ page: 1 })
@@ -475,7 +372,6 @@ onMounted(() => {
 
 defineExpose({
   fetchExamStudents,
-  printRosterList,
   totalStudentsCount,
 })
 </script>

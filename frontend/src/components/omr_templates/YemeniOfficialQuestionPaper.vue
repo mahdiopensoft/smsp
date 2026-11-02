@@ -115,8 +115,12 @@
                 <td rowspan="5" class="student-photo-cell">
                   <div class="student-photo-frame">
                     <img v-if="displayStudentPhoto" :src="displayStudentPhoto" alt="صورة الطالب" class="student-photo-img" />
-                    <div v-else class="photo-placeholder" style="font-size: 0.55rem; line-height: 1.2;">
-                      موضع ختم وتوقيع المركز
+                    <div
+                      v-else
+                      class="photo-placeholder"
+                      :style="headerPhotoStyle === 'official_print' ? 'font-size: 0.65rem; font-weight: 800; line-height: 1.3;' : 'font-size: 0.55rem; line-height: 1.2;'"
+                    >
+                      {{ headerPhotoStyle === 'official_print' ? 'صورة شخصية' : 'موضع ختم وتوقيع المركز' }}
                     </div>
                   </div>
                 </td>
@@ -462,8 +466,12 @@
                   <td rowspan="5" class="student-photo-cell">
                     <div class="student-photo-frame">
                       <img v-if="displayStudentPhoto" :src="displayStudentPhoto" alt="صورة الطالب" class="student-photo-img" />
-                      <div v-else class="photo-placeholder" style="font-size: 0.55rem; line-height: 1.2;">
-                        موضع ختم وتوقيع المركز
+                      <div
+                        v-else
+                        class="photo-placeholder"
+                        :style="headerPhotoStyle === 'official_print' ? 'font-size: 0.65rem; font-weight: 800; line-height: 1.3;' : 'font-size: 0.55rem; line-height: 1.2;'"
+                      >
+                        {{ headerPhotoStyle === 'official_print' ? 'صورة شخصية' : 'موضع ختم وتوقيع المركز' }}
                       </div>
                     </div>
                   </td>
@@ -843,6 +851,7 @@ const props = withDefaults(
       }>
     }>
     defaultLayout?: 'a3' | 'a4' | 'auto'
+    headerPhotoStyle?: 'official_print' | 'center_stamp'
   }>(),
   {
     examTitle: '',
@@ -862,6 +871,7 @@ const props = withDefaults(
     secretNumber: '',
     modelCode: '1',
     studentPhoto: '',
+    headerPhotoStyle: 'official_print',
     tfMark: 1,
     mcqMark: 2,
     totalScore: 80,

@@ -1,17 +1,5 @@
 <template>
   <div class="exam-bubble-sheet-tab">
-    <!-- Alert Banner for Batch Printing Status -->
-    <v-alert
-      v-if="batchPrintNotification.show"
-      :type="batchPrintNotification.color"
-      variant="tonal"
-      closable
-      class="mb-3 rounded-xl font-weight-bold"
-      @click:close="batchPrintNotification.show = false"
-    >
-      {{ batchPrintNotification.message }}
-    </v-alert>
-
     <!-- Sheet Controls Bar (تصميم موحد، مدمج وهادئ بسطرين فقط يمنع التكدس والتشتت) -->
     <div class="main-card rounded-2xl pa-3 mb-3 border bg-white">
       <!-- Row 1: Setup Configuration & Primary Actions -->
@@ -123,46 +111,19 @@
           </v-btn-toggle>
         </div>
 
-        <!-- Actions Bar -->
+        <!-- Live Header Adjustments Toggle Button -->
         <div class="d-flex align-center gap-2">
           <v-btn
-            color="success"
-            variant="flat"
+            color="primary"
+            variant="tonal"
             rounded="lg"
-            size="default"
-            class="font-weight-black shadow-sm px-4"
-            prepend-icon="mdi-printer-check"
-            :loading="printingBatch"
-            :disabled="!filteredStreamStudents?.length && sheetGenerationMode === 'all_students'"
-            @click="batchPrintAllStudents"
+            size="small"
+            class="font-weight-bold px-3"
+            prepend-icon="mdi-pencil-ruler"
+            @click="showAdjustmentsPanel = !showAdjustmentsPanel"
           >
-            نقل للطباعة ({{ filteredStreamStudents.length || 1 }} ورقة)
+            تعديل بيانات الترويسة
           </v-btn>
-
-          <!-- Quick Actions Menu -->
-          <v-menu location="bottom end">
-            <template #activator="{ props: mProps }">
-              <v-btn
-                v-bind="mProps"
-                variant="tonal"
-                color="secondary"
-                rounded="lg"
-                class="font-weight-bold px-2"
-                icon
-                size="small"
-                title="خيارات إضافية"
-              >
-                <v-icon size="18">mdi-dots-vertical</v-icon>
-              </v-btn>
-            </template>
-            <v-list density="compact" rounded="lg" class="elevation-3 py-1">
-              <v-list-item prepend-icon="mdi-clipboard-list-outline" title="طباعة كشف المناداة" @click="() => $emit('print-roster')" />
-              <v-list-item prepend-icon="mdi-book-open-page-variant-outline" title="طباعة حزمة الاختبار الكاملة" @click="() => $emit('print-package')" />
-              <v-list-item prepend-icon="mdi-pencil-ruler" title="تعديل بيانات الترويسة" @click="showAdjustmentsPanel = !showAdjustmentsPanel" />
-              <v-divider class="my-1" />
-              <v-list-item prepend-icon="mdi-tune-vertical" title="تعديل القالب في المصمم" @click="() => $emit('open-designer', activeExam)" />
-            </v-list>
-          </v-menu>
         </div>
       </div>
 
@@ -548,59 +509,6 @@
         active-color="primary"
       />
     </div>
-
-    <!-- Hidden Container for Batch Printing All Students' Sheets (Only mounted during printing) -->
-    <div
-      v-if="printingBatch"
-      id="omr-batch-print-staging"
-      style="position: fixed; left: -9999px; top: -9999px; width: 800px; opacity: 0; pointer-events: none; z-index: -9999;"
-    >
-      <div
-        v-for="st in (filteredStreamStudents.length ? filteredStreamStudents : (examDetails?.registered_students || []))"
-        :key="`batch-${st.id}-${selectedSheetLayout}`"
-        class="batch-sheet-slot"
-      >
-        <YemeniAuditReportSheet
-          v-if="selectedSheetLayout === 'full_a4'"
-          :student-name="st.student_name"
-          :seat-number="st.seat_number"
-          :serial-number="st.secret_number || st.model_code"
-          :model-code="st.model_code || 'A'"
-          :form-number="st.model_code || 'A'"
-          :exam-subject="activeExam?.subject_name || 'الرياضيات'"
-          :exam-stage-title="customStageTitle || (activeExam?.stage_name ? `اختبار ${activeExam.stage_name}` : (activeExam?.title || 'اختبار الشهادة الثانوية العامة (القسم العلمي)'))"
-          :exam-year="customExamYear || activeExam?.year_name || '2026'"
-          :center-name="customCenterName || st.school_name || activeExam?.directorate || 'المركز الاختباري الرئيسي'"
-          :center-code="st.school_id || activeExam?.id || '101'"
-          :governorate="customGovernorate || st.governorate || activeExam?.governorate || 'أمانة العاصمة'"
-          :directorate="customDirectorate || st.directorate || activeExam?.directorate || 'السبعين'"
-          :barcode-value="st.barcode_value || `EXAM_${activeExam?.id}_VER_${st.model_code || 'A'}_SEAT_${st.seat_number}`"
-          :qr-value="st.qr_value || `${activeExam?.uniqueCode}|${st.model_code || 'A'}|${st.seat_number}`"
-          :total-questions="getQuestionsCountForVersion(st.model_code)"
-          :sections="getSectionsForVersion(st.model_code)"
-        />
-
-        <YemeniMinistrySheet
-          v-else
-          layout-mode="compact_a5"
-          :student-name="st.student_name"
-          :seat-number="st.seat_number"
-          :serial-number="st.secret_number || st.model_code"
-          :model-code="st.model_code || 'A'"
-          :exam-subject="activeExam?.subject_name || 'الرياضيات'"
-          :exam-stage-title="customStageTitle || (activeExam?.stage_name ? `اختبار ${activeExam.stage_name}` : (activeExam?.title || 'اختبار الشهادة الثانوية العامة (القسم العلمي)'))"
-          :exam-year="customExamYear || activeExam?.year_name || '2026'"
-          :center-name="customCenterName || st.school_name || activeExam?.directorate || 'المركز الامتحاني الرئيسي'"
-          :governorate="customGovernorate || activeExam?.governorate || 'أمانة العاصمة'"
-          :directorate="customDirectorate || st.directorate || activeExam?.directorate || 'السبعين'"
-          :barcode-value="st.barcode_value || `EXAM_${activeExam?.id}_VER_${st.model_code || 'A'}_SEAT_${st.seat_number}`"
-          :qr-value="st.qr_value || `${activeExam?.uniqueCode}|${st.model_code || 'A'}|${st.seat_number}`"
-          :total-questions="getQuestionsCountForVersion(st.model_code)"
-          :sections="getSectionsForVersion(st.model_code)"
-          :interactive="false"
-        />
-      </div>
-    </div>
   </div>
 </template>
 
@@ -609,7 +517,6 @@ import { ref, computed, watch, nextTick, shallowRef } from 'vue'
 import api from '@/services/omr/client.js'
 import YemeniMinistrySheet from '@/components/omr_templates/YemeniMinistrySheet.vue'
 import YemeniAuditReportSheet from '@/components/omr_templates/YemeniAuditReportSheet.vue'
-import { printOmrElement, printOmrBatch } from '../utils/omrPrint'
 
 const props = defineProps({
   activeExam: { type: Object, default: () => ({}) },
@@ -617,9 +524,6 @@ const props = defineProps({
 })
 
 const emit = defineEmits([
-  'open-designer',
-  'print-package',
-  'print-roster',
   'seed-students',
   'refresh-details',
 ])
@@ -630,7 +534,6 @@ const selectedBlankVersionCode = ref('A')
 const selectedSheetLayout = ref('compact_a5')
 const sheetArtboardRef = ref(null)
 const batchStreamRef = ref(null)
-const printingBatch = ref(false)
 const filterStreamModelCode = ref('all')
 
 const modelFilterSelectOptions = computed(() => {
@@ -655,7 +558,6 @@ const customGovernorate = ref('')
 const customExamYear = ref('')
 const customStageTitle = ref('')
 const showAdjustmentsPanel = ref(false)
-const batchPrintNotification = ref({ show: false, message: '', color: 'info' })
 
 const sheetZoomLevel = ref(0.72) // Slightly smaller default = faster render on slow devices
 
@@ -893,102 +795,6 @@ const activeSheetQuestionMarks = computed(() => {
   return marks
 })
 
-const printSingleSheet = async () => {
-  await nextTick()
-  let printableEl = null
-  let curStudent = null
-
-  if (sheetGenerationMode.value === 'all_students') {
-    printableEl = batchStreamRef.value?.querySelector('.sheet-page-card:first-child .yemeni-audit-report-sheet') ||
-                  batchStreamRef.value?.querySelector('.sheet-page-card:first-child svg.yemeni-ministry-sheet-svg') ||
-                  batchStreamRef.value?.querySelector('.sheet-page-card:first-child svg')
-    curStudent = paginatedStudents.value?.[0]
-  } else {
-    printableEl = sheetArtboardRef.value?.querySelector('.yemeni-audit-report-sheet') ||
-                  sheetArtboardRef.value?.querySelector('svg.yemeni-ministry-sheet-svg') ||
-                  sheetArtboardRef.value?.querySelector('svg')
-    curStudent = activeSheetStudent.value
-  }
-
-  if (printableEl) {
-    await printOmrElement(printableEl, {
-      title: `${props.activeExam?.uniqueCode || 'OMR'}_${curStudent?.seat_number || activeSheetModelCode.value}`,
-      isA5: selectedSheetLayout.value === 'compact_a5'
-    })
-  } else {
-    window.print()
-  }
-}
-
-const batchPrintAllStudents = async () => {
-  printingBatch.value = true
-  try {
-    const isAudit = selectedSheetLayout.value === 'full_a4'
-    let elements = []
-
-    if (perPage.value === -1 && batchStreamRef.value) {
-      if (isAudit) {
-        elements = Array.from(batchStreamRef.value.querySelectorAll('.yemeni-audit-report-sheet'))
-      } else {
-        elements = Array.from(batchStreamRef.value.querySelectorAll('svg.yemeni-ministry-sheet-svg'))
-        if (!elements.length) {
-          elements = Array.from(batchStreamRef.value.querySelectorAll('svg'))
-        }
-      }
-    }
-
-    if (!elements.length) {
-      await nextTick()
-      const stagingEl = document.getElementById('omr-batch-print-staging')
-      if (stagingEl) {
-        if (isAudit) {
-          elements = Array.from(stagingEl.querySelectorAll('.yemeni-audit-report-sheet'))
-        } else {
-          elements = Array.from(stagingEl.querySelectorAll('svg.yemeni-ministry-sheet-svg'))
-          if (!elements.length) {
-            elements = Array.from(stagingEl.querySelectorAll('svg'))
-          }
-        }
-      }
-    }
-
-    if (elements.length > 0) {
-      const batchId = `BATCH_${Date.now()}`
-      await printOmrBatch(elements, {
-        title: `كشف_أوراق_تظليل_${props.activeExam?.uniqueCode || 'الاختبار'}_${selectedSheetLayout.value}`,
-        isA5: selectedSheetLayout.value === 'compact_a5'
-      })
-
-      const targetStudentIds = (filteredStreamStudents.value && filteredStreamStudents.value.length > 0)
-        ? filteredStreamStudents.value.map(s => s.id)
-        : (props.examDetails?.registered_students?.map(s => s.id) || [])
-
-      if (props.activeExam && targetStudentIds.length > 0) {
-        try {
-          await api.post(`/api/omr/exam-linking/${props.activeExam.id}/mark-printed/`, {
-            student_ids: targetStudentIds,
-            batch_id: batchId
-          })
-          batchPrintNotification.value = {
-            show: true,
-            message: `تم نقل ${elements.length} ورقة بنجاح إلى أمر الطباعة وتوثيق الدفعة (${batchId}) في سجل الطباعة!`,
-            color: 'success'
-          }
-          emit('refresh-details')
-        } catch (e) {
-          console.error('Failed to register print status:', e)
-        }
-      }
-    } else {
-      await printSingleSheet()
-    }
-  } catch (err) {
-    console.error('Error during batch printing:', err)
-  } finally {
-    printingBatch.value = false
-  }
-}
-
 defineExpose({
   setStudent: (studentId) => {
     selectedStudentId.value = studentId
@@ -997,8 +803,6 @@ defineExpose({
   setMode: (mode) => {
     sheetGenerationMode.value = mode
   },
-  printSingleSheet,
-  batchPrintAllStudents,
   getPrintableElement: () => {
     return sheetArtboardRef.value?.querySelector('.yemeni-audit-report-sheet') ||
            sheetArtboardRef.value?.querySelector('svg.yemeni-ministry-sheet-svg') ||
