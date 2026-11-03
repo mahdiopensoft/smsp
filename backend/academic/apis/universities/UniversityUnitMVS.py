@@ -28,6 +28,10 @@ class UniversityUnitMVS(AllMVS):
         if semester_subject_id:
             qs = qs.filter(semester_subject_id=semester_subject_id)
 
+        subject_id = self.request.query_params.get('subject') or self.request.query_params.get('subject_id')
+        if subject_id:
+            qs = qs.filter(semester_subject__fk_subject_id=subject_id)
+
         semester_id = self.request.query_params.get('semester') or self.request.query_params.get('semester_id')
         if semester_id:
             qs = qs.filter(semester_id=semester_id)

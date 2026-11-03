@@ -109,6 +109,11 @@ class Exam(SoftDeleteModel):
         verbose_name=_("استبعاد الأسئلة المكررة"),
         help_text=_("استبعاد الأسئلة المستخدمة في اختبارات سابقة لنفس المادة والسنة")
     )
+    total_marks = models.FloatField(
+        default=100.0,
+        verbose_name=_("الدرجة النهائية للاختبار"),
+        help_text=_("الدرجة الإجمالية القصوى للاختبار (مثلاً 100 أو 60)")
+    )
 
     class Meta:
         verbose_name = _('اختبار')

@@ -24,8 +24,11 @@ class QuestionBulkCompleteMVS(AllMVS):
     queryset = Question.objects.filter(
         status=Question.StatusChoices.IMPORTED
     ).select_related(
-        'lesson__unit__class_subject__subject',
+        'lesson',
+        'lesson__subject',
+        'lesson__unit',
         'lesson__unit__semester_subject__fk_subject',
+        'lesson__unit__semester_subject__course',
         'import_session',
         'createdBy'
     ).prefetch_related('options')
@@ -44,18 +47,18 @@ class QuestionBulkCompleteMVS(AllMVS):
         if session_id:
             qs = qs.filter(import_session_id=session_id)
 
-        # Filter by School Hierarchy
+        # Filter by School Hierarchy (Guarded: questions currently reference UniversityLesson)
         stage_id = self.request.query_params.get('stage') or self.request.query_params.get('stage_id')
         if stage_id:
-            qs = qs.filter(lesson__unit__class_subject__class_track__level__stage_id=stage_id)
+            qs = qs.none()
 
         level_id = self.request.query_params.get('level') or self.request.query_params.get('level_id')
         if level_id:
-            qs = qs.filter(lesson__unit__class_subject__class_track__level_id=level_id)
+            qs = qs.none()
 
         track_id = self.request.query_params.get('track') or self.request.query_params.get('track_id')
         if track_id:
-            qs = qs.filter(lesson__unit__class_subject__class_track__track_id=track_id)
+            qs = qs.none()
 
         # Filter by University Hierarchy
         college_id = self.request.query_params.get('college') or self.request.query_params.get('college_id')
@@ -83,9 +86,9 @@ class QuestionBulkCompleteMVS(AllMVS):
         subject_id = self.request.query_params.get('subject') or self.request.query_params.get('subject_id') or self.request.query_params.get('institute_subject')
         if subject_id:
             qs = qs.filter(
-                Q(lesson__unit__class_subject__subject_id=subject_id) |
                 Q(lesson__unit__semester_subject__fk_subject_id=subject_id) |
-                Q(lesson__subject_id=subject_id)
+                Q(lesson__subject_id=subject_id) |
+                Q(lesson__unit__semester_subject__course_id=subject_id)
             )
 
         # Filter by Unit & Lesson

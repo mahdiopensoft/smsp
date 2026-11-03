@@ -18,10 +18,11 @@ class QuestionNewMVS(AllMVS):
     Used by: QuestionNewView.vue
     """
     queryset = Question.objects.select_related(
-        'lesson__unit__class_subject__subject',
-        'lesson__unit__class_subject__class_track__level__stage',
-        'lesson__unit__class_subject__class_track__track',
+        'lesson',
+        'lesson__subject',
+        'lesson__unit',
         'lesson__unit__semester_subject__fk_subject',
+        'lesson__unit__semester_subject__course',
         'lesson__unit__semester_subject__fk_specialization__fk_college',
         'lesson__unit__semester_subject__fk_specialization__fk_section',
         'lesson__unit__semester_subject__semester',
@@ -122,6 +123,7 @@ class QuestionNewMVS(AllMVS):
             'department_id': None,
             'specialization_id': None,
             'semester_subject_id': None,
+            'semester_id': None,
             'stage_id': None,
             'class_track_id': None,
             'subject_id': None,
@@ -129,75 +131,105 @@ class QuestionNewMVS(AllMVS):
             'lesson': None,
         }
 
-        lesson = question.lesson
+        lesson = getattr(question, 'lesson', None)
+        target_inst = getattr(question, 'institution_type', None) or 'school'
+        data['institution_type'] = target_inst
+
         if lesson:
             data['lesson'] = lesson.id
-            if lesson.subject_id:
-                data['subject_id'] = lesson.subject_id
-                data['fk_subject'] = lesson.subject_id
+            sub_id = getattr(lesson, 'subject_id', None) or getattr(lesson, 'school_subject_id', None)
+            if sub_id:
+                data['subject_id'] = sub_id
+                data['fk_subject'] = sub_id
 
-            if lesson.unit:
-                data['fk_unit'] = lesson.unit_id
-                data['unit_id'] = lesson.unit_id
+            unit = getattr(lesson, 'unit', None)
+            if unit:
+                data['fk_unit'] = unit.id
+                data['unit_id'] = unit.id
                 
-                if lesson.unit.class_subject:
-                    data['fk_subject'] = lesson.unit.class_subject.subject_id
-                    data['subject_id'] = lesson.unit.class_subject.subject_id
-                    if lesson.unit.class_subject.class_track:
-                        data['class_track_id'] = lesson.unit.class_subject.class_track_id
-                        if lesson.unit.class_subject.class_track.level:
-                            data['stage_id'] = lesson.unit.class_subject.class_track.level.stage_id
-                elif lesson.unit.semester_subject:
-                    data['fk_subject'] = lesson.unit.semester_subject.fk_subject_id
-                    data['subject_id'] = lesson.unit.semester_subject.fk_subject_id
-                    data['semester_subject_id'] = lesson.unit.semester_subject_id
-                    if lesson.unit.semester_subject.fk_specialization:
-                        data['specialization_id'] = lesson.unit.semester_subject.fk_specialization_id
-                        data['department_id'] = lesson.unit.semester_subject.fk_specialization.fk_section_id
-                        data['college_id'] = lesson.unit.semester_subject.fk_specialization.fk_college_id
+                # Check unit semester
+                if getattr(unit, 'semester_id', None):
+                    data['semester_id'] = unit.semester_id
 
-            # Fallback 1: If university fields are missing, try resolving from subject
-            target_inst = getattr(question, 'institution_type', None)
-            if target_inst == 'university' or (not data.get('stage_id') and not data.get('class_track_id')):
-                if not data.get('semester_subject_id'):
-                    sub_id = data.get('subject_id') or getattr(lesson, 'subject_id', None)
-                    if sub_id:
-                        from academic.models.universities.UniversitySemesterSubject import UniversitySemesterSubject as SemesterSubject
-                        sem_sub = SemesterSubject.objects.filter(fk_subject_id=sub_id).select_related(
-                            'fk_specialization__fk_college', 'fk_specialization__fk_section'
-                        ).first()
-                        if sem_sub:
-                            data['semester_subject_id'] = sem_sub.id
-                            data['subject_id'] = sem_sub.fk_subject_id
-                            data['fk_subject'] = sem_sub.fk_subject_id
-                            if sem_sub.fk_specialization:
-                                data['specialization_id'] = sem_sub.fk_specialization_id
-                                data['department_id'] = sem_sub.fk_specialization.fk_section_id
-                                data['college_id'] = sem_sub.fk_specialization.fk_college_id
-                            data['institution_type'] = 'university'
+                # Check school-specific relations
+                class_sub = getattr(unit, 'class_subject', None)
+                school_sub = getattr(unit, 'school_subject', None)
+                if class_sub:
+                    data['fk_subject'] = class_sub.subject_id
+                    data['subject_id'] = class_sub.subject_id
+                    if getattr(class_sub, 'semester_id', None):
+                        data['semester_id'] = class_sub.semester_id
+                    if getattr(class_sub, 'class_track', None):
+                        data['class_track_id'] = class_sub.class_track_id
+                        if getattr(class_sub.class_track, 'level', None):
+                            data['stage_id'] = class_sub.class_track.level.stage_id
+                elif school_sub:
+                    data['fk_subject'] = school_sub.id
+                    data['subject_id'] = school_sub.id
 
-            # Fallback 2: If school fields are missing, try resolving from subject
-            if not data.get('college_id') and not data.get('semester_subject_id'):
-                if not data.get('class_track_id'):
-                    sub_id = data.get('subject_id') or getattr(lesson, 'subject_id', None)
-                    if sub_id:
-                        from academic.models.schools.SchoolClassSubject import SchoolClassSubject
-                        cs = SchoolClassSubject.objects.filter(subject_id=sub_id).select_related(
-                            'class_track__level__stage'
-                        ).first()
-                        if cs:
-                            data['subject_id'] = cs.subject_id
-                            data['fk_subject'] = cs.subject_id
-                            if cs.class_track:
-                                data['class_track_id'] = cs.class_track_id
-                                if cs.class_track.level:
-                                    data['stage_id'] = cs.class_track.level.stage_id
-                            if not target_inst or target_inst == 'school':
-                                data['institution_type'] = 'school'
+                # Check university-specific relations
+                sem_sub = getattr(unit, 'semester_subject', None)
+                if sem_sub:
+                    data['fk_subject'] = sem_sub.fk_subject_id
+                    data['subject_id'] = sem_sub.fk_subject_id
+                    data['semester_subject_id'] = sem_sub.id
+                    if getattr(sem_sub, 'semester_id', None):
+                        data['semester_id'] = sem_sub.semester_id
+                    if getattr(sem_sub, 'fk_specialization', None):
+                        spec = sem_sub.fk_specialization
+                        data['specialization_id'] = spec.id
+                        data['department_id'] = getattr(spec, 'fk_section_id', None)
+                        data['college_id'] = getattr(spec, 'fk_college_id', None)
+
+        # Fallback 1: If university fields are missing, try resolving from subject
+        if target_inst == 'university' or (not data.get('stage_id') and not data.get('class_track_id') and not data.get('college_id') and not data.get('semester_subject_id') and target_inst != 'school'):
+            if not data.get('semester_subject_id'):
+                sub_id = data.get('subject_id') or getattr(lesson, 'subject_id', None)
+                if sub_id:
+                    from academic.models.universities.UniversitySemesterSubject import UniversitySemesterSubject as SemesterSubject
+                    sem_sub = SemesterSubject.objects.filter(fk_subject_id=sub_id).select_related(
+                        'fk_specialization__fk_college', 'fk_specialization__fk_section'
+                    ).first()
+                    if sem_sub:
+                        data['semester_subject_id'] = sem_sub.id
+                        data['subject_id'] = sem_sub.fk_subject_id
+                        data['fk_subject'] = sem_sub.fk_subject_id
+                        if getattr(sem_sub, 'semester_id', None) and not data.get('semester_id'):
+                            data['semester_id'] = sem_sub.semester_id
+                        if sem_sub.fk_specialization:
+                            data['specialization_id'] = sem_sub.fk_specialization_id
+                            data['department_id'] = sem_sub.fk_specialization.fk_section_id
+                            data['college_id'] = sem_sub.fk_specialization.fk_college_id
+                        data['institution_type'] = 'university'
+
+        # Fallback 2: If school fields are missing, try resolving from subject
+        if target_inst == 'school' or (not data.get('college_id') and not data.get('semester_subject_id')):
+            if not data.get('class_track_id'):
+                sub_id = data.get('subject_id') or getattr(lesson, 'subject_id', None)
+                if sub_id:
+                    from academic.models.schools.SchoolClassSubject import SchoolClassSubject
+                    cs = SchoolClassSubject.objects.filter(subject_id=sub_id).select_related(
+                        'class_track__level__stage'
+                    ).first()
+                    if cs:
+                        data['subject_id'] = cs.subject_id
+                        data['fk_subject'] = cs.subject_id
+                        if getattr(cs, 'semester_id', None) and not data.get('semester_id'):
+                            data['semester_id'] = cs.semester_id
+                        if cs.class_track:
+                            data['class_track_id'] = cs.class_track_id
+                            if cs.class_track.level:
+                                data['stage_id'] = cs.class_track.level.stage_id
+                        if not target_inst or target_inst == 'school':
+                            data['institution_type'] = 'school'
 
         # Final check on institution_type
         if getattr(question, 'institution_type', None) == 'institute' or target_inst == 'institute':
             data['institution_type'] = 'institute'
+        elif target_inst == 'school':
+            data['institution_type'] = 'school'
+        elif target_inst == 'university':
+            data['institution_type'] = 'university'
         elif data.get('semester_subject_id') or data.get('college_id'):
             data['institution_type'] = 'university'
         elif data.get('stage_id') or data.get('class_track_id'):

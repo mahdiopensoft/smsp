@@ -9,6 +9,9 @@ from academic.models.universities.UniversitySubject import UniversitySubject as 
 from academic.models.universities.UniversitySemesterSubject import UniversitySemesterSubject as SemesterSubject
 from academic.models.universities.UniversityUnit import UniversityUnit as Unit
 from academic.models.universities.UniversityLesson import UniversityLesson as Lesson
+from academic.models.schools.SchoolSubject import SchoolSubject
+from academic.models.schools.SchoolUnit import SchoolUnit
+from academic.models.schools.SchoolLesson import SchoolLesson
 
 class BankStatusReportMVS(AllMVS):
     """
@@ -27,9 +30,9 @@ class BankStatusReportMVS(AllMVS):
         school hierarchy, and university hierarchy.
         """
         qs = self.get_queryset().select_related(
-            'lesson__unit__class_subject__subject',
-            'lesson__unit__class_subject__class_track__level__stage',
-            'lesson__unit__class_subject__class_track__track',
+            'lesson',
+            'lesson__subject',
+            'lesson__unit',
             'lesson__unit__semester_subject__fk_subject',
             'lesson__unit__semester_subject__course',
             'lesson__unit__semester_subject__fk_specialization__fk_college'
@@ -49,7 +52,7 @@ class BankStatusReportMVS(AllMVS):
 
         # Filter by institution type
         if institution_type == 'school':
-            qs = qs.filter(lesson__unit__class_subject__isnull=False)
+            qs = qs.none()
         elif institution_type == 'university':
             qs = qs.filter(lesson__unit__semester_subject__isnull=False)
 
@@ -63,21 +66,16 @@ class BankStatusReportMVS(AllMVS):
         if semester_subject_id:
             qs = qs.filter(lesson__unit__semester_subject_id=semester_subject_id)
 
-        # School filters
-        if stage_id:
-            qs = qs.filter(lesson__unit__class_subject__class_track__level__stage_id=stage_id)
-        if level_id:
-            qs = qs.filter(lesson__unit__class_subject__class_track__level_id=level_id)
-        if track_id:
-            qs = qs.filter(lesson__unit__class_subject__class_track__track_id=track_id)
-        if class_track_id:
-            qs = qs.filter(lesson__unit__class_subject__class_track_id=class_track_id)
+        # School filters (guarded: questions currently reference UniversityLesson)
+        if stage_id or level_id or track_id or class_track_id:
+            qs = qs.none()
 
-        # Subject filter (supports both school subject and university semester subject / base subject)
+        # Subject filter (supports both university semester subject / base subject / course)
         if subject_id:
             qs = qs.filter(
-                Q(lesson__unit__class_subject__subject_id=subject_id) |
                 Q(lesson__unit__semester_subject__fk_subject_id=subject_id) |
+                Q(lesson__subject_id=subject_id) |
+                Q(lesson__unit__semester_subject__course_id=subject_id) |
                 Q(lesson__unit__semester_subject_id=subject_id)
             )
 
@@ -184,37 +182,35 @@ class BankStatusReportMVS(AllMVS):
 
         # School subjects
         if institution_type in ['school', 'all', None]:
-            subjects_qs = Subject.objects.filter(is_deleted=False)
+            school_subjects_qs = SchoolSubject.objects.filter(is_deleted=False)
             if subject_id:
-                subjects_qs = subjects_qs.filter(id=subject_id)
+                school_subjects_qs = school_subjects_qs.filter(id=subject_id)
 
             limit = 12 if institution_type == 'school' else 6
-            for s in subjects_qs[:limit]:
-                s_questions = qs.filter(lesson__unit__class_subject__subject=s).count()
-                cov = min(round((s_questions / target) * 100, 1), 100.0)
+            for s in school_subjects_qs[:limit]:
                 subject_progress.append({
                     "id": s.id,
                     "subjectName": s.name_ar or s.name_en or f"مادة #{s.id}",
-                    "available": s_questions,
+                    "available": 0,
                     "target": target,
-                    "coverage": cov,
+                    "coverage": 0.0,
                     "color": "secondary",
                     "institutionType": "school"
                 })
 
         # Stats counts
         if institution_type == 'school':
-            subj_count = Subject.objects.filter(is_deleted=False).count()
-            unit_count = Unit.objects.filter(is_deleted=False, class_subject__isnull=False).count()
-            less_count = Lesson.objects.filter(is_deleted=False, unit__class_subject__isnull=False).count()
+            subj_count = SchoolSubject.objects.filter(is_deleted=False).count()
+            unit_count = SchoolUnit.objects.filter(is_deleted=False).count()
+            less_count = SchoolLesson.objects.filter(is_deleted=False).count()
         elif institution_type == 'university':
             subj_count = SemesterSubject.objects.filter(is_deleted=False).count()
             unit_count = Unit.objects.filter(is_deleted=False, semester_subject__isnull=False).count()
             less_count = Lesson.objects.filter(is_deleted=False, unit__semester_subject__isnull=False).count()
         else:
-            subj_count = Subject.objects.filter(is_deleted=False).count() + SemesterSubject.objects.filter(is_deleted=False).count()
-            unit_count = Unit.objects.filter(is_deleted=False).count()
-            less_count = Lesson.objects.filter(is_deleted=False).count()
+            subj_count = SchoolSubject.objects.filter(is_deleted=False).count() + SemesterSubject.objects.filter(is_deleted=False).count()
+            unit_count = SchoolUnit.objects.filter(is_deleted=False).count() + Unit.objects.filter(is_deleted=False).count()
+            less_count = SchoolLesson.objects.filter(is_deleted=False).count() + Lesson.objects.filter(is_deleted=False).count()
 
         return Response({
             "stats": {

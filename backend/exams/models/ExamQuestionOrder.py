@@ -14,6 +14,12 @@ class ExamQuestionOrder(SoftDeleteModel):
         related_name='exam_appearances'
     )
     orderIndex = models.IntegerField(verbose_name=_("ترتيب السؤال في النموذج"))
+    assigned_mark = models.FloatField(
+        default=1.0, 
+        null=True, 
+        blank=True, 
+        verbose_name=_("درجة السؤال في هذا الاختبار")
+    )
 
     class Meta:
         unique_together = ('examVersion', 'question')

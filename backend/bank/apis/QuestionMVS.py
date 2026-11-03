@@ -20,10 +20,12 @@ class QuestionMVS(AllMVS):
     Used by: QuestionBankView.vue
     """
     queryset = Question.objects.select_related(
-        'lesson__unit__class_subject__subject',
-        'lesson__unit__class_subject__class_track__level__stage',
-        'lesson__unit__class_subject__class_track__track',
+        'lesson',
+        'lesson__subject',
+        'lesson__unit',
+        'lesson__unit__semester',
         'lesson__unit__semester_subject__fk_subject',
+        'lesson__unit__semester_subject__course',
         'lesson__unit__semester_subject__fk_specialization__fk_college',
         'lesson__unit__semester_subject__fk_specialization__fk_section',
         'lesson__unit__semester_subject__semester',
@@ -40,6 +42,35 @@ class QuestionMVS(AllMVS):
         if getattr(self, 'action', None) in ['list', 'filter_paginate', 'filter', 'second_list', 'all', 'select']:
             return QuestionListSerializer
         return QuestionSerializer
+
+    def perform_create(self, serializer):
+        user = self.request.user if (self.request and self.request.user and self.request.user.is_authenticated) else None
+        question = serializer.save(createdBy=user)
+        QuestionMetrics.objects.get_or_create(question=question)
+        AuditLog.objects.create(
+            user=user,
+            action=AuditLog.ActionChoices.CREATE,
+            resource_type='Question',
+            resource_id=str(question.id),
+            description=f"إنشاء سؤال جديد #{question.id} ({question.questionType})"
+        )
+
+    def perform_update(self, serializer):
+        user = self.request.user if (self.request and self.request.user and self.request.user.is_authenticated) else None
+        if serializer.validated_data.get('status') == Question.StatusChoices.APPROVED:
+            serializer.validated_data['reviewer'] = user
+            serializer.validated_data['approved_at'] = timezone.now()
+        question = serializer.save()
+        metrics, _ = QuestionMetrics.objects.get_or_create(question=question)
+        metrics.edit_count += 1
+        metrics.save(update_fields=['edit_count'])
+        AuditLog.objects.create(
+            user=user,
+            action=AuditLog.ActionChoices.UPDATE,
+            resource_type='Question',
+            resource_id=str(question.id),
+            description=f"تعديل بيانات السؤال #{question.id}"
+        )
     filterset_fields = {
         'status': ['exact', 'in'],
         'difficulty': ['exact', 'in'],
@@ -47,15 +78,12 @@ class QuestionMVS(AllMVS):
         'bloomLevel': ['exact', 'in'],
         'institution_type': ['exact', 'in'],
         'lesson': ['exact'],
+        'lesson__subject': ['exact'],
         'lesson__unit': ['exact'],
         'lesson__unit__semester': ['exact'],
-        'lesson__unit__class_subject__subject': ['exact'],
-        'lesson__unit__class_subject__class_track': ['exact'],
-        'lesson__unit__class_subject__class_track__level': ['exact'],
-        'lesson__unit__class_subject__class_track__track': ['exact'],
-        'lesson__unit__class_subject__class_track__level__stage': ['exact'],
         'lesson__unit__semester_subject': ['exact'],
         'lesson__unit__semester_subject__fk_subject': ['exact'],
+        'lesson__unit__semester_subject__course': ['exact'],
         'lesson__unit__semester_subject__fk_specialization': ['exact'],
         'lesson__unit__semester_subject__fk_specialization__fk_college': ['exact'],
         'lesson__unit__semester_subject__fk_specialization__fk_section': ['exact'],
@@ -93,14 +121,14 @@ class QuestionMVS(AllMVS):
         if semester_subject:
             qs = qs.filter(lesson__unit__semester_subject_id=semester_subject)
 
-        # 3. School Filters
+        # 3. School Filters (Guarded: questions currently reference UniversityLesson)
         stage = params.get('stage')
         if stage:
-            qs = qs.filter(lesson__unit__class_subject__class_track__level__stage_id=stage)
+            qs = qs.none()
 
         class_track = params.get('class_track')
         if class_track:
-            qs = qs.filter(lesson__unit__class_subject__class_track_id=class_track)
+            qs = qs.none()
 
         # 4. Institute Filters
         inst_field = params.get('field') or params.get('institute_field')
@@ -111,9 +139,9 @@ class QuestionMVS(AllMVS):
         subject = params.get('subject') or params.get('institute_subject')
         if subject:
             qs = qs.filter(
-                Q(lesson__unit__class_subject__subject_id=subject) |
                 Q(lesson__unit__semester_subject__fk_subject_id=subject) |
-                Q(lesson__subject_id=subject)
+                Q(lesson__subject_id=subject) |
+                Q(lesson__unit__semester_subject__course_id=subject)
             )
 
         unit = params.get('unit')
@@ -171,17 +199,34 @@ class QuestionMVS(AllMVS):
         ]
 
         lesson = question.lesson
-        if lesson and lesson.unit:
-            data['fk_unit'] = lesson.unit_id
-            try:
-                data['fk_subject'] = lesson.unit.class_subject.subject_id if lesson.unit.class_subject else None
-            except AttributeError:
+        if lesson and getattr(lesson, 'unit', None):
+            unit = lesson.unit
+            data['fk_unit'] = unit.id
+            class_sub = getattr(unit, 'class_subject', None)
+            sem_sub = getattr(unit, 'semester_subject', None)
+            if class_sub:
+                data['fk_subject'] = class_sub.subject_id
+            elif sem_sub:
+                data['fk_subject'] = sem_sub.fk_subject_id
+            elif getattr(lesson, 'subject_id', None):
+                data['fk_subject'] = lesson.subject_id
+            else:
                 data['fk_subject'] = None
         else:
             data['fk_unit'] = None
-            data['fk_subject'] = None
+            data['fk_subject'] = getattr(lesson, 'subject_id', None) if lesson else None
             
         return Response(data)
+
+    @action(detail=True, methods=['get'])
+    def audit_trail(self, request, pk=None):
+        """Retrieve audit history and activity logs for this specific question."""
+        question = self.get_object()
+        serializer = self.get_serializer(question)
+        return Response({
+            "success": True,
+            "data": serializer.data.get('audit_trail', [])
+        })
 
     @action(detail=False, methods=['get'])
     def stats(self, request):
@@ -227,7 +272,8 @@ class QuestionMVS(AllMVS):
                     text=opt.text,
                     image=opt.image,
                     latex=opt.latex,
-                    isTrue=opt.isTrue
+                    isTrue=opt.isTrue,
+                    order_index=opt.order_index
                 )
             
             # Create blank metrics
@@ -314,7 +360,8 @@ class QuestionMVS(AllMVS):
                     text=opt.text,
                     image=opt.image,
                     latex=opt.latex,
-                    isTrue=opt.isTrue
+                    isTrue=opt.isTrue,
+                    order_index=opt.order_index
                 )
             
             # Copy old metrics to new version as starting point

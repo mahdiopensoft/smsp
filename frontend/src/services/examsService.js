@@ -17,21 +17,6 @@ export const examsService = {
         return data
     },
 
-    async getExamTemplates(params = {}) {
-        const { data } = await api.get(`${BASE}exam-create/templates/`, { params })
-        return data
-    },
-
-    async saveExamTemplate(payload) {
-        const { data } = await api.post(`${BASE}exam-create/save-template/`, payload)
-        return data
-    },
-
-    async deleteExamTemplate(templateId) {
-        const { data } = await api.delete(`${BASE}exam-create/delete-template/${templateId}/`)
-        return data
-    },
-
     // ========================================================
     // 2. شاشة إدارة النماذج (Exam Models Management Screen)
     // Endpoint: api/exams/exam-models/

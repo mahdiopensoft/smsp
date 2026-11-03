@@ -436,8 +436,8 @@ def run():
             q_obj.save()
 
         Answer.objects.filter(question=q_obj).delete()
-        Answer.objects.create(question=q_obj, text="صح / صواب", isTrue=(is_true is True))
-        Answer.objects.create(question=q_obj, text="خطأ", isTrue=(is_true is False))
+        Answer.objects.create(question=q_obj, text="صح / صواب", isTrue=(is_true is True), order_index=0)
+        Answer.objects.create(question=q_obj, text="خطأ", isTrue=(is_true is False), order_index=1)
         all_question_objects.append(q_obj)
 
     # معالجة وحفظ الـ 30 سؤال اختيار متعدد
@@ -468,11 +468,12 @@ def run():
             q_obj.save()
 
         Answer.objects.filter(question=q_obj).delete()
-        for opt_text, opt_is_correct in opts:
+        for opt_idx, (opt_text, opt_is_correct) in enumerate(opts):
             Answer.objects.create(
                 question=q_obj,
                 text=opt_text,
-                isTrue=opt_is_correct
+                isTrue=opt_is_correct,
+                order_index=opt_idx
             )
         all_question_objects.append(q_obj)
 

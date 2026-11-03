@@ -185,12 +185,78 @@
         :restore="false">
         <template v-slot:item-slot="{ item, key }">
 
-          <!-- Author -->
-          <div v-if="key === 'author'" class="d-flex align-center gap-3">
-            <div>
-              <div class="font-weight-bold text-subtitle-2 text-primary">{{ getAuthorName(item) }}</div>
+          <!-- Author, Modifier & Excel Import (Same as Question Bank) -->
+          <template v-if="key === 'audit' || key === 'author'">
+            <div
+              class="audit-table-cell d-flex align-center gap-2 py-1 px-2 rounded-lg cursor-pointer"
+              @click="openAuditDialog(item)"
+              title="انقر لعرض تفاصيل المنشئ وسجل التعديلات"
+            >
+              <v-avatar size="32" :color="(item.is_imported || item.import_session) ? 'teal' : 'primary'" variant="tonal" class="flex-shrink-0">
+                <v-icon size="16" :color="(item.is_imported || item.import_session) ? 'teal-darken-1' : 'primary'">
+                  {{ (item.is_imported || item.import_session) ? 'mdi-file-excel' : 'mdi-account-outline' }}
+                </v-icon>
+              </v-avatar>
+
+              <div class="overflow-hidden flex-grow-1" style="min-width: 125px; max-width: 175px;">
+                <div class="d-flex align-center gap-1">
+                  <span class="font-weight-bold text-caption text-truncate" style="color: rgb(var(--v-theme-on-surface));">
+                    {{ item.author_name || item.created_by_username || getAuthorName(item) }}
+                  </span>
+                  <v-chip
+                    v-if="isImportedFromExcel(item)"
+                    size="x-small"
+                    variant="flat"
+                    color="teal"
+                    class="px-1 font-weight-bold"
+                    style="height: 18px; font-size: 0.65rem !important;"
+                    title="مصدر السؤال: مستورد من ملف إكسل"
+                  >
+                    <v-icon start size="11">mdi-file-excel</v-icon>
+                    إكسل
+                  </v-chip>
+                  <v-chip
+                    v-else
+                    size="x-small"
+                    variant="tonal"
+                    color="primary"
+                    class="px-1 font-weight-bold"
+                    style="height: 18px; font-size: 0.65rem !important;"
+                    title="مصدر السؤال: إدخال يدوي في النظام"
+                  >
+                    <v-icon start size="11">mdi-keyboard-outline</v-icon>
+                    يدوي
+                  </v-chip>
+                  <v-chip
+                    v-if="item.edit_count > 0"
+                    size="x-small"
+                    variant="flat"
+                    color="warning"
+                    class="px-1 font-weight-bold"
+                    style="height: 18px; font-size: 0.65rem !important;"
+                    title="عدد مرات التعديل"
+                  >
+                    {{ item.edit_count }} تعديل
+                  </v-chip>
+                </div>
+
+                <div class="text-caption text-disabled d-flex align-center gap-1 mt-0-5" style="font-size: 0.72rem !important;">
+                  <v-icon size="11">mdi-clock-outline</v-icon>
+                  <span>{{ formatAuditDate(item.last_modified_at || item.created_at) }}</span>
+                  <span
+                    v-if="item.last_modified_by && item.last_modified_by !== (item.author_name || item.created_by_username)"
+                    class="text-warning-darken-1 text-truncate"
+                    style="max-width: 75px;"
+                    :title="'آخر من عدّل: ' + item.last_modified_by"
+                  >
+                    • {{ item.last_modified_by }}
+                  </span>
+                </div>
+              </div>
+
+              <v-icon size="16" color="primary" class="audit-hover-icon flex-shrink-0">mdi-open-in-new</v-icon>
             </div>
-          </div>
+          </template>
 
           <!-- Content Snippet -->
           <div v-else-if="key === 'content'" class="text-body-2 text-truncate"
@@ -266,6 +332,15 @@
                       </v-list-item-title>
                     </v-list-item>
 
+                    <v-list-item @click="openAuditDialog(item)" class="premium-list-item">
+                      <template v-slot:prepend>
+                        <v-icon size="18" color="indigo" class="me-2">mdi-history</v-icon>
+                      </template>
+                      <v-list-item-title class="text-caption font-weight-medium text-indigo">
+                        سجل التعديلات والتدقيق
+                      </v-list-item-title>
+                    </v-list-item>
+
                     <template v-if="item.parent_version || item.version_number > 1">
                       <v-list-item @click="openDiffDialog(item)" class="premium-list-item">
                         <template v-slot:prepend>
@@ -326,112 +401,612 @@
       </custom-data-table>
     </div>
 
-    <!-- View Question Dialog -->
-    <CustomDialog v-model="viewDialog" width="720" title="مراجعة السؤال والتفاصيل">
-      <template v-if="selectedQuestion">
-        <!-- Author Info Box -->
-        <div class="d-flex align-center gap-3 pa-4 rounded-xl mb-6 question-content-box">
-          <v-avatar color="primary" size="48" class="font-weight-black text-white">
-            {{ getAuthorName(selectedQuestion.createdBy).charAt(0) }}
-          </v-avatar>
-          <div>
-            <div class="text-subtitle-1 font-weight-bold">{{ getAuthorName(selectedQuestion.createdBy) }}</div>
-            <div class="text-caption text-medium-emphasis d-flex align-center gap-1">
-              <v-icon size="14">mdi-clock-outline</v-icon>
-              تاريخ التقديم: {{ selectedQuestion.createdAt }}
+    <!-- View Question Dialog (Modern Official Dossier) -->
+    <CustomDialog v-model="viewDialog" width="960" :showClose="true">
+      <template #title>
+        <div class="d-flex align-center justify-space-between w-100 flex-wrap gap-2">
+          <div class="d-flex align-center gap-3">
+            <v-avatar color="primary" variant="tonal" size="44" rounded="xl" class="elevation-1">
+              <v-icon size="26" color="primary">mdi-clipboard-check-outline</v-icon>
+            </v-avatar>
+            <div>
+              <div class="d-flex align-center gap-2">
+                <span class="text-h6 font-weight-black" style="color: rgb(var(--v-theme-on-surface));">
+                  بطاقة فحص ومراجعة السؤال الأكاديمي
+                </span>
+                <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold">
+                  #{{ selectedQuestion?.id }}
+                </v-chip>
+                <v-chip size="x-small" variant="tonal" color="info" class="font-weight-bold">
+                  v{{ selectedQuestion?.version_number || 1 }}
+                </v-chip>
+                <v-chip v-if="isImportedFromExcel(selectedQuestion)" size="x-small" color="teal" variant="flat" class="font-weight-bold">
+                  <v-icon start size="12">mdi-file-excel</v-icon>
+                  مستورد من إكسل
+                </v-chip>
+                <v-chip v-else size="x-small" color="primary" variant="tonal" class="font-weight-bold">
+                  <v-icon start size="12">mdi-keyboard-outline</v-icon>
+                  إدخال يدوي
+                </v-chip>
+              </div>
+              <div class="text-caption text-medium-emphasis d-flex align-center gap-2 mt-1">
+                <span>{{ getInstitutionLabel(selectedQuestion?.institution_type) }}</span>
+                <span>•</span>
+                <span v-if="selectedQuestion?.subject_name">{{ selectedQuestion.subject_name }}</span>
+                <span v-else>{{ getSubjectName(selectedQuestion) }}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- Question Content -->
-        <div class="question-content-box pa-5 rounded-2xl mb-6">
-          <h4 class="text-subtitle-1 font-weight-bold mb-3 d-flex align-center color-primary gap-1">
-            <v-icon size="20">mdi-help-box-multiple-outline</v-icon>
-            نص السؤال
-          </h4>
-          <div class="text-body-1 font-weight-medium" style="line-height: 1.8" v-html="selectedQuestion.content"></div>
-          <v-img v-if="selectedQuestion.image" :src="selectedQuestion.image" max-height="300" class="mt-4 rounded-lg"
-            contain />
-        </div>
-
-        <!-- Rejection Reason if Rejected -->
-        <v-alert v-if="selectedQuestion.status === 'مرفوض'" type="error" variant="tonal" class="mb-6 rounded-xl">
-          <div class="font-weight-bold mb-1">سبب الرفض المدوّن:</div>
-          <div>{{ selectedQuestion.rejectionReason || 'لم يتم تحديد سبب' }}</div>
-        </v-alert>
-
-        <!-- Answers -->
-        <div v-if="getQuestionAnswers(selectedQuestion.id).length > 0">
-          <h4 class="text-subtitle-1 font-weight-bold mb-3 d-flex align-center gap-1">
-            <v-icon size="20" color="secondary">mdi-format-list-bulleted-type</v-icon>
-            الإجابات المرتبطة
-          </h4>
-          <div v-for="(answer, index) in getQuestionAnswers(selectedQuestion.id)" :key="answer.id"
-            class="pa-4 rounded-xl mb-2 d-flex align-center gap-3 border"
-            :style="answer.isTrue ? 'background: rgba(22, 163, 74, 0.08); border-color: rgba(22, 163, 74, 0.4);' : 'background: rgba(0, 0, 0, 0.02); border-color: rgba(0, 0, 0, 0.08);'">
-            <v-avatar size="32" :color="answer.isTrue ? 'success' : 'surface-variant'">
-              <span class="font-weight-bold text-white">{{ String.fromCharCode(65 + index) }}</span>
-            </v-avatar>
-            <span class="text-body-1 flex-grow-1" :class="{ 'font-weight-bold text-success': answer.isTrue }">{{
-              answer.text }}</span>
-            <v-icon v-if="answer.isTrue" color="success" size="24">mdi-check-circle</v-icon>
+          <div class="d-flex align-center gap-2">
+            <custom-btn
+              text="سجل التعديلات والتدقيق"
+              icon="mdi-history"
+              size="small"
+              variant="tonal"
+              color="indigo"
+              class="font-weight-bold"
+              @click="openAuditDialog(selectedQuestion)"
+            />
+            <custom-btn
+              v-if="selectedQuestion?.parent_version"
+              text="مقارنة الإصدارات"
+              icon="mdi-source-branch"
+              size="small"
+              variant="tonal"
+              color="indigo"
+              class="font-weight-bold"
+              @click="openDiffDialog(selectedQuestion)"
+            />
           </div>
         </div>
+      </template>
 
-        <!-- Metadata Summary Row -->
-        <v-divider class="my-6 opacity-20" />
-        <v-row class="ma-0 pa-3 rounded-xl question-content-box">
-          <v-col cols="6" sm="3">
-            <div class="text-caption text-medium-emphasis mb-1">نوع المسار</div>
-            <v-chip size="small" :color="selectedQuestion.institution_type === 'university' ? 'purple' : 'primary'" variant="tonal" class="font-weight-bold">
-              {{ selectedQuestion.institution_type === 'university' ? '🎓 جامعي' : '🏫 مدرسي' }}
+      <template v-if="selectedQuestion">
+        <div class="review-details-canvas pa-1">
+          <!-- Specifications Ribbon -->
+          <div class="d-flex flex-wrap align-center gap-2 mb-4">
+            <!-- Current Status Chip -->
+            <v-chip :color="getStatusColor(selectedQuestion.status)" variant="tonal" class="font-weight-bold px-3 py-1">
+              <v-icon start size="16">{{ getStatusIcon(selectedQuestion.status) }}</v-icon>
+              الحالة: {{ getStatusText(selectedQuestion.status) }}
             </v-chip>
-          </v-col>
-          <v-col cols="6" sm="3">
-            <div class="text-caption text-medium-emphasis mb-1">المادة / المقرر</div>
-            <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">{{
-              getSubjectName(selectedQuestion) }}</v-chip>
-          </v-col>
-          <v-col cols="6" sm="3">
-            <div class="text-caption text-medium-emphasis mb-1">{{ selectedQuestion.institution_type === 'university' ? 'مفردة / موضوع المقرر' : 'الوحدة الدراسية' }}</div>
-            <v-chip size="small" variant="outlined" class="font-weight-bold">{{ getUnitName(selectedQuestion) }}</v-chip>
-          </v-col>
-          <v-col cols="6" sm="3">
-            <div class="text-caption text-medium-emphasis mb-1">{{ selectedQuestion.institution_type === 'university' ? 'المحاضرة / الدرس الأكاديمي' : 'الدرس المدرسي' }}</div>
-            <v-chip size="small" variant="outlined" class="font-weight-bold">{{ selectedQuestion.lesson_name || getLessonName(selectedQuestion) }}</v-chip>
-          </v-col>
-          <v-col cols="6" sm="3">
-            <div class="text-caption text-medium-emphasis mb-1">الصعوبة</div>
-            <v-chip size="small" :color="getDifficultyColor(selectedQuestion.difficulty)" variant="tonal"
-              class="font-weight-bold text-white">{{ getDifficultyText(selectedQuestion.difficulty) }}</v-chip>
-          </v-col>
-          <v-col cols="6" sm="3">
-            <div class="text-caption text-medium-emphasis mb-1">مستوى بلوم</div>
-            <v-chip size="small" color="info" variant="tonal" class="font-weight-bold">{{
-              getBloomText(selectedQuestion.bloomLevel) }}</v-chip>
-          </v-col>
-          <v-col cols="6" sm="3">
-            <div class="text-caption text-medium-emphasis mb-1">الدرجة</div>
-            <v-chip size="small" color="success" variant="tonal" class="font-weight-bold">
-              ⭐ {{ selectedQuestion.defaultMark || 1 }} درجات
+
+            <!-- Question Type -->
+            <v-chip color="primary" variant="tonal" class="font-weight-bold px-3 py-1">
+              <v-icon start size="16">mdi-shape-outline</v-icon>
+              {{ getTypeText(selectedQuestion.questionType) }}
             </v-chip>
-          </v-col>
-        </v-row>
+
+            <!-- Difficulty -->
+            <v-chip :color="getDifficultyColor(selectedQuestion.difficulty)" variant="tonal" class="font-weight-bold px-3 py-1">
+              <v-icon start size="16">{{ getDifficultyIcon(selectedQuestion.difficulty) }}</v-icon>
+              الصعوبة: {{ getDifficultyText(selectedQuestion.difficulty) }}
+            </v-chip>
+
+            <!-- Bloom Level -->
+            <v-chip v-if="selectedQuestion.bloomLevel" variant="tonal" class="font-weight-bold px-3 py-1"
+              :style="`color: ${getBloomColor(selectedQuestion.bloomLevel)}; background-color: ${getBloomColor(selectedQuestion.bloomLevel)}14; border: 1px solid ${getBloomColor(selectedQuestion.bloomLevel)}35;`">
+              <v-icon start size="16">mdi-brain</v-icon>
+              بلوم: {{ getBloomText(selectedQuestion.bloomLevel) }}
+            </v-chip>
+
+            <!-- Default Mark -->
+            <v-chip color="amber-darken-3" variant="tonal" class="font-weight-bold px-3 py-1">
+              <v-icon start size="16">mdi-star-circle-outline</v-icon>
+              الدرجة: {{ selectedQuestion.defaultMark || 1 }} درجات
+            </v-chip>
+
+            <!-- Expected Time -->
+            <v-chip v-if="selectedQuestion.expected_time_minutes" color="teal" variant="tonal" class="font-weight-bold px-3 py-1">
+              <v-icon start size="16">mdi-clock-outline</v-icon>
+              الوقت: {{ selectedQuestion.expected_time_minutes }} دقيقة
+            </v-chip>
+
+            <!-- Question Source Tag (Excel or Manual) -->
+            <v-chip v-if="isImportedFromExcel(selectedQuestion)" color="teal-darken-1" variant="tonal" class="font-weight-bold px-3 py-1">
+              <v-icon start size="16">mdi-file-excel</v-icon>
+              المصدر: مستورد من ملف إكسل
+            </v-chip>
+            <v-chip v-else color="primary" variant="tonal" class="font-weight-bold px-3 py-1">
+              <v-icon start size="16">mdi-keyboard-outline</v-icon>
+              المصدر: إدخال يدوي مباشر
+            </v-chip>
+          </div>
+
+          <!-- Rejection Alert (if rejected) -->
+          <v-alert
+            v-if="selectedQuestion.status === 'مرفوض' && (selectedQuestion.rejectionReason || selectedQuestion.rejection_reason)"
+            type="error"
+            variant="tonal"
+            density="comfortable"
+            class="rounded-xl mb-4 border"
+            icon="mdi-alert-octagon-outline"
+          >
+            <div class="font-weight-bold text-subtitle-2 mb-1">سبب الرفض المدوّن من المراجع:</div>
+            <div class="text-body-2">{{ selectedQuestion.rejectionReason || selectedQuestion.rejection_reason }}</div>
+          </v-alert>
+
+          <!-- Academic Pathway Card (Breadcrumbs) -->
+          <div class="academic-hierarchy-card pa-3 px-4 rounded-xl mb-4 border d-flex align-center flex-wrap gap-2">
+            <div class="d-flex align-center gap-1 text-caption font-weight-bold" style="color: rgb(var(--v-theme-on-surface));">
+              <v-icon size="16" color="primary">mdi-sitemap</v-icon>
+              <span>المسار الأكاديمي:</span>
+            </div>
+            <template v-for="(item, idx) in getAcademicHierarchy(selectedQuestion)" :key="idx">
+              <div class="d-flex align-center gap-1 text-body-2">
+                <span class="text-caption text-disabled" v-if="idx > 0">
+                  <v-icon size="14">mdi-chevron-left</v-icon>
+                </span>
+                <div class="hierarchy-pill d-flex align-center gap-1 px-3 py-1 rounded-lg border text-caption">
+                  <v-icon size="13" color="primary">{{ item.icon }}</v-icon>
+                  <span class="text-medium-emphasis">{{ item.label }}:</span>
+                  <span class="font-weight-bold" style="color: rgb(var(--v-theme-on-surface));">{{ item.value }}</span>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- Question Paper Canvas (Official Exam Card) -->
+          <div class="question-paper-card rounded-2xl mb-4 border overflow-hidden">
+            <div class="question-paper-header px-5 py-3 d-flex align-center justify-space-between border-b">
+              <div class="d-flex align-center gap-2">
+                <v-icon size="18" color="primary">mdi-format-quote-open</v-icon>
+                <span class="text-subtitle-2 font-weight-bold" style="color: rgb(var(--v-theme-on-surface));">
+                  نص السؤال المعروض للطالب
+                </span>
+              </div>
+              <v-chip size="x-small" variant="tonal" color="primary" class="font-weight-bold">
+                السؤال الأساسي
+              </v-chip>
+            </div>
+
+            <div class="pa-5">
+              <!-- Description / Educational Idea Box -->
+              <div v-if="selectedQuestion.description"
+                class="question-idea-box pa-3 px-4 rounded-xl mb-4 border d-flex align-center gap-3">
+                <v-avatar size="32" color="amber-lighten-4" class="flex-shrink-0">
+                  <v-icon size="18" color="amber-darken-3">mdi-lightbulb-on</v-icon>
+                </v-avatar>
+                <div class="text-body-2">
+                  <span class="font-weight-bold text-amber-darken-4">فكرة السؤال / المفهوم العلمي: </span>
+                  <span>{{ selectedQuestion.description }}</span>
+                </div>
+              </div>
+
+              <!-- Question Image Frame -->
+              <div v-if="selectedQuestion.image" class="question-image-frame mb-4 pa-3 rounded-xl text-center border">
+                <v-img :src="selectedQuestion.image" max-height="320" class="rounded-lg mx-auto" contain />
+                <div class="text-caption text-medium-emphasis mt-2">
+                  <v-icon size="14">mdi-image-outline</v-icon> رسم / شكل توضيحي مرفق بالسؤال
+                </div>
+              </div>
+
+              <!-- Question Text Body -->
+              <div class="question-body-rendered text-body-1 font-weight-bold" style="line-height: 2.1; font-size: 1.15rem !important;"
+                v-html="selectedQuestion.content" />
+            </div>
+          </div>
+
+          <!-- Answers & Alternatives Section -->
+          <div class="answers-section mb-4">
+            <div class="d-flex align-center justify-space-between mb-3 px-1">
+              <div class="d-flex align-center gap-2">
+                <v-icon size="20" color="success">mdi-format-list-checks</v-icon>
+                <h4 class="text-subtitle-1 font-weight-black" style="color: rgb(var(--v-theme-on-surface));">
+                  {{ (getQuestionAnswers(selectedQuestion.id).length > 0) ? 'بدائل وخيارات الإجابة' : 'نموذج الإجابة المعتمدة' }}
+                </h4>
+              </div>
+              <span class="text-caption text-medium-emphasis" v-if="getQuestionAnswers(selectedQuestion.id).length > 0">
+                {{ getQuestionAnswers(selectedQuestion.id).length }} بدائل مسجلة
+              </span>
+            </div>
+
+            <!-- 1. Multiple Choice / Single Choice Options List -->
+            <div v-if="getQuestionAnswers(selectedQuestion.id).length > 0" class="d-flex flex-column gap-2">
+              <div
+                v-for="(answer, i) in getQuestionAnswers(selectedQuestion.id)"
+                :key="answer.id || i"
+                class="option-row-card pa-4 rounded-xl d-flex align-center justify-space-between gap-3 border"
+                :class="{ 'option-row-correct': answer.isTrue, 'option-row-neutral': !answer.isTrue }"
+              >
+                <div class="d-flex align-center gap-3 overflow-hidden flex-grow-1">
+                  <!-- Arabic Letter Avatar (أ، ب، ج، د...) -->
+                  <v-avatar
+                    size="36"
+                    :color="answer.isTrue ? 'success' : 'primary'"
+                    :variant="answer.isTrue ? 'flat' : 'tonal'"
+                    class="font-weight-bold flex-shrink-0"
+                  >
+                    {{ getOptionLetter(i) }}
+                  </v-avatar>
+
+                  <div class="d-flex flex-column flex-grow-1 overflow-hidden">
+                    <div class="text-body-1 font-weight-medium" v-html="answer.text" />
+                    <v-img v-if="answer.image" :src="answer.image" max-height="120" contain class="mt-2 rounded-lg border" />
+                    <div v-if="answer.latex" class="text-caption font-weight-medium mt-1 dir-ltr text-left">
+                      <code>{{ answer.latex }}</code>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Correct Indicator Chip -->
+                <div class="flex-shrink-0">
+                  <v-chip
+                    v-if="answer.isTrue"
+                    color="success"
+                    variant="flat"
+                    size="small"
+                    class="font-weight-bold px-3"
+                  >
+                    <v-icon start size="14">mdi-check-decagram</v-icon>
+                    الإجابة الصحيحة
+                  </v-chip>
+                  <v-chip v-else size="x-small" variant="tonal" color="blue-grey" class="text-caption px-2">
+                    بديل غير صحيح
+                  </v-chip>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. True / False Dual Showcase -->
+            <div v-else-if="selectedQuestion.isTrue !== null && selectedQuestion.isTrue !== undefined" class="d-flex gap-4">
+              <!-- True Card -->
+              <div
+                class="pa-4 rounded-xl flex-grow-1 border d-flex align-center justify-space-between transition-all"
+                :class="selectedQuestion.isTrue ? 'tf-card-active' : 'tf-card-inactive'"
+              >
+                <div class="d-flex align-center gap-3">
+                  <v-avatar size="38" :color="selectedQuestion.isTrue ? 'success' : 'primary'" :variant="selectedQuestion.isTrue ? 'flat' : 'tonal'">
+                    <v-icon size="22" :color="selectedQuestion.isTrue ? 'white' : 'primary'">mdi-check</v-icon>
+                  </v-avatar>
+                  <div>
+                    <div class="text-subtitle-1 font-weight-bold" :class="selectedQuestion.isTrue ? 'text-success' : 'text-medium-emphasis'">
+                      صواب (True)
+                    </div>
+                    <div class="text-caption text-medium-emphasis">العبارة صحيحة علمياً</div>
+                  </div>
+                </div>
+                <v-chip v-if="selectedQuestion.isTrue" color="success" size="small" variant="flat" class="font-weight-bold">
+                  <v-icon start size="14">mdi-check-decagram</v-icon>
+                  الإجابة الصحيحة
+                </v-chip>
+              </div>
+
+              <!-- False Card -->
+              <div
+                class="pa-4 rounded-xl flex-grow-1 border d-flex align-center justify-space-between transition-all"
+                :class="!selectedQuestion.isTrue ? 'tf-card-active' : 'tf-card-inactive'"
+              >
+                <div class="d-flex align-center gap-3">
+                  <v-avatar size="38" :color="!selectedQuestion.isTrue ? 'success' : 'primary'" :variant="!selectedQuestion.isTrue ? 'flat' : 'tonal'">
+                    <v-icon size="22" :color="!selectedQuestion.isTrue ? 'white' : 'primary'">mdi-close</v-icon>
+                  </v-avatar>
+                  <div>
+                    <div class="text-subtitle-1 font-weight-bold" :class="!selectedQuestion.isTrue ? 'text-success' : 'text-medium-emphasis'">
+                      خطأ (False)
+                    </div>
+                    <div class="text-caption text-medium-emphasis">العبارة خاطئة علمياً</div>
+                  </div>
+                </div>
+                <v-chip v-if="!selectedQuestion.isTrue" color="success" size="small" variant="flat" class="font-weight-bold">
+                  <v-icon start size="14">mdi-check-decagram</v-icon>
+                  الإجابة الصحيحة
+                </v-chip>
+              </div>
+            </div>
+
+            <!-- 3. Essay / Fill in the blank Model Answer -->
+            <div v-else-if="selectedQuestion.answerText" class="model-answer-box pa-5 rounded-2xl border">
+              <div class="d-flex align-center gap-2 mb-3">
+                <v-icon size="20" color="success">mdi-text-box-check-outline</v-icon>
+                <span class="text-subtitle-2 font-weight-bold text-success-darken-1">معايير الإجابة النموذجية وسلّم التقدير</span>
+              </div>
+              <div class="text-body-1 font-weight-medium" style="line-height: 1.9;" v-html="selectedQuestion.answerText" />
+            </div>
+          </div>
+
+          <!-- Author and Reviewer Dossier Card -->
+          <div class="author-dossier-card pa-4 rounded-2xl border mb-2">
+            <div class="d-flex align-center gap-2 mb-3 border-b pb-2">
+              <v-icon size="18" color="primary">mdi-account-details-outline</v-icon>
+              <span class="text-subtitle-2 font-weight-bold" style="color: rgb(var(--v-theme-on-surface));">
+                سجل إسناد ومراجعة السؤال
+              </span>
+            </div>
+
+            <v-row dense>
+              <!-- Author Column -->
+              <v-col cols="12" md="6">
+                <div class="d-flex align-center gap-3 pa-3 rounded-xl border audit-person-tile">
+                  <v-avatar color="primary" variant="tonal" size="44" class="font-weight-black">
+                    {{ getAuthorName(selectedQuestion).charAt(0) }}
+                  </v-avatar>
+                  <div class="overflow-hidden">
+                    <div class="text-caption text-medium-emphasis">مُعدّ ومؤلف السؤال</div>
+                    <div class="text-subtitle-2 font-weight-bold text-truncate" style="color: rgb(var(--v-theme-on-surface));">
+                      {{ getAuthorName(selectedQuestion) }}
+                    </div>
+                    <div class="text-caption text-medium-emphasis d-flex align-center gap-1 mt-1">
+                      <v-icon size="13">mdi-calendar-clock</v-icon>
+                      <span>تاريخ الإعداد: {{ formatAuditDate(selectedQuestion.created_at || selectedQuestion.createdAt) }}</span>
+                    </div>
+                    <div class="mt-1 d-flex align-center gap-1">
+                      <v-chip
+                        size="x-small"
+                        :color="isImportedFromExcel(selectedQuestion) ? 'teal' : 'primary'"
+                        :variant="isImportedFromExcel(selectedQuestion) ? 'flat' : 'tonal'"
+                        class="font-weight-bold"
+                      >
+                        <v-icon start size="12">{{ isImportedFromExcel(selectedQuestion) ? 'mdi-file-excel' : 'mdi-keyboard-outline' }}</v-icon>
+                        {{ isImportedFromExcel(selectedQuestion) ? 'طريقة الإنشاء: مستورد من ملف إكسل' : 'طريقة الإنشاء: إدخال يدوي مباشر' }}
+                      </v-chip>
+                    </div>
+                  </div>
+                </div>
+              </v-col>
+
+              <!-- Reviewer Column -->
+              <v-col cols="12" md="6">
+                <div class="d-flex align-center gap-3 pa-3 rounded-xl border audit-person-tile">
+                  <v-avatar :color="selectedQuestion.reviewer_name || selectedQuestion.approved_at ? 'success' : 'primary'" variant="tonal" size="44" class="font-weight-black">
+                    <v-icon size="22">{{ selectedQuestion.reviewer_name || selectedQuestion.approved_at ? 'mdi-account-check' : 'mdi-account-clock' }}</v-icon>
+                  </v-avatar>
+                  <div class="overflow-hidden">
+                    <div class="text-caption text-medium-emphasis">المراجع الأكاديمي</div>
+                    <div class="text-subtitle-2 font-weight-bold text-truncate" style="color: rgb(var(--v-theme-on-surface));">
+                      {{ selectedQuestion.reviewer_name || (selectedQuestion.status === 'معتمد' ? 'مراجع معتمد' : 'بانتظار المراجعة') }}
+                    </div>
+                    <div class="text-caption text-medium-emphasis d-flex align-center gap-1 mt-1">
+                      <v-icon size="13">mdi-check-decagram-outline</v-icon>
+                      <span v-if="selectedQuestion.approved_at">تاريخ الاعتماد: {{ formatAuditDate(selectedQuestion.approved_at) }}</span>
+                      <span v-else-if="selectedQuestion.status === 'قيد المراجعة'">قيد الفحص والتدقيق حالياً</span>
+                      <span v-else>—</span>
+                    </div>
+                  </div>
+                </div>
+              </v-col>
+            </v-row>
+          </div>
+        </div>
       </template>
 
       <template #actions>
-        <custom-btn label="إغلاق" variant="text" class="font-weight-bold" :click="() => viewDialog = false" />
+        <custom-btn
+          label="إغلاق"
+          variant="outlined"
+          color="primary"
+          class="font-weight-bold px-4"
+          :click="() => viewDialog = false"
+        />
+
         <div class="d-flex align-center gap-2 ms-auto">
           <template v-if="selectedQuestion && selectedQuestion.status === 'قيد المراجعة'">
-            <custom-btn type="del" label="رفض السؤال" icon="mdi-close" color="error" variant="tonal"
-              class="font-weight-bold" :click="() => { openRejectDialog(selectedQuestion); viewDialog = false; }" />
-            <custom-btn type="add" label="اعتماد السؤال" icon="mdi-check-decagram" color="success"
-              class="font-weight-bold" :click="() => { approveQuestion(selectedQuestion); viewDialog = false; }" />
+            <!-- Reject Button -->
+            <custom-btn
+              type="del"
+              label="رفض السؤال"
+              icon="mdi-close-circle-outline"
+              color="error"
+              variant="tonal"
+              class="font-weight-bold"
+              :click="() => { openRejectDialog(selectedQuestion); viewDialog = false; }"
+            />
+
+            <!-- Review Checklist Dialog Button -->
+            <custom-btn
+              label="فحص المعايير السبعة"
+              icon="mdi-checkbox-marked-circle-outline"
+              color="primary"
+              variant="tonal"
+              class="font-weight-bold"
+              :click="() => { openChecklistDialog(selectedQuestion); viewDialog = false; }"
+            />
+
+            <!-- Direct Approve Button with Success Glow -->
+            <custom-btn
+              type="add"
+              label="اعتماد السؤال"
+              icon="mdi-check-decagram"
+              color="success"
+              class="font-weight-bold btn-glow-success px-5"
+              :click="() => { approveQuestion(selectedQuestion); viewDialog = false; }"
+            />
           </template>
+
           <template v-else-if="selectedQuestion && selectedQuestion.status === 'مرفوض'">
-            <custom-btn type="restore" label="إعادة اعتماد" icon="mdi-refresh" color="success" class="font-weight-bold"
-              :click="() => { approveQuestion(selectedQuestion); viewDialog = false; }" />
+            <custom-btn
+              type="restore"
+              label="إعادة النظر والاعتماد"
+              icon="mdi-refresh"
+              color="success"
+              class="font-weight-bold btn-glow-success px-5"
+              :click="() => { approveQuestion(selectedQuestion); viewDialog = false; }"
+            />
           </template>
+
+          <template v-else-if="selectedQuestion && selectedQuestion.status === 'معتمد'">
+            <v-chip color="success" variant="flat" class="font-weight-bold px-3">
+              <v-icon start size="16">mdi-check-decagram</v-icon>
+              السؤال معتمد رسمياً
+            </v-chip>
+          </template>
+        </div>
+      </template>
+    </CustomDialog>
+
+    <!-- Audit Log Dialog -->
+    <CustomDialog v-model="auditDialog" width="800" :showClose="true">
+      <template #title>
+        <div class="d-flex align-center justify-space-between w-100 flex-wrap gap-2 pe-2">
+          <div class="d-flex align-center gap-3">
+            <v-avatar size="44" rounded="lg" color="indigo" variant="tonal" class="border">
+              <v-icon size="24" color="indigo">mdi-shield-account-outline</v-icon>
+            </v-avatar>
+            <div>
+              <div class="d-flex align-center gap-2">
+                <span class="text-h6 font-weight-bold" style="color: rgb(var(--v-theme-on-surface));">
+                  سجل تدقيق وتعديلات السؤال
+                </span>
+                <v-chip size="small" variant="tonal" color="primary" class="font-weight-black px-2">
+                  #{{ auditQuestion ? auditQuestion.id : '' }}
+                </v-chip>
+                <v-chip v-if="auditQuestion?.version_number" size="x-small" variant="tonal" color="secondary" class="font-weight-bold">
+                  v{{ auditQuestion.version_number }}.0
+                </v-chip>
+                <v-chip v-if="isImportedFromExcel(auditQuestion)" size="x-small" variant="flat" color="teal" class="font-weight-bold">
+                  <v-icon start size="12">mdi-file-excel</v-icon>
+                  مستورد من إكسل
+                </v-chip>
+                <v-chip v-else size="x-small" variant="tonal" color="primary" class="font-weight-bold">
+                  <v-icon start size="12">mdi-keyboard-outline</v-icon>
+                  إدخال يدوي
+                </v-chip>
+              </div>
+              <div class="text-caption text-medium-emphasis">
+                تتبع تفصيلي لمنشئ السؤال وآخر من قام بالتعديل والمراجعة والاعتماد
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <template v-if="auditQuestion">
+        <div class="pa-2">
+          <v-progress-linear v-if="auditLoading" indeterminate color="indigo" class="mb-4 rounded" />
+
+          <!-- Summary 3-Column Grid -->
+          <v-row dense class="mb-4">
+            <!-- 1. Creator / Author -->
+            <v-col cols="12" sm="4">
+              <div class="audit-summary-tile pa-3 rounded-xl border d-flex align-center gap-3 h-100">
+                <v-avatar size="42" :color="(auditQuestion.is_imported || auditQuestion.import_session) ? 'teal' : 'primary'" variant="tonal" class="flex-shrink-0">
+                  <v-icon size="22" :color="(auditQuestion.is_imported || auditQuestion.import_session) ? 'teal' : 'primary'">
+                    {{ (auditQuestion.is_imported || auditQuestion.import_session) ? 'mdi-file-excel' : 'mdi-account-plus-outline' }}
+                  </v-icon>
+                </v-avatar>
+                <div class="overflow-hidden flex-grow-1">
+                  <div class="text-caption text-medium-emphasis">منشئ السؤال (المؤلف):</div>
+                  <div class="text-body-2 font-weight-bold text-truncate" style="color: rgb(var(--v-theme-on-surface));">
+                    {{ auditQuestion.author_name || auditQuestion.created_by_username || getAuthorName(auditQuestion) }}
+                  </div>
+                  <div class="d-flex align-center gap-1 flex-wrap mt-1">
+                    <v-chip
+                      size="x-small"
+                      :color="isImportedFromExcel(auditQuestion) ? 'teal' : 'primary'"
+                      :variant="isImportedFromExcel(auditQuestion) ? 'flat' : 'tonal'"
+                      class="font-weight-bold px-2"
+                      style="height: 20px;"
+                    >
+                      <v-icon start size="12">{{ isImportedFromExcel(auditQuestion) ? 'mdi-file-excel' : 'mdi-keyboard-outline' }}</v-icon>
+                      {{ isImportedFromExcel(auditQuestion) ? 'طريقة الإنشاء: مستورد من ملف إكسل' : 'طريقة الإنشاء: إدخال يدوي' }}
+                    </v-chip>
+                    <div class="text-caption text-disabled d-flex align-center gap-1">
+                      <v-icon size="12">mdi-clock-outline</v-icon>
+                      <span>{{ formatAuditDate(auditQuestion.created_at || auditQuestion.createdAt) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </v-col>
+
+            <!-- 2. Last Modifier -->
+            <v-col cols="12" sm="4">
+              <div class="audit-summary-tile pa-3 rounded-xl border d-flex align-center gap-3 h-100">
+                <v-avatar size="42" :color="auditQuestion.last_modified_by ? 'warning' : 'primary'" variant="tonal" class="flex-shrink-0">
+                  <v-icon size="22" :color="auditQuestion.last_modified_by ? 'warning' : 'primary'">mdi-pencil-clock-outline</v-icon>
+                </v-avatar>
+                <div class="overflow-hidden flex-grow-1">
+                  <div class="text-caption text-medium-emphasis">آخر من قام بالتعديل:</div>
+                  <div class="text-body-2 font-weight-bold text-truncate" :class="auditQuestion.last_modified_by ? 'text-warning-darken-1' : 'text-medium-emphasis'">
+                    {{ auditQuestion.last_modified_by || 'لا توجد تعديلات سابقة' }}
+                  </div>
+                  <div class="text-caption text-disabled d-flex align-center gap-1 mt-1">
+                    <v-icon size="12">mdi-clock-outline</v-icon>
+                    <span>{{ auditQuestion.last_modified_at ? formatAuditDate(auditQuestion.last_modified_at) : 'الإصدار الأصلي' }}</span>
+                    <v-chip v-if="auditQuestion.edit_count > 0" size="x-small" variant="tonal" color="warning" class="px-1 ms-1 font-weight-bold">
+                      {{ auditQuestion.edit_count }} تعديل
+                    </v-chip>
+                  </div>
+                </div>
+              </div>
+            </v-col>
+
+            <!-- 3. Reviewer / Approver -->
+            <v-col cols="12" sm="4">
+              <div class="audit-summary-tile pa-3 rounded-xl border d-flex align-center gap-3 h-100">
+                <v-avatar size="42" :color="auditQuestion.reviewer_name ? 'success' : 'primary'" variant="tonal" class="flex-shrink-0">
+                  <v-icon size="22" :color="auditQuestion.reviewer_name ? 'success' : 'primary'">mdi-account-check-outline</v-icon>
+                </v-avatar>
+                <div class="overflow-hidden flex-grow-1">
+                  <div class="text-caption text-medium-emphasis">المراجع المعتمد:</div>
+                  <div class="text-body-2 font-weight-bold text-truncate" :class="auditQuestion.reviewer_name ? 'text-success' : 'text-medium-emphasis'">
+                    {{ auditQuestion.reviewer_name || (auditQuestion.status === 'معتمد' ? 'اللجنة العلمية' : 'بانتظار المراجعة') }}
+                  </div>
+                  <div class="text-caption text-disabled d-flex align-center gap-1 mt-1">
+                    <v-icon size="12">mdi-calendar-check-outline</v-icon>
+                    <span>{{ auditQuestion.approved_at ? formatAuditDate(auditQuestion.approved_at) : 'لم يتم الاعتماد بعد' }}</span>
+                  </div>
+                </div>
+              </div>
+            </v-col>
+          </v-row>
+
+          <!-- Detailed Audit Timeline Section -->
+          <div class="pa-4 rounded-2xl border" style="background: rgba(var(--v-theme-surface), 0.7);">
+            <div class="d-flex align-center justify-space-between mb-3 border-b pb-2 flex-wrap gap-2">
+              <div class="d-flex align-center gap-2">
+                <v-icon size="18" color="indigo">mdi-timeline-clock-outline</v-icon>
+                <span class="text-subtitle-2 font-weight-bold">السجل الزمني لكافة العمليات على هذا السؤال</span>
+              </div>
+              <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold">
+                {{ (auditQuestion.audit_trail && auditQuestion.audit_trail.length) || 1 }} عمليات مسجلة
+              </v-chip>
+            </div>
+
+            <div v-if="auditQuestion.audit_trail && auditQuestion.audit_trail.length" class="audit-timeline-container d-flex flex-column gap-2">
+              <div
+                v-for="(log, idx) in auditQuestion.audit_trail"
+                :key="log.id || idx"
+                class="audit-timeline-row pa-3 rounded-xl border d-flex align-center justify-space-between gap-3 text-caption"
+              >
+                <div class="d-flex align-center gap-3 overflow-hidden">
+                  <v-avatar size="34" :color="getActionBadgeColor(log.action)" variant="tonal" class="flex-shrink-0">
+                    <v-icon size="18" :color="getActionBadgeColor(log.action)">{{ getActionIcon(log.action) }}</v-icon>
+                  </v-avatar>
+                  <div class="overflow-hidden">
+                    <div class="d-flex align-center gap-2 flex-wrap">
+                      <span class="font-weight-bold text-body-2" style="color: rgb(var(--v-theme-on-surface));">
+                        {{ log.user_name || log.username || 'مستخدم النظام' }}
+                      </span>
+                      <v-chip size="x-small" :color="getActionBadgeColor(log.action)" variant="flat" class="font-weight-bold px-2">
+                        {{ log.action }}
+                      </v-chip>
+                    </div>
+                    <div class="text-caption text-medium-emphasis text-truncate mt-1">
+                      {{ log.description || 'إجراء على السؤال' }}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="text-caption text-disabled d-flex align-center gap-1 flex-shrink-0 dir-ltr">
+                  <v-icon size="13">mdi-clock-time-four-outline</v-icon>
+                  <span class="font-weight-medium">{{ formatAuditDate(log.created_at) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div v-else class="text-center py-6 text-medium-emphasis">
+              <v-icon size="36" color="disabled" class="mb-2">mdi-history</v-icon>
+              <div class="text-caption font-weight-medium">تم إنشاء السؤال في {{ formatAuditDate(auditQuestion.created_at) }} ولا توجد أي تعديلات أو إجراءات إضافية مسجلة حتى الآن.</div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <template #actions>
+        <div class="d-flex align-center justify-end w-100 gap-2 pa-2">
+          <custom-btn label="إغلاق" color="primary" variant="outlined" class="font-weight-bold px-5" :click="() => auditDialog = false" />
         </div>
       </template>
     </CustomDialog>
@@ -581,6 +1156,57 @@ const getQuestionAnswers = (questionId) => {
   return selectedQuestion.value.options || selectedQuestion.value.answers || []
 }
 
+const auditDialog = ref(false)
+const auditLoading = ref(false)
+const auditQuestion = ref(null)
+
+const openAuditDialog = async (question) => {
+  if (!question) return
+  auditQuestion.value = { ...question }
+  auditDialog.value = true
+  auditLoading.value = true
+  try {
+    const res = await proxy.$axios.get(`api/bank/question-review/${question.id}/`)
+    const fullData = res.data?.data || res.data
+    if (fullData) {
+      auditQuestion.value = { ...auditQuestion.value, ...fullData }
+    }
+  } catch (err) {
+    console.error("فشل في جلب سجل التدقيق:", err)
+  } finally {
+    auditLoading.value = false
+  }
+}
+
+const getActionBadgeColor = (action) => {
+  if (!action) return "primary"
+  const act = String(action).trim()
+  if (act === "استيراد جماعي") return "teal"
+  if (act === "إنشاء") return "primary"
+  if (act === "تعديل") return "warning"
+  if (act === "اعتماد" || act === "استعادة") return "success"
+  if (act === "رفض" || act === "حذف") return "error"
+  if (act === "استنساخ") return "indigo"
+  if (act === "إصدار جديد") return "teal"
+  if (act === "أرشفة") return "purple"
+  return "info"
+}
+
+const getActionIcon = (action) => {
+  if (!action) return "mdi-checkbox-blank-circle-outline"
+  const act = String(action).trim()
+  if (act === "إنشاء") return "mdi-plus-circle"
+  if (act === "تعديل") return "mdi-pencil"
+  if (act === "اعتماد") return "mdi-check-decagram"
+  if (act === "رفض") return "mdi-close-octagon"
+  if (act === "استنساخ") return "mdi-content-copy"
+  if (act === "إصدار جديد") return "mdi-source-branch"
+  if (act === "أرشفة") return "mdi-archive-arrow-down"
+  if (act === "استعادة") return "mdi-archive-arrow-up"
+  if (act === "استيراد جماعي") return "mdi-file-excel-outline"
+  return "mdi-clock-outline"
+}
+
 const viewDialog = ref(false)
 const rejectDialog = ref(false)
 const checklistDialog = ref(false)
@@ -627,12 +1253,12 @@ const quickRejectReasons = [
 ]
 
 const headers = computed(() => [
-  { title: 'المؤلف', key: 'author', sortable: false },
   { title: 'السؤال', key: 'content', sortable: false },
   { title: 'المادة / المقرر', key: 'subject', sortable: false },
   { title: 'نوع السؤال', key: 'questionType', sortable: false },
   { title: 'الصعوبة', key: 'difficulty', sortable: false },
   { title: 'الحالة', key: 'status', sortable: true },
+  { title: 'المؤلف وآخر تعديل', key: 'audit', sortable: false },
 ])
 
 onMounted(async () => {
@@ -749,12 +1375,29 @@ const resetFilters = () => {
   getData()
 }
 
+const isImportedFromExcel = (q) => {
+  if (!q) return false
+  return Boolean(
+    q.is_imported ||
+    q.import_session ||
+    q.import_source === 'إكسل' ||
+    q.status === 'مستورد' ||
+    (q.audit_trail && q.audit_trail.some(a => a.action === 'استيراد جماعي'))
+  )
+}
+
 const getAuthorName = (question) => {
-  if (question?.author_name) return question.author_name
-  const userId = typeof question === 'object' ? question?.createdBy : question
-  if (!userId) return 'مؤلف غير معروف'
-  const user = users.value.find(u => u.id === userId)
-  return user ? (user.name || user.username || 'مؤلف غير معروف') : 'مؤلف غير معروف'
+  if (!question) return 'مؤلف غير معروف'
+  if (typeof question === 'object') {
+    if (question.author_name) return question.author_name
+    if (question.created_by_username) return question.created_by_username
+    const userId = question.createdBy
+    if (!userId) return 'مؤلف غير معروف'
+    const user = users.value.find(u => u.id === userId)
+    return user ? (user.name || user.username || 'مؤلف غير معروف') : 'مؤلف غير معروف'
+  }
+  const user = users.value.find(u => u.id === question)
+  return user ? (user.name || user.username || `مستخدم #${question}`) : `مستخدم #${question}`
 }
 
 const getSubjectName = (question) => {
@@ -774,12 +1417,20 @@ const getLessonName = (question) => {
   return question?.lesson ? `درس #${question.lesson}` : 'عام'
 }
 
-const viewQuestion = (question) => {
+const viewQuestion = async (question) => {
   if (!question) return
-  selectedQuestion.value = question
-  nextTick(() => {
-    viewDialog.value = true
-  })
+  selectedQuestion.value = { ...question }
+  viewDialog.value = true
+  if (!question.options || question.options.length === 0) {
+    try {
+      const res = await proxy.$axios.get(`api/bank/question-review/${question.id}/`)
+      if (res?.data) {
+        selectedQuestion.value = { ...selectedQuestion.value, ...res.data }
+      }
+    } catch (e) {
+      console.warn("Could not fetch detailed question data, using cached item", e)
+    }
+  }
 }
 
 const openChecklistDialog = (question) => {
@@ -864,21 +1515,56 @@ const rejectQuestion = async () => {
 
 // Helpers
 const getDifficultyColor = (difficulty) => {
-  const colors = { 1: 'emerald', 2: 'amber', 3: 'rose' }
-  return colors[difficulty] || 'grey'
+  const d = String(difficulty ?? '').toLowerCase().trim()
+  if (d === '1' || d === 'easy' || d === 'سهل') return 'success'
+  if (d === '2' || d === 'medium' || d === 'متوسط') return 'warning'
+  if (d === '3' || d === 'hard' || d === 'صعب') return 'error'
+  return 'primary'
 }
 
 const getDifficultyText = (difficulty) => {
-  const texts = { 1: 'سهل', 2: 'متوسط', 3: 'صعب' }
-  return texts[difficulty] || difficulty
+  const d = String(difficulty ?? '').toLowerCase().trim()
+  if (d === '1' || d === 'easy' || d === 'سهل') return 'سهل'
+  if (d === '2' || d === 'medium' || d === 'متوسط') return 'متوسط'
+  if (d === '3' || d === 'hard' || d === 'صعب') return 'صعب'
+  return difficulty || '-'
+}
+
+const getDifficultyIcon = (difficulty) => {
+  const d = String(difficulty ?? '').toLowerCase().trim()
+  if (d === '1' || d === 'easy' || d === 'سهل') return 'mdi-signal-cellular-1'
+  if (d === '2' || d === 'medium' || d === 'متوسط') return 'mdi-signal-cellular-2'
+  if (d === '3' || d === 'hard' || d === 'صعب') return 'mdi-signal-cellular-3'
+  return 'mdi-help-circle-outline'
 }
 
 const getStatusColor = (status) => {
   switch (status) {
-    case 'معتمد': return 'success';
-    case 'مرفوض': return 'error';
-    case 'قيد المراجعة': return 'warning';
-    default: return 'grey';
+    case 'معتمد': return 'success'
+    case 'مرفوض': return 'error'
+    case 'قيد المراجعة': return 'warning'
+    case 'مسودة': return 'info'
+    default: return 'primary'
+  }
+}
+
+const getStatusIcon = (status) => {
+  switch (status) {
+    case 'معتمد': return 'mdi-check-decagram'
+    case 'مرفوض': return 'mdi-close-octagon'
+    case 'قيد المراجعة': return 'mdi-clock-alert-outline'
+    case 'مسودة': return 'mdi-file-document-edit-outline'
+    default: return 'mdi-help-circle-outline'
+  }
+}
+
+const getStatusText = (status) => {
+  switch (status) {
+    case 'معتمد': return 'معتمد'
+    case 'مرفوض': return 'مرفوض'
+    case 'قيد المراجعة': return 'بانتظار المراجعة'
+    case 'مسودة': return 'مسودة'
+    default: return status || '-'
   }
 }
 
@@ -890,24 +1576,260 @@ const getBloomText = (level) => {
     'تحليل': 'تحليل',
     'تقييم': 'تقويم',
     'إبداع': 'إبداع',
+    'ابتكار': 'إبداع',
   }
-  return texts[level] || level
+  return texts[level] || level || '-'
 }
 
-const getStatusText = (status) => {
-  switch (status) {
-    case 'معتمد': return 'معتمد';
-    case 'مرفوض': return 'مرفوض';
-    case 'قيد المراجعة': return 'بانتظار المراجعة';
-    case 'مسودة': return 'مسودة';
-    default: return status;
+const getBloomColor = (level) => {
+  const colors = {
+    'تذكر': '#6366f1',
+    'فهم': '#0284c7',
+    'تطبيق': '#059669',
+    'تحليل': '#d97706',
+    'تقييم': '#7c3aed',
+    'إبداع': '#db2777',
+    'ابتكار': '#db2777',
+  }
+  return colors[level] || '#6366f1'
+}
+
+const getTypeText = (type) => {
+  const types = {
+    'Single Choice': 'اختيار واحد',
+    'Multiple Choice': 'عدة إجابات',
+    'True/False': 'صواب / خطأ',
+    'Essay': 'مقالي',
+    'Fill in the Blanks': 'فراغات',
+    'Matching': 'مطابقة',
+    'Ordering': 'ترتيب',
+  }
+  return types[type] || type || '-'
+}
+
+const getOptionLetter = (idx) => {
+  const letters = ['أ', 'ب', 'ج', 'د', 'هـ', 'و', 'ز', 'ح']
+  return letters[idx] || String(idx + 1)
+}
+
+const getInstitutionLabel = (type) => {
+  const labels = {
+    school: 'تعليم مدرسي',
+    university: 'تعليم جامعي',
+    institute: 'معاهد وتدريب مهني',
+  }
+  return labels[type] || 'تعليم مدرسي'
+}
+
+const getAcademicHierarchy = (q) => {
+  if (!q) return []
+  const parts = []
+  if (q.institution_type === 'university') {
+    if (q.college_name) parts.push({ label: 'الكلية', value: q.college_name, icon: 'mdi-town-hall' })
+    if (q.department_name) parts.push({ label: 'القسم', value: q.department_name, icon: 'mdi-door' })
+    if (q.specialization_name) parts.push({ label: 'التخصص', value: q.specialization_name, icon: 'mdi-certificate' })
+    if (q.semester_subject_name) parts.push({ label: 'المقرر', value: q.semester_subject_name, icon: 'mdi-book-education' })
+    else if (q.subject_name) parts.push({ label: 'المادة', value: q.subject_name, icon: 'mdi-book-education' })
+  } else if (q.institution_type === 'institute') {
+    if (q.institute_field_name) parts.push({ label: 'المجال', value: q.institute_field_name, icon: 'mdi-tools' })
+    if (q.institute_specialization_name) parts.push({ label: 'التخصص', value: q.institute_specialization_name, icon: 'mdi-certificate' })
+    if (q.subject_name) parts.push({ label: 'المادة', value: q.subject_name, icon: 'mdi-book-education' })
+  } else {
+    if (q.stage_name) parts.push({ label: 'المرحلة', value: q.stage_name, icon: 'mdi-stairs' })
+    if (q.class_track_name) parts.push({ label: 'الصف والمسار', value: q.class_track_name, icon: 'mdi-google-classroom' })
+    const sub = q.subject_name || getSubjectName(q)
+    if (sub && sub !== 'عام') parts.push({ label: 'المادة', value: sub, icon: 'mdi-book-education' })
+  }
+  if (q.unit_name) parts.push({ label: 'الوحدة', value: q.unit_name, icon: 'mdi-folder-outline' })
+  if (q.lesson_name) parts.push({ label: 'الدرس', value: q.lesson_name, icon: 'mdi-bookmark-outline' })
+  return parts
+}
+
+const formatAuditDate = (dateStr) => {
+  if (!dateStr) return '—'
+  try {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return dateStr
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    const hours = String(d.getHours()).padStart(2, '0')
+    const mins = String(d.getMinutes()).padStart(2, '0')
+    return `${year}-${month}-${day} ${hours}:${mins}`
+  } catch (e) {
+    return dateStr
   }
 }
+
 </script>
 
 <style scoped>
 .qb-review-page-v4 {
   color: rgb(var(--v-theme-on-surface));
+}
+
+/* ===== Review Details Canvas & Modal Styling ===== */
+.review-details-canvas {
+  font-family: inherit;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.academic-hierarchy-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-border-color), 0.14) !important;
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.02);
+}
+
+.hierarchy-pill {
+  background: rgba(var(--v-theme-on-surface), 0.03) !important;
+  border: 1px solid rgba(var(--v-border-color), 0.12) !important;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.question-paper-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-border-color), 0.14) !important;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04);
+}
+
+.question-paper-header {
+  background: rgb(var(--v-theme-surface)) !important;
+  border-bottom: 1px solid rgba(var(--v-border-color), 0.12) !important;
+}
+
+.question-idea-box {
+  background: rgba(245, 158, 11, 0.07);
+  border: 1px solid rgba(245, 158, 11, 0.28) !important;
+}
+
+.question-image-frame {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-border-color), 0.14) !important;
+}
+
+.question-body-rendered {
+  color: rgb(var(--v-theme-on-surface));
+  letter-spacing: -0.01em;
+}
+
+.question-body-rendered :deep(p) {
+  margin-bottom: 0.5rem;
+}
+
+.question-body-rendered :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.question-body-rendered :deep(th),
+.question-body-rendered :deep(td) {
+  border: 1px solid rgba(var(--v-border-color), 0.2);
+  padding: 8px 12px;
+}
+
+.option-row-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.option-row-correct {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border: 2px solid #10b981 !important;
+  box-shadow: 0 4px 12px -2px rgba(16, 185, 129, 0.18);
+}
+
+.option-row-neutral {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-border-color), 0.14) !important;
+}
+
+.option-row-neutral:hover {
+  background: rgba(var(--v-theme-primary), 0.03) !important;
+  border-color: rgba(var(--v-theme-primary), 0.35) !important;
+}
+
+.tf-card-active {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border: 2px solid #10b981 !important;
+}
+
+.tf-card-inactive {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-border-color), 0.14) !important;
+  opacity: 0.8;
+}
+
+.model-answer-box {
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  border-right: 5px solid #10b981 !important;
+}
+
+.author-dossier-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-border-color), 0.14) !important;
+}
+
+.audit-person-tile {
+  background: rgba(var(--v-theme-on-surface), 0.02) !important;
+  border: 1px solid rgba(var(--v-border-color), 0.1) !important;
+}
+
+.btn-glow-success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.4) !important;
+  transition: all 0.25s ease !important;
+}
+
+.btn-glow-success:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.55) !important;
+}
+
+
+.audit-table-cell {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+}
+
+.audit-table-cell:hover {
+  background-color: rgba(var(--v-theme-primary), 0.06);
+  border-color: rgba(var(--v-theme-primary), 0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.audit-hover-icon {
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: all 0.2s ease;
+}
+
+.audit-table-cell:hover .audit-hover-icon {
+  opacity: 0.9;
+  transform: translateX(0);
+}
+
+.audit-summary-tile {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-border-color), 0.14) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+  transition: transform 0.2s ease;
+}
+
+.audit-summary-tile:hover {
+  transform: translateY(-2px);
+}
+
+.audit-timeline-row {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-border-color), 0.12) !important;
+  transition: all 0.2s ease;
+}
+
+.audit-timeline-row:hover {
+  background: rgba(var(--v-theme-primary), 0.02) !important;
+  border-color: rgba(var(--v-theme-primary), 0.25) !important;
 }
 
 </style>

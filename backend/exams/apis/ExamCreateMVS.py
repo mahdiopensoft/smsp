@@ -14,9 +14,7 @@ from exams.models.ExamQuestionOrder import ExamQuestionOrder
 from exams.models.StudentExamRegistration import StudentExamRegistration
 from exams.models.ExamTargetScope import ExamTargetScope
 from exams.models.ExamModelRegionAssignment import ExamModelRegionAssignment
-from exams.models.ExamTemplate import ExamTemplate
 from exams.serializers.Exam import ExamSerializer
-from exams.serializers.ExamTemplate import ExamTemplateSerializer
 from bank.models.Question import Question
 from academic.models.universities.UniversityLesson import UniversityLesson as Lesson
 from academic.models.universities.UniversityUnit import UniversityUnit as Unit
@@ -293,32 +291,197 @@ class ExamCreateMVS(AllMVS):
 
         return selected
 
-    def _is_tf(self, q):
+    def _select_questions_by_units_and_difficulty(self, candidate_questions, questions_count, difficulty_dist, group_units=None, group_types=None):
+        """
+        Select questions matching group's specific question types, unit distribution, and difficulty profile.
+        """
+        # If question types are specified with percentages > 0, partition by types first
+        active_types = [t for t in (group_types or []) if t.get('percentage', 0) > 0]
+        if active_types and len(active_types) > 0:
+            type_allocations = []
+            total_type_cnt = 0
+            for t in active_types:
+                pct = t.get('percentage', 0)
+                cnt = round(questions_count * pct / 100)
+                t_val = t.get('value') or t.get('id')
+                type_allocations.append({'type_val': t_val, 'count': cnt})
+                total_type_cnt += cnt
+
+            # Adjust rounding
+            if total_type_cnt < questions_count and type_allocations:
+                type_allocations[0]['count'] += (questions_count - total_type_cnt)
+            elif total_type_cnt > questions_count and type_allocations:
+                diff = total_type_cnt - questions_count
+                for a in type_allocations:
+                    if a['count'] >= diff:
+                        a['count'] -= diff
+                        break
+
+            selected = []
+            selected_ids = set()
+
+            for a in type_allocations:
+                t_val = a['type_val']
+                needed = a['count']
+                if needed <= 0:
+                    continue
+                type_pool = [q for q in candidate_questions if self._match_question_type(q, t_val) and q.id not in selected_ids]
+                # Apply unit and difficulty selection on this type pool
+                chosen = self._select_questions_by_units_and_difficulty(
+                    type_pool, needed, difficulty_dist, group_units=group_units, group_types=None
+                )
+                for q in chosen:
+                    if q.id not in selected_ids:
+                        selected.append(q)
+                        selected_ids.add(q.id)
+
+            # Fill any remaining shortage from overall pool
+            if len(selected) < questions_count:
+                remaining = [q for q in candidate_questions if q.id not in selected_ids]
+                needed = questions_count - len(selected)
+                filler = self._select_questions_by_difficulty(remaining, needed, difficulty_dist)
+                for q in filler:
+                    if len(selected) >= questions_count:
+                        break
+                    if q.id not in selected_ids:
+                        selected.append(q)
+                        selected_ids.add(q.id)
+
+            return selected
+
+        if not group_units:
+            return self._select_questions_by_difficulty(candidate_questions, questions_count, difficulty_dist)
+
+        active_units = [u for u in group_units if u.get('percentage', 0) > 0 and not u.get('isExcluded', False)]
+        if not active_units:
+            return self._select_questions_by_difficulty(candidate_questions, questions_count, difficulty_dist)
+
+        allocated = []
+        total_allocated = 0
+        for u in active_units:
+            pct = u.get('percentage', 0)
+            cnt = round(questions_count * pct / 100)
+            allocated.append({'unit_id': u.get('id'), 'count': cnt})
+            total_allocated += cnt
+
+        # Adjust rounding difference
+        if total_allocated < questions_count and allocated:
+            allocated[0]['count'] += (questions_count - total_allocated)
+        elif total_allocated > questions_count and allocated:
+            diff = total_allocated - questions_count
+            for a in allocated:
+                if a['count'] >= diff:
+                    a['count'] -= diff
+                    break
+
+        unit_questions_map = {}
+        for q in candidate_questions:
+            uid = getattr(getattr(q, 'lesson', None), 'unit_id', None)
+            if uid:
+                unit_questions_map.setdefault(uid, []).append(q)
+
+        selected = []
+        selected_ids = set()
+
+        for a in allocated:
+            u_pool = unit_questions_map.get(a['unit_id'], [])
+            if not u_pool or a['count'] <= 0:
+                continue
+            u_selected = self._select_questions_by_difficulty(u_pool, a['count'], difficulty_dist)
+            for q in u_selected:
+                if q.id not in selected_ids:
+                    selected.append(q)
+                    selected_ids.add(q.id)
+
+        # Fill any remaining shortage from overall candidate pool
+        if len(selected) < questions_count:
+            remaining = [q for q in candidate_questions if q.id not in selected_ids]
+            needed = questions_count - len(selected)
+            filler = self._select_questions_by_difficulty(remaining, needed, difficulty_dist)
+            for q in filler:
+                if len(selected) >= questions_count:
+                    break
+                if q.id not in selected_ids:
+                    selected.append(q)
+                    selected_ids.add(q.id)
+
+        return selected
+
+    def _match_question_type(self, q, type_val):
+        """Matches a question to a blueprint question type identifier."""
         t = str(getattr(q, 'questionType', '') or '').lower()
-        return 'true' in t or 'false' in t or 'صح' in t or 'خطأ' in t
+        type_val = str(type_val or '').lower()
+        if type_val in ['single_choice', 'mcq', 'single choice']:
+            return 'single' in t or ('mcq' in t and 'multiple' not in t) or 'فردي' in t or (not t and hasattr(q, 'options') and q.options.count() > 1)
+        elif type_val in ['true_false', 'tf', 'true/false']:
+            return 'true' in t or 'false' in t or 'صواب' in t or 'صح' in t or 'خطأ' in t
+        elif type_val in ['multiple_choice', 'multiple choice']:
+            return 'multiple' in t or 'متعدد' in t
+        elif type_val in ['essay']:
+            return 'essay' in t or 'مقالي' in t or 'إنشائي' in t
+        elif type_val in ['fill_blanks', 'fill in the blanks']:
+            return 'blank' in t or 'فراغ' in t or 'إكمال' in t
+        elif type_val in ['matching']:
+            return 'match' in t or 'توصيل' in t or 'مطابقة' in t or 'مزاوجة' in t
+        elif type_val in ['ordering']:
+            return 'order' in t or 'ترتيب' in t
+        return type_val in t
+
+    def _is_tf(self, q):
+        return self._match_question_type(q, 'true_false')
+
+    def _is_mcq(self, q):
+        return self._match_question_type(q, 'single_choice') or self._match_question_type(q, 'multiple_choice')
+
+    def _is_essay(self, q):
+        return self._match_question_type(q, 'essay')
+
+    def _resolve_question_mark(self, q, types_list):
+        if types_list:
+            for t in types_list:
+                t_val = t.get('value') or t.get('id')
+                if self._match_question_type(q, t_val):
+                    m = t.get('mark')
+                    if m is not None:
+                        try:
+                            return float(m)
+                        except (ValueError, TypeError):
+                            pass
+        return float(getattr(q, 'defaultMark', None) or 1.0)
 
     def _order_questions_by_section(self, questions):
         """
-        Groups questions by section: True/False first, then MCQ/others.
-        Shuffles questions within each section independently to maintain
-        strict ministerial examination standards (Part 1: T/F, Part 2: MCQ)
-        and ensure 100% synchronization with OMR bubble sheet layouts.
+        Groups questions by ministerial academic sections:
+        Part 1: True / False (صح وخطأ)
+        Part 2: Multiple Choice / Single Choice (اختيار من متعدد)
+        Part 3: Other Objective Questions (Matching, Ordering, Fill in Blanks)
+        Part 4: Essay Questions (الأسئلة المقالية)
+        Shuffles questions within each section independently to maintain 100% synchronization
+        with OMR bubble sheet layouts and academic best practices.
         """
         tf_list = [q for q in questions if self._is_tf(q)]
-        mcq_list = [q for q in questions if not self._is_tf(q)]
+        mcq_list = [q for q in questions if not self._is_tf(q) and self._is_mcq(q)]
+        essay_list = [q for q in questions if not self._is_tf(q) and not self._is_mcq(q) and self._is_essay(q)]
+        other_list = [q for q in questions if q not in tf_list and q not in mcq_list and q not in essay_list]
+
         random.shuffle(tf_list)
         random.shuffle(mcq_list)
-        return tf_list + mcq_list
+        random.shuffle(other_list)
+        random.shuffle(essay_list)
+
+        return tf_list + mcq_list + other_list + essay_list
 
     # ═══════════════════════════════════════════════════════════
     # Helper: Auto-register students by classTrack + geographic scope
     # ═══════════════════════════════════════════════════════════
     def _auto_register_students(self, exam, created_versions, class_track_id,
                                  target_scope_level, target_scopes_data,
-                                 governorate_id, directorate_id, region_id):
+                                 governorate_id, directorate_id, region_id,
+                                 model_region_assignments=None):
         """
         Find all active students matching the class_track and geographic scope,
-        then register them into exam versions in round-robin distribution.
+        then register them into exam versions in round-robin distribution,
+        respecting group regional assignments when present.
         Returns the count of registered students.
         """
         from academic.models.common.Student import Student
@@ -381,16 +544,57 @@ class ExamCreateMVS(AllMVS):
             elif governorate_id:
                 student_qs = student_qs.filter(directorate__governorate_id=governorate_id)
 
-        students = list(student_qs.order_by('academic_number'))
+        students = list(student_qs.select_related('directorate').order_by('academic_number'))
         if not students:
             return 0
 
-        # Distribute students across versions in round-robin
+        # Distribute students across versions
         registrations_to_create = []
         num_versions = len(created_versions)
 
+        # Build group index -> versions mapping
+        group_versions_map = {}
+        for v in created_versions:
+            g_idx = getattr(v, 'model_group_index', 0)
+            group_versions_map.setdefault(g_idx, []).append(v)
+
+        group_counters = {g_idx: 0 for g_idx in group_versions_map}
+        global_counter = 0
+
         for idx, student in enumerate(students):
-            version = created_versions[idx % num_versions]
+            assigned_group_idx = None
+            if model_region_assignments:
+                s_org_id = student.organization_id
+                s_dir_id = student.directorate_id
+                s_gov_id = getattr(student.directorate, 'governorate_id', None) if student.directorate else None
+
+                for assign in model_region_assignments:
+                    g_idx = assign.get('model_group_index', 0)
+                    a_org = assign.get('organization_id') or assign.get('organization')
+                    a_dir = assign.get('directorate_id') or assign.get('directorate')
+                    a_gov = assign.get('governorate_id') or assign.get('governorate')
+
+                    try:
+                        if a_org and s_org_id and int(a_org) == int(s_org_id):
+                            assigned_group_idx = g_idx
+                            break
+                        elif a_dir and s_dir_id and int(a_dir) == int(s_dir_id):
+                            assigned_group_idx = g_idx
+                            break
+                        elif a_gov and s_gov_id and int(a_gov) == int(s_gov_id):
+                            assigned_group_idx = g_idx
+                            break
+                    except (ValueError, TypeError):
+                        pass
+
+            if assigned_group_idx is not None and group_versions_map.get(assigned_group_idx):
+                vers = group_versions_map[assigned_group_idx]
+                c = group_counters[assigned_group_idx]
+                version = vers[c % len(vers)]
+                group_counters[assigned_group_idx] += 1
+            else:
+                version = created_versions[global_counter % num_versions]
+                global_counter += 1
             seat_number = str(student.academic_number) if student.academic_number else f"{exam.uniqueCode}-{str(idx + 1).zfill(4)}"
             secret_number = f"S{uuid.uuid4().hex[:6].upper()}"
 
@@ -449,13 +653,25 @@ class ExamCreateMVS(AllMVS):
         candidate_questions = list(candidate_qs)
         total_avail = len(candidate_questions)
 
-        # Requirements
+        # Requirements for all Question Types
         types_bp = blueprint.get('types', [])
-        mcq_pct = next((t.get('percentage', 0) for t in types_bp if t.get('value') == 'mcq'), 0)
-        tf_pct = next((t.get('percentage', 0) for t in types_bp if t.get('value') == 'tf'), 0)
+        types_breakdown = {}
+        for t in types_bp:
+            t_key = t.get('value') or t.get('id')
+            t_pct = t.get('percentage', 0)
+            req = round(questions_count * t_pct / 100)
+            avail = sum(1 for q in candidate_questions if self._match_question_type(q, t_key))
+            types_breakdown[t_key] = {
+                'required': req,
+                'available': avail,
+                'missing': max(0, req - avail),
+                'name': t.get('name', t_key)
+            }
 
-        mcq_req = round(questions_count * mcq_pct / 100)
-        tf_req = round(questions_count * tf_pct / 100)
+        mcq_req = types_breakdown.get('single_choice', {}).get('required', 0) or types_breakdown.get('mcq', {}).get('required', 0)
+        tf_req = types_breakdown.get('true_false', {}).get('required', 0) or types_breakdown.get('tf', {}).get('required', 0)
+        mcq_avail = types_breakdown.get('single_choice', {}).get('available', 0) or types_breakdown.get('mcq', {}).get('available', 0)
+        tf_avail = types_breakdown.get('true_false', {}).get('available', 0) or types_breakdown.get('tf', {}).get('available', 0)
 
         diff_bp = blueprint.get('difficulty', [])
         easy_pct = next((d.get('percentage', 0) for d in diff_bp if d.get('name') == 'سهل'), 0)
@@ -466,9 +682,6 @@ class ExamCreateMVS(AllMVS):
         med_req = round(questions_count * med_pct / 100)
         hard_req = round(questions_count * hard_pct / 100)
 
-        # Availability
-        mcq_avail = sum(1 for q in candidate_questions if q.questionType in ['Single Choice', 'Multiple Choice'])
-        tf_avail = sum(1 for q in candidate_questions if q.questionType == 'True/False')
         easy_avail = sum(1 for q in candidate_questions if q.difficulty == 1)
         med_avail = sum(1 for q in candidate_questions if q.difficulty == 2)
         hard_avail = sum(1 for q in candidate_questions if q.difficulty == 3)
@@ -497,6 +710,7 @@ class ExamCreateMVS(AllMVS):
         report = {
             "mcq": {"required": mcq_req, "available": mcq_avail, "missing": max(0, mcq_req - mcq_avail)},
             "tf": {"required": tf_req, "available": tf_avail, "missing": max(0, tf_req - tf_avail)},
+            "typesBreakdown": types_breakdown,
             "easy": {"required": easy_req, "available": easy_avail, "missing": max(0, easy_req - easy_avail)},
             "medium": {"required": med_req, "available": med_avail, "missing": max(0, med_req - med_avail)},
             "hard": {"required": hard_req, "available": hard_avail, "missing": max(0, hard_req - hard_avail)},
@@ -539,7 +753,7 @@ class ExamCreateMVS(AllMVS):
         blueprint = data.get('blueprint', {})
 
         # Advanced options
-        bloom_enabled = data.get('bloom_enabled', True)
+        bloom_enabled = bool(data.get('bloom_enabled', False))
         models_mode = data.get('models_mode', 'uniform')
         model_groups = data.get('model_groups', [])
         target_scopes_data = data.get('target_scopes', [])
@@ -584,12 +798,12 @@ class ExamCreateMVS(AllMVS):
                     easyPercentage=next((d.get('percentage', 0) for d in diff_bp if d.get('name') == 'سهل'), 30),
                     mediumPercentage=next((d.get('percentage', 0) for d in diff_bp if d.get('name') == 'متوسط'), 50),
                     hardPercentage=next((d.get('percentage', 0) for d in diff_bp if d.get('name') == 'صعب'), 20),
-                    rememberPercentage=next((b.get('percentage', 0) for b in bloom_bp if b.get('name') == 'تذكر'), 20) if bloom_enabled else 0,
-                    understandPercentage=next((b.get('percentage', 0) for b in bloom_bp if b.get('name') == 'فهم'), 25) if bloom_enabled else 0,
-                    applyPercentage=next((b.get('percentage', 0) for b in bloom_bp if b.get('name') == 'تطبيق'), 25) if bloom_enabled else 0,
-                    analyzePercentage=next((b.get('percentage', 0) for b in bloom_bp if b.get('name') == 'تحليل'), 15) if bloom_enabled else 0,
-                    evaluatePercentage=next((b.get('percentage', 0) for b in bloom_bp if b.get('name') == 'تقويم'), 10) if bloom_enabled else 0,
-                    createPercentage=next((b.get('percentage', 0) for b in bloom_bp if b.get('name') == 'إبداع'), 5) if bloom_enabled else 0,
+                    rememberPercentage=next((b.get('percentage', 0) for b in bloom_bp if b.get('name') == 'تذكر'), 0) if bloom_enabled else 0,
+                    understandPercentage=next((b.get('percentage', 0) for b in bloom_bp if b.get('name') == 'فهم'), 0) if bloom_enabled else 0,
+                    applyPercentage=next((b.get('percentage', 0) for b in bloom_bp if b.get('name') == 'تطبيق'), 0) if bloom_enabled else 0,
+                    analyzePercentage=next((b.get('percentage', 0) for b in bloom_bp if b.get('name') == 'تحليل'), 0) if bloom_enabled else 0,
+                    evaluatePercentage=next((b.get('percentage', 0) for b in bloom_bp if b.get('name') == 'تقويم'), 0) if bloom_enabled else 0,
+                    createPercentage=next((b.get('percentage', 0) for b in bloom_bp if b.get('name') == 'إبداع'), 0) if bloom_enabled else 0,
                 )
 
                 # 2. Create Main Exam
@@ -600,11 +814,13 @@ class ExamCreateMVS(AllMVS):
                     'region_id': region_id,
                 }, target_scope_level)
 
+                total_marks = float(data.get('total_marks') or data.get('totalMarks') or blueprint.get('total_marks') or 100.0)
                 unique_code = f"EXAM-{uuid.uuid4().hex[:8].upper()}"
                 exam = Exam.objects.create(
                     title=title,
                     institution_type=inst_type,
                     uniqueCode=unique_code,
+                    total_marks=total_marks,
                     examGenerationSetting=setting,
                     year_id=year_id,
                     subject_id=subject_id,
@@ -625,10 +841,11 @@ class ExamCreateMVS(AllMVS):
                 if target_scopes_data:
                     scopes_to_create = []
                     for scope in target_scopes_data:
-                        norm = self._normalize_scope_entry(scope, target_scope_level)
+                        effective_scope_lvl = scope.get('scope_level') or target_scope_level
+                        norm = self._normalize_scope_entry(scope, effective_scope_lvl)
                         scopes_to_create.append(ExamTargetScope(
                             exam=exam,
-                            scope_level=norm.get('scope_level', target_scope_level),
+                            scope_level=norm.get('scope_level', effective_scope_lvl),
                             country_id=norm.get('country_id'),
                             governorate_id=norm.get('governorate_id'),
                             directorate_id=norm.get('directorate_id'),
@@ -650,9 +867,11 @@ class ExamCreateMVS(AllMVS):
                         difficulty_profile = group.get('difficulty_profile', 'mixed')
                         difficulty_dist = group.get('difficulty_distribution', {'easy': 30, 'medium': 50, 'hard': 20})
 
-                        # Select questions for this difficulty profile
-                        group_questions = self._select_questions_by_difficulty(
-                            candidate_questions, questions_count, difficulty_dist
+                        # Select questions for this group's difficulty profile, specific unit distribution, and question types
+                        group_questions = self._select_questions_by_units_and_difficulty(
+                            candidate_questions, questions_count, difficulty_dist,
+                            group_units=group.get('units'),
+                            group_types=group.get('types') or blueprint.get('types')
                         )
 
                         for m in range(group_count):
@@ -670,24 +889,28 @@ class ExamCreateMVS(AllMVS):
 
                             # Order questions by section (True/False 1..N, MCQ N+1..total) with intra-section shuffle
                             shuffled_questions = self._order_questions_by_section(group_questions)
+                            effective_types = group.get('types') or blueprint.get('types')
 
                             for idx, q in enumerate(shuffled_questions):
+                                q_mark = self._resolve_question_mark(q, effective_types)
                                 all_orders_to_create.append(ExamQuestionOrder(
                                     examVersion=version,
                                     question=q,
-                                    orderIndex=idx + 1
+                                    orderIndex=idx + 1,
+                                    assigned_mark=q_mark
                                 ))
                 else:
                     # ═══ UNIFORM MODE: Same questions, different order ═══
-                    if len(candidate_questions) > questions_count:
-                        tf_cands = [q for q in candidate_questions if self._is_tf(q)]
-                        mcq_cands = [q for q in candidate_questions if not self._is_tf(q)]
-                        random.shuffle(tf_cands)
-                        random.shuffle(mcq_cands)
-                        combined = tf_cands + mcq_cands
-                        selected_questions = combined[:questions_count]
-                    else:
-                        selected_questions = candidate_questions
+                    diff_dist = {
+                        'easy': next((d.get('percentage', 0) for d in blueprint.get('difficulty', []) if d.get('name') == 'سهل'), 30),
+                        'medium': next((d.get('percentage', 0) for d in blueprint.get('difficulty', []) if d.get('name') == 'متوسط'), 50),
+                        'hard': next((d.get('percentage', 0) for d in blueprint.get('difficulty', []) if d.get('name') == 'صعب'), 20),
+                    }
+                    selected_questions = self._select_questions_by_units_and_difficulty(
+                        candidate_questions, questions_count, diff_dist,
+                        group_units=blueprint.get('units'),
+                        group_types=blueprint.get('types')
+                    )
 
                     for m in range(models_count):
                         version_code = chr(65 + m)  # A, B, C, D...
@@ -703,10 +926,12 @@ class ExamCreateMVS(AllMVS):
                         shuffled_questions = self._order_questions_by_section(selected_questions)
 
                         for idx, q in enumerate(shuffled_questions):
+                            q_mark = self._resolve_question_mark(q, blueprint.get('types'))
                             all_orders_to_create.append(ExamQuestionOrder(
                                 examVersion=version,
                                 question=q,
-                                orderIndex=idx + 1
+                                orderIndex=idx + 1,
+                                assigned_mark=q_mark
                             ))
 
                 if all_orders_to_create:
@@ -716,12 +941,13 @@ class ExamCreateMVS(AllMVS):
                 if model_region_assignments:
                     assignments_to_create = []
                     for assignment in model_region_assignments:
-                        norm = self._normalize_scope_entry(assignment, target_scope_level)
+                        assign_scope_lvl = assignment.get('scope_level') or target_scope_level or 'governorate'
+                        norm = self._normalize_scope_entry(assignment, assign_scope_lvl)
                         assignments_to_create.append(ExamModelRegionAssignment(
                             exam=exam,
                             model_group_index=assignment.get('model_group_index', 0),
                             difficulty_profile=assignment.get('difficulty_profile', 'mixed'),
-                            scope_level=norm.get('scope_level', 'governorate'),
+                            scope_level=norm.get('scope_level', assign_scope_lvl),
                             governorate_id=norm.get('governorate_id'),
                             directorate_id=norm.get('directorate_id'),
                             region_id=norm.get('region_id'),
@@ -738,7 +964,8 @@ class ExamCreateMVS(AllMVS):
                     registered_students_count = self._auto_register_students(
                         exam, created_versions, class_track_id,
                         target_scope_level, target_scopes_data,
-                        governorate_id, directorate_id, region_id
+                        governorate_id, directorate_id, region_id,
+                        model_region_assignments=model_region_assignments
                     )
 
                 # Calculate total models and questions
@@ -760,50 +987,3 @@ class ExamCreateMVS(AllMVS):
                 "success": False,
                 "message": f"حدث خطأ أثناء توليد الاختبار: {str(e)}"
             }, status=status.HTTP_400_BAD_REQUEST)
-
-    # ═══════════════════════════════════════════════════════════
-    # TEMPLATES Management
-    # ═══════════════════════════════════════════════════════════
-    @action(detail=False, methods=['get'], url_path='templates')
-    def list_templates(self, request):
-        """List all saved exam templates."""
-        inst_type = request.query_params.get('institution_type')
-        qs = ExamTemplate.objects.filter(is_deleted=False)
-        if inst_type:
-            qs = qs.filter(institution_type=inst_type)
-        serializer = ExamTemplateSerializer(qs, many=True)
-        return Response(serializer.data)
-
-    @action(detail=False, methods=['post'], url_path='save-template')
-    def save_template(self, request):
-        """Save current exam configuration as a reusable template."""
-        data = request.data
-        name = data.get('name', 'قالب جديد')
-        description = data.get('description', '')
-        institution_type = data.get('institution_type', 'school')
-        config = data.get('config', {})
-
-        template = ExamTemplate.objects.create(
-            name=name,
-            description=description,
-            institution_type=institution_type,
-            config_json=config,
-        )
-
-        serializer = ExamTemplateSerializer(template)
-        return Response({
-            "success": True,
-            "message": "تم حفظ القالب بنجاح",
-            "data": serializer.data
-        }, status=status.HTTP_201_CREATED)
-
-    @action(detail=False, methods=['delete'], url_path='delete-template/(?P<template_id>[^/.]+)')
-    def delete_template(self, request, template_id=None):
-        """Delete a saved template."""
-        try:
-            template = ExamTemplate.objects.get(id=template_id, is_deleted=False)
-            template.is_deleted = True
-            template.save()
-            return Response({"success": True, "message": "تم حذف القالب"})
-        except ExamTemplate.DoesNotExist:
-            return Response({"success": False, "message": "القالب غير موجود"}, status=status.HTTP_404_NOT_FOUND)
