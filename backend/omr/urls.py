@@ -11,6 +11,7 @@ from omr.apis.OMRTemplatesMVS import OMRTemplatesMVS
 from omr.apis.ExamLinkingMVS import ExamLinkingMVS
 from omr.apis.ExamGradebookMVS import ExamGradebookMVS
 from omr.apis.OMRPrintRegistryMVS import OMRPrintRegistryMVS
+from omr.apis.OMRPrintOrderMVS import OMRPrintOrderMVS
 from omr.apis.OMRVerificationMVS import OMRVerificationMVS
 
 from omr.api import grade_sheet, get_result, get_annotated_image, detect_template_api, batch_scan_api
@@ -41,6 +42,9 @@ router.register(r'exam-linking', ExamLinkingMVS, basename='exam-linking')
 
 # 7. شاشة سجل الطباعة (Print Registry Screen)
 router.register(r'print-registry', OMRPrintRegistryMVS, basename='print-registry')
+
+# 7.1 أوامر واعتماد وجدولة الطباعة (Official Print Orders Workflow)
+router.register(r'print-orders', OMRPrintOrderMVS, basename='print-orders')
 
 # 8. شاشة المطابقة والتحقق (Verification Screen)
 router.register(r'verification', OMRVerificationMVS, basename='verification')

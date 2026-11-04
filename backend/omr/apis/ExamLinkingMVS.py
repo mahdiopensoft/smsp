@@ -338,6 +338,30 @@ class ExamLinkingMVS(ViewSet):
         except Exception:
             pass
 
+        # ── Batch fetch print orders ──
+        print_orders_map = {}
+        try:
+            from omr.models.OMRPrintOrder import OMRPrintOrder
+            for po in OMRPrintOrder.objects.filter(exam_id__in=exam_ids, is_deleted=False):
+                print_orders_map[po.exam_id] = {
+                    "id": po.id,
+                    "order_number": po.order_number,
+                    "exam_id": po.exam_id,
+                    "status": po.status,
+                    "scheduled_print_date": po.scheduled_print_date.strftime("%Y-%m-%d") if po.scheduled_print_date else "",
+                    "press_name": po.press_name,
+                    "return_reason": po.return_reason or "",
+                    "return_notes": po.return_notes or "",
+                    "advance_reason": po.advance_reason or "",
+                    "advance_auth_doc": po.advance_auth_doc or "",
+                    "batch_id": po.batch_id or "",
+                    "responsible_officer": po.responsible_officer or "",
+                    "reprinted_count": po.reprinted_count,
+                    "created_at": po.created_at.strftime("%Y-%m-%d %H:%M:%S") if po.created_at else "",
+                }
+        except Exception:
+            pass
+
         results = []
         for exam in exams:
             versions_data = versions_by_exam.get(exam.id, [])
@@ -472,6 +496,13 @@ class ExamLinkingMVS(ViewSet):
                 "default_template": "OMR_YEMEN_180" if max_q > 60 else "OMR_YEMEN_60",
                 "has_answer_keys": len(versions_data) > 0 and max_q > 0,
                 "registered_students_count": reg_counts.get(exam.id, 0),
+                "print_order": print_orders_map.get(exam.id),
+                "order_status": print_orders_map[exam.id]["status"] if exam.id in print_orders_map else "pending",
+                "order_number": print_orders_map[exam.id]["order_number"] if exam.id in print_orders_map else f"PRN-REQ-{exam.uniqueCode or exam.id}",
+                "scheduled_print_date": print_orders_map[exam.id]["scheduled_print_date"] if exam.id in print_orders_map else "",
+                "press_name": print_orders_map[exam.id]["press_name"] if exam.id in print_orders_map else "المطبعة السرية المركزية (ديوان الوزارة)",
+                "return_reason": print_orders_map[exam.id]["return_reason"] if exam.id in print_orders_map else "",
+                "return_notes": print_orders_map[exam.id]["return_notes"] if exam.id in print_orders_map else "",
             })
 
         return Response({
@@ -1187,6 +1218,27 @@ class ExamLinkingMVS(ViewSet):
             qs = qs.filter(id__in=student_ids)
 
         updated_count = qs.update(is_printed=True, printed_at=now, print_batch=batch_id)
+
+        # Update or create real OMRPrintOrder in database
+        try:
+            from omr.models.OMRPrintOrder import OMRPrintOrder
+            order_num = f"PRN-REQ-{exam.uniqueCode or exam.id}"
+            ord_obj, _ = OMRPrintOrder.objects.get_or_create(
+                exam=exam,
+                defaults={
+                    "order_number": order_num,
+                    "scheduled_print_date": now.date(),
+                    "status": OMRPrintOrder.Status.COMPLETED,
+                    "batch_id": batch_id,
+                    "printed_at": now,
+                }
+            )
+            ord_obj.status = OMRPrintOrder.Status.COMPLETED
+            ord_obj.batch_id = batch_id
+            ord_obj.printed_at = now
+            ord_obj.save()
+        except Exception as e:
+            pass
 
         return Response({
             "success": True,

@@ -54,35 +54,37 @@
               <v-icon size="36" color="primary">mdi-printer-check</v-icon>
             </v-avatar>
             <h3 class="text-h6 font-weight-black text-high-emphasis mb-1">
-              تم اعتماد وتوثيق طلب الطباعة بنجاح!
+              تم توثيق وإرسال طلب الطباعة بنجاح!
             </h3>
             <p class="text-body-2 text-medium-emphasis mb-5">
-              تم تسجيل أمر الإرسال رسمياً للمطبعة المنفذة وتحديث سجلات الاختبار برقم:
+              تم تسجيل طلب الطباعة رسمياً وإرساله للجنة برقم:
               <strong class="text-primary font-mono font-weight-black">{{ orderNumber }}</strong>
+              <br />
+              <span class="text-caption text-primary font-weight-bold">الطلب الآن في تبويب [الطلبات] وهو بانتظار الاعتماد والجدولة الرسمية</span>
             </p>
 
             <!-- ملخص الأمر المعتمد الموجه للمطبعة بأيقونات موحدة وتنسيق أنيق -->
             <div class="main-card pa-4 pa-sm-5 rounded-2xl border bg-surface text-right mb-6 mx-auto elevation-1" style="max-width: 650px;">
-              <!-- 1. رقم أمر الطباعة المعتمد -->
+              <!-- 1. رقم أمر الطباعة -->
               <div class="d-flex align-center justify-space-between mb-3 pb-3 border-b flex-wrap gap-2">
                 <div class="summary-item-header">
                   <v-avatar color="primary" variant="tonal" size="34" rounded="lg" class="summary-item-avatar me-3">
                     <v-icon size="18" color="primary">mdi-barcode</v-icon>
                   </v-avatar>
-                  <span class="text-body-2 font-weight-medium text-medium-emphasis">رقم أمر الطباعة المعتمد:</span>
+                  <span class="text-body-2 font-weight-medium text-medium-emphasis">رقم طلب الطباعة:</span>
                 </div>
                 <div class="center-count-badge px-3 py-1 font-mono font-weight-black text-primary text-subtitle-2">
                   {{ orderNumber }}
                 </div>
               </div>
 
-              <!-- 2. إجمالي المطبوعات المعتمدة -->
+              <!-- 2. إجمالي المطبوعات المطلوبة -->
               <div class="d-flex align-center justify-space-between mb-3 pb-3 border-b flex-wrap gap-2">
                 <div class="summary-item-header">
                   <v-avatar color="primary" variant="tonal" size="34" rounded="lg" class="summary-item-avatar me-3">
                     <v-icon size="18" color="primary">mdi-printer-check</v-icon>
                   </v-avatar>
-                  <span class="text-body-2 font-weight-medium text-medium-emphasis">إجمالي المطبوعات المعتمدة:</span>
+                  <span class="text-body-2 font-weight-medium text-medium-emphasis">إجمالي المطبوعات المطلوبة:</span>
                 </div>
                 <div class="center-count-badge px-3 py-1 font-mono font-weight-black text-subtitle-2 text-high-emphasis">
                   {{ grandTotalToPrint }} ورقة/كراسة
@@ -140,10 +142,10 @@
                 rounded="lg"
                 size="large"
                 class="font-weight-bold px-6 shadow-sm"
-                prepend-icon="mdi-printer-eye"
+                prepend-icon="mdi-format-list-bulleted"
                 @click="goToRegistry"
               >
-                الانتقال لسجل الطباعة لتنفيذ وطباعة الأوراق
+                الانتقال لسجل الطلبات لمتابعة واعتماد الطلب
               </v-btn>
 
               <v-btn
@@ -155,7 +157,7 @@
                 prepend-icon="mdi-file-document-outline"
                 @click="manifestDialog = true"
               >
-                معاينة وطباعة استمارة أمر الطباعة الرسمي (A4)
+                معاينة وطباعة استمارة طلب الطباعة (A4)
               </v-btn>
 
               <v-btn
@@ -171,6 +173,26 @@
           </div>
 
           <v-form v-else ref="formRef" @submit.prevent="submitPrintOrder">
+            <!-- تنبيه في حال كان الطلب مرتجعاً للتعديل -->
+            <v-alert
+              v-if="examReturnReason"
+              type="warning"
+              variant="tonal"
+              rounded="xl"
+              class="mb-4 font-weight-medium border"
+              icon="mdi-keyboard-return"
+            >
+              <div class="text-subtitle-2 font-weight-black mb-1">
+                تم إرجاع طلب طباعة هذا الاختبار للتعديل من قِبل لجنة الاعتماد
+              </div>
+              <div class="text-body-2">
+                <strong>سبب الإرجاع:</strong> {{ examReturnReason }}
+              </div>
+              <div v-if="examReturnNotes" class="text-caption text-medium-emphasis mt-1">
+                <strong>ملاحظات اللجنة:</strong> {{ examReturnNotes }}
+              </div>
+            </v-alert>
+
             <!-- ════════════════════════════════════════════════════════════ -->
             <!-- بطاقة تعريف الاختبار المستهدف (Exam Header Banner)         -->
             <!-- ════════════════════════════════════════════════════════════ -->
@@ -956,6 +978,17 @@ const loadingDetails = ref(false)
 // Exam full detail object fetched from DB
 const examDetails = ref(null)
 
+const examReturnReason = computed(() => {
+  const isRet = props.exam?.existing_order?.status === 'failed' || props.exam?.existing_order?.status === 'returned' || props.exam?.order_status === 'failed' || props.exam?.order_status === 'returned'
+  if (!isRet) return ''
+  return props.exam?.return_reason || props.exam?.existing_order?.return_reason || ''
+})
+const examReturnNotes = computed(() => {
+  const isRet = props.exam?.existing_order?.status === 'failed' || props.exam?.existing_order?.status === 'returned' || props.exam?.order_status === 'failed' || props.exam?.order_status === 'returned'
+  if (!isRet) return ''
+  return props.exam?.return_notes || props.exam?.existing_order?.return_notes || ''
+})
+
 // ── Unified Hierarchical Filters State ──
 const filterGovernorate = ref('all')
 const filterDirectorate = ref('all')
@@ -1548,11 +1581,18 @@ const submitPrintOrder = async () => {
       } : null,
     }
 
-    // Call backend mark-printed endpoint
-    await api.post(`/api/omr/exam-linking/${props.exam.id}/mark-printed/`, {
-      batch_id: orderNumber.value,
-      student_ids: 'all',
-    })
+    // Call backend print-orders create-order endpoint to persist and document the official order in pending status!
+    try {
+      await api.post('/api/omr/print-orders/create-order/', {
+        exam_id: props.exam.id,
+        order_number: orderNumber.value,
+        scheduled_print_date: form.value.scheduledPrintDate || null,
+        press_name: form.value.pressName || 'المطبعة السرية المركزية (ديوان الوزارة)',
+        responsible_officer: form.value.responsibleOfficer || 'مدير إدارة الامتحانات',
+      })
+    } catch (dbErr) {
+      console.warn('Could not save in backend print-orders table:', dbErr)
+    }
 
     // Save in localStorage for offline/client registry
     try {
@@ -1572,7 +1612,7 @@ const submitPrintOrder = async () => {
 
 const goToRegistry = () => {
   emit('update:modelValue', false)
-  const target = `/omr-print-registry?exam_id=${props.exam?.id || ''}&order=${orderNumber.value}`
+  const target = `/omr-print-registry?view=orders&tab=exams&subtab=all`
   router.push(target).catch(() => {
     window.location.href = target
   })
