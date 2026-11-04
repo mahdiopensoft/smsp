@@ -567,7 +567,7 @@
                       rounded="lg"
                       size="small"
                       density="compact"
-                      class="font-weight-bold px-2.5 table-action-btn shadow-sm"
+                      class="font-weight-bold px-2 table-action-btn shadow-sm"
                       prepend-icon="mdi-file-document-edit-outline"
                       @click.stop.prevent="openCreatePrintOrderDialog(item)"
                       title="تعديل وإعادة إرسال طلب الطباعة المرتجع"
@@ -580,13 +580,11 @@
                       rounded="lg"
                       size="small"
                       density="compact"
-                      class="font-weight-bold px-2 table-action-btn"
-                      prepend-icon="mdi-alert-circle-outline"
+                      icon="mdi-alert-circle-outline"
+                      class="table-action-icon-btn ms-1"
                       @click.stop.prevent="goToPrintRegistry(item, 'all')"
-                      :title="getExamPrintOrder(item).return_reason || 'عرض سبب الإرجاع في السجل'"
-                    >
-                      سبب الإرجاع
-                    </v-btn>
+                      :title="getExamPrintOrder(item).return_reason ? ('سبب الإرجاع: ' + getExamPrintOrder(item).return_reason) : 'عرض سبب الإرجاع في السجل'"
+                    />
                   </template>
 
                   <!-- ب. طلب قيد الاعتماد والمراجعة -->
@@ -597,7 +595,7 @@
                       rounded="lg"
                       size="small"
                       density="compact"
-                      class="font-weight-bold px-2.5 table-action-btn"
+                      class="font-weight-bold px-2 table-action-btn"
                       prepend-icon="mdi-clock-outline"
                       @click.stop.prevent="goToPrintRegistry(item, 'all')"
                       title="متابعة واعتماد طلب الطباعة في السجل المركزي"
@@ -614,12 +612,12 @@
                       rounded="lg"
                       size="small"
                       density="compact"
-                      class="font-weight-bold px-2.5 table-action-btn"
+                      class="font-weight-bold px-2 table-action-btn"
                       prepend-icon="mdi-calendar-clock"
                       @click.stop.prevent="goToPrintRegistry(item, 'scheduled')"
                       title="استعراض تفاصيل أمر الطباعة المجدول"
                     >
-                      أمر الطباعة المجدول
+                      أمر مجدول
                     </v-btn>
                   </template>
 
@@ -631,12 +629,12 @@
                       rounded="lg"
                       size="small"
                       density="compact"
-                      class="font-weight-bold px-2.5 table-action-btn"
+                      class="font-weight-bold px-2 table-action-btn"
                       prepend-icon="mdi-clock-fast"
                       @click.stop.prevent="goToPrintRegistry(item, 'due')"
                       title="الانتقال لقائمة انتظار الطباعة المستحقة للتنفيذ"
                     >
-                      أمر الطباعة المستحق
+                      أمر مستحق
                     </v-btn>
                   </template>
 
@@ -648,12 +646,12 @@
                       rounded="lg"
                       size="small"
                       density="compact"
-                      class="font-weight-bold px-2.5 table-action-btn"
+                      class="font-weight-bold px-2 table-action-btn"
                       prepend-icon="mdi-file-document-check-outline"
                       @click.stop.prevent="goToPrintRegistry(item, 'completed')"
                       title="استعراض تفاصيل وإذن صرف أمر الطباعة المكتمل"
                     >
-                      أمر الطباعة المعتمد
+                      أمر معتمد
                     </v-btn>
                   </template>
                 </template>
@@ -667,29 +665,27 @@
                     rounded="lg"
                     size="small"
                     density="compact"
-                    class="font-weight-bold px-2.5 table-action-btn shadow-sm"
+                    class="font-weight-bold px-2 table-action-btn shadow-sm"
                     prepend-icon="mdi-file-document-plus-outline"
                     @click.stop.prevent="openCreatePrintOrderDialog(item)"
-                    title="إنشاء طلب طباعة رسمي للاختبار وتحديد مواعيد الطباعة والامتحان والجهة المستهدفة"
+                    title="إنشاء طلب طباعة رسمي للاختبار"
                   >
                     إنشاء طلب طباعة
                   </v-btn>
                 </template>
 
-              <!-- 2. فحص وتجهيز الاختبار -->
+              <!-- 2. فحص وتجهيز الاختبار (أيقونة مدمجة) -->
               <v-btn
                 color="secondary"
                 variant="tonal"
                 rounded="lg"
                 size="small"
                 density="compact"
-                class="font-weight-bold px-2 table-action-btn"
-                prepend-icon="mdi-clipboard-check-outline"
+                icon="mdi-clipboard-check-outline"
+                class="table-action-icon-btn ms-1"
                 @click.stop.prevent="openExamHub(item, 'questions')"
                 title="فحص كراسة الأسئلة، كشوفات الطلاب، ومفاتيح الحل"
-              >
-                فحص وتجهيز
-              </v-btn>
+              />
             </div>
           </template>
         </template>
@@ -1139,15 +1135,15 @@ const totalStudentsCount = computed(() => {
 })
 
 const headers = computed(() => [
-  { title: "رمز وعنوان الاختبار", key: "exam_info", sortable: true, width: "220px" },
-  { title: "المادة والعام", key: "subject_info", sortable: true, align: "center", width: "120px" },
-  { title: "المحافظة", key: "governorate", sortable: true, align: "center", width: "130px" },
-  { title: "المديرية", key: "directorate", sortable: true, align: "center", width: "145px" },
-  { title: "المركز الامتحاني / المدرسة", key: "school_center", sortable: true, width: "190px" },
-  { title: "النماذج ومجموعاتها", key: "versions_info", sortable: false, align: "center", width: "140px" },
-  { title: "كشف الطلاب", key: "students_count", sortable: true, align: "center", width: "95px" },
-  { title: "حالة التصحيح", key: "progress", sortable: false, align: "center", width: "95px" },
-  { title: "الاجراءات", key: "actions", sortable: false, align: "center", width: "195px" },
+  { title: "رمز وعنوان الاختبار", key: "exam_info", sortable: true, width: "210px" },
+  { title: "المادة والعام", key: "subject_info", sortable: true, align: "center", width: "115px" },
+  { title: "المحافظة", key: "governorate", sortable: true, align: "center", width: "120px" },
+  { title: "المديرية", key: "directorate", sortable: true, align: "center", width: "135px" },
+  { title: "المركز الامتحاني / المدرسة", key: "school_center", sortable: true, width: "180px" },
+  { title: "النماذج ومجموعاتها", key: "versions_info", sortable: false, align: "center", width: "135px" },
+  { title: "كشف الطلاب", key: "students_count", sortable: true, align: "center", width: "90px" },
+  { title: "حالة التصحيح", key: "progress", sortable: false, align: "center", width: "90px" },
+  { title: "الاجراءات", key: "actions", sortable: false, align: "center", width: "140px" },
 ])
 
 const activeDisplayGovernorate = (item) => {
@@ -1613,5 +1609,23 @@ onMounted(async () => {
   width: 14px !important;
   height: 14px !important;
   margin-inline-end: 4px !important;
+}
+
+:deep(.table-action-icon-btn),
+.table-action-icon-btn {
+  height: 28px !important;
+  width: 28px !important;
+  min-width: 28px !important;
+  max-width: 28px !important;
+  padding: 0 !important;
+  border-radius: 6px !important;
+}
+
+:deep(.table-action-icon-btn .v-icon),
+.table-action-icon-btn .v-icon {
+  font-size: 15px !important;
+  width: 15px !important;
+  height: 15px !important;
+  margin: 0 !important;
 }
 </style>
