@@ -60,11 +60,8 @@
           <!-- رقم السؤال -->
           <template v-if="key === 'question_number'">
             <div class="d-flex justify-center cursor-pointer py-1" @click="$emit('select-question', item)">
-              <span
-                class="font-weight-black text-caption px-2.5 py-0.5 rounded-pill border"
-                :class="selectedQuestion?.question_number === item.question_number ? 'bg-primary text-white elevation-1' : 'text-primary bg-blue-lighten-5'"
-              >
-                #{{ item.question_number }}
+              <span class="font-weight-bold text-body-2 text-high-emphasis">
+                {{ item.question_number }}
               </span>
             </div>
           </template>
