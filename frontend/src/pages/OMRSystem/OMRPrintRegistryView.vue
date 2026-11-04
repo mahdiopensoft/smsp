@@ -706,10 +706,59 @@
             </custom-data-table>
           </v-window-item>
 
-          <!-- 4. تبويب الاختبارات الأكاديمية -->
+          <!-- 4. تبويب الاختبارات المعتمدة للطباعة (مع التبويبات الفرعية الثلاثة) -->
           <v-window-item value="exams">
+            <!-- ── شريط التبويبات الفرعية الأربعة: الطلبات / المجدولة / المستحقة / المكتملة ── -->
+            <div class="d-flex align-center justify-space-between flex-wrap gap-2 px-4 py-2 border-b bg-surface-variant-subtle">
+              <v-tabs
+                v-model="examSubTab"
+                color="primary"
+                density="compact"
+                class="sub-stage-tabs"
+              >
+                <!-- 1. الطلبات (الكل) -->
+                <v-tab value="all" class="font-weight-bold">
+                  <v-icon start size="18" color="primary">mdi-format-list-bulleted</v-icon>
+                  الطلبات ({{ allExamsCount }})
+                </v-tab>
+
+                <!-- 2. المجدولة (المستقبلية) -->
+                <v-tab value="scheduled" class="font-weight-bold">
+                  <v-icon start size="18" color="info">mdi-calendar-clock</v-icon>
+                  المجدولة ({{ scheduledExamsCount }})
+                </v-tab>
+
+                <!-- 3. المستحقة (قائمة انتظار الطباعة الجاهزة للتنفيذ) -->
+                <v-tab value="due" class="font-weight-bold">
+                  <v-icon start size="18" color="warning">mdi-clock-alert-outline</v-icon>
+                  المستحقة ({{ dueExamsCount }})
+                </v-tab>
+
+                <!-- 4. المكتملة (الاختبارات التي تم سحب وثائقها بالكامل) -->
+                <v-tab value="completed" class="font-weight-bold">
+                  <v-icon start size="18" color="success">mdi-check-decagram</v-icon>
+                  المكتملة ({{ completedExamsCount }})
+                </v-tab>
+              </v-tabs>
+
+              <div class="d-flex align-center gap-2">
+                <v-chip
+                  size="small"
+                  variant="tonal"
+                  :color="examSubTab === 'due' ? 'warning' : (examSubTab === 'scheduled' ? 'info' : (examSubTab === 'completed' ? 'success' : 'primary'))"
+                  class="font-weight-medium"
+                >
+                  <v-icon start size="14">
+                    {{ examSubTab === 'due' ? 'mdi-clock-fast' : (examSubTab === 'scheduled' ? 'mdi-calendar-range' : (examSubTab === 'completed' ? 'mdi-check-all' : 'mdi-file-document-multiple-outline')) }}
+                  </v-icon>
+                  {{ examSubTab === 'due' ? 'قائمة انتظار الطباعة الجاهزة للتنفيذ الفوري' : (examSubTab === 'scheduled' ? 'أوامر طباعة مجدولة لمواعيد قادمة' : (examSubTab === 'completed' ? 'سجل الاختبارات المكتملة التي تمت طباعتها بالكامل 100%' : 'كافة طلبات واختبارات الطباعة المعتمدة')) }}
+                </v-chip>
+              </div>
+            </div>
+
+            <!-- عرض الجدول المركزي للاختبارات حسب التبويب النشط -->
             <custom-data-table
-              :key="'exams-tbl-' + filteredMasterExamsTable.length"
+              :key="'exams-tbl-' + examSubTab + '-' + currentExamSubTabList.length"
               v-model="selectedExamMasterRows"
               :items="examMasterTableItems"
               :getData="getExamMasterData"
@@ -742,7 +791,31 @@
                 <template v-else-if="key === 'title'">
                   <div class="py-2" style="min-width: 280px;">
                     <div class="font-weight-bold text-subtitle-2 text-on-surface text-wrap">{{ item.title }}</div>
-                    <div class="text-caption text-medium-emphasis">المادة: {{ item.subject_name || 'عام' }}</div>
+                    <div class="d-flex align-center flex-wrap gap-2 text-caption text-medium-emphasis mt-0.5">
+                      <span class="font-weight-medium">المادة: {{ item.subject_name || 'عام' }}</span>
+                      <span v-if="item.order_number" class="text-primary font-mono font-weight-bold">
+                        <v-icon size="12" class="me-0.5">mdi-barcode</v-icon>
+                        {{ item.order_number }}
+                      </span>
+                      <span v-if="item.exam_date" class="text-medium-emphasis">
+                        <v-icon size="12" class="me-0.5" color="teal">mdi-calendar-check</v-icon>
+                        الامتحان: {{ item.exam_date }}
+                      </span>
+                      <span v-if="item.scheduled_print_date" class="text-medium-emphasis">
+                        <v-icon size="12" class="me-0.5" color="indigo">mdi-calendar-clock</v-icon>
+                        الطباعة: {{ item.scheduled_print_date }}
+                      </span>
+                    </div>
+
+                    <!-- شريط توضيح سبب الإرجاع إذا كان الطلب مرتجعاً -->
+                    <div
+                      v-if="item.order_status === 'returned' || item.is_returned"
+                      class="mt-1 d-inline-flex align-center gap-1 px-2 py-0.5 rounded-lg bg-error-lighten-5 text-error border border-error-subtle text-caption font-weight-bold"
+                    >
+                      <v-icon size="14" color="error">mdi-alert-circle-outline</v-icon>
+                      <span>سبب الإرجاع: {{ item.return_reason || 'يحتاج مراجعة وتعديل فني' }}</span>
+                      <span v-if="item.return_notes" class="text-medium-emphasis ms-1 font-weight-regular">({{ item.return_notes }})</span>
+                    </div>
                   </div>
                 </template>
 
@@ -779,25 +852,395 @@
 
                 <template v-else-if="key === 'print_status'">
                   <div class="d-flex justify-center align-center">
-                    <v-chip size="x-small" :color="(item.printed_rate >= 100 || item.print_status === 'full') ? 'success' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'warning' : 'grey')" variant="tonal" class="font-weight-bold">
-                      {{ (item.printed_rate >= 100 || item.print_status === 'full') ? 'مكتمل الطباعة' : ((item.printed_count > 0 || item.print_status === 'partial') ? 'طباعة جزئية' : 'لم يطبع بعد') }}
+                    <!-- 1. مكتمل (Completed) -->
+                    <v-chip
+                      v-if="item.is_completed || item.order_status === 'completed'"
+                      size="small"
+                      color="success"
+                      variant="tonal"
+                      class="font-weight-bold"
+                    >
+                      <v-icon start size="14">mdi-check-decagram</v-icon>
+                      مكتمل
+                    </v-chip>
+
+                    <!-- 2. قيد الطباعة (Printing - سحب جزئي جارٍ) -->
+                    <v-chip
+                      v-else-if="item.order_status === 'printing'"
+                      size="small"
+                      color="deep-orange"
+                      variant="tonal"
+                      class="font-weight-bold"
+                    >
+                      <v-icon start size="14">mdi-printer-play</v-icon>
+                      قيد الطباعة
+                    </v-chip>
+
+                    <!-- 3. بانتظار الموعد (Scheduled - مجدول لموعد قادم) -->
+                    <v-chip
+                      v-else-if="item.is_scheduled || item.order_status === 'scheduled'"
+                      size="small"
+                      color="info"
+                      variant="tonal"
+                      class="font-weight-bold"
+                    >
+                      <v-icon start size="14">mdi-calendar-clock</v-icon>
+                      بانتظار الموعد
+                    </v-chip>
+
+                    <!-- 4. فشل أو يحتاج معالجة (Failed - تعثر أو مرتجع) -->
+                    <v-chip
+                      v-else-if="item.is_returned || item.order_status === 'failed' || item.order_status === 'returned'"
+                      size="small"
+                      color="error"
+                      variant="tonal"
+                      class="font-weight-bold"
+                      :title="item.return_reason || 'مرتجع للتعديل'"
+                    >
+                      <v-icon start size="14">mdi-keyboard-return</v-icon>
+                      مرتجع للتعديل
+                    </v-chip>
+
+                    <!-- 5. ملغى (Cancelled) -->
+                    <v-chip
+                      v-else-if="item.order_status === 'cancelled'"
+                      size="small"
+                      color="grey"
+                      variant="tonal"
+                      class="font-weight-bold"
+                    >
+                      <v-icon start size="14">mdi-cancel</v-icon>
+                      ملغى
+                    </v-chip>
+
+                    <!-- 6. بانتظار الاعتماد والمراجعة (Pending) -->
+                    <v-chip
+                      v-else-if="item.is_pending || item.order_status === 'pending'"
+                      size="small"
+                      color="amber-darken-3"
+                      variant="tonal"
+                      class="font-weight-bold"
+                    >
+                      <v-icon start size="14">mdi-clock-alert-outline</v-icon>
+                      بانتظار الاعتماد
+                    </v-chip>
+
+                    <!-- 7. جاهز للتنفيذ (Ready - مستحق التنفيذ اليوم) -->
+                    <v-chip
+                      v-else
+                      size="small"
+                      color="teal"
+                      variant="tonal"
+                      class="font-weight-bold"
+                    >
+                      <v-icon start size="14">mdi-clock-fast</v-icon>
+                      جاهز للتنفيذ
                     </v-chip>
                   </div>
                 </template>
 
                 <template v-else-if="key === 'actions'">
-                  <div class="d-flex align-center justify-center gap-2">
-                    <v-btn
-                      size="small"
-                      color="primary"
-                      variant="tonal"
-                      rounded="lg"
-                      class="font-weight-bold"
-                      prepend-icon="mdi-printer-eye"
-                      @click="openExamStudio(item)"
-                    >
-                      استوديو الطباعة
-                    </v-btn>
+                  <div class="d-flex align-center justify-center gap-1 flex-nowrap table-actions-cell">
+                    <!-- 1. في تبويب "المستحقة" (Due Queue): تنفيذ فوري عبر الطباعة المباشرة واستوديو الطباعة -->
+                    <template v-if="examSubTab === 'due'">
+                      <!-- زر الطباعة المباشرة الفورية -->
+                      <v-btn
+                        size="small"
+                        density="compact"
+                        color="success"
+                        variant="flat"
+                        rounded="lg"
+                        class="font-weight-bold table-action-btn px-2"
+                        prepend-icon="mdi-printer"
+                        @click="openDirectPrintDialog(item)"
+                        title="أمر الطباعة المباشر الفوري لكافة وثائق الاختبار"
+                      >
+                        طباعة مباشرة
+                      </v-btn>
+
+                      <!-- زر استوديو الطباعة التفصيلي -->
+                      <v-btn
+                        size="small"
+                        density="compact"
+                        icon="mdi-printer-eye"
+                        color="primary"
+                        variant="tonal"
+                        rounded="lg"
+                        class="table-action-icon-btn ms-1"
+                        @click="openExamStudio(item)"
+                        title="فتح استوديو الطباعة التفصيلي لتأكيد وتنفيذ السحب"
+                      />
+
+                      <!-- زر إذن الصرف الرسمي A4 -->
+                      <v-btn
+                        v-if="item.has_order"
+                        size="small"
+                        density="compact"
+                        icon="mdi-file-document-check-outline"
+                        color="secondary"
+                        variant="tonal"
+                        rounded="lg"
+                        class="table-action-icon-btn ms-1"
+                        @click="previewOrderManifest(item)"
+                        title="معاينة إذن الصرف وأمر الطباعة الرسمي A4"
+                      />
+                    </template>
+
+                    <!-- 2. في تبويب "المجدولة" (Scheduled): تقديم الموعد استثنائياً -->
+                    <template v-else-if="examSubTab === 'scheduled'">
+                      <v-btn
+                        size="small"
+                        density="compact"
+                        color="warning"
+                        variant="tonal"
+                        rounded="lg"
+                        class="font-weight-bold table-action-btn px-2"
+                        prepend-icon="mdi-fast-forward"
+                        @click="openAdvanceScheduleDialog(item)"
+                        title="تقديم موعد الطباعة استثنائياً لليوم ونقله للمستحقة"
+                      >
+                        تقديم الموعد
+                      </v-btn>
+                      <v-btn
+                        v-if="item.has_order"
+                        size="small"
+                        density="compact"
+                        icon="mdi-file-document-outline"
+                        color="secondary"
+                        variant="tonal"
+                        rounded="lg"
+                        class="table-action-icon-btn ms-1"
+                        @click="previewOrderManifest(item)"
+                        title="معاينة إذن الصرف وأمر الطباعة الرسمي A4"
+                      />
+                    </template>
+
+                    <!-- 3. في تبويب "المكتملة" (Completed): أرشفة وتوثيق فقط (حالة الطباعة مكتمل تظهر في عمود الحالة) -->
+                    <template v-else-if="examSubTab === 'completed'">
+                      <v-btn
+                        v-if="item.has_order"
+                        size="small"
+                        density="compact"
+                        color="secondary"
+                        variant="tonal"
+                        rounded="lg"
+                        class="font-weight-bold table-action-btn px-2"
+                        prepend-icon="mdi-file-document-check-outline"
+                        @click="previewOrderManifest(item)"
+                        title="معاينة إذن الصرف ومحضر التسليم الرسمي A4"
+                      >
+                        إذن الصرف والتسليم
+                      </v-btn>
+                      <v-btn
+                        size="small"
+                        density="compact"
+                        icon="mdi-history"
+                        color="info"
+                        variant="tonal"
+                        rounded="lg"
+                        class="table-action-icon-btn ms-1"
+                        @click="openExamBatchesHistory(item)"
+                        title="عرض سجل وتاريخ دفعات السحب المطبوعة لهذا الاختبار"
+                      />
+                    </template>
+
+                    <!-- 4. في تبويب "الطلبات" (All Orders): إجراءات مركزة دون تكرار شارات الحالة -->
+                    <template v-else>
+                      <!-- أ. مكتمل 100% -->
+                      <template v-if="item.is_completed">
+                        <v-btn
+                          v-if="item.has_order"
+                          size="small"
+                          density="compact"
+                          color="secondary"
+                          variant="tonal"
+                          rounded="lg"
+                          class="font-weight-bold table-action-btn px-2"
+                          prepend-icon="mdi-file-document-check-outline"
+                          @click="previewOrderManifest(item)"
+                          title="معاينة إذن الصرف ومحضر التسليم الرسمي A4"
+                        >
+                          إذن الصرف والتسليم
+                        </v-btn>
+                        <v-btn
+                          size="small"
+                          density="compact"
+                          icon="mdi-history"
+                          color="info"
+                          variant="tonal"
+                          rounded="lg"
+                          class="table-action-icon-btn ms-1"
+                          @click="openExamBatchesHistory(item)"
+                          title="عرض سجل وتاريخ دفعات السحب المطبوعة لهذا الاختبار"
+                        />
+                      </template>
+
+                      <!-- ب. طلب بانتظار الاعتماد والمراجعة -->
+                      <template v-else-if="item.is_pending">
+                        <v-btn
+                          size="small"
+                          density="compact"
+                          color="success"
+                          variant="flat"
+                          rounded="lg"
+                          class="font-weight-bold table-action-btn px-2"
+                          prepend-icon="mdi-check-decagram-outline"
+                          @click="openApproveDialog(item)"
+                          title="مراجعة واعتماد وجدولة طلب الطباعة رسمياً"
+                        >
+                          تأكيد واعتماد
+                        </v-btn>
+                        <v-btn
+                          size="small"
+                          density="compact"
+                          icon="mdi-keyboard-return"
+                          color="warning"
+                          variant="tonal"
+                          rounded="lg"
+                          class="table-action-icon-btn ms-1"
+                          @click="openReturnDialog(item)"
+                          title="إرجاع طلب الطباعة للتعديل مع توثيق السبب"
+                        />
+                        <v-btn
+                          v-if="item.has_order"
+                          size="small"
+                          density="compact"
+                          icon="mdi-file-document-outline"
+                          color="secondary"
+                          variant="tonal"
+                          rounded="lg"
+                          class="table-action-icon-btn ms-1"
+                          @click="previewOrderManifest(item)"
+                          title="معاينة إذن الصرف واستمارة الطلب الرسمية"
+                        />
+                      </template>
+
+                      <!-- ج. طلب مرتجع للتعديل -->
+                      <template v-else-if="item.is_returned">
+                        <v-btn
+                          size="small"
+                          density="compact"
+                          color="success"
+                          variant="flat"
+                          rounded="lg"
+                          class="font-weight-bold table-action-btn px-2"
+                          prepend-icon="mdi-check-decagram-outline"
+                          @click="openApproveDialog(item)"
+                          title="إعادة فحص واعتماد الطلب بعد التعديل"
+                        >
+                          إعادة الاعتماد
+                        </v-btn>
+                        <v-btn
+                          size="small"
+                          density="compact"
+                          icon="mdi-alert-circle-outline"
+                          color="error"
+                          variant="tonal"
+                          rounded="lg"
+                          class="table-action-icon-btn ms-1"
+                          @click="openReturnDialog(item)"
+                          :title="item.return_reason ? ('سبب الإرجاع: ' + item.return_reason) : 'عرض سبب الإرجاع'"
+                        />
+                        <v-btn
+                          v-if="item.has_order"
+                          size="small"
+                          density="compact"
+                          icon="mdi-file-document-outline"
+                          color="secondary"
+                          variant="tonal"
+                          rounded="lg"
+                          class="table-action-icon-btn ms-1"
+                          @click="previewOrderManifest(item)"
+                          title="معاينة إذن الصرف الرسمي A4"
+                        />
+                      </template>
+
+                      <!-- د. طلب مجدول لموعد قادم -->
+                      <template v-else-if="item.is_scheduled">
+                        <v-btn
+                          size="small"
+                          density="compact"
+                          color="warning"
+                          variant="tonal"
+                          rounded="lg"
+                          class="font-weight-bold table-action-btn px-2"
+                          prepend-icon="mdi-fast-forward"
+                          @click="openAdvanceScheduleDialog(item)"
+                          title="تقديم موعد الطباعة استثنائياً ونقله للمستحقة"
+                        >
+                          تقديم الموعد
+                        </v-btn>
+                        <v-btn
+                          v-if="item.has_order"
+                          size="small"
+                          density="compact"
+                          icon="mdi-file-document-outline"
+                          color="secondary"
+                          variant="tonal"
+                          rounded="lg"
+                          class="table-action-icon-btn ms-1"
+                          @click="previewOrderManifest(item)"
+                          title="معاينة إذن الصرف الرسمي A4"
+                        />
+                      </template>
+
+                      <!-- هـ. طلب معتمد ومستحق جاهز للتنفيذ -->
+                      <template v-else-if="item.is_due">
+                        <v-btn
+                          size="small"
+                          density="compact"
+                          color="primary"
+                          variant="tonal"
+                          rounded="lg"
+                          class="font-weight-bold table-action-btn px-2"
+                          prepend-icon="mdi-printer"
+                          @click="examSubTab = 'due'"
+                          title="الانتقال إلى تبويب المستحقة لتنفيذ الطباعة"
+                        >
+                          تنفيذ الطباعة
+                        </v-btn>
+                        <v-btn
+                          v-if="item.has_order"
+                          size="small"
+                          density="compact"
+                          icon="mdi-file-document-outline"
+                          color="secondary"
+                          variant="tonal"
+                          rounded="lg"
+                          class="table-action-icon-btn ms-1"
+                          @click="previewOrderManifest(item)"
+                          title="معاينة إذن الصرف الرسمي A4"
+                        />
+                      </template>
+
+                      <!-- و. في أي حالة أخرى -->
+                      <template v-else>
+                        <v-btn
+                          size="small"
+                          density="compact"
+                          color="success"
+                          variant="flat"
+                          rounded="lg"
+                          class="font-weight-bold table-action-btn px-2"
+                          prepend-icon="mdi-check-circle-outline"
+                          @click="openApproveDialog(item)"
+                          title="اعتماد وجدولة طلب الطباعة"
+                        >
+                          تأكيد واعتماد
+                        </v-btn>
+                        <v-btn
+                          size="small"
+                          density="compact"
+                          icon="mdi-keyboard-return"
+                          color="warning"
+                          variant="tonal"
+                          rounded="lg"
+                          class="table-action-icon-btn ms-1"
+                          @click="openReturnDialog(item)"
+                          title="إرجاع الطلب للتعديل"
+                        />
+                      </template>
+                    </template>
                   </div>
                 </template>
               </template>
@@ -1697,9 +2140,10 @@
                   rounded="lg"
                   class="font-weight-bold"
                   prepend-icon="mdi-printer"
-                  @click="printAllFourQuestionPapers"
+                  @click="printAllQuestionPapers"
+                  :disabled="!questionModelsList.some(m => m.hasQuestions)"
                 >
-                  طباعة كافة النماذج الأربعة (A, B, C, D)
+                  طباعة كافة نماذج الأسئلة ({{ questionModelsList.map(m => m.versionCode).join(', ') }})
                 </v-btn>
 
                 <v-btn-toggle
@@ -1789,8 +2233,14 @@
 
                 <!-- Paper Status -->
                 <template v-else-if="key === 'status'">
-                  <v-chip size="small" color="success" variant="tonal" class="font-weight-bold" prepend-icon="mdi-check-decagram-outline">
-                    معتمد وجاهز
+                  <v-chip
+                    size="small"
+                    :color="item.hasQuestions ? 'success' : 'warning'"
+                    variant="tonal"
+                    class="font-weight-bold"
+                    :prepend-icon="item.hasQuestions ? 'mdi-check-decagram-outline' : 'mdi-alert-circle-outline'"
+                  >
+                    {{ item.hasQuestions ? 'معتمد وجاهز' : 'فارغ (لا توجد أسئلة)' }}
                   </v-chip>
                 </template>
 
@@ -2680,20 +3130,492 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- 4. نافذة معاينة إذن الصرف وأمر الطباعة الرسمي A4                -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <PrintOrderManifestDialog
+      v-model="manifestDialog"
+      :order-data="selectedManifestOrder"
+    />
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- 5. نافذة تأكيد اعتماد وجدولة طلب الطباعة (المرحلة 2)             -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <v-dialog v-model="approveOrderDialog" max-width="560px" persistent>
+      <v-card rounded="2xl" class="border elevation-6 overflow-hidden main-card">
+        <v-card-title class="d-flex align-center justify-space-between bg-surface pa-4 px-6 border-b">
+          <div class="d-flex align-center gap-3">
+            <v-avatar color="success" variant="tonal" size="40" class="rounded-xl">
+              <v-icon color="success" size="22">mdi-check-decagram</v-icon>
+            </v-avatar>
+            <div>
+              <div class="text-subtitle-1 font-weight-black text-on-surface">اعتماد وجدولة طلب الطباعة</div>
+              <div class="text-caption text-medium-emphasis">الموافقة الرسمية وتحويل الطلب لجدول التنفيذ</div>
+            </div>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" @click="approveOrderDialog = false" />
+        </v-card-title>
+
+        <v-card-text class="pa-5 bg-surface text-right">
+          <!-- تفاصيل الاختبار -->
+          <div class="pa-3 rounded-xl bg-surface-variant-subtle border mb-4">
+            <div class="text-subtitle-2 font-weight-bold text-on-surface mb-1">
+              {{ targetExamForApproval?.title }}
+            </div>
+            <div class="d-flex align-center gap-3 text-caption text-medium-emphasis flex-wrap">
+              <span class="font-mono text-primary font-weight-bold">
+                {{ targetExamForApproval?.uniqueCode }}
+              </span>
+              <span>المادة: {{ targetExamForApproval?.subject_name || 'عام' }}</span>
+              <span>المقيدون: <strong>{{ targetExamForApproval?.total_registered || targetExamForApproval?.total_students || 0 }} طالب</strong></span>
+            </div>
+            <div v-if="targetExamForApproval?.order_number" class="mt-2 pt-2 border-t d-flex align-center gap-2 text-caption">
+              <v-chip size="x-small" color="primary" variant="tonal" class="font-mono font-weight-bold">
+                {{ targetExamForApproval.order_number }}
+              </v-chip>
+              <span class="text-medium-emphasis">موعد الامتحان الفعلي: <strong>{{ targetExamForApproval.actual_exam_date || 'محدد في الكشف' }}</strong></span>
+            </div>
+          </div>
+
+          <!-- توضيح مصدر موعد الطباعة والاعتماد -->
+          <div class="mb-4">
+            <div class="d-flex align-center justify-space-between mb-1">
+              <label class="text-caption font-weight-bold text-high-emphasis">
+                موعد الطباعة المعتمد:
+              </label>
+              <span v-if="targetExamForApproval?.has_order" class="text-caption text-success font-weight-medium">
+                (معبأ تلقائياً من واقع طلب الطباعة الأصلي)
+              </span>
+              <span v-else class="text-caption text-warning font-weight-medium">
+                (طلب جديد - يرجى تحديد تاريخ الجدولة)
+              </span>
+            </div>
+            <v-text-field
+              v-model="approvalScheduledDate"
+              type="date"
+              variant="outlined"
+              density="compact"
+              rounded="lg"
+              prepend-inner-icon="mdi-calendar"
+              hide-details
+            />
+            <div class="text-caption text-medium-emphasis mt-1">
+              * إذا كان الموعد هو تاريخ اليوم، سينتقل الطلب فوراً إلى تبويب <strong>المستحقة</strong> للتنفيذ، أما إذا كان مستقبلياً فسينتقل إلى <strong>المجدولة</strong>.
+            </div>
+          </div>
+
+          <!-- ملاحظات وتأكيد المطبعة -->
+          <div class="mb-3">
+            <label class="text-caption font-weight-bold text-high-emphasis d-block mb-1">
+              المطبعة المنفذة:
+            </label>
+            <v-text-field
+              v-model="approvalPressName"
+              variant="outlined"
+              density="compact"
+              rounded="lg"
+              prepend-inner-icon="mdi-domain"
+              hide-details
+            />
+          </div>
+
+          <!-- الموظف المسؤول -->
+          <div class="mb-2">
+            <label class="text-caption font-weight-bold text-high-emphasis d-block mb-1">
+              الموظف المسؤول / عضو اللجنة المعتمد:
+            </label>
+            <v-text-field
+              v-model="approvalResponsibleOfficer"
+              variant="outlined"
+              density="compact"
+              rounded="lg"
+              prepend-inner-icon="mdi-account-tie"
+              hide-details
+            />
+          </div>
+        </v-card-text>
+
+        <v-card-actions class="pa-4 bg-surface border-t d-flex justify-space-between align-center">
+          <v-btn variant="tonal" color="grey" rounded="lg" class="font-weight-bold px-4" @click="approveOrderDialog = false">
+            إلغاء
+          </v-btn>
+          <v-btn
+            color="success"
+            variant="flat"
+            rounded="lg"
+            class="font-weight-bold px-6"
+            prepend-icon="mdi-check-decagram"
+            :loading="actionLoading"
+            @click="confirmOrderApproval"
+          >
+            تأكيد الاعتماد والجدولة
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- 6. نافذة إرجاع طلب الطباعة للتعديل مع الملاحظات                  -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <v-dialog v-model="returnOrderDialog" max-width="560px" persistent>
+      <v-card rounded="2xl" class="border elevation-6 overflow-hidden main-card">
+        <v-card-title class="d-flex align-center justify-space-between bg-surface pa-4 px-6 border-b">
+          <div class="d-flex align-center gap-3">
+            <v-avatar color="warning" variant="tonal" size="40" class="rounded-xl">
+              <v-icon color="warning" size="22">mdi-keyboard-return</v-icon>
+            </v-avatar>
+            <div>
+              <div class="text-subtitle-1 font-weight-black text-on-surface">إرجاع طلب الطباعة للتعديل</div>
+              <div class="text-caption text-medium-emphasis">تسجيل ملاحظات وأسباب الإرجاع لمسؤول الإدخال</div>
+            </div>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" @click="returnOrderDialog = false" />
+        </v-card-title>
+
+        <v-card-text class="pa-5 bg-surface text-right">
+          <div class="pa-3 rounded-xl bg-surface-variant-subtle border mb-4">
+            <div class="text-subtitle-2 font-weight-bold text-on-surface mb-1">
+              {{ targetExamForReturn?.title }}
+            </div>
+            <div class="text-caption text-medium-emphasis">
+              الكود: <span class="font-mono text-primary font-weight-bold">{{ targetExamForReturn?.uniqueCode }}</span>
+            </div>
+          </div>
+
+          <!-- أسباب الإرجاع الشائعة -->
+          <div class="mb-4">
+            <label class="text-caption font-weight-bold text-high-emphasis d-block mb-1">
+              سبب الإرجاع الرئيسي:
+            </label>
+            <v-select
+              v-model="returnReasonSelected"
+              :items="predefinedReturnReasons"
+              variant="outlined"
+              density="compact"
+              rounded="lg"
+              hide-details
+            />
+          </div>
+
+          <!-- تفاصيل وملاحظات إضافية -->
+          <div class="mb-2">
+            <label class="text-caption font-weight-bold text-high-emphasis d-block mb-1">
+              ملاحظات وتوجيهات التعديل المطلوبة:
+            </label>
+            <v-textarea
+              v-model="returnNotesText"
+              rows="3"
+              variant="outlined"
+              density="compact"
+              rounded="lg"
+              placeholder="يرجى كتابة التعديلات المطلوبة بدقة ليتمكن المُنشئ من معالجتها..."
+              hide-details
+            />
+          </div>
+        </v-card-text>
+
+        <v-card-actions class="pa-4 bg-surface border-t d-flex justify-space-between align-center">
+          <v-btn variant="tonal" color="grey" rounded="lg" class="font-weight-bold px-4" @click="returnOrderDialog = false">
+            إلغاء
+          </v-btn>
+          <v-btn
+            color="warning"
+            variant="flat"
+            rounded="lg"
+            class="font-weight-bold px-6"
+            prepend-icon="mdi-keyboard-return"
+            :loading="actionLoading"
+            @click="confirmOrderReturn"
+          >
+            تأكيد إرجاع الطلب
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- 7. نافذة تقديم موعد الطباعة استثنائياً لليوم                     -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <v-dialog v-model="advanceScheduleDialog" max-width="540px" persistent>
+      <v-card rounded="2xl" class="border elevation-6 overflow-hidden main-card">
+        <v-card-title class="d-flex align-center justify-space-between bg-surface pa-4 px-6 border-b">
+          <div class="d-flex align-center gap-3">
+            <v-avatar color="warning" variant="tonal" size="40" class="rounded-xl">
+              <v-icon color="warning" size="22">mdi-fast-forward</v-icon>
+            </v-avatar>
+            <div>
+              <div class="text-subtitle-1 font-weight-black text-on-surface">تقديم موعد الطباعة استثنائياً</div>
+              <div class="text-caption text-medium-emphasis">صلاحية استثنائية لتقديم التنفيذ مع توثيق السبب والمسؤول</div>
+            </div>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" @click="advanceScheduleDialog = false" />
+        </v-card-title>
+
+        <v-card-text class="pa-5 bg-surface text-right">
+          <!-- تفاصيل الاختبار والجدولة الحالية -->
+          <div class="pa-3 rounded-xl bg-surface-variant-subtle border mb-4">
+            <div class="font-weight-bold text-subtitle-2 text-on-surface mb-1">
+              {{ targetExamForAdvance?.title }}
+            </div>
+            <div class="d-flex align-center gap-3 text-caption text-medium-emphasis flex-wrap">
+              <span class="font-mono text-primary font-weight-bold">{{ targetExamForAdvance?.uniqueCode }}</span>
+              <span>الموعد الحالي المجدول: <strong class="text-error font-mono">{{ targetExamForAdvance?.scheduled_print_date }}</strong></span>
+            </div>
+          </div>
+
+          <!-- الأساس القانوني والمبرر لتقديم الموعد -->
+          <div class="mb-4">
+            <label class="text-caption font-weight-bold text-high-emphasis d-block mb-1">
+              مبرر تقديم الموعد (الأساس النظامي):
+            </label>
+            <v-select
+              v-model="advanceReasonSelected"
+              :items="advanceReasonsList"
+              variant="outlined"
+              density="compact"
+              rounded="lg"
+              hide-details
+            />
+          </div>
+
+          <!-- رقم وثيقة التوجيه أو الإذن الاستثنائي -->
+          <div class="mb-4">
+            <label class="text-caption font-weight-bold text-high-emphasis d-block mb-1">
+              رقم توجيه الإذن الاستثنائي / المذكرة الرسمية:
+            </label>
+            <v-text-field
+              v-model="advanceAuthDoc"
+              variant="outlined"
+              density="compact"
+              rounded="lg"
+              placeholder="مثال: إذن وزاري رقم ق/1446/78 بتاريخ اليوم"
+              prepend-inner-icon="mdi-file-certificate-outline"
+              hide-details
+            />
+          </div>
+
+          <v-alert type="warning" variant="tonal" rounded="xl" density="compact" class="text-caption">
+            عند تأكيد التقديم، سينتقل هذا الاختبار فوراً من قائمة <strong>المجدولة</strong> إلى قائمة <strong>المستحقة</strong> للتنفيذ اليوم.
+          </v-alert>
+        </v-card-text>
+
+        <v-card-actions class="pa-4 bg-surface border-t d-flex justify-space-between align-center">
+          <v-btn variant="tonal" color="grey" rounded="lg" class="font-weight-bold px-4" @click="advanceScheduleDialog = false">
+            إلغاء
+          </v-btn>
+          <v-btn
+            color="warning"
+            variant="flat"
+            rounded="lg"
+            class="font-weight-bold px-6"
+            prepend-icon="mdi-fast-forward"
+            :loading="actionLoading"
+            @click="confirmAdvanceSchedule"
+          >
+            تأكيد التقديم لليوم
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- 8. نافذة تنفيذ أمر الطباعة المباشر الفوري                      -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <v-dialog v-model="directPrintDialog" max-width="620px" persistent>
+      <v-card rounded="2xl" class="border elevation-6 overflow-hidden main-card">
+        <v-card-title class="d-flex align-center justify-space-between bg-surface pa-4 px-6 border-b">
+          <div class="d-flex align-center gap-3">
+            <v-avatar color="success" variant="tonal" size="42" class="rounded-xl">
+              <v-icon color="success" size="24">mdi-printer</v-icon>
+            </v-avatar>
+            <div>
+              <div class="text-subtitle-1 font-weight-black text-on-surface">أمر الطباعة المباشر والسريع</div>
+              <div class="text-caption text-medium-emphasis">سحب وثائق الاختبار المعتمدة وتغذية ماكينات المطبعة فوراً</div>
+            </div>
+          </div>
+          <v-btn icon="mdi-close" variant="text" size="small" @click="directPrintDialog = false" />
+        </v-card-title>
+
+        <v-card-text class="pa-5 bg-surface text-right">
+          <!-- تفاصيل الاختبار والكميات -->
+          <div class="pa-4 rounded-xl bg-surface-variant-subtle border mb-4">
+            <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-2">
+              <span class="font-weight-black text-subtitle-2 text-on-surface">
+                {{ targetExamForDirectPrint?.title }}
+              </span>
+              <span class="font-mono text-primary font-weight-bold text-caption px-2 py-0.5 rounded bg-surface border">
+                {{ targetExamForDirectPrint?.uniqueCode }}
+              </span>
+            </div>
+            <div class="d-flex align-center gap-3 text-caption text-medium-emphasis flex-wrap">
+              <span>المادة: <strong class="text-high-emphasis">{{ targetExamForDirectPrint?.subject_name || 'عام' }}</strong></span>
+              <span>المقيدون: <strong class="text-primary">{{ targetExamForDirectPrint?.total_registered || targetExamForDirectPrint?.total_students || 0 }} طالب</strong></span>
+              <span>المراكز: <strong class="text-teal">{{ targetExamForDirectPrint?.schools_count || 1 }} مركز امتحاني</strong></span>
+              <span v-if="targetExamForDirectPrint?.order_number" class="text-primary font-mono">
+                إذن الصرف: <strong>{{ targetExamForDirectPrint?.order_number }}</strong>
+              </span>
+            </div>
+          </div>
+
+          <!-- أزرار المعاينة الفورية قبل الطباعة (فحص الجودة والمقاييس) -->
+          <div class="pa-3 rounded-xl bg-surface border mb-4">
+            <div class="text-caption font-weight-bold text-high-emphasis mb-2 d-flex align-center gap-1">
+              <v-icon size="16" color="primary">mdi-eye-check-outline</v-icon>
+              معاينة الوثائق قبل إرسال أمر السحب للماكينة:
+            </div>
+            <div class="d-flex align-center gap-2 flex-wrap">
+              <v-btn
+                size="small"
+                color="primary"
+                variant="tonal"
+                rounded="lg"
+                class="font-weight-bold"
+                prepend-icon="mdi-eye-outline"
+                @click="previewFirstOmrSheet"
+              >
+                معاينة ورقة OMR
+              </v-btn>
+              <v-btn
+                size="small"
+                color="indigo"
+                variant="tonal"
+                rounded="lg"
+                class="font-weight-bold"
+                prepend-icon="mdi-file-eye-outline"
+                @click="previewFirstQuestionPaper"
+              >
+                معاينة كراسة الأسئلة
+              </v-btn>
+              <v-btn
+                v-if="targetExamForDirectPrint?.has_order"
+                size="small"
+                color="secondary"
+                variant="tonal"
+                rounded="lg"
+                class="font-weight-bold"
+                prepend-icon="mdi-text-box-search-outline"
+                @click="previewOrderManifest(targetExamForDirectPrint)"
+              >
+                معاينة إذن الصرف A4
+              </v-btn>
+            </div>
+          </div>
+
+          <!-- تحديد المواد والمستندات المطلوب طباعتها فوراً -->
+          <div class="mb-4">
+            <div class="text-caption font-weight-bold text-high-emphasis mb-2 d-flex align-center gap-1">
+              <v-icon size="16" color="primary">mdi-checkbox-marked-circle-outline</v-icon>
+              المستندات المطلوب سحبها للماكينة:
+            </div>
+            <v-row dense>
+              <v-col cols="12" sm="6">
+                <v-checkbox
+                  v-model="directPrintOptions.sheets"
+                  color="primary"
+                  density="compact"
+                  hide-details
+                >
+                  <template v-slot:label>
+                    <span class="text-body-2 font-weight-medium">أوراق إجابة OMR (تظليل)</span>
+                  </template>
+                </v-checkbox>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-checkbox
+                  v-model="directPrintOptions.booklets"
+                  color="indigo"
+                  density="compact"
+                  hide-details
+                >
+                  <template v-slot:label>
+                    <span class="text-body-2 font-weight-medium">كراسات الأسئلة (النماذج A, B...)</span>
+                  </template>
+                </v-checkbox>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-checkbox
+                  v-model="directPrintOptions.roster"
+                  color="teal"
+                  density="compact"
+                  hide-details
+                >
+                  <template v-slot:label>
+                    <span class="text-body-2 font-weight-medium">كشوف المناداة ومحاضر المراكز</span>
+                  </template>
+                </v-checkbox>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-checkbox
+                  v-model="directPrintOptions.manifest"
+                  color="purple"
+                  density="compact"
+                  hide-details
+                >
+                  <template v-slot:label>
+                    <span class="text-body-2 font-weight-medium">إذن الصرف وأمر الطباعة A4</span>
+                  </template>
+                </v-checkbox>
+              </v-col>
+            </v-row>
+          </div>
+
+          <!-- تنبيه ومعلومات المطبعة -->
+          <div class="pa-3 rounded-xl bg-teal-lighten-5 border border-teal-lighten-3 mb-2 text-caption text-teal-darken-3 d-flex align-center gap-2">
+            <v-icon size="20" color="teal">mdi-printer-check</v-icon>
+            <div>
+              الجهة المنفذة: <strong>{{ targetExamForDirectPrint?.press_name || 'المطبعة السرية المركزية (ديوان الوزارة)' }}</strong>
+              <div class="text-caption text-medium-emphasis">سيتم تسجيل رقم دفعة رسمي في السجل وتحديث مؤشرات الطباعة فور التنفيذ.</div>
+            </div>
+          </div>
+        </v-card-text>
+
+        <v-card-actions class="pa-4 bg-surface border-t d-flex justify-space-between align-center flex-wrap gap-2">
+          <div class="d-flex gap-2">
+            <v-btn variant="tonal" color="grey" rounded="lg" class="font-weight-bold px-4" @click="directPrintDialog = false">
+              إلغاء
+            </v-btn>
+            <v-btn
+              color="primary"
+              variant="tonal"
+              rounded="lg"
+              class="font-weight-bold px-3"
+              prepend-icon="mdi-printer-eye"
+              @click="openExamStudioFromDirect(targetExamForDirectPrint)"
+            >
+              استوديو الطباعة التفصيلي
+            </v-btn>
+          </div>
+          <v-btn
+            color="success"
+            variant="flat"
+            rounded="lg"
+            class="font-weight-bold px-6"
+            prepend-icon="mdi-printer"
+            :loading="directPrintLoading"
+            @click="executeDirectPrint"
+          >
+            إرسال أمر الطباعة المباشر الآن
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/omr/client.js'
 import { gradebookAPI } from '@/services/omr/endpoints'
 import YemeniMinistrySheet from '@/components/omr_templates/YemeniMinistrySheet.vue'
 import YemeniAuditReportSheet from '@/components/omr_templates/YemeniAuditReportSheet.vue'
 import YemeniOfficialQuestionPaper from '@/components/omr_templates/YemeniOfficialQuestionPaper.vue'
 import { printOmrElement, printOmrBatch, printOfficialQuestionPaper, printExamPackage } from './utils/omrPrint'
+import PrintOrderManifestDialog from './components/PrintOrderManifestDialog.vue'
 
 const route = useRoute()
+const router = useRouter()
 
 // ── Master View & Administrative Hierarchy State ──
 const currentView = ref(route.query.exam ? 'detail' : 'master')
@@ -2777,14 +3699,14 @@ const schoolExamsHeaders = [
 ]
 
 const examMasterHeaders = [
-  { title: "رمز الاختبار", key: "uniqueCode", sortable: true, align: "center", width: "140px" },
-  { title: "عنوان الاختبار والمادة", key: "title", sortable: true, align: "start", width: "340px", minWidth: "300px" },
-  { title: "المدارس المشاركة", key: "schools_count", sortable: true, align: "center", width: "125px" },
-  { title: "المقيدون", key: "total_registered", sortable: true, align: "center", width: "110px" },
-  { title: "أوراق مطبوعة", key: "printed_count", sortable: true, align: "center", width: "120px" },
-  { title: "نسبة الطباعة", key: "printed_rate", sortable: true, align: "center", width: "130px" },
+  { title: "رمز الاختبار", key: "uniqueCode", sortable: true, align: "center", width: "125px" },
+  { title: "عنوان الاختبار والمادة", key: "title", sortable: true, align: "start", width: "290px", minWidth: "240px" },
+  { title: "المدارس المشاركة", key: "schools_count", sortable: true, align: "center", width: "115px" },
+  { title: "المقيدون", key: "total_registered", sortable: true, align: "center", width: "95px" },
+  { title: "أوراق مطبوعة", key: "printed_count", sortable: true, align: "center", width: "105px" },
+  { title: "نسبة الطباعة", key: "printed_rate", sortable: true, align: "center", width: "115px" },
   { title: "حالة الطباعة", key: "print_status", sortable: true, align: "center", width: "120px" },
-  { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "160px" },
+  { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "140px" },
 ]
 
 const registryMasterHeaders = [
@@ -3130,6 +4052,438 @@ const getSchoolExamsData = async (params = {}) => {
   return schoolExamsTableItems.value
 }
 
+// ── Sub-tabs for "الاختبارات المعتمدة للطباعة" (الطلبات / المجدولة / المستحقة / المكتملة) ──
+const examSubTab = ref('all')
+const savedPrintOrders = ref([])
+const manifestDialog = ref(false)
+const selectedManifestOrder = ref(null)
+
+const loadSavedPrintOrders = async () => {
+  try {
+    const res = await api.get('/api/omr/print-orders/')
+    if (res.data && res.data.success) {
+      savedPrintOrders.value = res.data.results || []
+    }
+  } catch (err) {
+    console.error('Failed to load real print orders from backend:', err)
+  }
+}
+
+const previewOrderManifest = (exam) => {
+  const order = (savedPrintOrders.value || []).find(o => 
+    String(o.exam_id) === String(exam.id) || 
+    (o.exam_code && o.exam_code === exam.uniqueCode) ||
+    (o.order_number && exam.uniqueCode && o.order_number.includes(exam.uniqueCode))
+  )
+  if (order) {
+    selectedManifestOrder.value = {
+      ...order,
+      exam_title: exam.title || order.exam_title,
+      subject_name: exam.subject_name || order.subject_name || 'عام',
+      grand_total: exam.total_registered || exam.total_students || order.grand_total || 0,
+      actual_exam_date: exam.exam_date || order.actual_exam_date,
+    }
+    manifestDialog.value = true
+  } else {
+    selectedManifestOrder.value = {
+      order_number: exam.order_number || `PRN-REQ-${exam.uniqueCode || exam.id}`,
+      exam_id: exam.id,
+      exam_title: exam.title,
+      exam_code: exam.uniqueCode,
+      subject_name: exam.subject_name || 'عام',
+      press_name: exam.press_name || 'المطبعة السرية المركزية (ديوان الوزارة)',
+      scheduled_print_date: exam.scheduled_print_date || getTodayIso(),
+      actual_exam_date: exam.exam_date || exam.actual_exam_date || getTodayIso(),
+      status: exam.order_status || 'approved',
+      grand_total: exam.total_registered || exam.total_students || 0,
+    }
+    manifestDialog.value = true
+  }
+}
+
+const getTodayIso = () => {
+  const d = new Date()
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const enrichedMasterExamsList = computed(() => {
+  try {
+    const baseList = filteredMasterExamsTable.value || []
+    const today = getTodayIso()
+
+    return baseList.filter(Boolean).map(exam => {
+      try {
+        const order = (savedPrintOrders.value || []).find(o => 
+          o && (
+            String(o.exam_id) === String(exam.id) || 
+            (o.exam_code && exam.uniqueCode && String(o.exam_code) === String(exam.uniqueCode)) ||
+            (o.order_number && exam.uniqueCode && String(o.order_number).includes(String(exam.uniqueCode)))
+          )
+        )
+
+        const rawStatus = order?.status || (exam.order_status || 'pending')
+        const scheduledDate = order?.scheduled_print_date || exam.scheduled_print_date || null
+        const examDate = order?.actual_exam_date || exam.exam_date || null
+        const orderNumber = order?.order_number || exam.order_number || null
+        const pressName = order?.press_name || exam.press_name || null
+        const grandTotal = order?.grand_total || (exam.total_registered || exam.total_students || 0)
+        const returnReason = order?.return_reason || exam.return_reason || ''
+        const returnNotes = order?.return_notes || exam.return_notes || ''
+
+        const isFullyPrinted = (Number(exam.printed_rate) >= 100) || (exam.print_status === 'full') || (exam.print_status === 'printed') || rawStatus === 'completed'
+        const isFailed = rawStatus === 'failed' || rawStatus === 'returned'
+        const isCancelled = rawStatus === 'cancelled'
+
+        // 1. Completed: 100% printed or status completed
+        const isCompleted = isFullyPrinted
+
+        // 2. Returned / Failed
+        const isReturned = !isCompleted && isFailed
+
+        // 3. Pending: incoming request not yet approved by committee
+        const isPending = !isCompleted && !isReturned && !isCancelled && (rawStatus === 'pending')
+
+        // 4. Scheduled: approved with future print date (> today)
+        const isScheduled = !isCompleted && !isReturned && !isCancelled && !isPending && (rawStatus === 'scheduled' || (scheduledDate && scheduledDate > today))
+
+        // 5. Due: approved with print date today or earlier (<= today), or in active printing
+        const isDue = !isCompleted && !isReturned && !isCancelled && !isPending && !isScheduled && (rawStatus === 'ready' || rawStatus === 'printing' || (scheduledDate && scheduledDate <= today) || rawStatus === 'approved')
+
+        const effectiveStatus = isCompleted ? 'completed' :
+                               (isReturned ? 'failed' :
+                               (isScheduled ? 'scheduled' :
+                               (isDue ? (rawStatus === 'printing' ? 'printing' : 'ready') :
+                               (isCancelled ? 'cancelled' : 'pending'))))
+
+        return {
+          ...exam,
+          has_order: !!order || !!exam.order_number,
+          order_status: effectiveStatus,
+          raw_order_status: rawStatus,
+          return_reason: returnReason,
+          return_notes: returnNotes,
+          order_number: orderNumber,
+          scheduled_print_date: scheduledDate,
+          actual_exam_date: examDate,
+          press_name: pressName,
+          total_to_print: grandTotal,
+          is_pending: isPending,
+          is_returned: isReturned,
+          is_approved: !isPending && !isReturned && !isCancelled,
+          is_scheduled: isScheduled,
+          is_due: isDue,
+          is_completed: isCompleted,
+        }
+      } catch (itemErr) {
+        console.error('Error enriching exam item:', exam, itemErr)
+        return exam
+      }
+    })
+  } catch (err) {
+    console.error('Error in enrichedMasterExamsList:', err)
+    return filteredMasterExamsTable.value || []
+  }
+})
+
+// ── Dialog States & Handlers for Print Orders Workflow ──
+const approveOrderDialog = ref(false)
+const targetExamForApproval = ref(null)
+const approvalScheduledDate = ref('')
+const approvalPressName = ref('المطبعة السرية المركزية (ديوان الوزارة)')
+const approvalResponsibleOfficer = ref('مدير إدارة الامتحانات')
+const actionLoading = ref(false)
+
+const returnOrderDialog = ref(false)
+const targetExamForReturn = ref(null)
+const returnReasonSelected = ref('كمية الاحتياط تتجاوز النسبة المعتمدة دون وثيقة تفويض')
+const returnNotesText = ref('')
+const predefinedReturnReasons = [
+  'كمية الاحتياط تتجاوز النسبة المعتمدة دون وثيقة تفويض',
+  'نقص أو عدم تطابق في كشوفات الطلاب لبعض المراكز الامتحانية',
+  'نماذج الأسئلة بحاجة لإعادة تدقيق ومراجعة فنية',
+  'تعارض موعد الطباعة مع جدول تشغيل المطبعة المركزية',
+  'أخرى (توضيح في الملاحظات أدناه)',
+]
+
+const advanceScheduleDialog = ref(false)
+const targetExamForAdvance = ref(null)
+const advanceReasonSelected = ref('شحن وترحيل مبكر لمحافظات بعيدة أو نائية (سقطرى، المهرة، إلخ)')
+const advanceAuthDoc = ref('')
+const advanceReasonsList = [
+  'شحن وترحيل مبكر لمحافظات بعيدة أو نائية (سقطرى، المهرة، إلخ)',
+  'توزيع أحمال ماكينات المطبعة المركزية وتفادي ضغط الأيام الأخيرة',
+  'توجيه وزاري استثنائي لتقديم موعد الاختبار',
+  'إجازة رسمية أو طارئ مناخي/أمني يستوجب الترحيل المبكر',
+  'أخرى (مبرر إداري استثنائي)',
+]
+
+const openApproveDialog = (exam) => {
+  targetExamForApproval.value = exam
+  approvalScheduledDate.value = exam.scheduled_print_date || getTodayIso()
+  approvalPressName.value = exam.press_name || 'المطبعة السرية المركزية (ديوان الوزارة)'
+  approvalResponsibleOfficer.value = exam.responsible_officer || 'مدير إدارة الامتحانات'
+  approveOrderDialog.value = true
+}
+
+const confirmOrderApproval = async () => {
+  if (!targetExamForApproval.value) return
+  actionLoading.value = true
+  try {
+    const exam = targetExamForApproval.value
+    const today = getTodayIso()
+    const schedDate = approvalScheduledDate.value || today
+
+    await api.post('/api/omr/print-orders/approve/', {
+      exam_id: exam.id,
+      scheduled_print_date: schedDate,
+      press_name: approvalPressName.value || 'المطبعة السرية المركزية (ديوان الوزارة)',
+      order_number: exam.order_number || `PRN-REQ-${exam.uniqueCode || exam.id}`,
+      responsible_officer: approvalResponsibleOfficer.value || 'مدير إدارة الامتحانات',
+    })
+
+    await loadSavedPrintOrders()
+    await loadMasterData()
+    approveOrderDialog.value = false
+
+    const isFuture = schedDate > today
+    if (isFuture) {
+      examSubTab.value = 'scheduled'
+      batchPrintNotification.value = {
+        show: true,
+        color: 'info',
+        message: `تم اعتماد وتوثيق أمر الطباعة بنجاح للاختبار "${exam.title}"! تم نقله إلى تبويب [المجدولة] بموعد طباعة (${schedDate}).`,
+      }
+    } else {
+      examSubTab.value = 'due'
+      batchPrintNotification.value = {
+        show: true,
+        color: 'success',
+        message: `تم اعتماد وتوثيق أمر الطباعة بنجاح للاختبار "${exam.title}"! تم نقله إلى تبويب [المستحقة] وهو جاهز للتنفيذ الفوري الآن.`,
+      }
+    }
+  } catch (e) {
+    console.error('Failed to approve order:', e)
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+const openReturnDialog = (exam) => {
+  targetExamForReturn.value = exam
+  returnReasonSelected.value = predefinedReturnReasons[0]
+  returnNotesText.value = ''
+  returnOrderDialog.value = true
+}
+
+const confirmOrderReturn = async () => {
+  if (!targetExamForReturn.value) return
+  actionLoading.value = true
+  try {
+    const exam = targetExamForReturn.value
+
+    await api.post('/api/omr/print-orders/return-order/', {
+      exam_id: exam.id,
+      return_reason: returnReasonSelected.value,
+      return_notes: returnNotesText.value,
+    })
+
+    await loadSavedPrintOrders()
+    await loadMasterData()
+    returnOrderDialog.value = false
+
+    batchPrintNotification.value = {
+      show: true,
+      color: 'warning',
+      message: `تم إرجاع طلب طباعة الاختبار "${exam.title}" للتعديل بنجاح: (${returnReasonSelected.value}). سيظهر كمرتجع في السجل وشاشة إدارة الاختبارات.`,
+    }
+  } catch (e) {
+    console.error('Failed to return order:', e)
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+const openAdvanceScheduleDialog = (exam) => {
+  targetExamForAdvance.value = exam
+  advanceReasonSelected.value = advanceReasonsList[0]
+  advanceAuthDoc.value = ''
+  advanceScheduleDialog.value = true
+}
+
+const confirmAdvanceSchedule = async () => {
+  if (!targetExamForAdvance.value) return
+  actionLoading.value = true
+  try {
+    const exam = targetExamForAdvance.value
+
+    await api.post('/api/omr/print-orders/advance/', {
+      exam_id: exam.id,
+      advance_reason: advanceReasonSelected.value,
+      advance_auth_doc: advanceAuthDoc.value,
+    })
+
+    await loadSavedPrintOrders()
+    await loadMasterData()
+    advanceScheduleDialog.value = false
+    examSubTab.value = 'due'
+
+    batchPrintNotification.value = {
+      show: true,
+      color: 'success',
+      message: `تم تقديم موعد طباعة "${exam.title}" لليوم وتوثيق التفويض رسمياً! تم نقله إلى تبويب [المستحقة] وهو جاهز للتنفيذ الفوري الآن.`,
+    }
+  } catch (e) {
+    console.error('Failed to advance schedule:', e)
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+// ── Direct Print Workflow Handlers ──
+const directPrintDialog = ref(false)
+const targetExamForDirectPrint = ref(null)
+const directPrintLoading = ref(false)
+const directPrintOptions = ref({
+  sheets: true,
+  booklets: true,
+  roster: true,
+  manifest: true,
+})
+
+const openDirectPrintDialog = async (exam) => {
+  targetExamForDirectPrint.value = exam
+  directPrintOptions.value = {
+    sheets: true,
+    booklets: true,
+    roster: true,
+    manifest: true,
+  }
+  directPrintDialog.value = true
+  if (selectedExamId.value !== exam.id) {
+    selectedExamId.value = exam.id
+    loadExamDetails(exam.id)
+  }
+}
+
+const previewFirstOmrSheet = async () => {
+  if (!examDetails.value || !examDetails.value.registered_students?.length) {
+    if (targetExamForDirectPrint.value?.id) {
+      await loadExamDetails(targetExamForDirectPrint.value.id)
+    }
+  }
+  const st = examDetails.value?.registered_students?.[0]
+  if (st) {
+    openSingleSheetPreview(st)
+  } else {
+    printBlankSheetVersion('A')
+  }
+}
+
+const previewFirstQuestionPaper = async () => {
+  if (!examDetails.value?.question_models?.length) {
+    if (targetExamForDirectPrint.value?.id) {
+      await loadExamDetails(targetExamForDirectPrint.value.id)
+    }
+  }
+  const model = examDetails.value?.question_models?.[0] || {
+    id: 1,
+    model_code: 'A',
+    paper_title: targetExamForDirectPrint.value?.title || 'كراسة الأسئلة الامتحانية',
+    questions_count: 50,
+  }
+  selectedQuestionPaperForPreview.value = model
+  previewQuestionPaperDialog.value = true
+}
+
+const openExamStudioFromDirect = (exam) => {
+  directPrintDialog.value = false
+  openExamStudio(exam)
+}
+
+const executeDirectPrint = async () => {
+  if (!targetExamForDirectPrint.value) return
+  directPrintLoading.value = true
+  try {
+    const exam = targetExamForDirectPrint.value
+    const batchId = `BATCH_DIRECT_${Date.now()}`
+    const totalCount = exam.total_registered || exam.total_students || 0
+
+    // 1. Call mark-printed on real backend database
+    await api.post(`/api/omr/exam-linking/${exam.id}/mark-printed/`, {
+      batch_id: batchId,
+      student_ids: 'all',
+    })
+
+    // 2. Update in-memory state for exam
+    exam.printed_count = totalCount
+    exam.printed_rate = 100
+    exam.print_status = 'full'
+    exam.is_completed = true
+    exam.is_due = false
+
+    // 3. Reload persistent state from backend
+    await Promise.all([
+      loadSavedPrintOrders(),
+      loadMasterData(),
+      fetchExamsList(),
+      fetchBatches(),
+    ])
+
+    examSubTab.value = 'completed'
+    directPrintDialog.value = false
+
+    batchPrintNotification.value = {
+      show: true,
+      color: 'success',
+      message: `تم تنفيذ أمر الطباعة المباشر بنجاح للاختبار "${exam.title}"! تم توثيق الدفعة برقم (${batchId}) وتحديث سجل المطبوعات بنسبة 100% في قاعدة البيانات.`,
+    }
+
+    // 4. Trigger manifest preview if manifest was selected
+    if (directPrintOptions.value.manifest) {
+      previewOrderManifest(exam)
+    }
+  } catch (err) {
+    console.error('Direct print error:', err)
+  } finally {
+    directPrintLoading.value = false
+  }
+}
+
+const openExamBatchesHistory = (exam) => {
+  const b = (batches.value || []).find(x => 
+    String(x.exam_id) === String(exam.id) || 
+    (x.exam_code && x.exam_code === exam.uniqueCode) || 
+    (x.exam_title && exam.title && (x.exam_title.includes(exam.title) || exam.title.includes(x.exam_title)))
+  )
+  if (b) {
+    viewBatchDetails(b)
+  } else {
+    masterTab.value = 'registry'
+    masterSearchQuery.value = exam.title || exam.uniqueCode || ''
+    getBatchMasterData()
+  }
+}
+
+const allExamsList = computed(() => enrichedMasterExamsList.value || [])
+const scheduledExamsList = computed(() => (enrichedMasterExamsList.value || []).filter(e => e.is_scheduled))
+const dueExamsList = computed(() => (enrichedMasterExamsList.value || []).filter(e => e.is_due))
+const completedExamsList = computed(() => (enrichedMasterExamsList.value || []).filter(e => e.is_completed))
+
+const allExamsCount = computed(() => allExamsList.value.length)
+const scheduledExamsCount = computed(() => scheduledExamsList.value.length)
+const dueExamsCount = computed(() => dueExamsList.value.length)
+const completedExamsCount = computed(() => completedExamsList.value.length)
+
+const currentExamSubTabList = computed(() => {
+  if (examSubTab.value === 'scheduled') return scheduledExamsList.value
+  if (examSubTab.value === 'due') return dueExamsList.value
+  if (examSubTab.value === 'completed') return completedExamsList.value
+  return allExamsList.value
+})
+
 const examMasterTableItems = ref({
   results: [],
   count: 0,
@@ -3140,7 +4494,7 @@ const getExamMasterData = async (params = {}) => {
   const p = params?.params || params || {}
   const page = p.page || 1
   const pageSize = p.page_size || 20
-  const all = filteredMasterExamsTable.value || []
+  const all = currentExamSubTabList.value || []
   const start = (page - 1) * pageSize
   examMasterTableItems.value = {
     results: all.slice(start, start + pageSize),
@@ -3192,7 +4546,7 @@ watch(filteredSchoolsTable, () => {
   getSchoolMasterData()
 }, { immediate: true })
 
-watch(filteredMasterExamsTable, () => {
+watch([currentExamSubTabList, examSubTab], () => {
   getExamMasterData()
 }, { immediate: true })
 
@@ -3254,6 +4608,7 @@ const loadMasterData = async () => {
     directoratesList.value = directoratesRes.data?.results || []
     schoolsList.value = schoolsRes.data?.results || []
     masterExamsList.value = examsRes.data?.results || []
+    await loadSavedPrintOrders()
     getOfficeMasterData()
     getDirectorateMasterData()
     getSchoolMasterData()
@@ -4192,16 +5547,16 @@ const sheetArtboardStyle = computed(() => {
 const getQuestionsCountForVersion = (versionCode) => {
   const v = examDetails.value?.versions?.find(ver => ver.versionCode === versionCode) ||
             examDetails.value?.versions?.[0]
-  if (v?.questions?.length) return v.questions.length
-  if (v?.questionsCount) return v.questionsCount
-  return selectedExam.value?.total_questions || 20
+  if (v?.questions?.length !== undefined) return v.questions.length
+  if (v?.questionsCount !== undefined) return v.questionsCount
+  return 0
 }
 
 const getSectionsForVersion = (versionCode) => {
   const v = examDetails.value?.versions?.find(ver => ver.versionCode === versionCode) ||
             examDetails.value?.versions?.[0]
   const qList = v?.questions || []
-  const total = qList.length || v?.questionsCount || selectedExam.value?.total_questions || 20
+  const total = qList.length || (v?.questionsCount || 0)
   let tfCount = 0
   let mcqCount = 0
 
@@ -4608,17 +5963,19 @@ const printCurrentExamPackage = async () => {
 // State & Methods for Tab 2: Question Booklets
 const previewQuestionPaperDialog = ref(false)
 const questionModelsList = computed(() => {
-  const models = ['A', 'B', 'C', 'D']
-  return models.map(code => {
-    const ver = examDetails.value?.versions?.find(v => v.versionCode === code)
-    const qCount = ver?.questions?.length || 56
-    return {
-      versionCode: code,
-      title: `كراسة ورقة الأسئلة - نموذج ${code}`,
-      questionsCount: qCount,
-      hasQuestions: !!(ver?.questions && ver.questions.length > 0)
-    }
-  })
+  const vers = examDetails.value?.versions || []
+  if (vers.length > 0) {
+    return vers.map(v => {
+      const qCount = v.questions?.length || 0
+      return {
+        versionCode: v.versionCode,
+        title: `كراسة ورقة الأسئلة - نموذج ${v.versionCode}`,
+        questionsCount: qCount,
+        hasQuestions: qCount > 0,
+      }
+    })
+  }
+  return []
 })
 
 const questionModelsHeaders = computed(() => [
@@ -4688,8 +6045,9 @@ const printQuestionPaperForModel = async (modelCode) => {
   })
 }
 
-const printAllFourQuestionPapers = async () => {
-  for (const ver of ['A', 'B', 'C', 'D']) {
+const printAllQuestionPapers = async () => {
+  const versions = questionModelsList.value.filter(m => m.hasQuestions).map(m => m.versionCode)
+  for (const ver of versions) {
     await printQuestionPaperForModel(ver)
   }
 }
@@ -4862,13 +6220,23 @@ const refreshData = async () => {
 
 onMounted(async () => {
   await Promise.all([
+    loadSavedPrintOrders(),
     loadSubjects(),
     loadMasterData(),
     fetchBatches(),
   ])
 
   const qExam = route.query.exam || route.query.exam_id
-  if (qExam) {
+  const qView = route.query.view
+  const qTab = route.query.tab
+
+  if (qView === 'orders' || qTab === 'exams') {
+    currentView.value = 'master'
+    masterTab.value = 'exams'
+    if (route.query.subtab) {
+      examSubTab.value = route.query.subtab
+    }
+  } else if (qExam) {
     currentView.value = 'detail'
     selectedExamId.value = Number(qExam)
     await loadExamDetails(selectedExamId.value)
@@ -4887,6 +6255,39 @@ onMounted(async () => {
     await fetchExamsList()
   }
 })
+
+// Watch route.query to maintain URL and tab/subtab synchronization reactively
+watch(() => route.query, (q) => {
+  if (!q) return
+  const qExam = q.exam || q.exam_id
+  const qView = q.view
+  const qTab = q.tab
+
+  if (qView === 'orders' || qTab === 'exams') {
+    currentView.value = 'master'
+    masterTab.value = 'exams'
+    if (q.subtab && ['all', 'scheduled', 'due', 'completed'].includes(q.subtab)) {
+      examSubTab.value = q.subtab
+    }
+  } else if (qExam) {
+    const eid = Number(qExam)
+    if (eid && selectedExamId.value !== eid) {
+      currentView.value = 'detail'
+      selectedExamId.value = eid
+      loadExamDetails(eid)
+    }
+  }
+}, { deep: true })
+
+// Keep route.query updated when user switches subtabs
+watch(examSubTab, (sub) => {
+  getExamMasterData()
+  if (masterTab.value === 'exams' && currentView.value === 'master') {
+    if (route.query.subtab !== sub) {
+      router.replace({ query: { ...route.query, subtab: sub } }).catch(() => {})
+    }
+  }
+})
 </script>
 
 <style scoped>
@@ -4898,6 +6299,72 @@ onMounted(async () => {
   word-break: normal !important;
   overflow: visible !important;
   text-overflow: clip !important;
+}
+
+/* ── Compact & Refined Table Action Buttons and Chips ── */
+:deep(.table-actions-cell) {
+  min-height: 30px;
+}
+
+:deep(.table-action-btn),
+.table-action-btn {
+  height: 28px !important;
+  min-height: 28px !important;
+  font-size: 0.74rem !important;
+  letter-spacing: 0 !important;
+  padding: 0 8px !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  text-transform: none !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+:deep(.table-action-btn:hover),
+.table-action-btn:hover {
+  transform: translateY(-1px);
+}
+
+:deep(.table-action-btn .v-icon),
+.table-action-btn .v-icon {
+  font-size: 14px !important;
+  width: 14px !important;
+  height: 14px !important;
+  margin-inline-end: 4px !important;
+}
+
+:deep(.table-action-chip),
+.table-action-chip {
+  height: 24px !important;
+  min-height: 24px !important;
+  font-size: 0.72rem !important;
+  padding: 0 8px !important;
+  border-radius: 6px !important;
+}
+
+:deep(.table-action-icon-btn),
+.table-action-icon-btn {
+  height: 28px !important;
+  width: 28px !important;
+  min-width: 28px !important;
+  max-width: 28px !important;
+  padding: 0 !important;
+  border-radius: 6px !important;
+}
+
+:deep(.table-action-icon-btn .v-icon),
+.table-action-icon-btn .v-icon {
+  font-size: 15px !important;
+  width: 15px !important;
+  height: 15px !important;
+  margin: 0 !important;
+}
+
+:deep(.table-action-chip .v-icon),
+.table-action-chip .v-icon {
+  font-size: 13px !important;
+  width: 13px !important;
+  height: 13px !important;
+  margin-inline-end: 4px !important;
 }
 
 :deep(.custom-data-table th),

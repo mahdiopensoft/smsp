@@ -53,6 +53,9 @@ export default defineConfig({
   define: { "process.env": {} },
   resolve: {
     alias: {
+      "@/components/FormInput": path.resolve(sharedProjectPath, "components/FormInput"),
+      "@/components/Display": path.resolve(sharedProjectPath, "components/Display"),
+      "@/components/dialog": path.resolve(sharedProjectPath, "components/dialog"),
       "@": fileURLToPath(new URL("./src", import.meta.url)),
       "external-components": path.resolve(sharedProjectPath, "index.js"),
       "datalist": path.resolve('./src/utils/DataAutoList'),

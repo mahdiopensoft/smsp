@@ -22,45 +22,18 @@
         </div>
 
         <!-- Actions for this Model (collapsed into one menu) -->
-        <v-menu v-if="currentVersionObj" location="bottom end">
-          <template #activator="{ props: mProps }">
-            <v-btn
-              v-bind="mProps"
-              variant="tonal"
-              color="primary"
-              rounded="lg"
-              size="small"
-              class="font-weight-bold"
-              prepend-icon="mdi-cog-outline"
-            >
-              إجراءات النموذج
-              <v-icon end>mdi-chevron-down</v-icon>
-            </v-btn>
-          </template>
-          <v-list density="compact" rounded="lg" class="elevation-3 py-1" min-width="220">
-            <v-list-item
-              prepend-icon="mdi-newspaper-variant-outline"
-              title="معاينة كراسة الأسئلة"
-              @click="$emit('open-question-paper-modal')"
-            />
-            <v-list-item
-              prepend-icon="mdi-printer"
-              :title="`طباعة أسئلة (${currentVersionObj.versionCode})`"
-              @click="$emit('print-questions-only')"
-            />
-            <v-list-item
-              prepend-icon="mdi-book-open-page-variant-outline"
-              title="طباعة الحزمة الكاملة"
-              @click="$emit('print-package')"
-            />
-            <v-divider class="my-1" />
-            <v-list-item
-              prepend-icon="mdi-scanner"
-              title="بدء التصحيح الضوئي"
-              @click="$emit('start-grading', currentVersionObj.versionCode)"
-            />
-          </v-list>
-        </v-menu>
+        <v-btn
+          v-if="currentVersionObj"
+          variant="tonal"
+          color="primary"
+          rounded="lg"
+          size="small"
+          class="font-weight-bold"
+          prepend-icon="mdi-newspaper-variant-outline"
+          @click="$emit('open-question-paper-modal')"
+        >
+          معاينة كراسة الأسئلة
+        </v-btn>
       </div>
 
       <!-- Row 2: Answer Key Strip (Inline & Sleek) -->
@@ -241,9 +214,6 @@ const props = defineProps({
 defineEmits([
   'update:activeVersionTab',
   'open-question-paper-modal',
-  'print-questions-only',
-  'print-package',
-  'start-grading',
 ])
 
 const questionSearchQuery = ref('')

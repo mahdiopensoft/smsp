@@ -62,7 +62,7 @@ class ExamGradebookMVS(ViewSet):
         subject_id = request.query_params.get('subject')
 
         qs = Exam.objects.filter(is_deleted=False).select_related(
-            'subject', 'year', 'governorate', 'directorate'
+            'subject', 'year', 'governorate', 'directorate', 'examSchedule'
         ).prefetch_related('versions').order_by('-created_at')
 
         if search:
@@ -282,6 +282,12 @@ class ExamGradebookMVS(ViewSet):
         ):
             score_aggregates[row['exam_id']] = row
 
+        from omr.models.OMRPrintOrder import OMRPrintOrder
+        print_orders_map = {
+            po.exam_id: po 
+            for po in OMRPrintOrder.objects.filter(exam_id__in=exam_ids, is_deleted=False)
+        }
+
         gov_to_office_map = {
             o.fk_governorate_id: o.id 
             for o in CoreOrg.objects.filter(company_level=30, fk_governorate__isnull=False, is_deleted=False)
@@ -306,10 +312,28 @@ class ExamGradebookMVS(ViewSet):
             prn_cnt = StudentExamRegistration.objects.filter(is_deleted=False, examVersion__exam=exam, is_printed=True).count()
             prn_rate = round((prn_cnt / max(1, total_registered)) * 100, 1) if total_registered > 0 else 0.0
 
+            po = print_orders_map.get(exam.id)
+            sched_date_str = ""
+            if po and po.scheduled_print_date:
+                sched_date_str = po.scheduled_print_date.strftime("%Y-%m-%d")
+            elif exam.examSchedule and exam.examSchedule.date:
+                sched_date_str = exam.examSchedule.date.strftime("%Y-%m-%d")
+
             exams_list.append({
                 "id": exam.id,
                 "title": exam.title,
                 "uniqueCode": exam.uniqueCode,
+                "exam_date": exam.examSchedule.date.strftime("%Y-%m-%d") if (exam.examSchedule and exam.examSchedule.date) else "",
+                "order_number": po.order_number if po else f"PRN-REQ-{exam.uniqueCode or exam.id}",
+                "order_status": po.status if po else "pending",
+                "scheduled_print_date": sched_date_str,
+                "press_name": po.press_name if po else "المطبعة السرية المركزية (ديوان الوزارة)",
+                "return_reason": po.return_reason if po else "",
+                "return_notes": po.return_notes if po else "",
+                "advance_reason": po.advance_reason if po else "",
+                "advance_auth_doc": po.advance_auth_doc if po else "",
+                "order_batch_id": po.batch_id if po else "",
+                "order_printed_at": po.printed_at.strftime("%Y-%m-%d %H:%M:%S") if (po and po.printed_at) else "",
                 "institution_type": exam.institution_type,
                 "institution_type_display": "مدرسي" if exam.institution_type == 'school' else ("جامعي" if exam.institution_type == 'university' else "معاهد"),
                 "subject_name": getattr(exam.subject, 'name_ar', str(exam.subject)) if exam.subject else "غير محدد",
@@ -1209,6 +1233,7 @@ class ExamGradebookMVS(ViewSet):
                 "id": exam.id,
                 "title": exam.title,
                 "uniqueCode": exam.uniqueCode,
+                "exam_date": exam.examSchedule.date.strftime("%Y-%m-%d") if (exam.examSchedule and exam.examSchedule.date) else "",
                 "institution_type": exam.institution_type,
                 "subject_name": getattr(exam.subject, 'name_ar', str(exam.subject)) if exam.subject else "",
                 "year_name": exam.year.gregorian_year if (exam.year and hasattr(exam.year, 'gregorian_year')) else (str(exam.year) if exam.year else ""),

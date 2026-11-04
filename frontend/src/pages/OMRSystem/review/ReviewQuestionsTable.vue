@@ -155,9 +155,42 @@
             </td>
           </tr>
 
+          <!-- ── شاشة الحالة الفارغة التفاعلية (Empty States) ── -->
           <tr v-if="pagedQuestions.length === 0">
-            <td colspan="7" class="text-center py-8 text-medium-emphasis">
-              لا توجد أسئلة تطابق معايير الفلترة الحالية
+            <td colspan="7" class="text-center py-10">
+              <div class="d-flex flex-column align-center justify-center gap-3">
+                <div
+                  class="visual-circle rounded-xl d-flex align-center justify-center"
+                  :style="{
+                    width: '68px',
+                    height: '68px',
+                    backgroundColor: `rgba(var(--v-theme-${emptyStateConfig.color}), 0.08)`,
+                    border: `1px solid rgba(var(--v-theme-${emptyStateConfig.color}), 0.18)`
+                  }"
+                >
+                  <v-icon size="36" :color="emptyStateConfig.color">{{ emptyStateConfig.icon }}</v-icon>
+                </div>
+                <div>
+                  <h4 class="text-subtitle-1 font-weight-bold mb-1" style="color: rgb(var(--v-theme-on-surface));">
+                    {{ emptyStateConfig.title }}
+                  </h4>
+                  <p class="text-caption text-medium-emphasis mb-0" style="max-width: 340px; margin: 0 auto; line-height: 1.5;">
+                    {{ emptyStateConfig.desc }}
+                  </p>
+                </div>
+                <v-btn
+                  v-if="searchQuery || activeFilter !== 'all'"
+                  size="small"
+                  variant="tonal"
+                  color="primary"
+                  rounded="lg"
+                  prepend-icon="mdi-filter-remove-outline"
+                  class="mt-1 font-weight-bold"
+                  @click="activeFilter = 'all'; searchQuery = ''"
+                >
+                  إعادة ضبط الفلترة
+                </v-btn>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -247,6 +280,63 @@ const pageCount = computed(() => {
 const pagedQuestions = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   return filteredQuestions.value.slice(start, start + pageSize.value)
+})
+
+const emptyStateConfig = computed(() => {
+  if (!props.questions || props.questions.length === 0) {
+    return {
+      icon: 'mdi-database-off-outline',
+      color: 'primary',
+      title: 'لا توجد بيانات أسئلة مسجلة',
+      desc: 'لم يتم العثور على أي بيانات تصحيح لورقة هذا الطالب حتى الآن.'
+    }
+  }
+  if (searchQuery.value?.trim()) {
+    return {
+      icon: 'mdi-magnify-remove-outline',
+      color: 'secondary',
+      title: 'لا توجد نتائج مطابقة للبحث',
+      desc: `لم يتم العثور على أي سؤال بالرقم "${searchQuery.value.trim()}".`
+    }
+  }
+  if (activeFilter.value === 'ambiguous') {
+    return {
+      icon: 'mdi-shield-check-outline',
+      color: 'success',
+      title: 'ممتاز! لا توجد أسئلة ملتبسة',
+      desc: 'جميع قراءات التظليل واضحة بنسبة ثقة عالية ومكتملة.'
+    }
+  }
+  if (activeFilter.value === 'wrong') {
+    return {
+      icon: 'mdi-check-decagram-outline',
+      color: 'success',
+      title: 'رائع! لا توجد إجابات خاطئة',
+      desc: 'كافة إجابات الطالب المسجلة صحيحة ومطابقة للنموذج.'
+    }
+  }
+  if (activeFilter.value === 'correct') {
+    return {
+      icon: 'mdi-alert-circle-outline',
+      color: 'warning',
+      title: 'لا توجد أسئلة صحيحة في هذا النطاق',
+      desc: 'لم يتم تسجيل درجات كاملة للأسئلة المحددة حالياً.'
+    }
+  }
+  if (activeFilter.value === 'empty') {
+    return {
+      icon: 'mdi-pencil-check-outline',
+      color: 'info',
+      title: 'لا توجد أسئلة متروكة بدون تظليل',
+      desc: 'قام الطالب بالإجابة على جميع الأسئلة بالكامل.'
+    }
+  }
+  return {
+    icon: 'mdi-database-off-outline',
+    color: 'primary',
+    title: 'لا توجد أسئلة',
+    desc: 'لا توجد سجلات مطابقة للعرض حالياً.'
+  }
 })
 
 function getOptionBtnColor(item: any, opt: string) {

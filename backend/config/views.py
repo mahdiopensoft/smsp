@@ -38,14 +38,20 @@ def protected_media_view(request, path):
                 except Exception:
                     pass
 
-        # 3. Check Referer or Origin from trusted local / frontend hosts
+        # 3. Check Referer or Origin from trusted local / frontend hosts, or local/debug requests
         if not is_authorized:
             referer = request.META.get('HTTP_REFERER', '')
             origin = request.META.get('HTTP_ORIGIN', '')
-            sec_dest = request.META.get('HTTP_SEC_FETCH_DEST', '')
-            # If request originated from frontend app (Referer/Origin present from localhost/127.0.0.1)
-            allowed_hosts = ['localhost', '127.0.0.1']
-            if any(h in referer for h in allowed_hosts) or any(h in origin for h in allowed_hosts):
+            remote_addr = request.META.get('REMOTE_ADDR', '')
+            http_host = request.get_host().split(':')[0]
+            allowed_hosts = ['localhost', '127.0.0.1', '::1']
+            if (
+                getattr(settings, 'DEBUG', False)
+                or remote_addr in allowed_hosts
+                or http_host in allowed_hosts
+                or any(h in referer for h in allowed_hosts)
+                or any(h in origin for h in allowed_hosts)
+            ):
                 is_authorized = True
 
         if not is_authorized:

@@ -287,9 +287,76 @@
               </v-avatar>
               <div>
                 <div class="font-weight-black text-body-2 text-on-surface exam-clickable-title text-truncate" style="max-width: 220px;" :title="item.title">{{ item.title }}</div>
-                <div class="text-caption text-medium-emphasis d-flex align-center gap-2 mt-1">
+                <div class="text-caption text-medium-emphasis d-flex align-center gap-2 mt-1 flex-wrap">
                   <span class="font-mono bg-grey-lighten-4 px-2 py-0.5 rounded border text-caption">{{ item.uniqueCode }}</span>
                   <span>{{ item.created_at }}</span>
+                </div>
+                <!-- شارة حالة أمر الطباعة إذا تم اعتماده أو إرجاعه -->
+                <div v-if="getExamPrintOrder(item)" class="mt-1">
+                  <!-- مرتجع -->
+                  <v-tooltip v-if="getExamPrintOrder(item).status === 'failed' || getExamPrintOrder(item).status === 'returned'" location="bottom">
+                    <template #activator="{ props: tProps }">
+                      <v-chip
+                        v-bind="tProps"
+                        size="x-small"
+                        color="error"
+                        variant="flat"
+                        class="font-weight-bold"
+                      >
+                        <v-icon size="12" start>mdi-keyboard-return</v-icon>
+                        مرتجع: {{ getExamPrintOrder(item).return_reason || 'يحتاج تعديل' }}
+                      </v-chip>
+                    </template>
+                    <span>سبب الإرجاع: {{ getExamPrintOrder(item).return_reason }}</span>
+                  </v-tooltip>
+
+                  <!-- مكتمل -->
+                  <v-chip
+                    v-else-if="getExamPrintOrder(item).status === 'completed'"
+                    size="x-small"
+                    color="success"
+                    variant="tonal"
+                    class="font-weight-bold"
+                  >
+                    <v-icon size="12" start>mdi-check-decagram</v-icon>
+                    مكتمل الطباعة 100%
+                  </v-chip>
+
+                  <!-- مجدول لموعد قادم -->
+                  <v-chip
+                    v-else-if="getExamPrintOrder(item).status === 'scheduled'"
+                    size="x-small"
+                    color="info"
+                    variant="tonal"
+                    class="font-weight-bold"
+                  >
+                    <v-icon size="12" start>mdi-calendar-clock</v-icon>
+                    مجدول: {{ getExamPrintOrder(item).scheduled_print_date }}
+                  </v-chip>
+
+                  <!-- جاهز للتنفيذ بالمستحقة -->
+                  <v-chip
+                    v-else-if="getExamPrintOrder(item).status === 'ready' || getExamPrintOrder(item).status === 'printing'"
+                    size="x-small"
+                    color="teal"
+                    variant="tonal"
+                    class="font-weight-bold"
+                  >
+                    <v-icon size="12" start>mdi-clock-fast</v-icon>
+                    جاهز للتنفيذ بالمستحقة
+                  </v-chip>
+
+                  <!-- طلب قيد الاعتماد والمراجعة -->
+                  <v-chip
+                    v-else-if="getExamPrintOrder(item).status === 'pending'"
+                    size="x-small"
+                    color="amber-darken-3"
+                    variant="tonal"
+                    class="font-weight-bold"
+                  >
+                    <v-icon size="12" start>mdi-clock-alert-outline</v-icon>
+                    طلب قيد الاعتماد: {{ getExamPrintOrder(item).order_number }}
+                  </v-chip>
                 </div>
               </div>
             </div>
@@ -489,71 +556,136 @@
 
           <!-- Actions -->
           <template v-else-if="key === 'actions'">
-            <div class="d-flex align-center justify-center gap-2">
-              <!-- 1. نقل إلى مرحلة الطباعة (المرحلة 2) - الإجراء المباشر والواضح -->
-              <v-btn
-                color="primary"
-                variant="flat"
-                rounded="lg"
-                size="small"
-                class="font-weight-bold px-2.5 shadow-sm"
-                prepend-icon="mdi-printer"
-                @click.stop.prevent="goToPrintRegistry(item)"
-                title="الانتقال إلى المرحلة 2 لطباعة وتصدير أوراق التظليل والأسئلة"
-              >
-                نقل للطباعة
-              </v-btn>
+            <div class="d-flex align-center justify-center gap-1.5 flex-nowrap table-actions-cell">
+                <!-- 1. في حال وجود طلب طباعة مسبقاً لهذا الاختبار -->
+                <template v-if="getExamPrintOrder(item)">
+                  <!-- أ. طلب مرتجع للتعديل -->
+                  <template v-if="getExamPrintOrder(item).status === 'failed' || getExamPrintOrder(item).status === 'returned'">
+                    <v-btn
+                      color="warning"
+                      variant="flat"
+                      rounded="lg"
+                      size="small"
+                      density="compact"
+                      class="font-weight-bold px-2 table-action-btn shadow-sm"
+                      prepend-icon="mdi-file-document-edit-outline"
+                      @click.stop.prevent="openCreatePrintOrderDialog(item)"
+                      title="تعديل وإعادة إرسال طلب الطباعة المرتجع"
+                    >
+                      تعديل المرتجع
+                    </v-btn>
+                    <v-btn
+                      color="error"
+                      variant="tonal"
+                      rounded="lg"
+                      size="small"
+                      density="compact"
+                      icon="mdi-alert-circle-outline"
+                      class="table-action-icon-btn ms-1"
+                      @click.stop.prevent="goToPrintRegistry(item, 'all')"
+                      :title="getExamPrintOrder(item).return_reason ? ('سبب الإرجاع: ' + getExamPrintOrder(item).return_reason) : 'عرض سبب الإرجاع في السجل'"
+                    />
+                  </template>
 
-              <!-- 2. فحص وتجهيز الاختبار - معاينة الكشوفات والنماذج -->
+                  <!-- ب. طلب قيد الاعتماد والمراجعة -->
+                  <template v-else-if="getExamPrintOrder(item).status === 'pending'">
+                    <v-btn
+                      color="amber-darken-3"
+                      variant="tonal"
+                      rounded="lg"
+                      size="small"
+                      density="compact"
+                      class="font-weight-bold px-2 table-action-btn"
+                      prepend-icon="mdi-clock-outline"
+                      @click.stop.prevent="goToPrintRegistry(item, 'all')"
+                      title="متابعة واعتماد طلب الطباعة في السجل المركزي"
+                    >
+                      متابعة الطلب
+                    </v-btn>
+                  </template>
+
+                  <!-- ج. طلب مجدول لموعد قادم -->
+                  <template v-else-if="getExamPrintOrder(item).status === 'scheduled'">
+                    <v-btn
+                      color="info"
+                      variant="tonal"
+                      rounded="lg"
+                      size="small"
+                      density="compact"
+                      class="font-weight-bold px-2 table-action-btn"
+                      prepend-icon="mdi-calendar-clock"
+                      @click.stop.prevent="goToPrintRegistry(item, 'scheduled')"
+                      title="استعراض تفاصيل أمر الطباعة المجدول"
+                    >
+                      أمر مجدول
+                    </v-btn>
+                  </template>
+
+                  <!-- د. طلب مستحق وجاهز للتنفيذ -->
+                  <template v-else-if="getExamPrintOrder(item).status === 'ready' || getExamPrintOrder(item).status === 'printing'">
+                    <v-btn
+                      color="teal"
+                      variant="tonal"
+                      rounded="lg"
+                      size="small"
+                      density="compact"
+                      class="font-weight-bold px-2 table-action-btn"
+                      prepend-icon="mdi-clock-fast"
+                      @click.stop.prevent="goToPrintRegistry(item, 'due')"
+                      title="الانتقال لقائمة انتظار الطباعة المستحقة للتنفيذ"
+                    >
+                      أمر مستحق
+                    </v-btn>
+                  </template>
+
+                  <!-- هـ. طلب معتمد ومكتمل -->
+                  <template v-else>
+                    <v-btn
+                      color="success"
+                      variant="tonal"
+                      rounded="lg"
+                      size="small"
+                      density="compact"
+                      class="font-weight-bold px-2 table-action-btn"
+                      prepend-icon="mdi-file-document-check-outline"
+                      @click.stop.prevent="goToPrintRegistry(item, 'completed')"
+                      title="استعراض تفاصيل وإذن صرف أمر الطباعة المكتمل"
+                    >
+                      أمر معتمد
+                    </v-btn>
+                  </template>
+                </template>
+
+                <!-- إذا لم يتم إنشاء طلب طباعة بعد -->
+                <template v-else>
+                  <!-- 1. إنشاء طلب طباعة رسمي (المرحلة 2) -->
+                  <v-btn
+                    color="primary"
+                    variant="flat"
+                    rounded="lg"
+                    size="small"
+                    density="compact"
+                    class="font-weight-bold px-2 table-action-btn shadow-sm"
+                    prepend-icon="mdi-file-document-plus-outline"
+                    @click.stop.prevent="openCreatePrintOrderDialog(item)"
+                    title="إنشاء طلب طباعة رسمي للاختبار"
+                  >
+                    إنشاء طلب طباعة
+                  </v-btn>
+                </template>
+
+              <!-- 2. فحص وتجهيز الاختبار (أيقونة مدمجة) -->
               <v-btn
                 color="secondary"
                 variant="tonal"
                 rounded="lg"
                 size="small"
-                class="font-weight-bold px-2.5"
-                prepend-icon="mdi-clipboard-check-outline"
+                density="compact"
+                icon="mdi-clipboard-check-outline"
+                class="table-action-icon-btn ms-1"
                 @click.stop.prevent="openExamHub(item, 'questions')"
-                title="فحص النماذج، كشوفات الطلاب، ومفاتيح الحل"
-              >
-                فحص وتجهيز
-              </v-btn>
-
-              <!-- 3. قائمة الإجراءات الفنية المتقدمة -->
-              <v-menu location="bottom end">
-                <template #activator="{ props: menuProps }">
-                  <v-btn
-                    v-bind="menuProps"
-                    variant="text"
-                    color="medium-emphasis"
-                    rounded="lg"
-                    size="small"
-                    icon="mdi-dots-vertical"
-                    title="خيارات إضافية"
-                  />
-                </template>
-                <v-list density="compact" rounded="lg" elevation="3" class="py-1">
-                  <v-list-item
-                    prepend-icon="mdi-draw-pen"
-                    title="مصمم قوالب التظليل (OMR Designer)"
-                    @click="openInTemplateDesigner(item)"
-                  />
-                  <v-list-item
-                    prepend-icon="mdi-scanner"
-                    title="بدء التصحيح الضوئي (المرحلة 3)"
-                    @click="startGradingExam(item, 'A')"
-                  />
-                  <v-list-item
-                    prepend-icon="mdi-history"
-                    title="أوراق الإجابة المصححة"
-                    @click="viewSubmissions(item)"
-                  />
-                  <v-list-item
-                    prepend-icon="mdi-chart-box-outline"
-                    title="سجل الدرجات والرصد (المرحلة 6)"
-                    @click="viewGradebook(item)"
-                  />
-                </v-list>
-              </v-menu>
+                title="فحص كراسة الأسئلة، كشوفات الطلاب، ومفاتيح الحل"
+              />
             </div>
           </template>
         </template>
@@ -585,26 +717,6 @@
           </div>
 
           <div class="d-flex align-center gap-2">
-            <v-btn
-              size="small"
-              variant="flat"
-              color="primary"
-              class="font-weight-bold rounded-lg px-3 shadow-sm"
-              prepend-icon="mdi-printer"
-              @click="goToPrintRegistry(activeExam)"
-            >
-              الانتقال للطباعة (المرحلة 2)
-            </v-btn>
-            <v-btn
-              size="small"
-              variant="tonal"
-              color="success"
-              class="font-weight-bold rounded-lg px-3"
-              prepend-icon="mdi-scanner"
-              @click="startGradingExam(activeExam, currentVersionObj?.versionCode || 'A')"
-            >
-              بدء التصحيح الضوئي (المرحلة 3)
-            </v-btn>
             <v-btn
               icon="mdi-close"
               variant="text"
@@ -681,23 +793,6 @@
                   {{ examDetails.versions.length }}
                 </span>
               </div>
-
-              <div
-                class="exam-hub-nav-item"
-                :class="{ 'is-active': hubActiveTab === 'submissions' }"
-                @click="hubActiveTab = 'submissions'; visitedTabs.add('submissions')"
-                role="button"
-                tabindex="0"
-              >
-                <v-icon size="17" class="nav-icon">mdi-check-decagram-outline</v-icon>
-                <span>أوراق الإجابة المصححة</span>
-                <span
-                  v-if="examDetails?.submissions?.length || examDetails?.recent_submissions?.length"
-                  class="hub-count-badge badge-green"
-                >
-                  {{ (examDetails?.submissions?.length || examDetails?.recent_submissions?.length) }}
-                </span>
-              </div>
             </div>
           </div>
         </div>
@@ -728,9 +823,6 @@
               ref="bubbleSheetTabRef"
               :active-exam="activeExam"
               :exam-details="examDetails"
-              @open-designer="openInTemplateDesigner"
-              @print-package="() => bookletTabRef?.printQuestionsAndSheets('package')"
-              @print-roster="() => rosterTabRef?.printRosterList()"
               @seed-students="seedSampleStudents"
               @refresh-details="() => fetchExamHubDetails(activeExam)"
             />
@@ -745,7 +837,6 @@
               :seeding-students="seedingStudents"
               @switch-to-template="(mode) => { hubActiveTab = 'template'; nextTick(() => bubbleSheetTabRef?.setMode(mode)); }"
               @select-student-for-sheet="(st) => { hubActiveTab = 'template'; nextTick(() => bubbleSheetTabRef?.setStudent(st.id)); }"
-              @print-student-sheet="(st) => { hubActiveTab = 'template'; nextTick(() => { bubbleSheetTabRef?.setStudent(st.id); bubbleSheetTabRef?.printSingleSheet(); }); }"
               @seed-students="seedSampleStudents"
             />
 
@@ -757,20 +848,7 @@
               :active-exam="activeExam"
               :exam-details="examDetails"
               v-model:active-version-tab="activeVersionTab"
-              @open-question-paper-modal="() => bookletTabRef?.openQuestionPaperModal()"
-              @print-questions-only="() => bookletTabRef?.printQuestionsAndSheets('questions_only')"
-              @print-package="() => bookletTabRef?.printQuestionsAndSheets('package')"
-              @start-grading="(code) => startGradingExam(activeExam, code)"
-            />
-
-            <!-- TAB 5: أوراق الإجابة المصححة (lazy mount — only when first visited) -->
-            <ExamSubmissionsTab
-              v-if="visitedTabs.has('submissions')"
-              v-show="hubActiveTab === 'submissions'"
-              ref="submissionsTabRef"
-              :active-exam="activeExam"
-              :exam-details="examDetails"
-              @view-submissions="viewSubmissions"
+              @open-question-paper-modal="() => { hubActiveTab = 'questions'; visitedTabs.add('questions'); }"
             />
           </div>
         </v-card-text>
@@ -784,21 +862,22 @@
             <custom-btn
               type="cancel"
               variant="outlined"
-              label="إغلاق"
+              label="إغلاق النافذة"
               :click="() => detailsDialog = false"
-            />
-            <custom-btn
-              icon="tune"
-              label="مختبر المعايرة والتجربة"
-              color="primary"
-              variant="tonal"
-              class="font-weight-bold"
-              :click="() => openScannerLab(activeExam)"
             />
           </div>
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <!-- DIALOG: نموذج إنشاء طلب طباعة رسمي للاختبار (المرحلة 2)       -->
+    <!-- ════════════════════════════════════════════════════════════════ -->
+    <CreatePrintOrderDialog
+      v-model="printOrderDialog"
+      :exam="selectedExamForPrint"
+      @order-created="onPrintOrderCreated"
+    />
   </div>
 </template>
 
@@ -806,11 +885,11 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/omr/client.js'
+import CreatePrintOrderDialog from './components/CreatePrintOrderDialog.vue'
 import ExamBookletTab from './exam_hub/ExamBookletTab.vue'
 import ExamStudentsRosterTab from './exam_hub/ExamStudentsRosterTab.vue'
 import ExamBubbleSheetTab from './exam_hub/ExamBubbleSheetTab.vue'
 import ExamAnswerKeysTab from './exam_hub/ExamAnswerKeysTab.vue'
-import ExamSubmissionsTab from './exam_hub/ExamSubmissionsTab.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -841,13 +920,6 @@ const filterInstituteField = ref(null)
 const filterInstituteEducationSystem = ref(null)
 const filterInstituteSpecialization = ref(null)
 const filterInstituteSubject = ref(null)
-
-const institutionTypeOptions = [
-  { text: 'الكل (مدارس وجامعات ومعاهد)', value: 'all', icon: 'mdi-domain' },
-  { text: 'تعليم مدرسي', value: 'school', icon: 'mdi-school' },
-  { text: 'تعليم جامعي', value: 'university', icon: 'mdi-domain' },
-  { text: 'معاهد وتدريب مهني', value: 'institute', icon: 'mdi-tools' },
-]
 
 const subjectFilterParam = computed(() => {
   const p = {}
@@ -992,29 +1064,66 @@ const onInstituteEducationSystemChange = () => {
   debouncedFetchExams()
 }
 
-const stats = ref({
-  totalExams: 0,
-  totalVersions: 0,
-  totalStudents: 0,
-  totalSubmissions: 0,
-  avgScore: 0,
-})
-
 // Dialog State
 const detailsDialog = ref(false)
 const loadingDetails = ref(false)
 const activeExam = ref(null)
 const examDetails = ref(null)
-const hubActiveTab = ref('roster') // 'questions', 'template', 'roster', 'keys', 'submissions'
+const hubActiveTab = ref('questions') // 4 focused tabs: 'questions', 'template', 'roster', 'keys'
 const activeVersionTab = ref(0)
 const seedingStudents = ref(false)
+
+// Dialog State - Print Order Creation Dialog (المرحلة 2)
+const printOrderDialog = ref(false)
+const selectedExamForPrint = ref(null)
+const savedPrintOrders = ref([])
+
+const loadSavedPrintOrders = async () => {
+  try {
+    const res = await api.get('/api/omr/print-orders/')
+    if (res.data && res.data.success) {
+      savedPrintOrders.value = res.data.results || []
+    }
+  } catch (err) {
+    console.error('Failed to load print orders in exams view:', err)
+  }
+}
+
+const getExamPrintOrder = (exam) => {
+  if (!exam) return null
+  if (exam.print_order) return exam.print_order
+  return (savedPrintOrders.value || []).find(o => 
+    String(o.exam_id) === String(exam.id) || 
+    (o.exam_code && o.exam_code === exam.uniqueCode) ||
+    (o.order_number && exam.uniqueCode && o.order_number.includes(exam.uniqueCode))
+  )
+}
+
+const openCreatePrintOrderDialog = (exam) => {
+  const existingOrder = getExamPrintOrder(exam)
+  selectedExamForPrint.value = {
+    ...exam,
+    return_reason: existingOrder?.return_reason || '',
+    return_notes: existingOrder?.return_notes || '',
+    order_number: existingOrder?.order_number || '',
+    scheduled_print_date: existingOrder?.scheduled_print_date || '',
+    press_name: existingOrder?.press_name || '',
+    responsible_officer: existingOrder?.responsible_officer || '',
+    existing_order: existingOrder,
+  }
+  printOrderDialog.value = true
+}
+
+const onPrintOrderCreated = async () => {
+  await loadSavedPrintOrders()
+  await fetchExams()
+}
 
 // Subcomponent template refs
 const bookletTabRef = ref(null)
 const bubbleSheetTabRef = ref(null)
 const rosterTabRef = ref(null)
 const answerKeysTabRef = ref(null)
-const submissionsTabRef = ref(null)
 
 const currentVersionObj = computed(() => {
   if (!examDetails.value || !examDetails.value.versions) return null
@@ -1026,15 +1135,15 @@ const totalStudentsCount = computed(() => {
 })
 
 const headers = computed(() => [
-  { title: "رمز وعنوان الاختبار", key: "exam_info", sortable: true, width: "220px" },
-  { title: "المادة والعام", key: "subject_info", sortable: true, align: "center", width: "120px" },
-  { title: "المحافظة", key: "governorate", sortable: true, align: "center", width: "130px" },
-  { title: "المديرية", key: "directorate", sortable: true, align: "center", width: "145px" },
-  { title: "المركز الامتحاني / المدرسة", key: "school_center", sortable: true, width: "190px" },
-  { title: "النماذج ومجموعاتها", key: "versions_info", sortable: false, align: "center", width: "140px" },
-  { title: "كشف الطلاب", key: "students_count", sortable: true, align: "center", width: "95px" },
-  { title: "حالة التصحيح", key: "progress", sortable: false, align: "center", width: "95px" },
-  { title: "الاجراءات", key: "actions", sortable: false, align: "center", width: "195px" },
+  { title: "رمز وعنوان الاختبار", key: "exam_info", sortable: true, width: "210px" },
+  { title: "المادة والعام", key: "subject_info", sortable: true, align: "center", width: "115px" },
+  { title: "المحافظة", key: "governorate", sortable: true, align: "center", width: "120px" },
+  { title: "المديرية", key: "directorate", sortable: true, align: "center", width: "135px" },
+  { title: "المركز الامتحاني / المدرسة", key: "school_center", sortable: true, width: "180px" },
+  { title: "النماذج ومجموعاتها", key: "versions_info", sortable: false, align: "center", width: "135px" },
+  { title: "كشف الطلاب", key: "students_count", sortable: true, align: "center", width: "90px" },
+  { title: "حالة التصحيح", key: "progress", sortable: false, align: "center", width: "90px" },
+  { title: "الاجراءات", key: "actions", sortable: false, align: "center", width: "140px" },
 ])
 
 const activeDisplayGovernorate = (item) => {
@@ -1116,9 +1225,6 @@ watch(filteredExams, () => {
   getExamsData({ page: 1, page_size: examsPageSize.value })
 }, { immediate: true })
 
-// Backwards-compatible alias for any external bindings
-const tableItems = computed(() => examsTableItems.value)
-
 const resetFilters = () => {
   searchQuery.value = ''
   _searchInput.value = ''
@@ -1180,38 +1286,11 @@ const fetchExams = async () => {
     const resp = await api.get('/api/omr/exam-linking/', { params })
     if (resp.data && resp.data.results) {
       exams.value = resp.data.results
-      updateStats(resp.data.results)
     }
   } catch (err) {
     console.error('Error fetching linking exams:', err)
   } finally {
     loading.value = false
-  }
-}
-
-const updateStats = (data) => {
-  let vCount = 0
-  let sCount = 0
-  let stCount = 0
-  let totalScoreSum = 0
-  let scoredExams = 0
-
-  data.forEach(e => {
-    vCount += (e.versions_count || 0)
-    sCount += (e.submissions_completed || 0)
-    stCount += (e.registered_students_count || 0)
-    if (e.average_score > 0) {
-      totalScoreSum += e.average_score
-      scoredExams++
-    }
-  })
-
-  stats.value = {
-    totalExams: data.length,
-    totalVersions: vCount,
-    totalStudents: stCount,
-    totalSubmissions: sCount,
-    avgScore: scoredExams > 0 ? (totalScoreSum / scoredExams).toFixed(1) : '0',
   }
 }
 
@@ -1253,18 +1332,6 @@ const fetchExamHubDetails = async (exam) => {
   }
 }
 
-const quickBatchPrint = async (exam) => {
-  await openExamHub(exam, 'template')
-  await nextTick()
-  bubbleSheetTabRef.value?.batchPrintAllStudents()
-}
-
-const quickPrintRoster = async (exam) => {
-  await openExamHub(exam, 'roster')
-  await nextTick()
-  rosterTabRef.value?.printRosterList()
-}
-
 const seedSampleStudents = async () => {
   if (!activeExam.value) return
   seedingStudents.value = true
@@ -1274,7 +1341,7 @@ const seedSampleStudents = async () => {
     if (rosterTabRef.value?.fetchExamStudents) {
       rosterTabRef.value.fetchExamStudents({ page: 1, page_size: 10 })
     }
-    fetchExams() // update stats
+    fetchExams()
   } catch (err) {
     console.error('Failed to seed students:', err)
   } finally {
@@ -1282,60 +1349,9 @@ const seedSampleStudents = async () => {
   }
 }
 
-const startGradingExam = (exam, versionCode = 'A') => {
-  router.push({
-    path: '/omr-scanner',
-    query: {
-      exam_id: exam.id,
-      exam_code: exam.uniqueCode,
-      exam_title: exam.title,
-      version: versionCode,
-    }
-  })
-}
-
-const openScannerLab = (exam, versionCode = 'A') => {
-  router.push({
-    path: '/omr-scanner-lab',
-    query: {
-      exam_id: exam.id,
-      exam_code: exam.uniqueCode,
-      exam_title: exam.title,
-      version: versionCode,
-    }
-  })
-}
-
-const viewSubmissions = (exam) => {
-  router.push({
-    path: '/omr-submissions',
-    query: {
-      exam_id: exam.id,
-    }
-  })
-}
-
-const viewGradebook = (exam) => {
+const goToPrintRegistry = (exam, subtab = 'due') => {
   if (!exam?.id) return
-  router.push({
-    path: '/omr-gradebook',
-    query: {
-      exam_id: exam.id,
-    }
-  })
-}
-
-const openInTemplateDesigner = (exam) => {
-  if (!exam?.id) return
-  const target = `/omr-template-builder?examId=${exam.id}&mode=designer`
-  router.push(target).catch(() => {
-    window.location.href = target
-  })
-}
-
-const goToPrintRegistry = (exam) => {
-  if (!exam?.id) return
-  const target = `/omr-print-registry?exam_id=${exam.id}`
+  const target = `/omr-print-registry?view=orders&tab=exams&subtab=${subtab}`
   router.push(target).catch(() => {
     window.location.href = target
   })
@@ -1345,7 +1361,10 @@ onMounted(async () => {
   if (route.query.search) {
     searchQuery.value = String(route.query.search)
   }
-  await fetchExams()
+  await Promise.all([
+    fetchExams(),
+    loadSavedPrintOrders(),
+  ])
   const targetId = route.query.open_exam_id || route.query.exam_id || route.query.examId
   if (targetId) {
     const targetExam = exams.value.find(e => String(e.id) === String(targetId))
@@ -1559,5 +1578,54 @@ onMounted(async () => {
   .exam-hub-nav-container {
     grid-template-columns: 1fr;
   }
+}
+
+/* ── Compact & Refined Table Action Buttons ── */
+:deep(.table-actions-cell) {
+  min-height: 30px;
+}
+
+:deep(.table-action-btn),
+.table-action-btn {
+  height: 28px !important;
+  min-height: 28px !important;
+  font-size: 0.74rem !important;
+  letter-spacing: 0 !important;
+  padding: 0 8px !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  text-transform: none !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+:deep(.table-action-btn:hover),
+.table-action-btn:hover {
+  transform: translateY(-1px);
+}
+
+:deep(.table-action-btn .v-icon),
+.table-action-btn .v-icon {
+  font-size: 14px !important;
+  width: 14px !important;
+  height: 14px !important;
+  margin-inline-end: 4px !important;
+}
+
+:deep(.table-action-icon-btn),
+.table-action-icon-btn {
+  height: 28px !important;
+  width: 28px !important;
+  min-width: 28px !important;
+  max-width: 28px !important;
+  padding: 0 !important;
+  border-radius: 6px !important;
+}
+
+:deep(.table-action-icon-btn .v-icon),
+.table-action-icon-btn .v-icon {
+  font-size: 15px !important;
+  width: 15px !important;
+  height: 15px !important;
+  margin: 0 !important;
 }
 </style>
