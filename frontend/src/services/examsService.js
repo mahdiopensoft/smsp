@@ -12,6 +12,21 @@ export const examsService = {
         return data
     },
 
+    async previewStaging(payload) {
+        const { data } = await api.post(`${BASE}exam-create/preview-staging/`, payload)
+        return data
+    },
+
+    async findReplacement(payload) {
+        const { data } = await api.post(`${BASE}exam-create/find-replacement/`, payload)
+        return data
+    },
+
+    async quickCreateQuestion(payload) {
+        const { data } = await api.post(`${BASE}exam-create/quick-create-question/`, payload)
+        return data
+    },
+
     async generateExam(payload) {
         const { data } = await api.post(`${BASE}exam-create/generate/`, payload)
         return data

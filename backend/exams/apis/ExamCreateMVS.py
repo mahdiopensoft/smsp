@@ -16,6 +16,8 @@ from exams.models.ExamTargetScope import ExamTargetScope
 from exams.models.ExamModelRegionAssignment import ExamModelRegionAssignment
 from exams.serializers.Exam import ExamSerializer
 from bank.models.Question import Question
+from bank.models.Answer import Answer
+from django.db.models import Q
 from academic.models.universities.UniversityLesson import UniversityLesson as Lesson
 from academic.models.universities.UniversityUnit import UniversityUnit as Unit
 
@@ -472,6 +474,70 @@ class ExamCreateMVS(AllMVS):
         return tf_list + mcq_list + other_list + essay_list
 
     # ═══════════════════════════════════════════════════════════
+    # Helper: Serialize Question for Interactive Staging
+    # ═══════════════════════════════════════════════════════════
+    def _serialize_question_for_staging(self, q, order_index=1, mark=1.0):
+        """Serialize a Question model instance into a rich dictionary for interactive staging."""
+        options_data = []
+        try:
+            raw_options = [opt for opt in q.options.all() if not getattr(opt, 'is_deleted', False)]
+            raw_options.sort(key=lambda o: getattr(o, 'order_index', 0) if getattr(o, 'order_index', None) is not None else 0)
+            for idx, opt in enumerate(raw_options):
+                opt_img = None
+                try:
+                    if opt.image:
+                        opt_img = opt.image.url
+                except Exception:
+                    opt_img = None
+
+                options_data.append({
+                    "id": opt.id,
+                    "text": opt.text or '',
+                    "isTrue": bool(opt.isTrue),
+                    "image": opt_img,
+                    "latex": getattr(opt, 'latex', None),
+                    "order_index": getattr(opt, 'order_index', idx)
+                })
+        except Exception:
+            options_data = []
+
+        unit_name = 'عام'
+        unit_id = None
+        lesson_name = 'عام'
+        lesson_id = q.lesson_id
+
+        if q.lesson:
+            lesson_name = getattr(q.lesson, 'name_ar', str(q.lesson))
+            if hasattr(q.lesson, 'unit') and q.lesson.unit:
+                unit_name = getattr(q.lesson.unit, 'name_ar', str(q.lesson.unit))
+                unit_id = q.lesson.unit.id
+
+        q_img = None
+        try:
+            if q.image:
+                q_img = q.image.url
+        except Exception:
+            q_img = None
+
+        return {
+            "id": q.id,
+            "orderIndex": order_index,
+            "content": q.content or '',
+            "image": q_img,
+            "questionType": q.questionType or 'Single Choice',
+            "difficulty": q.difficulty if q.difficulty is not None else 2,
+            "bloomLevel": q.bloomLevel or 'تطبيق',
+            "assignedMark": round(float(mark), 2),
+            "unitId": unit_id,
+            "unitName": unit_name,
+            "lessonId": lesson_id,
+            "lessonName": lesson_name,
+            "options": options_data,
+            "isTrue": bool(getattr(q, 'isTrue', False)),
+            "answerText": getattr(q, 'answerText', None),
+        }
+
+    # ═══════════════════════════════════════════════════════════
     # Helper: Auto-register students by classTrack + geographic scope
     # ═══════════════════════════════════════════════════════════
     def _auto_register_students(self, exam, created_versions, class_track_id,
@@ -720,7 +786,11 @@ class ExamCreateMVS(AllMVS):
             "groupsShortage": groups_shortage,
         }
 
-        has_shortage = (report["mcq"]["missing"] > 0 or report["tf"]["missing"] > 0 or report["totalMissing"] > 0)
+        any_type_missing = any(t.get('missing', 0) > 0 for t in types_breakdown.values())
+        diff_missing = (report["easy"]["missing"] > 0 or report["medium"]["missing"] > 0 or report["hard"]["missing"] > 0)
+        group_missing = any((g.get('easy', {}).get('missing', 0) > 0 or g.get('medium', {}).get('missing', 0) > 0 or g.get('hard', {}).get('missing', 0) > 0) for g in groups_shortage)
+
+        has_shortage = bool(report["totalMissing"] > 0 or any_type_missing or diff_missing or group_missing)
 
         return Response({
             "success": True,
@@ -729,7 +799,323 @@ class ExamCreateMVS(AllMVS):
         })
 
     # ═══════════════════════════════════════════════════════════
-    # GENERATE EXAM
+    # INTERACTIVE STAGING: Preview & Draft Selection (Step 4)
+    # ═══════════════════════════════════════════════════════════
+    @action(detail=False, methods=['post'], url_path='preview-staging')
+    def preview_staging(self, request):
+        """
+        Generates an in-memory draft staging of all exam models and question selections
+        WITHOUT persisting any Exam, ExamVersion, or ExamQuestionOrder records to the database.
+        Allows interactive inspection, question swapping, reordering, and on-the-fly authoring.
+        """
+        data = request.data
+        title = data.get('title') or 'اختبار جديد'
+        inst_type = data.get('institution_type') or 'school'
+        questions_count = int(data.get('questionsCount', 40))
+        models_count = int(data.get('modelsCount', 4))
+        blueprint = data.get('blueprint', {})
+        bloom_enabled = bool(data.get('bloom_enabled', False))
+        models_mode = data.get('models_mode', 'uniform')
+        model_groups = data.get('model_groups', [])
+        total_marks = float(data.get('total_marks') or data.get('totalMarks') or blueprint.get('total_marks') or 100.0)
+
+        subject_id = self._resolve_subject_id(data, blueprint)
+        year_id = self._resolve_year_id(data)
+
+        if not subject_id or not year_id:
+            missing_items = []
+            if not subject_id:
+                missing_items.append("المادة الدراسية / المقرر")
+            if not year_id:
+                missing_items.append("السنة الأكاديمية")
+            return Response({
+                "success": False,
+                "message": f"يجب تحديد {' و '.join(missing_items)} للاختبار"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        candidate_qs, _ = self._build_candidate_qs(data, blueprint)
+        candidate_qs = candidate_qs.select_related('lesson__unit').prefetch_related('options')
+        candidate_questions = list(candidate_qs)
+
+        if not candidate_questions:
+            return Response({
+                "success": False,
+                "message": "لا يوجد أسئلة معتمدة مطابقة للمحددات المختارة في بنك الأسئلة"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(candidate_questions) < questions_count:
+            return Response({
+                "success": False,
+                "hasShortage": True,
+                "message": f"عجز في رصيد الأسئلة: رصيد الأسئلة المعتمدة المتاحة ({len(candidate_questions)} سؤالاً) أقل من العدد الإجمالي المطلوب للاختبار ({questions_count} سؤالاً). لا يمكن توليد اختبار بأسئلة ناقصة."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        staged_versions = []
+
+        if models_mode == 'advanced' and model_groups:
+            version_letter_idx = 0
+            for group_idx, group in enumerate(model_groups):
+                group_count = int(group.get('count', 1))
+                difficulty_profile = group.get('difficulty_profile', 'mixed')
+                difficulty_dist = group.get('difficulty_distribution', {'easy': 30, 'medium': 50, 'hard': 20})
+                group_name = group.get('name') or f"المجموعة {group_idx + 1}"
+
+                effective_types = group.get('types') or blueprint.get('types')
+                group_questions = self._select_questions_by_units_and_difficulty(
+                    candidate_questions, questions_count, difficulty_dist,
+                    group_units=group.get('units'),
+                    group_types=effective_types
+                )
+
+                for m in range(group_count):
+                    version_code = chr(65 + version_letter_idx)
+                    version_letter_idx += 1
+
+                    shuffled_questions = self._order_questions_by_section(group_questions)
+                    serialized_questions = []
+
+                    for idx, q in enumerate(shuffled_questions):
+                        q_mark = self._resolve_question_mark(q, effective_types)
+                        serialized_questions.append(
+                            self._serialize_question_for_staging(q, order_index=idx + 1, mark=q_mark)
+                        )
+
+                    staged_versions.append({
+                        "versionCode": version_code,
+                        "model_group_index": group_idx,
+                        "group_name": group_name,
+                        "difficulty_profile": difficulty_profile,
+                        "difficulty_distribution": difficulty_dist,
+                        "questions": serialized_questions
+                    })
+        else:
+            diff_dist = {
+                'easy': next((d.get('percentage', 0) for d in blueprint.get('difficulty', []) if d.get('name') == 'سهل'), 30),
+                'medium': next((d.get('percentage', 0) for d in blueprint.get('difficulty', []) if d.get('name') == 'متوسط'), 50),
+                'hard': next((d.get('percentage', 0) for d in blueprint.get('difficulty', []) if d.get('name') == 'صعب'), 20),
+            }
+            effective_types = blueprint.get('types')
+            selected_questions = self._select_questions_by_units_and_difficulty(
+                candidate_questions, questions_count, diff_dist,
+                group_units=blueprint.get('units'),
+                group_types=effective_types
+            )
+
+            for m in range(models_count):
+                version_code = chr(65 + m)
+                shuffled_questions = self._order_questions_by_section(selected_questions)
+                serialized_questions = []
+
+                for idx, q in enumerate(shuffled_questions):
+                    q_mark = self._resolve_question_mark(q, effective_types)
+                    serialized_questions.append(
+                        self._serialize_question_for_staging(q, order_index=idx + 1, mark=q_mark)
+                    )
+
+                staged_versions.append({
+                    "versionCode": version_code,
+                    "model_group_index": 0,
+                    "group_name": "المجموعة 1",
+                    "difficulty_profile": 'mixed',
+                    "difficulty_distribution": diff_dist,
+                    "questions": serialized_questions
+                })
+
+        return Response({
+            "success": True,
+            "title": title,
+            "total_marks": total_marks,
+            "models_mode": models_mode,
+            "versions": staged_versions
+        })
+
+    # ═══════════════════════════════════════════════════════════
+    # FIND REPLACEMENT QUESTION FROM BANK
+    # ═══════════════════════════════════════════════════════════
+    @action(detail=False, methods=['post'], url_path='find-replacement')
+    def find_replacement(self, request):
+        """
+        Finds approved candidate replacement questions from the bank
+        matching the specific unit, difficulty, bloom level, and question type,
+        excluding question IDs already in use in the current staging.
+        """
+        data = request.data
+        subject_id = data.get('subjectId') or data.get('subject')
+        semester_subject_id = data.get('semesterSubjectId') or data.get('semesterSubject')
+        institute_subject_id = data.get('instituteSubjectId') or data.get('instituteSubject')
+        inst_type = data.get('institution_type') or 'school'
+        unit_id = data.get('unitId')
+        difficulty = data.get('difficulty')
+        bloom_level = data.get('bloomLevel')
+        q_type = data.get('questionType')
+        exclude_ids = data.get('excludeIds', [])
+        search_query = data.get('searchQuery', '').strip()
+        limit = int(data.get('limit', 15))
+
+        qs = Question.objects.filter(status='معتمد', is_deleted=False).select_related('lesson__unit').prefetch_related('options')
+
+        if inst_type and inst_type != 'all':
+            qs = qs.filter(institution_type=inst_type)
+
+        if unit_id:
+            qs = qs.filter(lesson__unit_id=unit_id)
+        elif semester_subject_id:
+            qs = qs.filter(lesson__unit__semester_subject_id=semester_subject_id)
+        elif institute_subject_id:
+            qs = qs.filter(lesson__subject_id=institute_subject_id)
+        elif subject_id:
+            qs = qs.filter(
+                Q(lesson__unit__class_subject__subject_id=subject_id) |
+                Q(lesson__unit__semester_subject__fk_subject_id=subject_id) |
+                Q(lesson__subject_id=subject_id)
+            )
+
+        if exclude_ids:
+            qs = qs.exclude(id__in=exclude_ids)
+
+        if search_query:
+            qs = qs.filter(content__icontains=search_query)
+
+        if q_type:
+            if q_type in ['single_choice', 'mcq', 'Single Choice']:
+                qs = qs.filter(questionType__in=['Single Choice', 'اختيار من متعدد'])
+            elif q_type in ['true_false', 'tf', 'True/False']:
+                qs = qs.filter(questionType__in=['True/False', 'صح وخطأ', 'صح/خطأ'])
+            elif q_type in ['multiple_choice', 'Multiple Choice']:
+                qs = qs.filter(questionType__in=['Multiple Choice', 'اختيارات متعددة'])
+            elif q_type in ['essay', 'Essay']:
+                qs = qs.filter(questionType__in=['Essay', 'مقالي'])
+            elif q_type in ['fill_blanks', 'Fill in the Blanks']:
+                qs = qs.filter(questionType__in=['Fill in the Blanks', 'إكمال الفراغ', 'إكمال الفراغات'])
+            elif q_type in ['matching', 'Matching']:
+                qs = qs.filter(questionType__in=['Matching', 'مطابقة', 'توصيل'])
+            elif q_type in ['ordering', 'Ordering']:
+                qs = qs.filter(questionType__in=['Ordering', 'ترتيب'])
+
+        strict_qs = qs
+        if difficulty is not None:
+            try:
+                strict_qs = strict_qs.filter(difficulty=int(difficulty))
+            except (ValueError, TypeError):
+                pass
+
+        if bloom_level:
+            strict_qs = strict_qs.filter(bloomLevel=bloom_level)
+
+        matched_questions = list(strict_qs[:limit])
+        is_relaxed = False
+
+        if not matched_questions and difficulty is not None:
+            is_relaxed = True
+            matched_questions = list(qs[:limit])
+
+        serialized = [self._serialize_question_for_staging(q) for q in matched_questions]
+
+        return Response({
+            "success": True,
+            "questions": serialized,
+            "total": len(serialized),
+            "is_relaxed": is_relaxed
+        })
+
+    # ═══════════════════════════════════════════════════════════
+    # QUICK CREATE QUESTION (ON-THE-FLY)
+    # ═══════════════════════════════════════════════════════════
+    @action(detail=False, methods=['post'], url_path='quick-create-question')
+    def quick_create_question(self, request):
+        """
+        Creates a new question with options on-the-fly and adds it to the question bank,
+        returning it serialized for immediate inclusion into the staged exam model.
+        """
+        data = request.data
+        content = data.get('content', '').strip()
+        q_type = data.get('questionType') or 'Single Choice'
+        difficulty = int(data.get('difficulty', 2))
+        bloom_level = data.get('bloomLevel') or 'تطبيق'
+        default_mark = float(data.get('defaultMark', 1.0))
+        unit_id = data.get('unitId')
+        lesson_id = data.get('lessonId')
+        inst_type = data.get('institution_type') or 'school'
+        options_data = data.get('options', [])
+
+        if not content:
+            return Response({"success": False, "message": "يجب كتابة نص السؤال"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not lesson_id and unit_id:
+            lesson = Lesson.objects.filter(unit_id=unit_id, is_deleted=False).first()
+            if not lesson:
+                lesson = Lesson.objects.create(unit_id=unit_id, name_ar='موضوع عام')
+            lesson_id = lesson.id
+
+        if not lesson_id:
+            fallback_l = Lesson.objects.filter(is_deleted=False).first()
+            lesson_id = fallback_l.id if fallback_l else None
+
+        if not lesson_id:
+            return Response({"success": False, "message": "تعذر ربط السؤال بوحدة أو موضوع دراسي"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if q_type == 'single_choice':
+            q_type = 'Single Choice'
+        elif q_type == 'true_false':
+            q_type = 'True/False'
+        elif q_type == 'multiple_choice':
+            q_type = 'Multiple Choice'
+        elif q_type == 'essay':
+            q_type = 'Essay'
+        elif q_type == 'fill_blanks':
+            q_type = 'Fill in the Blanks'
+        elif q_type == 'matching':
+            q_type = 'Matching'
+        elif q_type == 'ordering':
+            q_type = 'Ordering'
+
+        created_by = request.user if request.user and request.user.is_authenticated else None
+
+        try:
+            with transaction.atomic():
+                question = Question.objects.create(
+                    content=content,
+                    questionType=q_type,
+                    difficulty=difficulty,
+                    bloomLevel=bloom_level,
+                    defaultMark=default_mark,
+                    status='معتمد',
+                    institution_type=inst_type,
+                    lesson_id=lesson_id,
+                    createdBy=created_by
+                )
+
+                answers_to_create = []
+                for idx, opt in enumerate(options_data):
+                    opt_text = opt.get('text', '').strip()
+                    is_true = bool(opt.get('isTrue', False))
+                    answers_to_create.append(Answer(
+                        question=question,
+                        text=opt_text,
+                        isTrue=is_true,
+                        order_index=idx
+                    ))
+
+                if answers_to_create:
+                    Answer.objects.bulk_create(answers_to_create)
+
+                fresh_q = Question.objects.select_related('lesson__unit').prefetch_related('options').get(id=question.id)
+                serialized = self._serialize_question_for_staging(fresh_q, mark=default_mark)
+
+                return Response({
+                    "success": True,
+                    "message": "تم إنشاء السؤال بنجاح وإدراجه في الاختبار",
+                    "question": serialized
+                }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({
+                "success": False,
+                "message": f"حدث خطأ أثناء إنشاء السؤال: {str(e)}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    # ═══════════════════════════════════════════════════════════
+    # GENERATE EXAM (Supports Final Staged Versions Commit)
     # ═══════════════════════════════════════════════════════════
     @action(detail=False, methods=['post'], url_path='generate')
     def generate(self, request):
@@ -858,8 +1244,37 @@ class ExamCreateMVS(AllMVS):
                 # 4. Create Models (Versions) & Question Orders
                 all_orders_to_create = []
                 created_versions = []
+                final_versions = data.get('final_versions')
 
-                if models_mode == 'advanced' and model_groups:
+                if final_versions and isinstance(final_versions, list) and len(final_versions) > 0:
+                    # ═══ COMMITTING FINAL STAGED VERSIONS FROM STEP 4 ═══
+                    for v_idx, v_data in enumerate(final_versions):
+                        v_code = v_data.get('versionCode') or chr(65 + v_idx)
+                        g_idx = int(v_data.get('model_group_index', 0))
+                        diff_profile = v_data.get('difficulty_profile', 'mixed')
+                        diff_dist = v_data.get('difficulty_distribution')
+
+                        version = ExamVersion.objects.create(
+                            exam=exam,
+                            versionCode=v_code,
+                            model_group_index=g_idx,
+                            difficulty_profile=diff_profile,
+                            difficulty_distribution=diff_dist
+                        )
+                        created_versions.append(version)
+
+                        for q_idx, q_item in enumerate(v_data.get('questions', [])):
+                            q_id = q_item.get('id')
+                            assigned_mark = float(q_item.get('assignedMark', 1.0))
+                            order_index = int(q_item.get('orderIndex', q_idx + 1))
+
+                            all_orders_to_create.append(ExamQuestionOrder(
+                                examVersion=version,
+                                question_id=q_id,
+                                orderIndex=order_index,
+                                assigned_mark=assigned_mark
+                            ))
+                elif models_mode == 'advanced' and model_groups:
                     # ═══ ADVANCED MODE: Different difficulty per group ═══
                     version_letter_idx = 0
                     for group_idx, group in enumerate(model_groups):

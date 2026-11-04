@@ -22,12 +22,14 @@
           }" @click="s.value < step ? step = s.value : null">
 
             <div class="node-icon-wrapper">
-              <v-icon v-if="step > s.value" size="22" color="white" class="node-icon">mdi-check</v-icon>
-              <v-icon v-else size="22" class="node-icon" :color="step === s.value ? 'white' : 'primary'">{{ s.icon }}</v-icon>
+              <span class="node-step-number">{{ s.value }}</span>
+              <v-icon v-if="step > s.value" size="20" color="white" class="node-icon">mdi-check</v-icon>
+              <v-icon v-else size="20" class="node-icon" :color="step === s.value ? 'white' : 'primary'">{{ s.icon }}</v-icon>
             </div>
 
-            <div class="node-content">
+            <div class="node-content text-center">
               <span class="node-title font-weight-black">{{ s.title }}</span>
+              <span v-if="s.subtitle" class="node-subtitle text-caption text-medium-emphasis d-none d-md-block">{{ s.subtitle }}</span>
             </div>
           </div>
         </div>
@@ -1838,7 +1840,7 @@
                     {{ exam.questionsCount }} <span class="text-caption font-weight-bold text-medium-emphasis">سؤال معتمد</span>
                   </div>
                   <div class="d-flex align-center gap-1 mb-2">
-                    <v-chip size="x-small" :color="exam.exclude_previously_used ? 'warning' : 'grey'" variant="tonal" class="font-weight-bold">
+                    <v-chip size="x-small" :color="exam.exclude_previously_used ? 'warning' : 'primary'" variant="tonal" class="font-weight-bold">
                       <v-icon start size="12">mdi-shield-check</v-icon>
                       {{ exam.exclude_previously_used ? 'مكافحة التكرار نشطة' : 'السماح بالتكرار' }}
                     </v-chip>
@@ -2047,6 +2049,250 @@
               </v-col>
             </v-row>
           </v-window-item>
+
+          <!-- ═════════════════════════════════════════════════════════════════════ -->
+          <!-- STEP 4: INTERACTIVE EXAM STAGING & MODEL COMPOSER (المسودة التفاعلية) -->
+          <!-- ═════════════════════════════════════════════════════════════════════ -->
+          <v-window-item :value="4">
+            <!-- Staging Loading Pulse -->
+            <div v-if="stagingLoading" class="py-16 text-center">
+              <v-progress-circular indeterminate color="primary" size="64" width="4" />
+              <h3 class="text-h6 font-weight-black mt-4 text-high-emphasis">جاري تحضير المسودة التفاعلية لنماذج الاختبار...</h3>
+              <p class="text-caption text-medium-emphasis mt-1">يتم سحب وتوزيع الأسئلة وفق محددات مصفوفة المعايير والمجموعات</p>
+            </div>
+
+            <div v-else-if="!stagedModels || stagedModels.length === 0" class="py-16 text-center">
+              <v-icon size="64" color="warning" class="mb-3">mdi-alert-circle-outline</v-icon>
+              <h3 class="text-h6 font-weight-bold">لم يتم تجهيز مسودة النماذج بعد</h3>
+              <p class="text-caption text-medium-emphasis mb-4">يرجى الرجوع للخطوة السابقة وتأكيد الانتقال للمسودة التفاعلية</p>
+              <v-btn color="primary" variant="tonal" class="font-weight-bold rounded-xl" @click="step = 3">
+                العودة للمعاينة والتأكيد
+              </v-btn>
+            </div>
+
+            <div v-else>
+              <!-- 🌟 Staged Hero Banner (Zero Gray) -->
+              <div class="staged-hero-banner pa-5 mb-5 d-flex align-center justify-space-between flex-wrap gap-4">
+                <div class="d-flex align-center gap-3">
+                  <div class="staged-hero-icon-box">
+                    <v-icon size="28" color="primary">mdi-file-document-edit-outline</v-icon>
+                  </div>
+                  <div>
+                    <div class="d-flex align-center gap-2 flex-wrap">
+                      <h2 class="text-h6 font-weight-black mb-0 text-high-emphasis">
+                        استعراض وضبط أسئلة نماذج الاختبار
+                      </h2>
+                      <v-chip size="small" color="primary" variant="tonal" class="font-weight-black">
+                        مسودة تفاعلية ذكية
+                      </v-chip>
+                      <v-chip size="small" color="success" variant="tonal" class="font-weight-bold">
+                        لم يتم الحفظ في القاعدة بعد
+                      </v-chip>
+                    </div>
+                    <p class="text-caption text-medium-emphasis mb-0 mt-1">
+                      يمكنك معاينة الأسئلة لكل نموذج، وتبديل أي سؤال فورياً، أو اختياره من البنك، أو صياغة سؤال بديل جديد مع خياراته قبل الاعتماد الرسمي.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="d-flex align-center gap-2 flex-wrap">
+                  <v-btn
+                    variant="tonal"
+                    color="primary"
+                    size="small"
+                    class="font-weight-bold rounded-xl text-none px-4"
+                    prepend-icon="mdi-refresh"
+                    :loading="stagingLoading"
+                    @click="prepareStagingAndProceed"
+                  >
+                    إعادة توليد عشوائي للمسودة
+                  </v-btn>
+                  <v-btn
+                    color="success"
+                    size="default"
+                    class="font-weight-black rounded-xl px-6 shadow-success text-none"
+                    prepend-icon="mdi-check-decagram"
+                    :loading="generating"
+                    @click="commitFinalExam"
+                  >
+                    اعتماد وتوليد الاختبار النهائي (تثبيت رسمي)
+                  </v-btn>
+                </div>
+              </div>
+
+              <!-- Model Selector Pills Hub (Zero Gray) -->
+              <div class="section-group-card pa-4 rounded-2xl border-subtle mb-5">
+                <div class="d-flex align-center justify-space-between flex-wrap gap-3 mb-3 pb-3 border-b-subtle">
+                  <div class="d-flex align-center gap-2">
+                    <v-icon size="20" color="primary">mdi-view-carousel-outline</v-icon>
+                    <span class="font-weight-black text-subtitle-2">نماذج الاختبار المتاحة للمراجعة والتحكيم:</span>
+                    <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
+                      {{ stagedModels.length }} نماذج معتمدة
+                    </v-chip>
+                  </div>
+                  <div class="d-flex align-center gap-3">
+                    <v-switch
+                      v-model="showCorrectAnswers"
+                      color="success"
+                      hide-details
+                      density="compact"
+                      label="إظهار الإجابات الصحيحة"
+                      class="ma-0 pa-0 font-weight-bold"
+                    />
+                  </div>
+                </div>
+
+                <!-- Model Pills List -->
+                <div class="d-flex align-center flex-wrap gap-2">
+                  <div
+                    v-for="(model, mIdx) in stagedModels"
+                    :key="mIdx"
+                    class="staged-version-pill"
+                    :class="{ 'is-active': activeStagedModelIndex === mIdx }"
+                    @click="activeStagedModelIndex = mIdx"
+                  >
+                    <v-avatar size="28" :color="activeStagedModelIndex === mIdx ? 'primary' : 'surface-variant'" class="font-weight-black text-caption">
+                      {{ model.versionCode }}
+                    </v-avatar>
+                    <div class="d-flex flex-column text-start">
+                      <span class="font-weight-black text-body-2">
+                        النموذج ({{ model.versionCode }})
+                      </span>
+                      <span class="text-caption text-medium-emphasis" style="font-size: 0.72rem;">
+                        {{ model.group_name || ('المجموعة ' + (Number(model.model_group_index || 0) + 1)) }} &bull; {{ model.questions?.length || 0 }} سؤال
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Active Model Control & Key Stats Strip -->
+              <div v-if="currentStagedModel" class="d-flex align-center justify-space-between flex-wrap gap-3 mb-4 pa-3 rounded-xl border-subtle bg-surface">
+                <div class="d-flex align-center gap-3 flex-wrap">
+                  <span class="font-weight-black text-subtitle-2 text-primary">
+                    محتويات النموذج: ({{ currentStagedModel.versionCode }})
+                  </span>
+                  <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
+                    {{ currentStagedModel.questions?.length || 0 }} / {{ exam.questionsCount }} سؤال
+                  </v-chip>
+                  <v-chip size="small" color="secondary" variant="tonal" class="font-weight-bold">
+                    إجمالي الدرجات: {{ calculateStagedTotalMarks(currentStagedModel) }} / {{ examTotalScore }} درجة
+                  </v-chip>
+                  <v-chip size="small" :color="difficultyColor(currentStagedModel.difficulty_profile)" variant="tonal" class="font-weight-bold">
+                    صعوبة النموذج: {{ difficultyLabel(currentStagedModel.difficulty_profile) }}
+                  </v-chip>
+                </div>
+                <div class="text-caption text-medium-emphasis">
+                  انقر على أي سؤال لاستبداله أو تعديله فورياً
+                </div>
+              </div>
+
+              <!-- Questions List for Current Staged Model -->
+              <div v-if="currentStagedModel && currentStagedModel.questions" class="d-flex flex-column gap-3 mb-6">
+                <div
+                  v-for="(q, qIdx) in currentStagedModel.questions"
+                  :key="q.id || qIdx"
+                  class="staged-question-card pa-4 rounded-2xl border-subtle"
+                >
+                  <!-- Card Header Bar -->
+                  <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3">
+                    <div class="d-flex align-center gap-2 flex-wrap">
+                      <v-chip size="small" color="primary" variant="flat" class="font-weight-black font-mono">
+                        سؤال #{{ q.orderIndex || (qIdx + 1) }}
+                      </v-chip>
+                      <v-chip size="small" :color="questionTypeColor(q.questionType)" variant="tonal" class="font-weight-bold">
+                        <v-icon start size="14">{{ questionTypeIcon(q.questionType) }}</v-icon>
+                        {{ questionTypeLabel(q.questionType) }}
+                      </v-chip>
+                      <v-chip size="small" :color="difficultyColor(q.difficulty)" variant="tonal" class="font-weight-bold">
+                        {{ difficultyLabel(q.difficulty) }}
+                      </v-chip>
+                      <v-chip v-if="q.unitName" size="small" color="secondary" variant="tonal" class="font-weight-medium">
+                        {{ q.unitName }}
+                      </v-chip>
+                      <v-chip size="small" color="info" variant="tonal" class="font-weight-black">
+                        {{ q.assignedMark }} درجة
+                      </v-chip>
+                    </div>
+
+                    <!-- Question Action Tools (Swap / Browse / Quick Create) -->
+                    <div class="d-flex align-center gap-1 flex-wrap">
+                      <v-btn
+                        size="small"
+                        variant="tonal"
+                        color="primary"
+                        class="font-weight-bold rounded-lg text-none px-3"
+                        prepend-icon="mdi-swap-horizontal"
+                        @click="quickAutoSwap(q, activeStagedModelIndex)"
+                      >
+                        استبدال فوري
+                      </v-btn>
+                      <v-btn
+                        size="small"
+                        variant="tonal"
+                        color="secondary"
+                        class="font-weight-bold rounded-lg text-none px-3"
+                        prepend-icon="mdi-database-search"
+                        @click="openSwapDialog(q, activeStagedModelIndex)"
+                      >
+                        اختيار من البنك
+                      </v-btn>
+                      <v-btn
+                        size="small"
+                        variant="tonal"
+                        color="success"
+                        class="font-weight-bold rounded-lg text-none px-3"
+                        prepend-icon="mdi-plus-circle-outline"
+                        @click="openQuickCreateDialog(q, activeStagedModelIndex)"
+                      >
+                        إنشاء بديل جديد
+                      </v-btn>
+                    </div>
+                  </div>
+
+                  <!-- Question Text Content -->
+                  <div class="text-body-1 font-weight-bold mb-3 text-high-emphasis pe-2" style="line-height: 1.6;">
+                    {{ q.content }}
+                  </div>
+
+                  <!-- Optional Question Image -->
+                  <div v-if="q.image" class="mb-3">
+                    <img :src="q.image" alt="Question Image" style="max-height: 200px; border-radius: 12px; border: 1px solid rgba(var(--v-theme-primary), 0.15);" />
+                  </div>
+
+                  <!-- Question Options (For Single Choice & Multi Choice) -->
+                  <div v-if="q.options && q.options.length > 0" class="d-flex flex-column gap-2 mt-2">
+                    <div
+                      v-for="(opt, optIdx) in q.options"
+                      :key="opt.id || optIdx"
+                      class="staged-option-item pa-2.5 px-3 rounded-xl d-flex align-center justify-space-between gap-2"
+                      :class="{ 'is-correct-option': showCorrectAnswers && opt.isTrue }"
+                    >
+                      <div class="d-flex align-center gap-2">
+                        <span class="font-weight-black font-mono text-body-2" style="min-width: 24px;">
+                          {{ String.fromCharCode(1571 + optIdx) }})
+                        </span>
+                        <span class="text-body-2">{{ opt.text }}</span>
+                      </div>
+                      <v-chip v-if="showCorrectAnswers && opt.isTrue" size="x-small" color="success" variant="flat" class="font-weight-black">
+                        <v-icon start size="12">mdi-check</v-icon>
+                        الإجابة الصحيحة
+                      </v-chip>
+                    </div>
+                  </div>
+
+                  <!-- True / False Indicator -->
+                  <div v-else-if="q.questionType === 'True/False' || q.questionType === 'صح وخطأ'" class="d-flex align-center gap-2 mt-2">
+                    <span class="text-caption font-weight-bold text-medium-emphasis">الإجابة المعتمدة:</span>
+                    <v-chip v-if="showCorrectAnswers" size="small" :color="q.isTrue ? 'success' : 'error'" variant="tonal" class="font-weight-black">
+                      <v-icon start size="14">{{ q.isTrue ? 'mdi-check' : 'mdi-close' }}</v-icon>
+                      {{ q.isTrue ? 'صواب (True)' : 'خطأ (False)' }}
+                    </v-chip>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </v-window-item>
         </v-window>
       </div>
 
@@ -2061,13 +2307,47 @@
 
         <div class="d-none d-sm-flex align-center gap-2">
           <span class="text-caption font-weight-bold text-medium-emphasis">
-            خطوة {{ step }} من 3
+            خطوة {{ step }} من 4
           </span>
         </div>
 
-        <v-btn color="primary" class="font-weight-bold px-8" rounded="lg" elevation="2" :loading="generating" @click="nextStep">
-          <v-icon start size="20">{{ step === 3 ? 'mdi-check-decagram' : 'mdi-arrow-left' }}</v-icon>
-          {{ step === 3 ? 'إنشاء وتوليد الاختبار' : 'التالي' }}
+        <v-btn
+          v-if="step < 3"
+          color="primary"
+          class="font-weight-bold px-8"
+          rounded="lg"
+          elevation="2"
+          @click="nextStep"
+        >
+          <v-icon start size="20">mdi-arrow-left</v-icon>
+          التالي
+        </v-btn>
+
+        <v-btn
+          v-else-if="step === 3"
+          color="primary"
+          class="font-weight-bold px-8"
+          rounded="lg"
+          elevation="2"
+          :loading="stagingLoading"
+          @click="nextStep"
+        >
+          <v-icon start size="20">mdi-file-document-edit-outline</v-icon>
+          الانتقال لمسودة واستعراض النماذج
+        </v-btn>
+
+        <v-btn
+          v-else-if="step === 4"
+          color="success"
+          class="font-weight-bold px-8 shadow-success"
+          rounded="lg"
+          elevation="3"
+          size="large"
+          :loading="generating"
+          @click="commitFinalExam"
+        >
+          <v-icon start size="20">mdi-check-decagram</v-icon>
+          اعتماد وتوليد الاختبار النهائي (تثبيت رسمي)
         </v-btn>
       </div>
     </div>
@@ -2126,16 +2406,263 @@
         </tbody>
       </v-table>
 
-      <v-alert type="warning" variant="tonal" density="compact" class="mb-4 rounded-xl">
-        <v-icon start size="18">mdi-alert-circle</v-icon>
-        يمكنك تعديل نسب المصفوفة لتقليل العجز، أو المتابعة وتوليد أسئلة بديلة من البنك لتغطية النقص.
+      <v-alert type="error" variant="tonal" density="compact" class="mb-4 rounded-xl">
+        <v-icon start size="18">mdi-alert-octagon</v-icon>
+        <strong>تنبيه وزاري ملزم:</strong> لا يمكن المتابعة أو توليد الاختبار طالما يوجد عجز في رصيد الأسئلة المعتمدة لضمان تحقيق الجودة والعدالة الامتحانية. يرجى تعديل نسب المصفوفة أو تغذية بنك الأسئلة بالأسئلة المطلوبة أولاً.
       </v-alert>
 
       <template #actions>
-        <custom-btn label="تعديل المعايير" variant="text" class="font-weight-bold"
-          :click="() => shortageDialog = false" />
-        <custom-btn type="add" label="المتابعة وتوليد الاختبار بالأسئلة المتوفرة" color="warning" class="font-weight-bold"
-          :click="confirmGenerateWithMocks" />
+        <v-btn variant="text" color="medium-emphasis" class="font-weight-bold" @click="shortageDialog = false">
+          إغلاق
+        </v-btn>
+        <v-btn variant="tonal" color="primary" class="font-weight-bold rounded-lg" @click="shortageDialog = false; step = 2">
+          <v-icon start size="16">mdi-cog-outline</v-icon>
+          الرجوع للمصفوفة لتعديل النسب
+        </v-btn>
+        <v-btn variant="flat" color="info" class="font-weight-bold rounded-lg" @click="goToAddQuestion()">
+          <v-icon start size="16">mdi-plus-circle-outline</v-icon>
+          إضافة أسئلة بالبنك
+        </v-btn>
+      </template>
+    </CustomDialog>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- QUESTION BANK REPLACEMENT DIALOG (استبدال يدوي من البنك)       -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <CustomDialog v-model="swapDialog" width="850" title="اختيار سؤال بديل من بنك الأسئلة"
+      subTitle="يتم استعراض الأسئلة المعتمدة المتوافقة مع معايير السؤال الحالي">
+      <div v-if="targetSwapQuestion" class="pa-1">
+        <!-- Target Question Summary Banner -->
+        <div class="pa-3 rounded-xl border-subtle mb-4 bg-surface-variant d-flex align-center justify-space-between flex-wrap gap-2">
+          <div class="d-flex align-center gap-2 flex-wrap">
+            <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
+              السؤال المستهدف: #{{ targetSwapQuestion.orderIndex }}
+            </v-chip>
+            <v-chip size="small" :color="questionTypeColor(targetSwapQuestion.questionType)" variant="tonal" class="font-weight-bold">
+              {{ questionTypeLabel(targetSwapQuestion.questionType) }}
+            </v-chip>
+            <v-chip size="small" :color="difficultyColor(targetSwapQuestion.difficulty)" variant="tonal" class="font-weight-bold">
+              {{ difficultyLabel(targetSwapQuestion.difficulty) }}
+            </v-chip>
+            <v-chip size="small" color="secondary" variant="tonal">
+              {{ targetSwapQuestion.unitName }}
+            </v-chip>
+          </div>
+          <span class="text-caption text-medium-emphasis">الدرجة: {{ targetSwapQuestion.assignedMark }}</span>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="d-flex align-center gap-2 mb-4">
+          <v-text-field
+            v-model="swapSearchQuery"
+            density="compact"
+            variant="outlined"
+            placeholder="البحث بنص السؤال في بنك الأسئلة..."
+            hide-details
+            clearable
+            prepend-inner-icon="mdi-magnify"
+            class="flex-grow-1"
+            @keyup.enter="searchSwapCandidates"
+          />
+          <v-btn color="primary" variant="tonal" :loading="swapLoading" class="font-weight-bold" @click="searchSwapCandidates">
+            بحث
+          </v-btn>
+        </div>
+
+        <!-- Candidate Questions List -->
+        <div v-if="swapLoading" class="py-10 text-center">
+          <v-progress-circular indeterminate color="primary" size="40" />
+          <p class="text-caption text-medium-emphasis mt-2">جاري البحث عن الأسئلة البديلة المطابقة...</p>
+        </div>
+        <div v-else-if="swapCandidates.length === 0" class="py-8 text-center">
+          <v-icon size="48" color="warning" class="mb-2">mdi-alert-circle-outline</v-icon>
+          <div class="text-subtitle-1 font-weight-bold">لم يتم العثور على أسئلة بديلة مطابقة تماماً في البنك</div>
+          <p class="text-caption text-medium-emphasis mt-1 mb-4">
+            يمكنك إنشاء سؤال بديل جديد فوراً وإدراجه في هذا الموضع.
+          </p>
+          <v-btn color="primary" variant="flat" class="font-weight-bold rounded-lg" @click="openQuickCreateFromSwap">
+            <v-icon start size="16">mdi-plus</v-icon>
+            إنشاء سؤال بديل جديد فوراً
+          </v-btn>
+        </div>
+        <div v-else class="d-flex flex-column gap-3" style="max-height: 420px; overflow-y: auto;">
+          <div
+            v-for="cand in swapCandidates"
+            :key="cand.id"
+            class="pa-4 rounded-xl border-subtle d-flex flex-column gap-2"
+          >
+            <div class="d-flex align-center justify-space-between flex-wrap gap-2">
+              <div class="d-flex align-center gap-2 flex-wrap">
+                <v-chip size="x-small" :color="questionTypeColor(cand.questionType)" variant="tonal" class="font-weight-bold">
+                  {{ questionTypeLabel(cand.questionType) }}
+                </v-chip>
+                <v-chip size="x-small" :color="difficultyColor(cand.difficulty)" variant="tonal" class="font-weight-bold">
+                  {{ difficultyLabel(cand.difficulty) }}
+                </v-chip>
+                <span class="text-caption text-medium-emphasis">{{ cand.unitName }} - {{ cand.lessonName }}</span>
+              </div>
+              <v-btn size="small" color="success" variant="flat" class="font-weight-bold rounded-lg" @click="applyReplacement(cand)">
+                <v-icon start size="16">mdi-check</v-icon>
+                اختيار هذا البديل
+              </v-btn>
+            </div>
+            <div class="font-weight-bold text-body-2 mt-1">{{ cand.content }}</div>
+            <div v-if="cand.options && cand.options.length > 0" class="d-flex flex-wrap gap-2 mt-1">
+              <v-chip
+                v-for="(opt, oIdx) in cand.options"
+                :key="oIdx"
+                size="x-small"
+                :color="opt.isTrue ? 'success' : undefined"
+                :variant="opt.isTrue ? 'flat' : 'tonal'"
+              >
+                {{ String.fromCharCode(1571 + oIdx) }}: {{ opt.text }}
+              </v-chip>
+            </div>
+          </div>
+        </div>
+      </div>
+      <template #actions>
+        <v-btn variant="text" color="medium-emphasis" class="font-weight-bold" @click="swapDialog = false">
+          إغلاق
+        </v-btn>
+      </template>
+    </CustomDialog>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- QUICK CREATE QUESTION DIALOG (إنشاء سؤال فوري وإدراجه)        -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <CustomDialog v-model="quickCreateDialog" width="750" title="إنشاء سؤال بديل جديد وإدراجه فورياً"
+      subTitle="سيتم حفظ السؤال في بنك الأسئلة كمعتمد وإدراجه مباشرة في النموذج الحالي">
+      <div class="pa-1">
+        <v-row dense>
+          <v-col cols="12" md="6">
+            <v-text-field
+              v-model="quickCreateForm.unitName"
+              label="الوحدة الدراسية"
+              density="compact"
+              variant="outlined"
+              readonly
+            />
+          </v-col>
+          <v-col cols="12" md="6">
+            <v-select
+              v-model="quickCreateForm.difficulty"
+              :items="[
+                { title: 'سهل', value: 1 },
+                { title: 'متوسط', value: 2 },
+                { title: 'صعب', value: 3 }
+              ]"
+              label="مستوى الصعوبة"
+              density="compact"
+              variant="outlined"
+            />
+          </v-col>
+          <v-col cols="12" md="6">
+            <v-select
+              v-model="quickCreateForm.questionType"
+              :items="[
+                { title: 'اختيار من متعدد (Single Choice)', value: 'Single Choice' },
+                { title: 'صح وخطأ (True/False)', value: 'True/False' },
+                { title: 'سؤال مقالي (Essay)', value: 'Essay' },
+                { title: 'إكمال الفراغ (Fill Blanks)', value: 'Fill in the Blanks' }
+              ]"
+              label="نوع السؤال"
+              density="compact"
+              variant="outlined"
+            />
+          </v-col>
+          <v-col cols="12" md="6">
+            <v-text-field
+              v-model.number="quickCreateForm.defaultMark"
+              label="درجة السؤال"
+              type="number"
+              step="0.5"
+              min="0.5"
+              density="compact"
+              variant="outlined"
+            />
+          </v-col>
+          <v-col cols="12">
+            <v-textarea
+              v-model="quickCreateForm.content"
+              label="نص السؤال *"
+              rows="3"
+              density="compact"
+              variant="outlined"
+              placeholder="اكتب صياغة السؤال هنا بدقة..."
+            />
+          </v-col>
+        </v-row>
+
+        <!-- Options for Choice Questions -->
+        <div v-if="quickCreateForm.questionType === 'Single Choice'" class="mt-3">
+          <div class="d-flex align-center justify-space-between mb-2">
+            <span class="font-weight-bold text-subtitle-2">خيارات الإجابة (حدد الإجابة الصحيحة):</span>
+            <v-btn size="x-small" color="primary" variant="tonal" prepend-icon="mdi-plus" @click="addQuickOption">
+              إضافة خيار
+            </v-btn>
+          </div>
+          <div class="d-flex flex-column gap-2">
+            <div
+              v-for="(opt, optIdx) in quickCreateForm.options"
+              :key="optIdx"
+              class="d-flex align-center gap-2 pa-2 rounded-xl border-subtle"
+              :class="{ 'border-success': opt.isTrue }"
+              :style="opt.isTrue ? 'background: rgba(16, 185, 129, 0.08);' : ''"
+            >
+              <v-radio
+                :model-value="opt.isTrue"
+                color="success"
+                hide-details
+                density="compact"
+                class="ma-0"
+                @click="setQuickCorrectOption(optIdx)"
+              />
+              <span class="font-weight-bold font-mono">{{ String.fromCharCode(1571 + optIdx) }})</span>
+              <v-text-field
+                v-model="opt.text"
+                density="compact"
+                variant="plain"
+                placeholder="نص الخيار..."
+                hide-details
+                class="flex-grow-1"
+              />
+              <v-btn
+                v-if="quickCreateForm.options.length > 2"
+                size="x-small"
+                icon="mdi-trash-can-outline"
+                variant="text"
+                color="error"
+                @click="removeQuickOption(optIdx)"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Options for True/False Questions -->
+        <div v-else-if="quickCreateForm.questionType === 'True/False'" class="mt-3">
+          <span class="font-weight-bold text-subtitle-2 d-block mb-2">الإجابة الصحيحة:</span>
+          <v-radio-group v-model="quickCreateForm.tfAnswer" inline hide-details>
+            <v-radio label="صواب (True)" :value="true" color="success" />
+            <v-radio label="خطأ (False)" :value="false" color="error" class="ms-4" />
+          </v-radio-group>
+        </div>
+      </div>
+
+      <template #actions>
+        <v-btn variant="text" color="medium-emphasis" class="font-weight-bold" @click="quickCreateDialog = false">
+          إلغاء
+        </v-btn>
+        <v-btn
+          color="success"
+          variant="flat"
+          class="font-weight-bold rounded-lg"
+          :loading="quickCreateLoading"
+          @click="submitQuickCreateQuestion"
+        >
+          <v-icon start size="16">mdi-content-save-check</v-icon>
+          حفظ وتضمين في النموذج فوراً
+        </v-btn>
       </template>
     </CustomDialog>
 
@@ -3124,7 +3651,7 @@ const blueprint = ref({
       subtitle: 'إعادة ترتيب العناصر والخطوات بالترتيب الصحيح',
       percentage: 0,
       mark: 2.0,
-      color: 'blue-grey',
+      color: 'cyan',
       icon: 'mdi-sort-ascending'
     },
   ]
@@ -3915,9 +4442,530 @@ const performGenerationSequence = async () => {
   }
 }
 
-const confirmGenerateWithMocks = () => {
-  shortageDialog.value = false
-  performGenerationSequence()
+// ═══════════════════════════════════════════════════════════════
+// STEP 4: INTERACTIVE EXAM STAGING & COMPOSER LOGIC
+// ═══════════════════════════════════════════════════════════════
+const stagedModels = ref([])
+const stagingLoading = ref(false)
+const activeStagedModelIndex = ref(0)
+const showCorrectAnswers = ref(true)
+
+// Question Swap Dialog State
+const swapDialog = ref(false)
+const swapLoading = ref(false)
+const swapCandidates = ref([])
+const swapSearchQuery = ref('')
+const targetSwapQuestion = ref(null)
+const targetSwapModelIndex = ref(0)
+
+// Quick Create Dialog State
+const quickCreateDialog = ref(false)
+const quickCreateLoading = ref(false)
+const quickCreateForm = ref({
+  content: '',
+  unitId: null,
+  unitName: '',
+  lessonId: null,
+  difficulty: 2,
+  bloomLevel: 'تطبيق',
+  questionType: 'Single Choice',
+  defaultMark: 1.0,
+  tfAnswer: true,
+  options: [
+    { text: '', isTrue: true },
+    { text: '', isTrue: false },
+    { text: '', isTrue: false },
+    { text: '', isTrue: false },
+  ]
+})
+
+const currentStagedModel = computed(() => {
+  if (!stagedModels.value || stagedModels.value.length === 0) return null
+  return stagedModels.value[activeStagedModelIndex.value] || stagedModels.value[0]
+})
+
+const questionTypeLabel = (type) => {
+  if (!type) return 'اختيار من متعدد'
+  const mapping = {
+    'Single Choice': 'اختيار من متعدد',
+    'single_choice': 'اختيار من متعدد',
+    'mcq': 'اختيار من متعدد',
+    'True/False': 'صح وخطأ',
+    'true_false': 'صح وخطأ',
+    'tf': 'صح وخطأ',
+    'Multiple Choice': 'خيارات متعددة',
+    'multiple_choice': 'خيارات متعددة',
+    'Essay': 'مقالي',
+    'essay': 'مقالي',
+    'Fill in the Blanks': 'إكمال فراغات',
+    'fill_blanks': 'إكمال فراغات',
+    'Matching': 'مطابقة وتوصيل',
+    'matching': 'مطابقة وتوصيل',
+    'Ordering': 'إعادة ترتيب',
+    'ordering': 'إعادة ترتيب',
+  }
+  return mapping[type] || type
+}
+
+const questionTypeColor = (type) => {
+  if (!type) return 'primary'
+  if (type.includes('Single') || type.includes('mcq')) return 'primary'
+  if (type.includes('True') || type.includes('tf')) return 'success'
+  if (type.includes('Multiple')) return 'info'
+  if (type.includes('Essay')) return 'warning'
+  if (type.includes('Fill')) return 'deep-purple'
+  if (type.includes('Matching')) return 'teal'
+  if (type.includes('Ordering')) return 'cyan'
+  return 'primary'
+}
+
+const questionTypeIcon = (type) => {
+  if (!type) return 'mdi-radiobox-marked'
+  if (type.includes('Single') || type.includes('mcq')) return 'mdi-radiobox-marked'
+  if (type.includes('True') || type.includes('tf')) return 'mdi-check-circle-outline'
+  if (type.includes('Multiple')) return 'mdi-checkbox-multiple-marked-outline'
+  if (type.includes('Essay')) return 'mdi-text-box-edit-outline'
+  if (type.includes('Fill')) return 'mdi-form-textbox'
+  if (type.includes('Matching')) return 'mdi-swap-horizontal-bold'
+  if (type.includes('Ordering')) return 'mdi-sort-ascending'
+  return 'mdi-help-circle-outline'
+}
+
+const calculateStagedTotalMarks = (model) => {
+  if (!model || !model.questions) return 0
+  const sum = model.questions.reduce((acc, q) => acc + (parseFloat(q.assignedMark) || 0), 0)
+  return Math.round(sum * 100) / 100
+}
+
+const prepareStagingAndProceed = async () => {
+  stagingLoading.value = true
+  try {
+    let resolvedYearId = exam.value.yearId
+    if (!resolvedYearId) {
+      const currentYear = years.value.find(y => y.is_current || y.isCurrent)
+      resolvedYearId = currentYear ? currentYear.id : (years.value[0]?.id || null)
+    }
+
+    const effectiveSubjectId = exam.value.subjectId || exam.value.semesterSubjectId || exam.value.instituteSubjectId || null
+
+    const payload = {
+      title: exam.value.title || 'اختبار جديد',
+      institution_type: exam.value.institution_type || 'school',
+      subjectId: effectiveSubjectId,
+      semesterSubjectId: exam.value.semesterSubjectId || null,
+      instituteSubjectId: exam.value.instituteSubjectId || null,
+      yearId: resolvedYearId,
+      stageId: exam.value.stageId || null,
+      classTrackId: exam.value.classTrackId || null,
+      questionsCount: exam.value.questionsCount,
+      modelsCount: exam.value.modelsCount,
+      total_marks: examTotalScore.value,
+      blueprint: blueprint.value,
+      models_mode: modelsMode.value,
+      model_groups: modelsMode.value === 'advanced' ? modelGroups.value : [],
+      bloom_enabled: bloomEnabled.value,
+      exclude_previously_used: exam.value.exclude_previously_used,
+    }
+
+    const res = await examsService.previewStaging(payload)
+    if (res && res.success && res.models && res.models.length > 0) {
+      stagedModels.value = res.models
+      activeStagedModelIndex.value = 0
+      step.value = 4
+      if (proxy && proxy.$alert) {
+        proxy.$alert("successData", {
+          message: "تم تجهيز المسودة التفاعلية للنماذج بنجاح! يمكنك الآن مراجعة وضبط الأسئلة.",
+          title: "المسودة التفاعلية جاهزة"
+        })
+      }
+    } else {
+      if (proxy && proxy.$alert) {
+        proxy.$alert("errorData", {
+          message: res?.message || "تعذر إعداد مسودة النماذج.",
+          title: "تنبيه"
+        })
+      }
+    }
+  } catch (err) {
+    console.error("Preview staging error:", err)
+    const errMsg = err?.response?.data?.message || err?.message || "حدث خطأ أثناء إعداد المسودة التفاعلية."
+    if (proxy && proxy.$alert) {
+      proxy.$alert("errorData", {
+        message: errMsg,
+        title: "خطأ في سحب الأسئلة"
+      })
+    }
+  } finally {
+    stagingLoading.value = false
+  }
+}
+
+// 🔄 Quick Auto-Swap for a Question
+const quickAutoSwap = async (question, modelIndex) => {
+  const currentModel = stagedModels.value[modelIndex]
+  if (!currentModel) return
+
+  const allUsedIds = []
+  stagedModels.value.forEach(m => {
+    (m.questions || []).forEach(q => {
+      if (q.id) allUsedIds.push(q.id)
+    })
+  })
+
+  try {
+    const effectiveSubjectId = exam.value.subjectId || exam.value.semesterSubjectId || exam.value.instituteSubjectId || null
+    const payload = {
+      subjectId: effectiveSubjectId,
+      semesterSubjectId: exam.value.semesterSubjectId || null,
+      instituteSubjectId: exam.value.instituteSubjectId || null,
+      institution_type: exam.value.institution_type || 'school',
+      unitId: question.unitId,
+      difficulty: question.difficulty,
+      bloomLevel: question.bloomLevel,
+      questionType: question.questionType,
+      excludeIds: allUsedIds,
+      limit: 1,
+    }
+
+    const res = await examsService.findReplacement(payload)
+    if (res && res.success && res.questions && res.questions.length > 0) {
+      const replacement = res.questions[0]
+      replacement.orderIndex = question.orderIndex
+      replacement.assignedMark = question.assignedMark
+
+      const qIdx = currentModel.questions.findIndex(q => q.id === question.id)
+      if (qIdx !== -1) {
+        currentModel.questions.splice(qIdx, 1, replacement)
+        if (proxy && proxy.$alert) {
+          proxy.$alert("successData", {
+            message: "تم استبدال السؤال بنجاح بسؤال مكافئ من البنك!",
+            title: "تم الاستبدال"
+          })
+        }
+      }
+    } else {
+      if (proxy && proxy.$alert) {
+        proxy.$alert("errorData", {
+          message: "لم يتم العثور على سؤال بديل مطابق تماماً في البنك. يمكنك اختياره يدوياً أو إنشاء سؤال جديد فوراً.",
+          title: "لا يوجد بديل مطابق"
+        })
+      }
+    }
+  } catch (err) {
+    console.error("Auto swap error:", err)
+  }
+}
+
+// 🔍 Manual Bank Replacement Dialog
+const openSwapDialog = async (question, modelIndex) => {
+  targetSwapQuestion.value = question
+  targetSwapModelIndex.value = modelIndex
+  swapSearchQuery.value = ''
+  swapDialog.value = true
+  await searchSwapCandidates()
+}
+
+const searchSwapCandidates = async () => {
+  if (!targetSwapQuestion.value) return
+  swapLoading.value = true
+
+  const allUsedIds = []
+  stagedModels.value.forEach(m => {
+    (m.questions || []).forEach(q => {
+      if (q.id && q.id !== targetSwapQuestion.value.id) allUsedIds.push(q.id)
+    })
+  })
+
+  try {
+    const effectiveSubjectId = exam.value.subjectId || exam.value.semesterSubjectId || exam.value.instituteSubjectId || null
+    const payload = {
+      subjectId: effectiveSubjectId,
+      semesterSubjectId: exam.value.semesterSubjectId || null,
+      instituteSubjectId: exam.value.instituteSubjectId || null,
+      institution_type: exam.value.institution_type || 'school',
+      unitId: targetSwapQuestion.value.unitId,
+      difficulty: targetSwapQuestion.value.difficulty,
+      bloomLevel: targetSwapQuestion.value.bloomLevel,
+      questionType: targetSwapQuestion.value.questionType,
+      excludeIds: allUsedIds,
+      searchQuery: swapSearchQuery.value,
+      limit: 15,
+    }
+
+    const res = await examsService.findReplacement(payload)
+    if (res && res.success && res.questions) {
+      swapCandidates.value = res.questions
+    } else {
+      swapCandidates.value = []
+    }
+  } catch (err) {
+    console.error("Search swap candidates error:", err)
+    swapCandidates.value = []
+  } finally {
+    swapLoading.value = false
+  }
+}
+
+const applyReplacement = (cand) => {
+  const currentModel = stagedModels.value[targetSwapModelIndex.value]
+  if (!currentModel || !targetSwapQuestion.value) return
+
+  const replacement = {
+    ...cand,
+    orderIndex: targetSwapQuestion.value.orderIndex,
+    assignedMark: targetSwapQuestion.value.assignedMark,
+  }
+
+  const qIdx = currentModel.questions.findIndex(q => q.id === targetSwapQuestion.value.id)
+  if (qIdx !== -1) {
+    currentModel.questions.splice(qIdx, 1, replacement)
+    swapDialog.value = false
+    if (proxy && proxy.$alert) {
+      proxy.$alert("successData", {
+        message: "تم اعتماد السؤال البديل في النموذج بنجاح!",
+        title: "تم الاستبدال"
+      })
+    }
+  }
+}
+
+const openQuickCreateFromSwap = () => {
+  swapDialog.value = false
+  openQuickCreateDialog(targetSwapQuestion.value, targetSwapModelIndex.value)
+}
+
+// ➕ Quick On-The-Fly Question Creation
+const openQuickCreateDialog = (question, modelIndex) => {
+  targetSwapQuestion.value = question
+  targetSwapModelIndex.value = modelIndex
+
+  let qType = 'Single Choice'
+  if (question.questionType && (question.questionType.includes('True') || question.questionType.includes('tf'))) {
+    qType = 'True/False'
+  } else if (question.questionType && question.questionType.includes('Essay')) {
+    qType = 'Essay'
+  }
+
+  quickCreateForm.value = {
+    content: '',
+    unitId: question.unitId,
+    unitName: question.unitName || 'الوحدة الحالية',
+    lessonId: question.lessonId,
+    difficulty: question.difficulty || 2,
+    bloomLevel: question.bloomLevel || 'تطبيق',
+    questionType: qType,
+    defaultMark: question.assignedMark || 1.0,
+    tfAnswer: true,
+    options: [
+      { text: '', isTrue: true },
+      { text: '', isTrue: false },
+      { text: '', isTrue: false },
+      { text: '', isTrue: false },
+    ]
+  }
+
+  quickCreateDialog.value = true
+}
+
+const addQuickOption = () => {
+  quickCreateForm.value.options.push({ text: '', isTrue: false })
+}
+
+const removeQuickOption = (idx) => {
+  if (quickCreateForm.value.options.length > 2) {
+    quickCreateForm.value.options.splice(idx, 1)
+    if (!quickCreateForm.value.options.some(o => o.isTrue)) {
+      quickCreateForm.value.options[0].isTrue = true
+    }
+  }
+}
+
+const setQuickCorrectOption = (idx) => {
+  quickCreateForm.value.options.forEach((opt, i) => {
+    opt.isTrue = (i === idx)
+  })
+}
+
+const submitQuickCreateQuestion = async () => {
+  if (!quickCreateForm.value.content || !quickCreateForm.value.content.trim()) {
+    if (proxy && proxy.$alert) {
+      proxy.$alert("errorData", { message: "يرجى كتابة نص السؤال أولاً", title: "حقل مطلوب" })
+    }
+    return
+  }
+
+  quickCreateLoading.value = true
+  try {
+    let optionsPayload = []
+    if (quickCreateForm.value.questionType === 'Single Choice') {
+      const validOptions = quickCreateForm.value.options.filter(o => o.text && o.text.trim())
+      if (validOptions.length < 2) {
+        if (proxy && proxy.$alert) {
+          proxy.$alert("errorData", { message: "يرجى إدخال خيارين على الأقل لسؤال الاختيار من متعدد", title: "خيارات ناقصة" })
+        }
+        quickCreateLoading.value = false
+        return
+      }
+      optionsPayload = validOptions
+    } else if (quickCreateForm.value.questionType === 'True/False') {
+      optionsPayload = [
+        { text: 'صواب', isTrue: quickCreateForm.value.tfAnswer === true },
+        { text: 'خطأ', isTrue: quickCreateForm.value.tfAnswer === false },
+      ]
+    }
+
+    const payload = {
+      content: quickCreateForm.value.content,
+      questionType: quickCreateForm.value.questionType,
+      difficulty: quickCreateForm.value.difficulty,
+      bloomLevel: quickCreateForm.value.bloomLevel,
+      defaultMark: quickCreateForm.value.defaultMark,
+      institution_type: exam.value.institution_type || 'school',
+      unitId: quickCreateForm.value.unitId,
+      lessonId: quickCreateForm.value.lessonId,
+      options: optionsPayload,
+    }
+
+    const res = await examsService.quickCreateQuestion(payload)
+    if (res && res.success && res.question) {
+      const createdQ = res.question
+      createdQ.orderIndex = targetSwapQuestion.value ? targetSwapQuestion.value.orderIndex : 1
+      createdQ.assignedMark = quickCreateForm.value.defaultMark
+
+      const currentModel = stagedModels.value[targetSwapModelIndex.value]
+      if (currentModel && targetSwapQuestion.value) {
+        const qIdx = currentModel.questions.findIndex(q => q.id === targetSwapQuestion.value.id)
+        if (qIdx !== -1) {
+          currentModel.questions.splice(qIdx, 1, createdQ)
+        } else {
+          currentModel.questions.push(createdQ)
+        }
+      }
+
+      quickCreateDialog.value = false
+      if (proxy && proxy.$alert) {
+        proxy.$alert("successData", {
+          message: "تم حفظ السؤال في بنك الأسئلة وإدراجه في النموذج بنجاح!",
+          title: "تم الحفظ والإدراج"
+        })
+      }
+    } else {
+      if (proxy && proxy.$alert) {
+        proxy.$alert("errorData", { message: res?.message || "فشل إنشاء السؤال", title: "خطأ" })
+      }
+    }
+  } catch (err) {
+    console.error("Quick create error:", err)
+    const msg = err?.response?.data?.message || err?.message || "حدث خطأ أثناء حفظ السؤال"
+    if (proxy && proxy.$alert) {
+      proxy.$alert("errorData", { message: msg, title: "خطأ" })
+    }
+  } finally {
+    quickCreateLoading.value = false
+  }
+}
+
+// 🏛️ Final Atomic Commit of Staged Models
+const commitFinalExam = async () => {
+  generating.value = true
+  try {
+    let resolvedYearId = exam.value.yearId
+    if (!resolvedYearId) {
+      const currentYear = years.value.find(y => y.is_current || y.isCurrent)
+      resolvedYearId = currentYear ? currentYear.id : (years.value[0]?.id || null)
+    }
+
+    const effectiveSubjectId = exam.value.subjectId || exam.value.semesterSubjectId || exam.value.instituteSubjectId || null
+
+    const model_region_assignments = []
+    const target_scopes = []
+    let overall_target_scope_level = 'all'
+
+    if (modelsMode.value === 'advanced') {
+      modelGroups.value.forEach((group, gIdx) => {
+        const scopeLvl = group.scope_level || 'all'
+        if (scopeLvl !== 'all' && Array.isArray(group.target_ids) && group.target_ids.length > 0) {
+          if (overall_target_scope_level === 'all') {
+            overall_target_scope_level = scopeLvl
+          }
+          group.target_ids.forEach(targetId => {
+            const assignment = {
+              model_group_index: gIdx,
+              difficulty_profile: group.difficulty_profile,
+              scope_level: scopeLvl,
+            }
+            if (scopeLvl === 'governorate') assignment.governorate_id = targetId
+            else if (scopeLvl === 'directorate') assignment.directorate_id = targetId
+            else if (scopeLvl === 'sub_directorate') assignment.sub_directorate_id = targetId
+            else if (scopeLvl === 'village') assignment.village_id = targetId
+            else if (scopeLvl === 'center') assignment.exam_center_id = targetId
+            model_region_assignments.push(assignment)
+          })
+        }
+      })
+    }
+
+    const examPayload = {
+      title: exam.value.title || 'اختبار نهائي',
+      description: exam.value.description,
+      exam_type: exam.value.exam_type || 'final',
+      institution_type: exam.value.institution_type || 'school',
+      subjectId: effectiveSubjectId,
+      semesterSubjectId: exam.value.semesterSubjectId || null,
+      instituteSubjectId: exam.value.instituteSubjectId || null,
+      levelId: exam.value.levelId,
+      branchId: exam.value.branchId,
+      stageId: exam.value.stageId,
+      classTrackId: exam.value.classTrackId,
+      termId: exam.value.termId,
+      academicRoundId: exam.value.academicRoundId,
+      yearId: resolvedYearId,
+      exam_period: exam.value.exam_period || 'morning',
+      target_scope_level: overall_target_scope_level,
+      target_scope_id: exam.value.target_scope_id,
+      questionsCount: exam.value.questionsCount,
+      modelsCount: exam.value.modelsCount,
+      durationMinutes: exam.value.durationMinutes,
+      totalMarks: examTotalScore.value,
+      passingMarks: exam.value.passingMarks || Math.round(examTotalScore.value * 0.5),
+      blueprint: blueprint.value,
+      models_mode: modelsMode.value,
+      model_groups: modelsMode.value === 'advanced' ? modelGroups.value : [],
+      model_region_assignments: model_region_assignments,
+      target_scopes: target_scopes,
+      bloom_enabled: bloomEnabled.value,
+      exclude_previously_used: exam.value.exclude_previously_used,
+      final_versions: stagedModels.value,
+    }
+
+    const res = await examsService.generateExam(examPayload)
+    if (res && res.success) {
+      if (proxy && proxy.$alert) {
+        proxy.$alert("successData", {
+          message: "تم اعتماد وتوليد الاختبار النهائي ونماذجه بنجاح وتجميد مفاتيح الإجابة!",
+          title: "مبروك! تم إنشاء الاختبار"
+        })
+      }
+      setTimeout(() => {
+        router.push({ name: 'exams-list' })
+      }, 1200)
+    } else {
+      if (proxy && proxy.$alert) {
+        proxy.$alert("errorData", {
+          message: res?.message || "فشل توليد الاختبار",
+          title: "خطأ في الاعتماد"
+        })
+      }
+    }
+  } catch (err) {
+    console.error("Commit final exam error:", err)
+    const msg = err?.response?.data?.message || err?.message || "حدث خطأ أثناء اعتماد الاختبار"
+    if (proxy && proxy.$alert) {
+      proxy.$alert("errorData", { message: msg, title: "خطأ" })
+    }
+  } finally {
+    generating.value = false
+  }
 }
 
 const nextStep = async () => {
@@ -4016,11 +5064,16 @@ const nextStep = async () => {
           return
         }
       }
-      await performGenerationSequence()
+      await prepareStagingAndProceed()
     } catch (e) {
       console.error("Shortage check error:", e)
-      await performGenerationSequence()
+      await prepareStagingAndProceed()
     }
+    return
+  }
+
+  if (step.value === 4) {
+    await commitFinalExam()
   }
 }
 
@@ -4124,58 +5177,59 @@ const generateAndSaveExam = async () => {
 </script>
 
 <style scoped>
+/* ==========================================================================
+   EXECUTIVE ZERO-GRAY DESIGN SYSTEM — SMSP EXAM GENERATOR
+   Standards: Modern Ministerial / Academic Portal Design
+   Principles: Zero dull gray, high visual hierarchy, clean geometry, 4/8px grid
+   ========================================================================== */
+
 .qb-exam-create-v4 {
   color: rgb(var(--v-theme-on-surface));
+  background: radial-gradient(ellipse at 50% 0%, rgba(var(--v-theme-primary), 0.04) 0%, transparent 70%);
 }
 
 /* ==========================================================================
-   1. Executive Official Hero Banner
-   ========================================================================== */
-.exam-hero-banner {
-  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.08) 0%, rgba(var(--v-theme-surface), 0.95) 100%);
-  border: 1px solid rgba(var(--v-border-color), 0.15);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.03);
-  backdrop-filter: blur(10px);
-}
-
-.hero-icon-box {
-  background: rgba(var(--v-theme-primary), 0.12);
-  border: 1px solid rgba(var(--v-theme-primary), 0.25);
-  box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.15);
-}
-
-/* ==========================================================================
-   2. Main Container & Section Groups
+   1. Main Container & Structural Cards (No Gray)
    ========================================================================== */
 .main-card {
   background: rgb(var(--v-theme-surface)) !important;
-  border: 1px solid rgba(var(--v-border-color), 0.12);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.12) !important;
+  box-shadow: 0 10px 30px rgba(var(--v-theme-primary), 0.04) !important;
 }
 
 .section-group-card {
-  background: rgb(var(--v-theme-background));
-  border: 1px solid rgba(var(--v-border-color), 0.12);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.12) !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.02) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.section-group-card:hover {
+  border-color: rgba(var(--v-theme-primary), 0.28) !important;
+  box-shadow: 0 8px 24px rgba(var(--v-theme-primary), 0.06) !important;
 }
 
 .border-subtle {
-  border: 1px solid rgba(var(--v-border-color), 0.12) !important;
+  border: 1px solid rgba(var(--v-theme-primary), 0.12) !important;
   background: rgb(var(--v-theme-surface));
 }
 
 .border-b-subtle {
-  border-bottom: 1px solid rgba(var(--v-border-color), 0.12) !important;
+  border-bottom: 1px solid rgba(var(--v-theme-primary), 0.12) !important;
+}
+
+.border-t-subtle {
+  border-top: 1px solid rgba(var(--v-theme-primary), 0.12) !important;
 }
 
 /* ==========================================================================
-   3. Premium Connected Stepper Wizard
+   2. Connected Stepper Wizard (Executive 4-Step Progress)
    ========================================================================== */
 .premium-wizard-wrapper {
   position: relative;
-  padding: 30px 40px;
-  background: rgb(var(--v-theme-surface));
-  border-bottom: 1px solid rgba(var(--v-border-color), 0.12);
+  padding: 28px 40px;
+  background: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.04) 0%, rgb(var(--v-theme-surface)) 100%) !important;
+  border-bottom: 1.5px solid rgba(var(--v-theme-primary), 0.12) !important;
 }
 
 .premium-wizard-container {
@@ -4183,26 +5237,28 @@ const generateAndSaveExam = async () => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  max-width: 900px;
+  max-width: 980px;
   margin: 0 auto;
 }
 
 .wizard-progress-track {
   position: absolute;
-  top: 24px;
+  top: 26px;
   left: 60px;
   right: 60px;
-  height: 3px;
-  background: rgba(var(--v-border-color), 0.2);
+  height: 4px;
+  background: rgba(var(--v-theme-primary), 0.12) !important;
   z-index: 1;
   border-radius: 999px;
+  overflow: hidden;
 }
 
 .wizard-progress-fill {
   height: 100%;
-  background: rgb(var(--v-theme-primary));
-  transition: width 0.35s ease;
+  background: linear-gradient(90deg, #10b981 0%, rgb(var(--v-theme-primary)) 100%) !important;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 999px;
+  box-shadow: 0 0 12px rgba(var(--v-theme-primary), 0.5);
 }
 
 .premium-wizard-node {
@@ -4213,37 +5269,69 @@ const generateAndSaveExam = async () => {
   align-items: center;
   text-align: center;
   cursor: pointer;
-  width: 180px;
-  transition: opacity 0.2s ease;
+  width: 200px;
+  transition: all 0.25s ease;
+  user-select: none;
 }
 
 .node-icon-wrapper {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid rgba(var(--v-border-color), 0.25);
-  background: rgb(var(--v-theme-surface));
-  margin-bottom: 8px;
+  border: 2px solid rgba(var(--v-theme-primary), 0.18) !important;
+  background: rgb(var(--v-theme-surface)) !important;
+  margin-bottom: 10px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.node-step-number {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(var(--v-theme-primary), 0.12);
+  color: rgb(var(--v-theme-primary));
+  font-size: 11px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid rgb(var(--v-theme-surface));
   transition: all 0.2s ease;
 }
 
 .node-title {
-  font-size: 15px;
+  font-size: 0.94rem;
   color: rgb(var(--v-theme-on-surface));
   display: block;
-  line-height: 1.4;
-  font-weight: 700;
+  line-height: 1.35;
+  font-weight: 800;
   transition: color 0.2s ease;
+}
+
+.node-subtitle {
+  font-size: 0.76rem;
+  color: rgba(var(--v-theme-on-surface), 0.65);
+  margin-top: 2px;
 }
 
 /* Active Node State */
 .premium-wizard-node.is-active .node-icon-wrapper {
-  border-color: rgb(var(--v-theme-primary));
-  background: rgb(var(--v-theme-primary));
-  box-shadow: 0 2px 8px rgba(var(--v-theme-primary), 0.25);
+  border-color: rgb(var(--v-theme-primary)) !important;
+  background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, #1d4ed8 100%) !important;
+  box-shadow: 0 6px 20px rgba(var(--v-theme-primary), 0.35) !important;
+  transform: translateY(-2px);
+}
+.premium-wizard-node.is-active .node-icon-wrapper .node-step-number {
+  background: #ffffff;
+  color: rgb(var(--v-theme-primary));
 }
 .premium-wizard-node.is-active .node-title {
   color: rgb(var(--v-theme-primary)) !important;
@@ -4252,68 +5340,75 @@ const generateAndSaveExam = async () => {
 
 /* Completed Node State */
 .premium-wizard-node.is-completed .node-icon-wrapper {
-  border-color: rgb(var(--v-theme-success));
-  background: rgb(var(--v-theme-success));
-  box-shadow: none;
+  border-color: #10b981 !important;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3) !important;
+}
+.premium-wizard-node.is-completed .node-icon-wrapper .node-step-number {
+  background: #ffffff;
+  color: #10b981;
+}
+.premium-wizard-node.is-completed .node-title {
+  color: #10b981 !important;
 }
 
 /* Pending Node State */
 .premium-wizard-node.is-pending {
-  opacity: 0.65;
-}
-.premium-wizard-node.is-pending:hover {
   opacity: 0.85;
+}
+.premium-wizard-node.is-pending:hover .node-icon-wrapper {
+  border-color: rgba(var(--v-theme-primary), 0.4) !important;
+  transform: translateY(-2px);
 }
 
 /* ==========================================================================
-   4. Interactive Visual Selection Cards
+   3. Step 1 Master-Detail Sidebar Navigation
    ========================================================================== */
-.selection-card,
-.model-mode-card {
+.step1-sidebar-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.14) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 6px 24px rgba(var(--v-theme-primary), 0.03) !important;
+  position: sticky;
+  top: 24px;
+  z-index: 10;
+}
+
+.step1-nav-item {
   background: rgb(var(--v-theme-surface));
-  border: 1.5px solid rgba(var(--v-border-color), 0.15);
-  border-radius: 14px;
-  padding: 16px 20px;
-  cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.1) !important;
+  border-radius: 14px !important;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
 }
 
-.selection-card:hover,
-.model-mode-card:hover {
-  border-color: rgba(var(--v-theme-primary), 0.45);
+.step1-nav-item:hover {
+  border-color: rgba(var(--v-theme-primary), 0.35) !important;
+  transform: translateX(-2px);
+  background: rgba(var(--v-theme-primary), 0.03) !important;
 }
 
-.selection-card.is-active,
-.model-mode-card.is-active {
+.step1-nav-item.is-active {
+  background: linear-gradient(90deg, rgba(var(--v-theme-primary), 0.08) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
   border-color: rgb(var(--v-theme-primary)) !important;
-  background: rgba(var(--v-theme-primary), 0.04) !important;
-  box-shadow: none !important;
+  border-right: 4px solid rgb(var(--v-theme-primary)) !important;
+  box-shadow: 0 4px 16px rgba(var(--v-theme-primary), 0.1) !important;
 }
 
-.model-mode-card.is-active-warning {
-  border-color: rgb(var(--v-theme-warning)) !important;
-  background: rgba(var(--v-theme-warning), 0.04) !important;
-  box-shadow: none !important;
-}
-
-.field-preset-card {
-  background: rgb(var(--v-theme-surface));
-  border: 1px solid rgba(var(--v-border-color), 0.15);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.field-preset-card:focus-within {
-  border-color: rgb(var(--v-theme-primary));
-  box-shadow: 0 0 0 1px rgba(var(--v-theme-primary), 0.3);
+.step1-nav-item.has-error {
+  border-color: rgba(var(--v-theme-error), 0.4) !important;
+  background: rgba(var(--v-theme-error), 0.04) !important;
+  border-right: 4px solid rgb(var(--v-theme-error)) !important;
 }
 
 /* ==========================================================================
-   5. Segmented Institution Controls & Quick Presets
+   4. Segmented Institution Type Controls (Zero Gray)
    ========================================================================== */
 .segmented-control {
-  background: rgb(var(--v-theme-surface));
-  border: 1px solid rgba(var(--v-border-color), 0.15);
+  background: rgba(var(--v-theme-primary), 0.04) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.14) !important;
+  border-radius: 16px !important;
+  padding: 6px !important;
 }
 
 .segmented-control-btn {
@@ -4322,130 +5417,130 @@ const generateAndSaveExam = async () => {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 16px;
-  border-radius: 10px;
+  padding: 11px 18px;
+  border-radius: 12px;
   border: none;
   background: transparent;
-  color: rgba(var(--v-theme-on-surface), 0.7);
-  font-weight: 700;
-  font-size: 13px;
+  color: rgba(var(--v-theme-on-surface), 0.75);
+  font-weight: 800;
+  font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.22s ease;
   min-width: 140px;
 }
 
 .segmented-control-btn:hover {
-  color: rgb(var(--v-theme-on-surface));
-  background: rgba(var(--v-border-color), 0.08);
+  color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.08);
 }
 
 .segmented-control-btn.is-active {
-  background: rgb(var(--v-theme-primary)) !important;
+  background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, #1d4ed8 100%) !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.3);
-}
-
-.preset-pill-btn {
-  padding: 2px 10px;
-  border-radius: 6px;
-  border: 1px solid rgba(var(--v-border-color), 0.18);
-  background: rgb(var(--v-theme-surface));
-  color: rgba(var(--v-theme-on-surface), 0.75);
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.preset-pill-btn:hover {
-  border-color: rgb(var(--v-theme-primary));
-  color: rgb(var(--v-theme-primary));
-}
-
-.preset-pill-btn.is-active {
-  background: rgb(var(--v-theme-primary));
-  border-color: rgb(var(--v-theme-primary));
-  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(var(--v-theme-primary), 0.3) !important;
 }
 
 /* ==========================================================================
-   6. Scope Level Cards Grid
+   5. Interactive Selection & Model Mode Cards (Zero Gray)
+   ========================================================================== */
+.selection-card,
+.model-mode-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.14) !important;
+  border-radius: 18px !important;
+  padding: 18px 22px !important;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  user-select: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02) !important;
+}
+
+.selection-card:hover,
+.model-mode-card:hover {
+  border-color: rgba(var(--v-theme-primary), 0.4) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(var(--v-theme-primary), 0.08) !important;
+}
+
+.selection-card.is-active,
+.model-mode-card.is-active {
+  border-color: rgb(var(--v-theme-primary)) !important;
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.08) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  box-shadow: 0 4px 18px rgba(var(--v-theme-primary), 0.15) !important;
+}
+
+.model-mode-card.is-active-warning {
+  border-color: #f59e0b !important;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.15) !important;
+}
+
+/* ==========================================================================
+   6. Scope Level Cards Grid (Zero Gray)
    ========================================================================== */
 .scope-grid {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
 }
 
 .scope-card {
   flex: 1 1 0;
-  background: rgb(var(--v-theme-surface));
-  border: 1.5px solid rgba(var(--v-border-color), 0.15);
-  border-radius: 12px;
-  padding: 12px 8px;
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.14) !important;
+  border-radius: 14px !important;
+  padding: 14px 10px !important;
   text-align: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease !important;
   user-select: none;
   min-width: 100px;
 }
 
 .scope-card:hover {
-  border-color: rgba(var(--v-theme-primary), 0.45);
-  transform: translateY(-1px);
+  border-color: rgba(var(--v-theme-primary), 0.4) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(var(--v-theme-primary), 0.08) !important;
 }
 
 .scope-card.is-active {
   border-color: rgb(var(--v-theme-primary)) !important;
-  background: rgba(var(--v-theme-primary), 0.06) !important;
-  box-shadow: 0 0 0 1px rgb(var(--v-theme-primary));
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.1) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  box-shadow: 0 4px 14px rgba(var(--v-theme-primary), 0.18) !important;
 }
 
 /* ==========================================================================
-   7. Schedule Info Ribbon & Model Group Cards
-   ========================================================================== */
-.schedule-ribbon {
-  background: rgba(var(--v-theme-primary), 0.05);
-  border: 1px solid rgba(var(--v-theme-primary), 0.18);
-}
-
-.model-group-card {
-  background: rgb(var(--v-theme-surface));
-  transition: all 0.25s ease;
-}
-
-.model-group-card:hover {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
-  border-color: rgba(var(--v-theme-primary), 0.35) !important;
-}
-
-/* ==========================================================================
-   8. Matrix Specification Tabs & Executive Tables
+   7. Matrix Specification Tabs & Navigation (Step 2)
    ========================================================================== */
 .matrix-tabs-bar {
-  background: rgba(var(--v-theme-background), 0.6);
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.04) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  border-bottom: 1.5px solid rgba(var(--v-theme-primary), 0.14) !important;
+  padding: 8px !important;
+  gap: 8px !important;
 }
 
 .matrix-tab-btn {
-  border: none;
-  border-bottom: 3px solid transparent;
-  background: transparent;
-  color: rgba(var(--v-theme-on-surface), 0.65);
-  font-weight: 700;
-  font-size: 14px;
-  min-width: 160px;
-  transition: all 0.2s ease;
+  border-radius: 14px !important;
+  border: 1.5px solid transparent !important;
+  background: transparent !important;
+  color: rgba(var(--v-theme-on-surface), 0.7) !important;
+  font-weight: 800 !important;
+  font-size: 0.92rem !important;
+  min-width: 170px !important;
+  padding: 12px 18px !important;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .matrix-tab-btn:hover {
-  color: rgb(var(--v-theme-primary));
-  background: rgba(var(--v-theme-primary), 0.04);
+  color: rgb(var(--v-theme-primary)) !important;
+  background: rgba(var(--v-theme-primary), 0.06) !important;
 }
 
 .matrix-tab-btn.is-active {
   background: rgb(var(--v-theme-surface)) !important;
-  border-bottom: 3px solid rgb(var(--v-theme-primary)) !important;
+  border-color: rgba(var(--v-theme-primary), 0.28) !important;
   color: rgb(var(--v-theme-primary)) !important;
+  box-shadow: 0 4px 16px rgba(var(--v-theme-primary), 0.12) !important;
 }
 
 .executive-table {
@@ -4453,144 +5548,38 @@ const generateAndSaveExam = async () => {
 }
 
 .table-header-row {
-  background: rgba(var(--v-theme-background), 0.8) !important;
+  background: rgba(var(--v-theme-primary), 0.06) !important;
 }
 
 /* ==========================================================================
-   9. Executive KPI Certification Cards (Step 3)
-   ========================================================================== */
-.kpi-cert-card {
-  background: rgb(var(--v-theme-surface));
-  transition: all 0.2s ease;
-}
-
-.kpi-cert-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
-}
-
-.kpi-title {
-  font-size: 15px;
-  color: rgb(var(--v-theme-on-surface));
-}
-
-.kpi-metric {
-  font-size: 22px;
-  line-height: 1.1;
-}
-
-/* ==========================================================================
-   10. Step 1 Master-Detail Sidebar Navigation
-   ========================================================================== */
-.step1-sidebar-card {
-  background: rgb(var(--v-theme-surface));
-  border: 1px solid rgba(var(--v-border-color), 0.12);
-  position: sticky;
-  top: 24px;
-  z-index: 10;
-}
-
-.step1-nav-item {
-  background: transparent;
-  border: 1.5px solid transparent;
-  transition: background 0.18s ease;
-  user-select: none;
-}
-
-.step1-nav-item:hover {
-  background: rgba(var(--v-theme-on-surface), 0.04);
-}
-
-.step1-nav-item.is-active {
-  background: rgba(var(--v-theme-primary), 0.08) !important;
-  border-right: 3px solid rgb(var(--v-theme-primary)) !important;
-  box-shadow: none !important;
-}
-
-.step1-nav-item.has-error {
-  border-right: 3px solid rgb(var(--v-theme-error)) !important;
-  background: rgba(var(--v-theme-error), 0.07) !important;
-  border-color: rgba(var(--v-theme-error), 0.35) !important;
-}
-
-.step1-nav-item.has-error:hover {
-  background: rgba(var(--v-theme-error), 0.12) !important;
-}
-
-.step1-nav-item.has-error.is-active {
-  background: rgba(var(--v-theme-error), 0.15) !important;
-  border-right: 3px solid rgb(var(--v-theme-error)) !important;
-}
-
-@media (max-width: 959px) {
-  .step1-sidebar-card {
-    position: static;
-    margin-bottom: 20px;
-  }
-  .step1-nav-list {
-    flex-direction: row !important;
-    overflow-x: auto;
-    padding-bottom: 6px;
-  }
-  .step1-nav-item {
-    min-width: 230px;
-    border-right: 1.5px solid transparent !important;
-    border-bottom: 3px solid transparent;
-  }
-  .step1-nav-item.is-active {
-    border-bottom: 3px solid rgb(var(--v-theme-primary)) !important;
-  }
-  .step1-nav-item.has-error {
-    border-bottom: 3px solid rgb(var(--v-theme-error)) !important;
-    border-right: 1.5px solid transparent !important;
-  }
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .premium-wizard-wrapper {
-    padding: 16px 12px;
-  }
-  .premium-wizard-container {
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  .wizard-progress-track {
-    display: none;
-  }
-  .premium-wizard-node {
-    width: 30%;
-  }
-}
-
-/* ==========================================================================
-   Units Distribution Tab Modern Executive Styles (Zero Gray)
+   8. Units Distribution Tab Executive Styles (Zero Gray)
    ========================================================================== */
 .units-tab-header {
-  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.05) 0%, rgba(var(--v-theme-surface), 0.98) 100%);
-  border: 1px solid rgba(var(--v-theme-primary), 0.14);
-  border-radius: 18px;
-  padding: 18px 24px;
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.06) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.16) !important;
+  border-radius: 18px !important;
+  padding: 18px 24px !important;
 }
 
 .units-header-icon-box {
   width: 48px;
   height: 48px;
   border-radius: 14px;
-  background: rgba(var(--v-theme-primary), 0.1);
-  border: 1px solid rgba(var(--v-theme-primary), 0.2);
+  background: rgba(var(--v-theme-primary), 0.12) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.25) !important;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.12);
 }
 
 .model-groups-selector-hub {
-  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.04) 0%, rgba(var(--v-theme-surface), 0.98) 100%);
-  border: 1px solid rgba(var(--v-theme-primary), 0.16);
-  border-radius: 18px;
-  padding: 16px 20px;
-  box-shadow: 0 4px 20px rgba(var(--v-theme-primary), 0.04);
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.06) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.18) !important;
+  border-radius: 18px !important;
+  padding: 18px 22px !important;
+  box-shadow: 0 4px 20px rgba(var(--v-theme-primary), 0.04) !important;
 }
 
 .hub-bullet-dot {
@@ -4608,37 +5597,37 @@ const generateAndSaveExam = async () => {
 }
 
 .group-switch-pill {
-  background: rgb(var(--v-theme-surface));
-  border: 1.5px solid rgba(var(--v-theme-primary), 0.14);
-  border-radius: 14px;
-  padding: 12px 14px;
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.16) !important;
+  border-radius: 14px !important;
+  padding: 12px 16px !important;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
   position: relative;
   user-select: none;
 }
 
 .group-switch-pill:hover {
-  border-color: rgba(var(--v-theme-primary), 0.4);
+  border-color: rgba(var(--v-theme-primary), 0.4) !important;
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(var(--v-theme-primary), 0.1);
+  box-shadow: 0 6px 18px rgba(var(--v-theme-primary), 0.08) !important;
 }
 
 .group-switch-pill.is-active {
-  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.14) 0%, rgba(var(--v-theme-primary), 0.04) 100%);
-  border-color: rgb(var(--v-theme-primary));
-  box-shadow: 0 4px 18px rgba(var(--v-theme-primary), 0.22);
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.14) 0%, rgba(var(--v-theme-primary), 0.04) 100%) !important;
+  border-color: rgb(var(--v-theme-primary)) !important;
+  box-shadow: 0 4px 18px rgba(var(--v-theme-primary), 0.22) !important;
 }
 
 .group-pill-title {
-  font-size: 0.92rem;
+  font-size: 0.94rem;
   color: rgb(var(--v-theme-on-surface));
 }
 
 .pill-percentage-badge {
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 8px;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   display: inline-flex;
   align-items: center;
 }
@@ -4646,29 +5635,29 @@ const generateAndSaveExam = async () => {
 .pill-percentage-badge.is-complete {
   background: rgba(16, 185, 129, 0.12);
   color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .pill-percentage-badge.is-pending {
   background: rgba(245, 158, 11, 0.12);
   color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
 .active-group-hero-banner {
-  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.12) 0%, rgba(var(--v-theme-primary), 0.03) 60%, rgb(var(--v-theme-surface)) 100%);
-  border: 1px solid rgba(var(--v-theme-primary), 0.2);
-  border-right: 5px solid rgb(var(--v-theme-primary));
-  border-radius: 18px;
-  padding: 18px 24px;
-  box-shadow: 0 6px 24px rgba(var(--v-theme-primary), 0.08);
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.12) 0%, rgba(var(--v-theme-primary), 0.03) 60%, rgb(var(--v-theme-surface)) 100%) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.2) !important;
+  border-right: 5px solid rgb(var(--v-theme-primary)) !important;
+  border-radius: 18px !important;
+  padding: 18px 24px !important;
+  box-shadow: 0 6px 24px rgba(var(--v-theme-primary), 0.08) !important;
 }
 
 .active-group-hero-avatar {
   width: 50px;
   height: 50px;
   border-radius: 14px;
-  background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, #2563eb 100%);
+  background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, #1d4ed8 100%) !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4692,38 +5681,20 @@ const generateAndSaveExam = async () => {
   color: #f59e0b;
 }
 
-.modern-empty-state {
-  border: 2px dashed rgba(var(--v-theme-primary), 0.25);
-  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.03) 0%, rgba(var(--v-theme-surface), 0.98) 100%);
-  border-radius: 20px;
-  padding: 40px 24px;
-  text-align: center;
-}
-
-.empty-state-icon-box {
-  width: 64px;
-  height: 64px;
-  border-radius: 20px;
-  background: rgba(var(--v-theme-primary), 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .modern-unit-card {
-  background: rgb(var(--v-theme-surface));
-  border: 1px solid rgba(var(--v-theme-primary), 0.14);
-  border-radius: 16px;
-  padding: 16px 20px;
-  transition: all 0.25s ease;
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.14) !important;
+  border-radius: 16px !important;
+  padding: 16px 20px !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02) !important;
 }
 
 .modern-unit-card:hover {
-  border-color: rgba(var(--v-theme-primary), 0.35);
-  box-shadow: 0 6px 20px rgba(var(--v-theme-primary), 0.08);
+  border-color: rgba(var(--v-theme-primary), 0.35) !important;
+  box-shadow: 0 8px 24px rgba(var(--v-theme-primary), 0.08) !important;
   transform: translateY(-2px);
 }
 
@@ -4735,15 +5706,15 @@ const generateAndSaveExam = async () => {
   bottom: 0;
   width: 4px;
   background: rgb(var(--v-theme-primary));
-  opacity: 0.8;
+  opacity: 0.85;
   border-top-right-radius: 16px;
   border-bottom-right-radius: 16px;
 }
 
 .modern-unit-card.is-excluded {
-  background: rgba(var(--v-theme-error), 0.04);
-  border-color: rgba(var(--v-theme-error), 0.25);
-  opacity: 0.75;
+  background: rgba(var(--v-theme-error), 0.04) !important;
+  border-color: rgba(var(--v-theme-error), 0.25) !important;
+  opacity: 0.8;
 }
 
 .modern-unit-card.is-excluded::before {
@@ -4751,8 +5722,8 @@ const generateAndSaveExam = async () => {
 }
 
 .unit-stepper-box {
-  background: rgba(var(--v-theme-primary), 0.04);
-  border: 1px solid rgba(var(--v-theme-primary), 0.12);
+  background: rgba(var(--v-theme-primary), 0.05);
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.14);
   border-radius: 12px;
   padding: 4px 6px;
 }
@@ -4777,45 +5748,68 @@ const generateAndSaveExam = async () => {
   color: rgb(var(--v-theme-error));
 }
 
-.unit-balance-alert-card {
-  border-radius: 16px;
-  padding: 16px 20px;
-  border: 1px solid transparent;
-}
-
-.unit-balance-alert-card.is-warning {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(var(--v-theme-surface), 0.95) 100%);
-  border-color: rgba(245, 158, 11, 0.3);
-}
-
-.unit-balance-alert-card.is-success {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(var(--v-theme-surface), 0.95) 100%);
-  border-color: rgba(16, 185, 129, 0.3);
-}
-
 .term-header-banner {
-  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.08) 0%, rgba(var(--v-theme-surface), 0.95) 100%);
-  border: 1px solid rgba(var(--v-theme-primary), 0.15);
-  border-right: 3px solid rgb(var(--v-theme-primary));
-  padding: 8px 16px;
-  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.08) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.15) !important;
+  border-right: 4px solid rgb(var(--v-theme-primary)) !important;
+  padding: 10px 18px !important;
+  border-radius: 14px !important;
 }
 
+/* ==========================================================================
+   9. Exam Total Marks Command Center & Question Types Cards (Zero Gray)
+   ========================================================================== */
+.exam-total-marks-card {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.08) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.2) !important;
+  border-right: 5px solid rgb(var(--v-theme-primary)) !important;
+  border-radius: 18px !important;
+  padding: 18px 24px !important;
+  box-shadow: 0 6px 24px rgba(var(--v-theme-primary), 0.06) !important;
+}
+
+.total-marks-icon-box {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  background: rgba(245, 158, 11, 0.12) !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.3) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.score-input-wrapper {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.25) !important;
+}
+
+.score-number-input {
+  width: 64px;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: rgb(var(--v-theme-primary));
+  outline: none;
+  border: none;
+  background: transparent;
+}
 
 .modern-type-card {
-  background: rgb(var(--v-theme-surface));
-  border: 1px solid rgba(var(--v-theme-primary), 0.14);
-  border-radius: 16px;
-  padding: 16px 20px;
-  transition: all 0.25s ease;
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.14) !important;
+  border-radius: 16px !important;
+  padding: 16px 20px !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02) !important;
 }
 
 .modern-type-card:hover {
-  border-color: rgba(var(--v-theme-primary), 0.35);
-  box-shadow: 0 6px 20px rgba(var(--v-theme-primary), 0.08);
+  border-color: rgba(var(--v-theme-primary), 0.35) !important;
+  box-shadow: 0 8px 24px rgba(var(--v-theme-primary), 0.08) !important;
   transform: translateY(-2px);
 }
 
@@ -4827,59 +5821,172 @@ const generateAndSaveExam = async () => {
   bottom: 0;
   width: 4px;
   background: rgb(var(--v-theme-primary));
-  opacity: 0.8;
+  opacity: 0.85;
   border-top-right-radius: 16px;
   border-bottom-right-radius: 16px;
 }
 
-
-/* ==========================================================================
-   Exam Total Marks & Question Types Metrics Styles (Zero Gray)
-   ========================================================================== */
-.exam-total-marks-card {
-  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.08) 0%, rgba(var(--v-theme-surface), 0.98) 100%);
-  border: 1px solid rgba(var(--v-theme-primary), 0.2);
-  border-right: 5px solid rgb(var(--v-theme-primary));
-  border-radius: 18px;
-  padding: 16px 20px;
-  box-shadow: 0 4px 18px rgba(var(--v-theme-primary), 0.05);
+.type-metrics-bar {
+  background: rgba(var(--v-theme-primary), 0.04) !important;
+  border: 1px solid rgba(var(--v-theme-primary), 0.12) !important;
+  border-radius: 12px;
+  padding: 8px 14px;
 }
 
-.total-marks-icon-box {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+/* ==========================================================================
+   10. Step 3 Executive KPI Certification Cards
+   ========================================================================== */
+.kpi-cert-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.14) !important;
+  border-radius: 18px !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02) !important;
+}
+
+.kpi-cert-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(var(--v-theme-primary), 0.35) !important;
+  box-shadow: 0 8px 24px rgba(var(--v-theme-primary), 0.08) !important;
+}
+
+.kpi-title {
+  font-size: 1rem;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.kpi-metric {
+  font-size: 1.6rem;
+  line-height: 1.15;
+}
+
+/* ==========================================================================
+   11. Step 4: Interactive Exam Staging Styles (Zero Gray)
+   ========================================================================== */
+.staged-hero-banner {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.08) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.18) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 6px 24px rgba(var(--v-theme-primary), 0.05) !important;
+}
+
+.staged-hero-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: rgba(var(--v-theme-primary), 0.12) !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.25) !important;
+  box-shadow: 0 4px 14px rgba(var(--v-theme-primary), 0.12);
 }
 
-.score-input-wrapper {
-  background: rgb(var(--v-theme-surface));
-  border: 1.5px solid rgba(var(--v-theme-primary), 0.25);
+.shadow-success {
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35) !important;
 }
 
-.score-number-input {
-  width: 60px;
-  text-align: center;
-  font-size: 1.15rem;
-  color: rgb(var(--v-theme-primary));
-  outline: none;
-  border: none;
-  background: transparent;
+.staged-nav-pill {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.15) !important;
+  border-radius: 14px !important;
+  padding: 9px 18px !important;
+  cursor: pointer;
+  transition: all 0.22s ease !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.type-metrics-bar {
-  background: rgba(var(--v-theme-primary), 0.04);
-  border: 1px solid rgba(var(--v-theme-primary), 0.1);
-  padding: 8px 12px;
+.staged-nav-pill:hover {
+  border-color: rgba(var(--v-theme-primary), 0.4) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(var(--v-theme-primary), 0.08);
 }
 
-.type-metric-item {
-  flex: 1;
+.staged-nav-pill.is-active {
+  background: rgba(var(--v-theme-primary), 0.1) !important;
+  border-color: rgb(var(--v-theme-primary)) !important;
+  box-shadow: 0 4px 16px rgba(var(--v-theme-primary), 0.18) !important;
 }
 
+.staged-version-pill {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.15) !important;
+  border-radius: 14px !important;
+  padding: 8px 16px !important;
+  cursor: pointer;
+  transition: all 0.22s ease !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.staged-version-pill:hover {
+  border-color: rgba(var(--v-theme-primary), 0.4) !important;
+  transform: translateY(-2px);
+}
+
+.staged-version-pill.is-active {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.12) 0%, rgba(var(--v-theme-primary), 0.04) 100%) !important;
+  border-color: rgb(var(--v-theme-primary)) !important;
+  box-shadow: 0 4px 16px rgba(var(--v-theme-primary), 0.2) !important;
+}
+
+.staged-question-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.14) !important;
+  border-right: 5px solid rgb(var(--v-theme-primary)) !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.staged-question-card:hover {
+  border-color: rgba(var(--v-theme-primary), 0.35) !important;
+  box-shadow: 0 8px 24px rgba(var(--v-theme-primary), 0.08) !important;
+  transform: translateY(-1px);
+}
+
+.staged-option-item {
+  background: rgba(var(--v-theme-primary), 0.03) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.12) !important;
+  transition: all 0.2s ease;
+}
+
+.staged-option-item:hover {
+  background: rgba(var(--v-theme-primary), 0.06) !important;
+  border-color: rgba(var(--v-theme-primary), 0.3) !important;
+}
+
+.staged-option-item.is-correct-option {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border: 1.5px solid #10b981 !important;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.14);
+}
+
+/* ==========================================================================
+   12. Sticky Wizard Footer
+   ========================================================================== */
+.wizard-footer {
+  backdrop-filter: blur(12px) !important;
+  background: rgba(var(--v-theme-surface), 0.96) !important;
+  border-top: 1.5px solid rgba(var(--v-theme-primary), 0.12) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .premium-wizard-wrapper {
+    padding: 16px 12px;
+  }
+  .premium-wizard-container {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .wizard-progress-track {
+    display: none;
+  }
+  .premium-wizard-node {
+    width: 48%;
+  }
+}
 </style>
