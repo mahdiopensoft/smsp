@@ -88,6 +88,11 @@ class OpenCVOMREngine(BaseEngine):
         If fiducials are detected, corrects rotation and perspective skew.
         """
         try:
+            if hasattr(template, "model_dump"):
+                template = template.model_dump()
+            elif not isinstance(template, dict):
+                template = getattr(template, "template_data", {}) or {}
+
             h, w = image.shape[:2]
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
 
@@ -394,8 +399,9 @@ class OpenCVOMREngine(BaseEngine):
 
             # ── Dynamic Local Bubble Snapping ─────────────────────────
             # Search in a local window around expected position for the true printed circle
-            win_pad_x = max(int(bw * 1.2), int(self._mm_to_px(3.5, dpi)))
-            win_pad_y = max(int(bh * 1.0), int(self._mm_to_px(2.5, dpi)))
+            # Constrain window to prevent jumping across adjacent rows (row pitch is ~5.4mm)
+            win_pad_x = min(max(int(bw * 0.7), int(self._mm_to_px(1.5, dpi))), int(self._mm_to_px(2.5, dpi)))
+            win_pad_y = min(max(int(bh * 0.55), int(self._mm_to_px(1.2, dpi))), int(self._mm_to_px(1.8, dpi)))
             img_h, img_w = binary_image.shape[:2]
 
             wx1 = max(0, expected_cx - win_pad_x)

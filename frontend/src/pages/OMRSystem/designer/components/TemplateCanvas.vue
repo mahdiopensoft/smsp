@@ -54,7 +54,7 @@
           :total-questions="config.questions?.metadata?.num_questions || 50"
           :sections="config.questions?.sections"
           :columns-count="config.questions?.layout?.columns_count || 4"
-          :row-spacing="config.questions?.layout?.row_spacing_mm || 5.2"
+          :row-spacing="config.questions?.layout?.row_spacing_mm || 5.4"
         />
 
         <!-- Mode 2: Student Exam Answer Sheet (A5 Compact) -->
@@ -104,7 +104,7 @@
           :total-questions="config.questions?.metadata?.num_questions || 50"
           :sections="config.questions?.sections"
           :columns-count="config.questions?.layout?.columns_count || 4"
-          :row-spacing="config.questions?.layout?.row_spacing_mm || 5.2"
+          :row-spacing="config.questions?.layout?.row_spacing_mm || 5.4"
           @bubble-click="onBubbleClick"
         />
 

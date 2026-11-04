@@ -269,3 +269,42 @@ class OMRPrintOrderMVS(ViewSet):
                 "scheduled_print_date": str(order.scheduled_print_date),
             }
         })
+
+    @action(detail=False, methods=['post'], url_path='cancel-order')
+    def cancel_order(self, request):
+        """
+        Cancel a print order with reason.
+        Payload: { exam_id: 3, cancel_reason: '...' }
+        """
+        exam_id = request.data.get('exam_id')
+        if not exam_id:
+            return Response({"success": False, "message": "معرف الاختبار مطلوب"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            exam = Exam.objects.get(pk=exam_id, is_deleted=False)
+        except Exam.DoesNotExist:
+            return Response({"success": False, "message": "الاختبار غير موجود"}, status=status.HTTP_404_NOT_FOUND)
+
+        cancel_reason = request.data.get('cancel_reason') or 'تم إلغاء أمر الطباعة بقرار رسمي من الكنترول'
+        order_num = f"PRN-REQ-{exam.uniqueCode or exam.id}"
+        order, created = OMRPrintOrder.objects.get_or_create(
+            exam=exam,
+            defaults={
+                "order_number": order_num,
+                "status": OMRPrintOrder.Status.CANCELLED,
+                "return_reason": cancel_reason,
+            }
+        )
+        if not created:
+            order.status = OMRPrintOrder.Status.CANCELLED
+            order.return_reason = cancel_reason
+            order.save()
+
+        return Response({
+            "success": True,
+            "message": f"تم إلغاء أمر طباعة الاختبار {exam.title} رسمياً",
+            "order": {
+                "order_number": order.order_number,
+                "status": order.status,
+            }
+        })

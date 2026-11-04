@@ -75,7 +75,7 @@
             :total-questions="templateData?.questions?.metadata?.num_questions || template?.total_mcq || 50"
             :sections="templateData?.questions?.sections"
             :columns-count="templateData?.questions?.layout?.columns_count || 4"
-            :row-spacing="templateData?.questions?.layout?.row_spacing_mm || 5.2"
+            :row-spacing="templateData?.questions?.layout?.row_spacing_mm || 5.4"
           />
 
           <!-- Mode 2: Yemeni Ministry Student Answer Sheet (A5 Compact) -->
@@ -117,7 +117,7 @@
             :total-questions="templateData?.questions?.metadata?.num_questions || template?.total_mcq || 50"
             :sections="templateData?.questions?.sections"
             :columns-count="templateData?.questions?.layout?.columns_count || 4"
-            :row-spacing="templateData?.questions?.layout?.row_spacing_mm || 5.2"
+            :row-spacing="templateData?.questions?.layout?.row_spacing_mm || 5.4"
             :bubble-radius="templateData?.questions?.layout?.bubble_radius_mm || 2.1"
             :mcq-bubble-type="templateData?.questions?.layout?.bubble_type || 'numbers'"
             :tf-bubble-type="templateData?.questions?.layout?.tf_bubble_type || 'arabic'"

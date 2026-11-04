@@ -275,7 +275,7 @@ export function useSectionManager(props: { config: any }) {
     props.config.questions.layout.choices_count = 4
     props.config.questions.layout.bubble_type = 'numbers'
     props.config.questions.layout.tf_bubble_type = 'arabic'
-    props.config.questions.layout.row_spacing_mm = 5.2
+    props.config.questions.layout.row_spacing_mm = 5.4
     props.config.questions.layout.bubble_radius_mm = 2.1
   }
 
@@ -297,7 +297,7 @@ export function useSectionManager(props: { config: any }) {
     props.config.questions.layout.choices_count = 4
     props.config.questions.layout.bubble_type = 'numbers'
     props.config.questions.layout.tf_bubble_type = 'arabic'
-    props.config.questions.layout.row_spacing_mm = 5.2
+    props.config.questions.layout.row_spacing_mm = 5.4
     props.config.questions.layout.bubble_radius_mm = 2.1
   }
 
