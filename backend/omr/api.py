@@ -1138,6 +1138,7 @@ def _detect_template_from_sheet(image_path: str, requested_template_id: str = ""
                                 }
                             }
                             dyn_contract = builder.build_from_designer_config(dyn_cfg)
+                            dyn_cfg["fiducial_marks"] = [f.model_dump() for f in dyn_contract.fiducial_marks]
                             dyn_cfg["mcq_questions"] = [q.model_dump() for q in dyn_contract.mcq_questions]
                             tpl_match, _ = ExamTemplate.objects.get_or_create(
                                 name=f"{ex_obj.title} ({v_q_cnt} سؤال)",

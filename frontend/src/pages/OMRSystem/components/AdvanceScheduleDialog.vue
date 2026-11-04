@@ -98,23 +98,20 @@
           </div>
 
           <v-row class="align-start filter-fields-row" dense>
-            <!-- مبرر تقديم الموعد (الأساس النظامي) -->
-            <v-col cols="12" class="py-1">
-              <v-combobox
-                v-model="reasonSelected"
-                :items="reasonsList"
-                label="مبرر تقديم الموعد (الأساس النظامي) *"
-                placeholder="اختر مبرر تقديم الموعد"
-                prepend-inner-icon="mdi-shield-check-outline"
-                variant="outlined"
-                density="compact"
-                rounded="lg"
-                hide-details
-                clearable
-              />
-            </v-col>
+            <!-- مبرر تقديم الموعد (الأساس النظامي) عبر AutoList الموحد -->
+            <auto-list
+              v-model="reasonSelected"
+              :objects="reasonObjects"
+              name="ScreenTypeChoices"
+              label="مبرر تقديم الموعد (الأساس النظامي) *"
+              placeholder="اختر مبرر تقديم الموعد"
+              cols="12"
+              icon="shield-check-outline"
+              :add="false"
+              :hideDetails="true"
+            />
 
-            <!-- رقم توجيه الإذن الاستثنائي / المذكرة الرسمية -->
+            <!-- رقم توجيه الإذن الاستثنائي / المذكرة الرسمية عبر CustomTextField الموحد -->
             <custom-text-field
               v-model="authDoc"
               label="رقم توجيه الإذن الاستثنائي / المذكرة الرسمية *"
@@ -175,7 +172,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 const props = withDefaults(
   defineProps<{
@@ -202,6 +199,14 @@ const reasonsList = [
   'طلب رسمي مسبق من قيادة المركز الامتحاني بالمحافظة',
   'أسباب تنظيمية وطوارئ نقل وتأمين الوثائق',
 ]
+
+const reasonObjects = computed(() => {
+  return reasonsList.map(r => ({
+    id: r,
+    name: r,
+    name_ar: r,
+  }))
+})
 
 const reasonSelected = ref(reasonsList[0])
 const authDoc = ref('')

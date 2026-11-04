@@ -23,17 +23,14 @@
 
           <!-- 2. حقل البحث الفوري الموحد -->
           <v-col cols="12" sm="6" md="3">
-            <v-text-field
+            <custom-text-field
               v-model="masterSearchQuery"
               label="اسم الاختبار أو الرمز"
               placeholder="بحث باسم الاختبار، الرمز (Code)..."
-              prepend-inner-icon="mdi-magnify"
-              clearable
-              density="compact"
-              variant="outlined"
-              rounded="lg"
+              icon="magnify"
+              cols="12"
               class="mb-3"
-              hide-details
+              :hideDetails="true"
             />
           </v-col>
 
@@ -742,17 +739,15 @@
               </v-tabs>
 
               <div class="d-flex align-center gap-2">
-                <v-text-field
-                  v-model="masterSearchQuery"
-                  placeholder="بحث برمز أو اسم الاختبار أو رقم الطلب..."
-                  prepend-inner-icon="mdi-magnify"
-                  clearable
-                  density="compact"
-                  variant="outlined"
-                  rounded="lg"
-                  hide-details
-                  style="min-width: 240px; max-width: 300px;"
-                />
+                <div style="min-width: 240px; max-width: 300px;">
+                  <custom-text-field
+                    v-model="masterSearchQuery"
+                    placeholder="بحث برمز أو اسم الاختبار أو رقم الطلب..."
+                    icon="magnify"
+                    cols="12"
+                    :hideDetails="true"
+                  />
+                </div>
                 <v-chip
                   size="small"
                   variant="tonal"
@@ -1489,152 +1484,113 @@
         <v-expand-transition>
           <div v-show="!selectedExam || showHierarchyFilters">
             <v-row dense class="align-center">
-              <!-- نوع المؤسسة التعليمية كفلتر منسدل أساسي -->
+              <!-- نوع المؤسسة التعليمية كفلتر منسدل أساسي عبر auto-list الموحد -->
               <v-col cols="12" sm="6" :md="institutionType === 'school' ? 4 : 3" :lg="institutionType === 'school' ? 2 : 3">
-                <v-select
+                <auto-list
                   v-model="institutionType"
-                  :items="sectorOptions"
-                  item-title="title"
-                  item-value="value"
+                  :objects="sectorOptionsObjects"
+                  name="ScreenTypeChoices"
                   label="نوع المؤسسة التعليمية"
-                  density="compact"
-                  variant="outlined"
-                  rounded="lg"
-                  hide-details
-                  :prepend-inner-icon="institutionType === 'university' ? 'mdi-domain' : (institutionType === 'institute' ? 'mdi-tools' : 'mdi-school')"
+                  placeholder="نوع المؤسسة التعليمية"
+                  cols="12"
+                  :add="false"
+                  :hideDetails="true"
                   @update:model-value="onSectorChange"
-                >
-                  <template #item="{ props, item }">
-                    <v-list-item v-bind="props" :prepend-icon="item.raw?.icon" />
-                  </template>
-                </v-select>
+                />
               </v-col>
 
-              <!-- التعليم العام (المدرسي): محافظة -> مديرية -> مدرسة/مركز -->
+              <!-- التعليم العام (المدرسي): محافظة -> مديرية -> مدرسة/مركز عبر auto-list الموحد -->
               <template v-if="institutionType === 'school'">
                 <v-col cols="12" sm="6" md="4" lg="2">
-                  <v-autocomplete
+                  <auto-list
                     v-model="selectedOfficeId"
-                    :items="officesList"
-                    item-title="office_name"
-                    item-value="id"
+                    :objects="officesObjects"
+                    name="ScreenTypeChoices"
                     label="مكتب التربية (المحافظة)"
                     placeholder="كل المحافظات..."
-                    clearable
-                    density="compact"
-                    variant="outlined"
-                    rounded="lg"
-                    hide-details
-                    prepend-inner-icon="mdi-office-building-outline"
+                    cols="12"
+                    :add="false"
+                    :hideDetails="true"
                     @update:model-value="onStudioOfficeChange"
                   />
                 </v-col>
 
                 <v-col cols="12" sm="6" md="4" lg="2">
-                  <v-autocomplete
+                  <auto-list
                     v-model="selectedDirectorateId"
-                    :items="directoratesOptions"
-                    item-title="name"
-                    item-value="id"
+                    :objects="directoratesObjectsFormatted"
+                    name="ScreenTypeChoices"
                     label="إدارة التربية (المديرية)"
                     placeholder="كل المديريات..."
-                    clearable
-                    density="compact"
-                    variant="outlined"
-                    rounded="lg"
-                    hide-details
-                    prepend-inner-icon="mdi-map-marker-radius-outline"
+                    cols="12"
+                    :add="false"
+                    :hideDetails="true"
                     @update:model-value="onStudioDirectorateChange"
                   />
                 </v-col>
 
                 <v-col cols="12" sm="6" md="6" lg="3">
-                  <v-autocomplete
+                  <auto-list
                     v-model="selectedSchoolId"
-                    :items="schoolsOptions"
-                    item-title="name"
-                    item-value="id"
+                    :objects="schoolsObjectsFormatted"
+                    name="ScreenTypeChoices"
                     label="المدرسة / المركز الامتحاني"
                     placeholder="كل المراكز والمدارس..."
-                    clearable
-                    density="compact"
-                    variant="outlined"
-                    rounded="lg"
-                    hide-details
-                    prepend-inner-icon="mdi-school-outline"
+                    cols="12"
+                    :add="false"
+                    :hideDetails="true"
                     @update:model-value="onStudioSchoolChange"
                   />
                 </v-col>
               </template>
 
-              <!-- التعليم الجامعي: جامعة/كلية -->
+              <!-- التعليم الجامعي: جامعة/كلية عبر auto-list الموحد -->
               <template v-else-if="institutionType === 'university'">
                 <v-col cols="12" sm="6" md="4" lg="4">
-                  <v-autocomplete
+                  <auto-list
                     v-model="selectedSchoolId"
-                    :items="schoolsOptions"
-                    item-title="name"
-                    item-value="id"
+                    :objects="schoolsObjectsFormatted"
+                    name="ScreenTypeChoices"
                     label="الجامعة / الكلية"
                     placeholder="اختر الكلية أو الجامعة..."
-                    clearable
-                    density="compact"
-                    variant="outlined"
-                    rounded="lg"
-                    hide-details
-                    prepend-inner-icon="mdi-domain"
+                    cols="12"
+                    :add="false"
+                    :hideDetails="true"
                     @update:model-value="onStudioSchoolChange"
                   />
                 </v-col>
               </template>
 
-              <!-- التعليم الفني (معاهد): معهد/مركز -->
+              <!-- التعليم الفني (معاهد): معهد/مركز عبر auto-list الموحد -->
               <template v-else-if="institutionType === 'institute'">
                 <v-col cols="12" sm="6" md="4" lg="4">
-                  <v-autocomplete
+                  <auto-list
                     v-model="selectedSchoolId"
-                    :items="schoolsOptions"
-                    item-title="name"
-                    item-value="id"
+                    :objects="schoolsObjectsFormatted"
+                    name="ScreenTypeChoices"
                     label="المعهد / المركز الفني"
                     placeholder="اختر المعهد أو المركز..."
-                    clearable
-                    density="compact"
-                    variant="outlined"
-                    rounded="lg"
-                    hide-details
-                    prepend-inner-icon="mdi-tools"
+                    cols="12"
+                    :add="false"
+                    :hideDetails="true"
                     @update:model-value="onStudioSchoolChange"
                   />
                 </v-col>
               </template>
 
-              <!-- منسدلة اختيار الاختبار المعتمد المطلوب طباعة وثائقه -->
+              <!-- منسدلة اختيار الاختبار المعتمد المطلوب طباعة وثائقه عبر auto-list الموحد -->
               <v-col cols="12" :sm="institutionType === 'school' ? 6 : 12" :md="institutionType === 'school' ? 6 : 5" :lg="institutionType === 'school' ? 3 : 5">
-                <v-autocomplete
+                <auto-list
                   v-model="selectedExamId"
-                  :items="examsList"
-                  item-title="title"
-                  item-value="id"
+                  :objects="examsObjectsFormatted"
+                  name="ScreenTypeChoices"
                   label="الاختبار المعتمد المطلوب طباعته"
                   placeholder="ابحث بالاختبار أو المادة أو الرمز..."
-                  prepend-inner-icon="mdi-file-document-check-outline"
-                  variant="outlined"
-                  density="compact"
-                  rounded="lg"
-                  hide-details
-                  clearable
-                  :loading="loadingExams"
+                  cols="12"
+                  :add="false"
+                  :hideDetails="true"
                   @update:model-value="onExamSelected"
-                >
-                  <template #item="{ props: iProps, item }">
-                    <v-list-item
-                      v-bind="iProps"
-                      :title="item.raw.title"
-                      :subtitle="`المادة: ${item.raw.subject_name || 'عام'} | النماذج: ${item.raw.versions_count || 1} | الطلاب: ${item.raw.registered_students_count || 0}`"
-                    />
-                  </template>
-                </v-autocomplete>
+                />
               </v-col>
             </v-row>
           </div>
@@ -1947,57 +1903,47 @@
                 </div>
                 <v-row dense>
                   <v-col cols="12" sm="4">
-                    <v-text-field
+                    <custom-text-field
                       v-model="customCenterName"
                       label="اسم المركز الامتحاني / المدرسة"
-                      density="compact"
-                      variant="outlined"
-                      rounded="lg"
-                      hide-details
+                      cols="12"
+                      :hideDetails="true"
                       :placeholder="selectedExam?.directorate || 'المركز الامتحاني الرئيسي'"
                     />
                   </v-col>
                   <v-col cols="12" sm="4">
-                    <v-text-field
+                    <custom-text-field
                       v-model="customDirectorate"
                       label="المديرية"
-                      density="compact"
-                      variant="outlined"
-                      rounded="lg"
-                      hide-details
+                      cols="12"
+                      :hideDetails="true"
                       :placeholder="selectedExam?.directorate || 'السبعين'"
                     />
                   </v-col>
                   <v-col cols="12" sm="4">
-                    <v-text-field
+                    <custom-text-field
                       v-model="customGovernorate"
                       label="المحافظة"
-                      density="compact"
-                      variant="outlined"
-                      rounded="lg"
-                      hide-details
+                      cols="12"
+                      :hideDetails="true"
                       :placeholder="selectedExam?.governorate || 'أمانة العاصمة'"
                     />
                   </v-col>
                   <v-col cols="12" sm="6">
-                    <v-text-field
+                    <custom-text-field
                       v-model="customStageTitle"
                       label="عنوان الاختبار والمرحلة"
-                      density="compact"
-                      variant="outlined"
-                      rounded="lg"
-                      hide-details
+                      cols="12"
+                      :hideDetails="true"
                       :placeholder="selectedExam?.title || 'اختبار الشهادة العامة'"
                     />
                   </v-col>
                   <v-col cols="12" sm="3">
-                    <v-text-field
+                    <custom-text-field
                       v-model="customExamYear"
                       label="العام الدراسي"
-                      density="compact"
-                      variant="outlined"
-                      rounded="lg"
-                      hide-details
+                      cols="12"
+                      :hideDetails="true"
                       :placeholder="selectedExam?.year_name || '2026'"
                     />
                   </v-col>
@@ -2019,37 +1965,33 @@
 
             <!-- السطر الثاني: شريط الفلاتر والبحث الموحد (فلاتر منسدلة أنيقة) -->
             <div class="d-flex align-center justify-space-between flex-wrap gap-2 pt-3">
-              <!-- الفلاتر المنسدلة -->
+              <!-- الفلاتر المنسدلة عبر auto-list الموحد -->
               <div class="d-flex align-center gap-2 flex-wrap">
-                <!-- فلتر النموذج كمنسدلة -->
+                <!-- فلتر النموذج كمنسدلة عبر auto-list الموحد -->
                 <div style="min-width: 190px; max-width: 230px;">
-                  <v-select
+                  <auto-list
                     v-model="rosterModelFilter"
-                    :items="modelFilterSelectOptions"
-                    item-title="title"
-                    item-value="value"
+                    :objects="modelFilterObjects"
+                    name="ScreenTypeChoices"
                     label="النموذج"
-                    density="compact"
-                    variant="outlined"
-                    rounded="lg"
-                    hide-details
-                    prepend-inner-icon="mdi-layers-outline"
+                    placeholder="النموذج"
+                    cols="12"
+                    :add="false"
+                    :hideDetails="true"
                   />
                 </div>
 
-                <!-- فلتر حالة الطباعة كمنسدلة -->
+                <!-- فلتر حالة الطباعة كمنسدلة عبر auto-list الموحد -->
                 <div style="min-width: 190px; max-width: 230px;">
-                  <v-select
+                  <auto-list
                     v-model="rosterPrintFilter"
-                    :items="printStatusFilterOptions"
-                    item-title="title"
-                    item-value="value"
+                    :objects="printStatusFilterObjects"
+                    name="ScreenTypeChoices"
                     label="حالة الطباعة"
-                    density="compact"
-                    variant="outlined"
-                    rounded="lg"
-                    hide-details
-                    prepend-inner-icon="mdi-printer-outline"
+                    placeholder="حالة الطباعة"
+                    cols="12"
+                    :add="false"
+                    :hideDetails="true"
                   />
                 </div>
 
@@ -2067,17 +2009,14 @@
                 </v-btn>
               </div>
 
-              <!-- حقل البحث السريع بالاسم أو رقم الجلوس أو السري -->
+              <!-- حقل البحث السريع بالاسم أو رقم الجلوس أو السري عبر custom-text-field الموحد -->
               <div style="min-width: 260px; max-width: 340px;">
-                <v-text-field
+                <custom-text-field
                   v-model="rosterSearch"
-                  density="compact"
-                  variant="outlined"
-                  rounded="lg"
                   placeholder="بحث بالاسم أو رقم الجلوس أو السري..."
-                  prepend-inner-icon="mdi-magnify"
-                  hide-details
-                  clearable
+                  icon="magnify"
+                  cols="12"
+                  :hideDetails="true"
                 />
               </div>
             </div>
@@ -2458,33 +2397,28 @@
                 </v-btn>
               </div>
 
-              <!-- حقول التصفية والبحث -->
+              <!-- حقول التصفية والبحث عبر المكونات الموحدة -->
               <div class="d-flex align-center gap-2 flex-wrap">
                 <div style="min-width: 190px; max-width: 230px;">
-                  <v-select
+                  <auto-list
                     v-model="packageModelFilter"
-                    :items="modelFilterSelectOptions"
-                    item-title="title"
-                    item-value="value"
+                    :objects="modelFilterObjects"
+                    name="ScreenTypeChoices"
                     label="النموذج"
-                    density="compact"
-                    variant="outlined"
-                    rounded="lg"
-                    hide-details
-                    prepend-inner-icon="mdi-layers-outline"
+                    placeholder="النموذج"
+                    cols="12"
+                    :add="false"
+                    :hideDetails="true"
                   />
                 </div>
 
                 <div style="min-width: 220px; max-width: 280px;">
-                  <v-text-field
+                  <custom-text-field
                     v-model="packageSearch"
-                    density="compact"
-                    variant="outlined"
-                    rounded="lg"
                     placeholder="بحث برقم الجلوس أو اسم الطالب..."
-                    prepend-inner-icon="mdi-magnify"
-                    hide-details
-                    clearable
+                    icon="magnify"
+                    cols="12"
+                    :hideDetails="true"
                   />
                 </div>
               </div>
@@ -2736,17 +2670,14 @@
       <filter-fields label="خيارات التصفية للبحث في سجلات الطباعة" class="main-card border-0 pa-5 rounded-2xl mb-6">
         <v-row dense class="align-center">
           <v-col cols="12" sm="8" md="9">
-            <v-text-field
+            <custom-text-field
               v-model="searchQuery"
               label="اسم الاختبار أو دفعة الطباعة"
               placeholder="بحث بمعرف الدفعة (Batch) أو اسم الاختبار..."
-              prepend-inner-icon="mdi-magnify"
-              clearable
-              density="compact"
-              variant="outlined"
-              rounded="lg"
+              icon="magnify"
+              cols="12"
               class="mb-3"
-              hide-details
+              :hideDetails="true"
               @keyup.enter="fetchBatches"
             />
           </v-col>
@@ -3217,34 +3148,29 @@
             </div>
           </div>
 
-          <!-- أسباب الإرجاع الشائعة -->
+          <!-- أسباب الإرجاع الشائعة عبر auto-list الموحد -->
           <div class="mb-4">
-            <label class="text-caption font-weight-bold text-high-emphasis d-block mb-1">
-              سبب الإرجاع الرئيسي:
-            </label>
-            <v-select
+            <auto-list
               v-model="returnReasonSelected"
-              :items="predefinedReturnReasons"
-              variant="outlined"
-              density="compact"
-              rounded="lg"
-              hide-details
+              :objects="returnReasonsObjects"
+              name="ScreenTypeChoices"
+              label="سبب الإرجاع الرئيسي"
+              placeholder="اختر سبب الإرجاع الرئيسي"
+              cols="12"
+              :add="false"
+              :hideDetails="true"
             />
           </div>
 
-          <!-- تفاصيل وملاحظات إضافية -->
+          <!-- تفاصيل وملاحظات إضافية عبر custom-text-note الموحد -->
           <div class="mb-2">
-            <label class="text-caption font-weight-bold text-high-emphasis d-block mb-1">
-              ملاحظات وتوجيهات التعديل المطلوبة:
-            </label>
-            <v-textarea
+            <custom-text-note
               v-model="returnNotesText"
               rows="3"
-              variant="outlined"
-              density="compact"
-              rounded="lg"
+              label="ملاحظات وتوجيهات التعديل المطلوبة"
               placeholder="يرجى كتابة التعديلات المطلوبة بدقة ليتمكن المُنشئ من معالجتها..."
-              hide-details
+              cols="12"
+              :hideDetails="true"
             />
           </div>
         </v-card-text>
@@ -3719,6 +3645,52 @@ const schoolsOptions = computed(() => {
   return list
 })
 
+// Unified Objects for <auto-list> integration
+const sectorOptionsObjects = computed(() => {
+  return (sectorOptions || []).map(opt => ({
+    id: opt.value,
+    value: opt.value,
+    name: opt.title,
+    title: opt.title,
+  }))
+})
+
+const officesObjects = computed(() => {
+  return (officesList.value || []).map(o => ({
+    id: o.id,
+    value: o.id,
+    name: o.office_name || o.name_ar || o.name,
+    title: o.office_name || o.name_ar || o.name,
+  }))
+})
+
+const directoratesObjectsFormatted = computed(() => {
+  return (directoratesOptions.value || []).map(d => ({
+    id: d.id,
+    value: d.id,
+    name: d.name || d.name_ar,
+    title: d.name || d.name_ar,
+  }))
+})
+
+const schoolsObjectsFormatted = computed(() => {
+  return (schoolsOptions.value || []).map(s => ({
+    id: s.id,
+    value: s.id,
+    name: s.name || s.school_name || s.name_ar,
+    title: s.name || s.school_name || s.name_ar,
+  }))
+})
+
+const examsObjectsFormatted = computed(() => {
+  return (examsList.value || []).map(e => ({
+    id: e.id,
+    value: e.id,
+    name: `${e.title || e.name || 'اختبار'} (${e.subject_name || 'عام'} - ${e.uniqueCode || ''})`,
+    title: `${e.title || e.name || 'اختبار'} (${e.subject_name || 'عام'} - ${e.uniqueCode || ''})`,
+  }))
+})
+
 // Filtered Master Tables Computeds
 const filteredOfficesTable = computed(() => {
   let list = officesList.value || []
@@ -4186,6 +4158,15 @@ const predefinedReturnReasons = [
   'تعارض موعد الطباعة مع جدول تشغيل المطبعة المركزية',
   'أخرى (توضيح في الملاحظات أدناه)',
 ]
+
+const returnReasonsObjects = computed(() => {
+  return predefinedReturnReasons.map(r => ({
+    id: r,
+    value: r,
+    name: r,
+    title: r,
+  }))
+})
 
 const advanceScheduleDialog = ref(false)
 const targetExamForAdvance = ref(null)
@@ -5535,6 +5516,24 @@ const printStatusFilterOptions = computed(() => {
     { title: `جاهز للطباعة (${unprintedCount.value})`, value: 'unprinted' },
     { title: `المطبوعة (${printedCount.value})`, value: 'printed' },
   ]
+})
+
+const modelFilterObjects = computed(() => {
+  return (modelFilterSelectOptions.value || []).map(o => ({
+    id: o.value,
+    value: o.value,
+    name: o.title,
+    title: o.title,
+  }))
+})
+
+const printStatusFilterObjects = computed(() => {
+  return (printStatusFilterOptions.value || []).map(o => ({
+    id: o.value,
+    value: o.value,
+    name: o.title,
+    title: o.title,
+  }))
 })
 
 const resetRosterFilters = () => {

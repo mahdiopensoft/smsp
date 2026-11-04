@@ -80,77 +80,60 @@
       <v-row dense class="align-center">
         <!-- فلتر المديرية -->
         <v-col cols="12" sm="6" md="2" v-if="institutionType === 'school'">
-          <v-autocomplete
+          <auto-list
             v-model="detailFilterDirectorate"
-            :items="directoratesOptions"
-            item-title="title"
-            item-value="value"
+            name="Directorate"
+            :objects="directoratesObjects"
             label="إدارة التربية (المديرية)"
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            hide-details
-            clearable
-            class="mb-2"
-            prepend-inner-icon="mdi-map-marker-radius-outline"
+            placeholder="إدارة التربية (المديرية)"
+            cols="12"
+            :add="false"
+            :hideDetails="true"
             @update:model-value="emitFilterChange"
-            @click:clear="clearDirectorate"
           />
         </v-col>
 
         <!-- فلتر المدرسة / الكلية / المعهد -->
         <v-col cols="12" sm="6" :md="institutionType === 'school' ? 3 : 4">
-          <v-autocomplete
+          <auto-list
             v-model="detailFilterSchool"
-            :items="schoolsOptions"
-            item-title="title"
-            item-value="value"
+            :name="institutionType === 'university' ? 'College' : (institutionType === 'institute' ? 'Institute' : 'Organization')"
+            :objects="schoolsObjects"
             :label="institutionType === 'university' ? 'الكلية / المركز' : (institutionType === 'institute' ? 'المعهد / المركز' : 'المدرسة / المركز الامتحاني')"
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            hide-details
-            clearable
-            class="mb-2"
-            prepend-inner-icon="mdi-school-outline"
+            :placeholder="institutionType === 'university' ? 'الكلية / المركز' : (institutionType === 'institute' ? 'المعهد / المركز' : 'المدرسة / المركز الامتحاني')"
+            cols="12"
+            :add="false"
+            :hideDetails="true"
             @update:model-value="emitFilterChange"
-            @click:clear="clearSchool"
           />
         </v-col>
 
         <!-- فلتر حالة المراجعة -->
         <v-col cols="12" sm="6" md="2">
-          <v-select
+          <auto-list
             v-model="detailFilterStatus"
-            :items="statusOptions"
-            item-title="title"
-            item-value="value"
+            name="ScreenTypeChoices"
+            :objects="statusObjects"
             label="حالة المراجعة"
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            hide-details
-            class="mb-2"
-            prepend-inner-icon="mdi-list-status"
+            placeholder="حالة المراجعة"
+            cols="12"
+            :add="false"
+            :hideDetails="true"
             @update:model-value="emitFilterChange"
           />
         </v-col>
 
         <!-- حقل البحث السريع بالاسم أو رقم الجلوس -->
         <v-col cols="12" sm="6" :md="institutionType === 'school' ? 3 : 4">
-          <v-text-field
+          <custom-text-field
             v-model="searchQuery"
             label="اسم الطالب أو رقم الجلوس"
             placeholder="بحث برقم الجلوس أو اسم الطالب..."
-            prepend-inner-icon="mdi-magnify"
+            icon="magnify"
+            cols="12"
+            :hideDetails="true"
             clearable
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            class="mb-2"
-            hide-details
-            @keyup.enter="emitFilterChange"
-            @click:clear="clearSearch"
+            @update:model-value="onSearchInput"
           />
         </v-col>
 
@@ -346,6 +329,44 @@ const detailFilterDirectorate = ref('all')
 const detailFilterSchool = ref('all')
 const detailFilterStatus = ref('all')
 const searchQuery = ref('')
+let searchDebounceTimer: any = null
+
+const directoratesObjects = computed(() => {
+  return (props.directoratesOptions || []).map((d: any) => ({
+    id: d.value ?? d.id,
+    value: d.value ?? d.id,
+    name: d.title ?? d.name ?? d.name_ar,
+    name_ar: d.title ?? d.name ?? d.name_ar,
+    title: d.title ?? d.name ?? d.name_ar,
+  }))
+})
+
+const schoolsObjects = computed(() => {
+  return (props.schoolsOptions || []).map((s: any) => ({
+    id: s.value ?? s.id,
+    value: s.value ?? s.id,
+    name: s.title ?? s.name ?? s.school_name ?? s.name_ar,
+    name_ar: s.title ?? s.name ?? s.school_name ?? s.name_ar,
+    title: s.title ?? s.name ?? s.school_name ?? s.name_ar,
+  }))
+})
+
+const statusObjects = computed(() => {
+  return (props.statusOptions || []).map((st: any) => ({
+    id: st.value ?? st.id,
+    value: st.value ?? st.id,
+    name: st.title ?? st.name ?? st.name_ar,
+    name_ar: st.title ?? st.name ?? st.name_ar,
+    title: st.title ?? st.name ?? st.name_ar,
+  }))
+})
+
+function onSearchInput() {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+  searchDebounceTimer = setTimeout(() => {
+    emitFilterChange()
+  }, 400)
+}
 
 const metricFilterChips = computed(() => {
   const s = props.detailStats || {}

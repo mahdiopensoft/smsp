@@ -90,21 +90,18 @@
           </div>
 
           <v-row class="align-start filter-fields-row" dense>
-            <!-- سبب الإلغاء الرسمي -->
-            <v-col cols="12" class="py-1">
-              <v-combobox
-                v-model="reasonSelected"
-                :items="reasonsList"
-                label="سبب الإلغاء الرسمي *"
-                placeholder="اختر سبب الإلغاء الرسمي"
-                prepend-inner-icon="mdi-alert-octagon-outline"
-                variant="outlined"
-                density="compact"
-                rounded="lg"
-                hide-details
-                clearable
-              />
-            </v-col>
+            <!-- سبب الإلغاء الرسمي عبر AutoList الموحد -->
+            <auto-list
+              v-model="reasonSelected"
+              :objects="reasonObjects"
+              name="ScreenTypeChoices"
+              label="سبب الإلغاء الرسمي *"
+              placeholder="اختر سبب الإلغاء الرسمي"
+              cols="12"
+              icon="alert-octagon-outline"
+              :add="false"
+              :hideDetails="true"
+            />
 
             <!-- ملاحظات أو رقم قرار اللجنة (اختياري) باستخدام CustomTextField الموحد -->
             <custom-text-field
@@ -166,7 +163,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 const props = withDefaults(
   defineProps<{
@@ -194,6 +191,14 @@ const reasonsList = [
   'تعذر طباعة الوثائق لظروف طارئة بالمطبعة',
   'أسباب إدارية وتنظيمية أخرى',
 ]
+
+const reasonObjects = computed(() => {
+  return reasonsList.map(r => ({
+    id: r,
+    name: r,
+    name_ar: r,
+  }))
+})
 
 const reasonSelected = ref(reasonsList[0])
 const notes = ref('')

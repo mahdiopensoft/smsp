@@ -271,22 +271,18 @@
             </v-btn>
           </div>
 
-          <!-- حقل إدخال العدد الفعلي المستلم من الماكينة -->
+          <!-- حقل إدخال العدد الفعلي المستلم من الماكينة عبر custom-text-field الموحد -->
           <div class="mb-3">
-            <label class="text-caption font-weight-bold text-high-emphasis d-block mb-1">
-              عدد الأوراق السليمة التي خرجت فعلياً من الماكينة:
-            </label>
-            <v-text-field
+            <custom-text-field
               v-model.number="actualPrintedCount"
               type="number"
               :min="0"
               :max="totalTargetCount"
-              variant="outlined"
-              density="compact"
-              rounded="lg"
-              prepend-inner-icon="mdi-counter"
+              label="عدد الأوراق السليمة التي خرجت فعلياً من الماكينة"
+              icon="counter"
               suffix="ورقة"
-              hide-details
+              cols="12"
+              :hideDetails="true"
               class="mb-2"
             />
             
@@ -308,19 +304,15 @@
             </div>
           </div>
 
-          <!-- ملاحظات الفحص والتشغيل -->
+          <!-- ملاحظات الفحص والتشغيل عبر custom-text-field الموحد -->
           <div class="mt-3">
-            <label class="text-caption font-weight-bold text-high-emphasis d-block mb-1">
-              ملاحظات التشغيل والماكينة (اختياري في حال وجود انحشار أو خطأ):
-            </label>
-            <v-text-field
+            <custom-text-field
               v-model="operatorNotes"
+              label="ملاحظات التشغيل والماكينة (اختياري في حال وجود انحشار أو خطأ)"
               placeholder="مثال: تمت الطباعة بجودة ممتازة / أو: انحشار ورقة واحدة رقم 4"
-              variant="outlined"
-              density="compact"
-              rounded="lg"
-              prepend-inner-icon="mdi-text"
-              hide-details
+              icon="text"
+              cols="12"
+              :hideDetails="true"
             />
           </div>
         </div>
