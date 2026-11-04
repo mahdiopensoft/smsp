@@ -49,7 +49,7 @@ class CurriculumExclusion(SoftDeleteModel):
         verbose_name=_("الصف الدراسي / المسار")
     )
     subject = models.ForeignKey(
-        'academic.Subject',
+        'academic.UniversitySubject',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
@@ -149,7 +149,7 @@ class CurriculumExclusion(SoftDeleteModel):
         verbose_name=_("نطاق الحذف (وحدة / درس)")
     )
     unit = models.ForeignKey(
-        'academic.Unit',
+        'academic.UniversityUnit',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
@@ -157,7 +157,7 @@ class CurriculumExclusion(SoftDeleteModel):
         verbose_name=_("الوحدة المستبعدة")
     )
     lesson = models.ForeignKey(
-        'academic.Lesson',
+        'academic.UniversityLesson',
         on_delete=models.CASCADE,
         null=True,
         blank=True,

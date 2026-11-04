@@ -2,8 +2,8 @@ from OpenSoftCoreV41.utils.model_view_set.__all__ import AllMVS
 from exams.models.CurriculumExclusion import CurriculumExclusion
 from exams.serializers.CurriculumExclusion import CurriculumExclusionSerializer
 from academic.models.common.AcademicYear import AcademicYear
-from academic.models.common.Unit import Unit
-from academic.models.common.Lesson import Lesson
+from academic.models.universities.UniversityUnit import UniversityUnit as Unit
+from academic.models.universities.UniversityLesson import UniversityLesson as Lesson
 from bank.models.AuditLog import AuditLog
 from rest_framework.decorators import action
 from rest_framework.response import Response

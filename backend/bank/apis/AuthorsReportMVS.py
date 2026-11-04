@@ -26,10 +26,11 @@ class AuthorsReportMVS(AllMVS):
         qs = self.get_queryset().select_related(
             'createdBy',
             'lesson',
+            'lesson__subject',
             'lesson__unit',
-            'lesson__unit__class_subject__subject',
-            'lesson__unit__class_subject__class_track__level',
-            'lesson__unit__class_subject__class_track__track'
+            'lesson__unit__semester_subject__fk_subject',
+            'lesson__unit__semester_subject__course',
+            'lesson__unit__semester_subject__fk_specialization__fk_college'
         )
 
         inst_type = request.query_params.get('institution_type')
@@ -51,17 +52,12 @@ class AuthorsReportMVS(AllMVS):
 
         if subject_id:
             qs = qs.filter(
-                Q(lesson__unit__class_subject__subject_id=subject_id) |
-                Q(lesson__unit__semester_subject__fk_subject_id=subject_id)
+                Q(lesson__unit__semester_subject__fk_subject_id=subject_id) |
+                Q(lesson__subject_id=subject_id) |
+                Q(lesson__unit__semester_subject__course_id=subject_id)
             )
-        if level_id:
-            qs = qs.filter(lesson__unit__class_subject__class_track__level_id=level_id)
-        if track_id:
-            qs = qs.filter(lesson__unit__class_subject__class_track__track_id=track_id)
-        if class_track_id:
-            qs = qs.filter(lesson__unit__class_subject__class_track_id=class_track_id)
-        if stage_id:
-            qs = qs.filter(lesson__unit__class_subject__class_track__level__stage_id=stage_id)
+        if level_id or track_id or class_track_id or stage_id:
+            qs = qs.none()
 
         if college_id:
             qs = qs.filter(lesson__unit__semester_subject__fk_specialization__fk_college_id=college_id)

@@ -1,5 +1,9 @@
 from rest_framework.routers import DefaultRouter
 
+from academic.apis.universities.UniversitySubjectMVS import UniversitySubjectMVS
+from academic.apis.universities.UniversityUnitMVS import UniversityUnitMVS
+from academic.apis.universities.UniversityLessonMVS import UniversityLessonMVS
+from academic.apis.universities.UniversityExamPeriodMVS import UniversityExamPeriodMVS
 from academic.apis.universities.UniversityCourseMVS import UniversityCourseMVS
 from academic.apis.universities.UniversityCourseTopicMVS import UniversityCourseTopicMVS
 from academic.apis.universities.UniversityCourseCLOMVS import UniversityCourseCLOMVS
@@ -36,6 +40,10 @@ router_universities.register(r'educational-levels', UniversityLevelMVS, basename
 # النظم الدراسية والفصول والدرجات (Study Systems, Semesters & Grading)
 router_universities.register(r'semesters', UniversitySemesterMVS, basename='semester')
 router_universities.register(r'semester-subjects', UniversitySemesterSubjectMVS, basename='semester-subject')
+router_universities.register(r'university-subjects', UniversitySubjectMVS, basename='university-subject')
+router_universities.register(r'university-units', UniversityUnitMVS, basename='university-unit')
+router_universities.register(r'university-lessons', UniversityLessonMVS, basename='university-lesson')
+router_universities.register(r'university-exam-periods', UniversityExamPeriodMVS, basename='university-exam-period')
 router_universities.register(r'study-systems', UniversityStudySystemMVS, basename='study-system')
 router_universities.register(r'type-of-grades', UniversityTypeOfGradeMVS, basename='type-of-grade')
 router_universities.register(r'grading-systems', UniversityGradingSystemMVS, basename='grading-system')

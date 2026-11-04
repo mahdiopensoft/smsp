@@ -83,18 +83,33 @@ class QuestionFastEntryMVS(AllMVS):
                     
                     # Prepare answers
                     answers_data = q_data.get('answers') or q_data.get('options', [])
-                    for a_data in answers_data:
+                    used_orders = set()
+                    for idx, a_data in enumerate(answers_data):
                         if isinstance(a_data, dict):
                             text = a_data.get('text') or a_data.get('content') or ''
                             is_true = a_data.get('isTrue') if 'isTrue' in a_data else a_data.get('is_correct', False)
+                            order_idx = a_data.get('order_index') if a_data.get('order_index') is not None else a_data.get('order')
                         else:
                             text = str(a_data)
                             is_true = False
+                            order_idx = idx
+
+                        try:
+                            order_val = int(order_idx) if order_idx is not None else idx
+                        except (ValueError, TypeError):
+                            order_val = idx
+
+                        if order_val < 0:
+                            order_val = idx
+                        while order_val in used_orders:
+                            order_val += 1
+                        used_orders.add(order_val)
                             
                         all_answers_to_create.append(Answer(
                             question=q,
                             text=text,
-                            isTrue=is_true
+                            isTrue=is_true,
+                            order_index=order_val
                         ))
                     
                     created_count += 1

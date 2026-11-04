@@ -54,23 +54,25 @@
       <v-icon size="64" color="primary" class="mb-4">mdi-school-outline</v-icon>
       <h3 class="text-h6 font-weight-bold mb-2">يرجى تحديد مسار الصف</h3>
       <p class="text-medium-emphasis text-body-2" style="max-width: 450px;">
-        اختر المرحلة الدراسية ثم مسار الصف واضغط على زر «تصفية» لعرض مصفوفة المواد وإسنادها وضبط درجاتها.
+        اختر المرحلة الدراسية ثم مسار الصف لعرض مصفوفة المواد وإسنادها وضبط درجاتها مباشرة.
       </p>
     </v-card>
 
     <!-- Loading Skeleton -->
-    <v-card rounded="lg" v-else-if="loading">
+    <v-card rounded="lg" v-else-if="loading && items.length === 0">
       <v-skeleton-loader type="table" height="350" />
     </v-card>
 
     <!-- Main Data Table Using custom-data-table-with-save Component -->
     <div v-else class="table-container">
       <custom-data-table-with-save
-        :="{
+        ref="tableWithSave"
+        v-bind="{
           headers: headers,
           getData: loadMatrixData,
           items: items,
           top: false,
+          itemValue: 'school_subject_id',
         }"
         :canAdd="false"
         :click="saveData"
@@ -84,6 +86,7 @@
               size="small"
               label="تحديد الكل"
               class="font-weight-bold"
+              :disabled="!$refs.tableWithSave?.isEditing"
               @click="toggleSelectAllAssigned"
             />
           </div>
@@ -235,13 +238,57 @@ export default {
       ];
     },
   },
-  created() {
-    this.fetchGradingSystems();
+  watch: {
+    filterClassTrack(val) {
+      if (val) {
+        this.loadMatrixData();
+      } else {
+        this.items = [];
+      }
+    },
+  },
+  async created() {
+    await this.fetchGradingSystems();
+    await this.autoInitFirstStageAndTrack();
   },
   methods: {
-    onStageChange() {
+    async autoInitFirstStageAndTrack() {
+      try {
+        if (!this.filterStage) {
+          const res = await this.$axios.get("api/academic/educational-stages/all/");
+          const stages = res.data?.data ?? res.data?.results ?? res.data ?? [];
+          if (Array.isArray(stages) && stages.length > 0) {
+            this.filterStage = stages[0].id;
+            const trackRes = await this.$axios.get("api/academic/class-tracks/all/", {
+              params: { stage: this.filterStage },
+            });
+            const tracks = trackRes.data?.data ?? trackRes.data?.results ?? trackRes.data ?? [];
+            if (Array.isArray(tracks) && tracks.length > 0) {
+              this.filterClassTrack = tracks[0].id;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Auto init stage/track failed:", err);
+      }
+    },
+
+    async onStageChange() {
       this.filterClassTrack = null;
       this.items = [];
+      if (this.filterStage) {
+        try {
+          const trackRes = await this.$axios.get("api/academic/class-tracks/all/", {
+            params: { stage: this.filterStage },
+          });
+          const tracks = trackRes.data?.data ?? trackRes.data?.results ?? trackRes.data ?? [];
+          if (Array.isArray(tracks) && tracks.length > 0) {
+            this.filterClassTrack = tracks[0].id;
+          }
+        } catch (e) {
+          console.warn("Failed fetching tracks on stage change:", e);
+        }
+      }
     },
 
     applyFilters() {

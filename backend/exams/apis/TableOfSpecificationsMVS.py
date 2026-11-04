@@ -91,7 +91,7 @@ class TableOfSpecificationsMVS(AllMVS):
             institute_sub_id = self.request.data.get('institute_subject') or self.request.data.get('instituteSubject')
             if institute_sub_id:
                 from academic.models.institutes.InstituteSubject import InstituteSubject
-                from academic.models.common.Subject import Subject
+                from academic.models.universities.UniversitySubject import UniversitySubject as Subject
                 try:
                     isub = InstituteSubject.objects.get(id=institute_sub_id)
                     sub = Subject.objects.filter(name_ar=isub.name_ar).first()

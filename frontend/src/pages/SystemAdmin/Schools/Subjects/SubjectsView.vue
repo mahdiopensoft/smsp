@@ -117,7 +117,7 @@ export default {
       data: {},
       items: {},
       drawer: false,
-      url: "api/academic/subjects/",
+      url: "api/academic/school-subjects/",
 
       // Filters
       filterMinisterial: null,

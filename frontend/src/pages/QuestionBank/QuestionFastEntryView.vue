@@ -29,55 +29,66 @@
       </div>
     </div>
 
-    <!-- Context Classification & Defaults Card -->
-    <div class="main-card mb-6 pa-4 pa-md-5 rounded-2xl sticky-context-bar">
-      <div class="d-flex align-center justify-space-between mb-3 flex-wrap gap-2">
+    <!-- Context Classification & Defaults Card (Non-sticky unified flow) -->
+    <div class="main-card mb-6 pa-4 pa-md-5 rounded-2xl">
+      <!-- Card Header: Title & Action buttons -->
+      <div class="d-flex align-center justify-space-between mb-4 pb-3 border-b flex-wrap gap-2">
         <div class="d-flex align-center gap-2">
-          <v-avatar size="30" color="primary" variant="tonal" class="rounded-lg">
-            <v-icon size="16">mdi-map-marker-path</v-icon>
+          <v-avatar size="34" color="primary" variant="tonal" class="rounded-lg">
+            <v-icon size="18">mdi-map-marker-path</v-icon>
           </v-avatar>
           <div>
             <h3 class="text-subtitle-2 font-weight-black mb-0">التصنيف الأكاديمي المشترك</h3>
-            <span class="text-caption text-medium-emphasis">يطبق هذا التصنيف على كافة الأسئلة المدخلة</span>
+            <span class="text-caption text-medium-emphasis">يطبق هذا التصنيف على كافة الأسئلة المدخلة في هذه الصفحة</span>
           </div>
         </div>
 
-        <custom-btn
-          color="primary"
-          variant="tonal"
-          size="small"
-          :icon="showDefaults ? 'mdi-chevron-up' : 'mdi-cog-outline'"
-          :label="showDefaults ? 'إخفاء القيم الافتراضية' : 'القيم الافتراضية للأسئلة'"
-          class="font-weight-bold text-caption"
-          :click="() => showDefaults = !showDefaults"
-        />
+        <div class="d-flex align-center gap-2 flex-wrap">
+          <custom-btn
+            color="primary"
+            variant="tonal"
+            size="small"
+            :icon="showDefaults ? 'mdi-chevron-up' : 'mdi-tune'"
+            :label="showDefaults ? 'إخفاء القيم الافتراضية' : 'القيم الافتراضية للأسئلة'"
+            class="font-weight-bold text-caption"
+            :click="() => showDefaults = !showDefaults"
+          />
+        </div>
+      </div>
+
+      <!-- Institution Type Segmented Toggle (مطابق لتصميم شاشة إضافة سؤال جديد) -->
+      <div class="d-flex align-center flex-wrap gap-3 mb-4">
+        <div class="d-flex align-center gap-2">
+          <span class="text-caption font-weight-bold text-medium-emphasis">نوع المؤسسة:</span>
+          <v-btn-toggle
+            v-model="context.institution_type"
+            mandatory
+            density="compact"
+            color="primary"
+            variant="tonal"
+            rounded="lg"
+            class="d-flex"
+            @update:model-value="onInstitutionTypeToggle"
+          >
+            <v-btn value="school" class="px-4 font-weight-bold text-caption">
+              <v-icon start size="16">mdi-school</v-icon>
+              مدرسي
+            </v-btn>
+            <v-btn value="university" class="px-4 font-weight-bold text-caption">
+              <v-icon start size="16">mdi-domain</v-icon>
+              جامعي
+            </v-btn>
+            <v-btn value="institute" class="px-4 font-weight-bold text-caption">
+              <v-icon start size="16">mdi-tools</v-icon>
+              مهني / معاهد
+            </v-btn>
+          </v-btn-toggle>
+        </div>
       </div>
 
       <!-- Classification Dropdowns Row -->
       <v-row dense class="align-center">
-        <!-- Institution Type Select (قائمة منسدلة موحدة: مدرسي / جامعي / معاهد) -->
-        <v-col cols="12" md="3" lg="3" class="mb-5">
-          <v-select
-            v-model="context.institution_type"
-            :items="institutionTypes"
-            item-title="text"
-            item-value="value"
-            label="نوع المؤسسة التعليمية"
-            placeholder="اختر نوع المؤسسة"
-            prepend-inner-icon="mdi-domain"
-            variant="outlined"
-            density="compact"
-            color="primary"
-            hide-details="auto"
-            @update:model-value="onInstitutionTypeToggle"
-          >
-            <template v-slot:item="{ props, item }">
-              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
-            </template>
-          </v-select>
-        </v-col>
-
-        <!-- 🏫 School Selects (cols="3" internally sets desktop: md=3, mobile: cols=12) -->
+        <!-- 🏫 School Selects (cols="3" sets 4 items per row on desktop) -->
         <template v-if="context.institution_type === 'school'">
           <auto-list
             v-model="context.stageId"
@@ -113,6 +124,7 @@
             label="الفصل الدراسي"
             cols="3"
             :add="false"
+            @update:model-value="onSemesterChange"
           />
         </template>
 
@@ -207,13 +219,13 @@
           />
         </template>
 
-        <!-- Common: Unit, Lesson -->
+        <!-- Common: Unit, Lesson (متجاوب ومرتب متناسق) -->
         <auto-list
           v-model="context.unitId"
           name="UnitBySubject"
           :param="contextUnitParam"
           :label="context.institution_type === 'university' ? 'مفردة / موضوع المقرر' : (context.institution_type === 'institute' ? 'الوحدة / التدريب العملي' : 'الوحدة الدراسية')"
-          cols="3"
+          :cols="context.institution_type === 'institute' ? '4' : '6'"
           :add="false"
           :disabled="context.institution_type === 'university' ? !context.semesterSubjectId : (context.institution_type === 'institute' ? !context.instituteSubjectId : !context.subjectId)"
           @update:model-value="onUnitChange"
@@ -221,9 +233,9 @@
         <auto-list
           v-model="context.lessonId"
           name="LessonByUnit"
-          :param="context.unitId"
+          :param="contextLessonParam"
           :label="context.institution_type === 'university' ? 'المحاضرة / الدرس الأكاديمي' : (context.institution_type === 'institute' ? 'التدريب / الدرس المهني' : 'الدرس المدرسي')"
-          cols="3"
+          :cols="context.institution_type === 'institute' ? '4' : '6'"
           :add="false"
           :disabled="!context.unitId"
         />
@@ -231,7 +243,7 @@
 
       <!-- Expandable Defaults Panel -->
       <v-expand-transition>
-        <div v-if="showDefaults" class="mt-3 pt-3 border-t border-slate-100">
+        <div v-if="showDefaults" class="mt-3 pt-3 border-t">
           <div class="d-flex align-center justify-space-between mb-3 flex-wrap gap-2">
             <span class="text-caption font-weight-bold text-primary d-flex align-center gap-1">
               <v-icon size="14">mdi-tune</v-icon>
@@ -322,16 +334,16 @@
         <custom-btn
           label="طي الكل"
           icon="unfold-less-horizontal"
-          variant="outlined"
-          color="medium-emphasis"
+          variant="tonal"
+          color="primary"
           class="font-weight-bold text-caption"
           :click="collapseAll"
         />
         <custom-btn
           label="توسيع الكل"
           icon="unfold-more-horizontal"
-          variant="outlined"
-          color="medium-emphasis"
+          variant="tonal"
+          color="primary"
           class="font-weight-bold text-caption"
           :click="expandAll"
         />
@@ -457,26 +469,29 @@
 
         <!-- Question Card Expandable Body -->
         <v-expand-transition>
-          <div v-show="!q.isCollapsed" class="pa-4 pa-md-5 border-t border-slate-100">
+          <div v-show="!q.isCollapsed" class="pa-4 pa-md-5 border-t">
             <v-row dense>
               <!-- Left / Main Column: Question Content & Answers (8 cols on desktop) -->
               <v-col cols="12" md="8" class="pe-md-3">
-                <!-- Question Type Buttons -->
+                <!-- Question Type Buttons (عصري متطابق مع شاشة إضافة سؤال) -->
                 <div class="mb-4">
-                  <label class="text-caption font-weight-bold text-medium-emphasis mb-2 d-block">نوع السؤال</label>
+                  <div class="d-flex align-center gap-1 mb-2">
+                    <v-icon size="16" color="indigo">mdi-shape-outline</v-icon>
+                    <label class="text-caption font-weight-bold text-high-emphasis">نوع السؤال:</label>
+                  </div>
                   <div class="type-selector-compact">
                     <v-btn
                       v-for="t in questionTypes"
                       :key="t.value"
                       size="small"
                       class="font-weight-bold type-btn"
-                      :variant="q.type === t.value ? 'flat' : 'outlined'"
-                      :color="q.type === t.value ? t.color : 'medium-emphasis'"
-                      :class="q.type === t.value ? 'text-white' : ''"
+                      :variant="q.type === t.value ? 'flat' : 'tonal'"
+                      :color="t.color"
+                      :class="q.type === t.value ? 'text-white elevation-1' : ''"
                       rounded="lg"
                       @click="() => { q.type = t.value; onTypeChange(q); }"
                     >
-                      <v-icon start size="15">{{ t.icon }}</v-icon>
+                      <v-icon start size="16">{{ t.icon }}</v-icon>
                       {{ t.label }}
                     </v-btn>
                   </div>
@@ -548,11 +563,15 @@
 
                 <!-- Scientific Formula & Question Text Editor -->
                 <scientific-formula-editor
+                  :ref="(el) => setFormulaEditorRef(index, el)"
                   v-model="q.text"
+                  v-model:active-target="q.activeTarget"
+                  :available-targets="getTargetsForQuestion(q, index)"
                   label="نص السؤال"
                   placeholder="اكتب صياغة السؤال هنا... انقر على زر (شريط الأدوات والرموز العلمية) بالأعلى لإدراج أي معادلات أو كسور أو رموز علمية."
                   :rows="3"
                   class="mb-4"
+                  @insert-symbol="(payload) => onInsertSymbol(index, payload)"
                 />
 
                 <!-- Answers Options Builder -->
@@ -615,8 +634,12 @@
                           density="compact"
                           rounded="lg"
                           hide-details="auto"
-                          :color="isCorrectOption(q, oIndex) ? 'success' : 'primary'"
+                          :color="q.activeTarget?.id === `q_${index}_opt_${oIndex}` ? 'primary' : (isCorrectOption(q, oIndex) ? 'success' : undefined)"
                           :rules="[rules.required]"
+                          @focus="setActiveFormulaTarget(index, oIndex)"
+                          @click="setActiveFormulaTarget(index, oIndex)"
+                          @keyup="saveCursorPosition(`q_${index}_opt_${oIndex}`, $event)"
+                          @mouseup="saveCursorPosition(`q_${index}_opt_${oIndex}`, $event)"
                         />
                         <!-- Scientific Formula Auto-Preview for Option -->
                         <div
@@ -628,6 +651,17 @@
                           <span class="font-weight-bold" v-html="renderOptionMarkup(q.options[oIndex])"></span>
                         </div>
                       </div>
+
+                      <!-- Quick Button to Activate Symbol Toolbar for This Option (مطابق لشاشة إضافة سؤال) -->
+                      <v-btn
+                        size="small"
+                        :variant="q.activeTarget?.id === `q_${index}_opt_${oIndex}` ? 'flat' : 'tonal'"
+                        color="primary"
+                        icon="mdi-function-variant"
+                        class="rounded-lg flex-shrink-0"
+                        :title="q.activeTarget?.id === `q_${index}_opt_${oIndex}` ? 'هذا الخيار هو الوجهة النشطة لشريط الرموز' : 'إدراج رموز ومعادلات لهذا الخيار'"
+                        @click.stop="activateOptionFormula(index, oIndex)"
+                      />
 
                       <!-- Correct Answer Badge Chip -->
                       <v-chip
@@ -674,28 +708,47 @@
                       </v-chip>
                     </div>
                     <div class="d-flex gap-3">
-                      <v-btn
-                        class="flex-grow-1 font-weight-bold"
-                        :variant="q.tfCorrect === true ? 'flat' : 'outlined'"
-                        :color="q.tfCorrect === true ? 'success' : undefined"
-                        :class="q.tfCorrect === true ? 'text-white' : ''"
-                        rounded="lg"
-                        prepend-icon="mdi-check-circle"
+                      <div
+                        class="pa-3 rounded-xl flex-grow-1 border d-flex align-center justify-space-between cursor-pointer transition-all"
+                        :class="q.tfCorrect === true ? 'tf-card-active tf-card-true' : 'tf-card-inactive'"
                         @click="q.tfCorrect = true"
                       >
-                        صواب (True)
-                      </v-btn>
-                      <v-btn
-                        class="flex-grow-1 font-weight-bold"
-                        :variant="q.tfCorrect === false ? 'flat' : 'outlined'"
-                        :color="q.tfCorrect === false ? 'error' : undefined"
-                        :class="q.tfCorrect === false ? 'text-white' : ''"
-                        rounded="lg"
-                        prepend-icon="mdi-close-circle"
+                        <div class="d-flex align-center gap-2">
+                          <v-avatar size="32" :color="q.tfCorrect === true ? 'success' : 'primary'" :variant="q.tfCorrect === true ? 'flat' : 'tonal'">
+                            <v-icon size="18" :color="q.tfCorrect === true ? 'white' : 'primary'">mdi-check</v-icon>
+                          </v-avatar>
+                          <div>
+                            <div class="font-weight-bold text-body-2" :class="q.tfCorrect === true ? 'text-success' : 'text-high-emphasis'">
+                              صواب (True)
+                            </div>
+                            <div class="text-caption text-medium-emphasis" style="font-size: 0.72rem !important;">العبارة صحيحة</div>
+                          </div>
+                        </div>
+                        <v-chip v-if="q.tfCorrect === true" color="success" size="x-small" variant="flat" class="font-weight-bold">
+                          الإجابة الصحيحة
+                        </v-chip>
+                      </div>
+
+                      <div
+                        class="pa-3 rounded-xl flex-grow-1 border d-flex align-center justify-space-between cursor-pointer transition-all"
+                        :class="q.tfCorrect === false ? 'tf-card-active tf-card-false' : 'tf-card-inactive'"
                         @click="q.tfCorrect = false"
                       >
-                        خطأ (False)
-                      </v-btn>
+                        <div class="d-flex align-center gap-2">
+                          <v-avatar size="32" :color="q.tfCorrect === false ? 'error' : 'primary'" :variant="q.tfCorrect === false ? 'flat' : 'tonal'">
+                            <v-icon size="18" :color="q.tfCorrect === false ? 'white' : 'primary'">mdi-close</v-icon>
+                          </v-avatar>
+                          <div>
+                            <div class="font-weight-bold text-body-2" :class="q.tfCorrect === false ? 'text-error' : 'text-high-emphasis'">
+                              خطأ (False)
+                            </div>
+                            <div class="text-caption text-medium-emphasis" style="font-size: 0.72rem !important;">العبارة خاطئة</div>
+                          </div>
+                        </div>
+                        <v-chip v-if="q.tfCorrect === false" color="error" size="x-small" variant="flat" class="font-weight-bold">
+                          الإجابة الصحيحة
+                        </v-chip>
+                      </div>
                     </div>
                   </template>
 
@@ -732,6 +785,7 @@
                         v-model.number="q.defaultScore"
                         type="number"
                         min="1"
+                        prepend-inner-icon="mdi-star-circle-outline"
                         variant="outlined"
                         density="compact"
                         rounded="lg"
@@ -745,6 +799,7 @@
                         v-model.number="q.expectedTimeMinutes"
                         type="number"
                         min="1"
+                        prepend-inner-icon="mdi-clock-outline"
                         variant="outlined"
                         density="compact"
                         rounded="lg"
@@ -759,6 +814,7 @@
                         :items="difficultiesOptions"
                         item-title="text"
                         item-value="value"
+                        prepend-inner-icon="mdi-speedometer"
                         variant="outlined"
                         density="compact"
                         rounded="lg"
@@ -771,6 +827,7 @@
                       <v-select
                         v-model="q.bloomLevel"
                         :items="bloomLevels"
+                        prepend-inner-icon="mdi-brain"
                         variant="outlined"
                         density="compact"
                         rounded="lg"
@@ -942,6 +999,8 @@ export default {
 
       // Questions Array
       questions: [],
+      optionCursorPositions: {},
+      formulaEditorRefs: {},
 
       // Options
       institutionTypes: [
@@ -956,10 +1015,10 @@ export default {
       ],
       bloomLevels: ["تذكر", "فهم", "تطبيق", "تحليل", "تقييم", "ابتكار"],
       questionTypes: [
-        { value: "single_choice", label: "مفرد", color: "indigo", icon: "mdi-record-circle" },
-        { value: "multiple_choice", label: "متعدد", color: "warning", icon: "mdi-checkbox-multiple-marked" },
-        { value: "true_false", label: "صواب/خطأ", color: "success", icon: "mdi-toggle-switch" },
-        { value: "essay", label: "مقالي", color: "primary", icon: "mdi-text-box-edit" },
+        { value: "single_choice", label: "اختيار واحد", color: "indigo", icon: "mdi-radiobox-marked" },
+        { value: "multiple_choice", label: "اختيار من متعدد", color: "warning", icon: "mdi-checkbox-marked" },
+        { value: "true_false", label: "صح / خطأ", color: "success", icon: "mdi-check-circle-outline" },
+        { value: "essay", label: "سؤال مقالي", color: "primary", icon: "mdi-text-box-edit-outline" },
       ],
       rules: {
         required: (v) => !!v || v === 0 || "مطلوب",
@@ -996,12 +1055,33 @@ export default {
 
     contextUnitParam() {
       if (this.context.institution_type === 'university') {
-        return this.context.semesterSubjectId ? { semester_subject: this.context.semesterSubjectId } : null;
+        return this.context.semesterSubjectId ? {
+          institution_type: 'university',
+          semester_subject: this.context.semesterSubjectId,
+        } : null;
       }
       if (this.context.institution_type === 'institute') {
-        return this.context.instituteSubjectId ? { subject: this.context.instituteSubjectId } : null;
+        return this.context.instituteSubjectId ? {
+          institution_type: 'institute',
+          subject: this.context.instituteSubjectId,
+        } : null;
       }
-      return this.context.subjectId ? { subject: this.context.subjectId } : null;
+      return (this.context.subjectId || this.context.classTrackId) ? {
+        institution_type: 'school',
+        school_subject: this.context.subjectId,
+        subject: this.context.subjectId,
+        semester: this.context.semesterId,
+        class_track: this.context.classTrackId,
+        stage: this.context.stageId,
+      } : null;
+    },
+
+    contextLessonParam() {
+      if (!this.context.unitId) return null;
+      return {
+        unit: this.context.unitId,
+        institution_type: this.context.institution_type || 'school'
+      };
     },
   },
 
@@ -1080,6 +1160,12 @@ export default {
       this.context.learningOutcomeId = null;
     },
 
+    onSemesterChange() {
+      this.context.unitId = null;
+      this.context.lessonId = null;
+      this.context.learningOutcomeId = null;
+    },
+
     onCollegeChange() {
       this.context.departmentId = null;
       this.context.specializationId = null;
@@ -1115,6 +1201,102 @@ export default {
       this.context.learningOutcomeId = null;
     },
 
+    // === FORMULA & SYMBOL TARGETING (مطابق لشاشة إضافة سؤال جديد) ===
+    setFormulaEditorRef(qIndex, el) {
+      if (el) {
+        this.formulaEditorRefs[qIndex] = el;
+      }
+    },
+
+    getTargetsForQuestion(q, qIndex) {
+      const targets = [
+        { id: `question_${qIndex}`, label: 'نص السؤال' }
+      ];
+      if (q.type === 'single_choice' || q.type === 'multiple_choice') {
+        (q.options || []).forEach((_, oIdx) => {
+          targets.push({
+            id: `q_${qIndex}_opt_${oIdx}`,
+            qIndex,
+            optionIndex: oIdx,
+            label: `الخيار (${String.fromCharCode(65 + oIdx)})`
+          });
+        });
+      } else if (q.type === 'essay') {
+        targets.push({
+          id: `q_${qIndex}_essay`,
+          qIndex,
+          optionIndex: 0,
+          label: 'الإجابة النموذجية'
+        });
+      }
+      return targets;
+    },
+
+    setActiveFormulaTarget(qIndex, oIndex) {
+      const q = this.questions[qIndex];
+      if (!q) return;
+      q.activeTarget = {
+        id: `q_${qIndex}_opt_${oIndex}`,
+        qIndex,
+        optionIndex: oIndex,
+        label: `الخيار (${String.fromCharCode(65 + oIndex)})`
+      };
+    },
+
+    activateOptionFormula(qIndex, oIndex) {
+      this.setActiveFormulaTarget(qIndex, oIndex);
+      const editorRef = this.formulaEditorRefs[qIndex];
+      if (editorRef && typeof editorRef.openToolbar === 'function') {
+        editorRef.openToolbar();
+      }
+    },
+
+    saveCursorPosition(targetId, event) {
+      const target = event?.target;
+      if (target && typeof target.selectionStart === 'number') {
+        this.optionCursorPositions[targetId] = {
+          start: target.selectionStart,
+          end: target.selectionEnd,
+        };
+      }
+    },
+
+    onInsertSymbol(qIndex, { item, target }) {
+      const q = this.questions[qIndex];
+      if (!q || !target || target.id === `question_${qIndex}`) return;
+      const optIdx = target.optionIndex;
+      if (optIdx === undefined || optIdx === null || optIdx < 0 || !q.options || optIdx >= q.options.length) return;
+      let original = q.options[optIdx] || '';
+      let textToInsert = item.snippet;
+
+      const dollarCountBefore = (original.match(/\$/g) || []).length;
+      const isInsideMath = dollarCountBefore % 2 === 1;
+      const isLatex =
+        (textToInsert.includes('\\') || textToInsert.includes('^') || textToInsert.includes('_')) &&
+        !textToInsert.startsWith('$') &&
+        !textToInsert.startsWith('`') &&
+        !textToInsert.startsWith('\n|');
+
+      if (!isInsideMath && isLatex) {
+        textToInsert = `$${textToInsert}$`;
+      }
+
+      const pos = this.optionCursorPositions[target.id];
+      if (pos && typeof pos.start === 'number' && pos.start <= original.length) {
+        const before = original.substring(0, pos.start);
+        const after = original.substring(pos.end ?? pos.start);
+        q.options[optIdx] = before + textToInsert + after;
+        const newPos = pos.start + textToInsert.length;
+        this.optionCursorPositions[target.id] = { start: newPos, end: newPos };
+      } else {
+        q.options[optIdx] = original
+          ? (original.endsWith(' ') ? original + textToInsert : original + ' ' + textToInsert)
+          : textToInsert;
+        const newPos = q.options[optIdx].length;
+        this.optionCursorPositions[target.id] = { start: newPos, end: newPos };
+      }
+    },
+
     // === QUESTIONS MANAGEMENT ===
     createQuestionObject() {
       return {
@@ -1131,6 +1313,7 @@ export default {
         expectedTimeMinutes: this.defaults.expectedTimeMinutes,
         difficulty: this.defaults.difficulty,
         bloomLevel: this.defaults.bloomLevel,
+        activeTarget: null,
       };
     },
 
@@ -1534,41 +1717,40 @@ export default {
   color: rgb(var(--v-theme-on-surface));
 }
 
-/* ===== Main Cards (Theme Compatible) ===== */
+/* ===== Main Cards (Theme Compatible & Modern Elegance) ===== */
 .main-card {
   background: rgb(var(--v-theme-surface)) !important;
-  border: 1px solid rgba(var(--v-border-color), 0.12);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(var(--v-border-color), 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
+  transition: box-shadow 0.3s ease;
 }
 
-/* ===== Sticky Context Bar ===== */
-.sticky-context-bar {
-  position: sticky;
-  top: 12px;
-  z-index: 10;
+.main-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05), 0 8px 24px rgba(0, 0, 0, 0.03);
 }
 
 /* ===== Question Card Items ===== */
 .question-card-item {
   background: rgb(var(--v-theme-surface)) !important;
-  border-radius: 16px;
-  border: 1px solid rgba(var(--v-border-color), 0.16);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  border-radius: 18px !important;
+  border: 1px solid rgba(var(--v-border-color), 0.12);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03), 0 4px 12px rgba(0, 0, 0, 0.02);
   transition: all 0.25s ease;
 }
 
 .question-card-item:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }
 
 .question-card-header {
-  background: rgb(var(--v-theme-background));
-  border-radius: 16px 16px 0 0;
+  background: rgba(var(--v-theme-primary), 0.035);
+  border-bottom: 1px solid rgba(var(--v-border-color), 0.08);
+  border-radius: 18px 18px 0 0;
   transition: background 0.2s ease;
 }
 
 .question-card-header:hover {
-  background: rgba(var(--v-theme-primary), 0.04);
+  background: rgba(var(--v-theme-primary), 0.07);
 }
 
 .collapse-icon {
@@ -1587,13 +1769,45 @@ export default {
 }
 
 .type-btn {
-  min-width: 90px;
+  min-width: 105px;
+  border-radius: 10px !important;
+  font-weight: 700;
+  letter-spacing: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.type-btn:hover {
+  transform: translateY(-1px);
+}
+
+/* ===== True/False Interactive Cards (مطابق لتصميم شاشة السؤال الجديد ومتوافق مع الثيمين) ===== */
+.tf-card-active {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+.tf-card-true {
+  background: rgba(var(--v-theme-success), 0.08) !important;
+  border-color: rgba(var(--v-theme-success), 0.5) !important;
+}
+.tf-card-false {
+  background: rgba(var(--v-theme-error), 0.08) !important;
+  border-color: rgba(var(--v-theme-error), 0.5) !important;
+}
+.tf-card-inactive {
+  background: rgb(var(--v-theme-surface));
+  border-color: rgba(var(--v-border-color), 0.14) !important;
+  opacity: 0.85;
+}
+.tf-card-inactive:hover {
+  opacity: 1;
+  background: rgba(var(--v-theme-primary), 0.03);
+  border-color: rgba(var(--v-theme-primary), 0.3) !important;
 }
 
 /* ===== Properties Sidebar Box ===== */
 .properties-box {
-  background: rgb(var(--v-theme-background));
-  border: 1px solid rgba(var(--v-border-color), 0.12);
+  background: rgba(var(--v-theme-primary), 0.025);
+  border: 1px solid rgba(var(--v-border-color), 0.1);
+  border-radius: 14px;
 }
 
 /* ===== Option Row ===== */
@@ -1660,7 +1874,7 @@ export default {
   box-shadow: 0 4px 12px rgba(var(--v-theme-success), 0.2);
 }
 
-/* ===== Option Letter Badges (Unboxed & Standard Non-Circular) ===== */
+/* ===== Option Letter Badges (Theme-Adaptive & Vibrant) ===== */
 .option-letter-badge {
   width: 36px;
   height: 36px;
@@ -1669,20 +1883,21 @@ export default {
   align-items: center;
   justify-content: center;
   font-size: 0.9rem;
-  border-radius: 8px; /* Standard rounded-lg, NOT circular */
+  border-radius: 8px;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
 }
 
 .option-letter--default {
-  background: rgba(var(--v-theme-surface-variant), 0.5);
-  color: rgba(var(--v-theme-on-surface), 0.7);
-  border: 1px solid rgba(var(--v-border-color), 0.15);
+  background: rgba(var(--v-theme-primary), 0.07);
+  color: rgb(var(--v-theme-primary));
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.25);
+  font-weight: 800;
 }
 
 .option-letter--default:hover {
-  background: rgba(var(--v-theme-primary), 0.08);
-  border-color: rgba(var(--v-theme-primary), 0.4);
+  background: rgba(var(--v-theme-primary), 0.14);
+  border-color: rgb(var(--v-theme-primary));
 }
 
 .option-letter--correct {
@@ -1692,9 +1907,9 @@ export default {
   box-shadow: 0 2px 8px rgba(var(--v-theme-success), 0.3);
 }
 
-/* Option Formula Live Preview */
+/* Option Formula Live Preview (Theme-Adaptive) */
 .option-formula-preview {
-  background: rgba(var(--v-theme-surface-variant), 0.45);
+  background: rgba(var(--v-theme-primary), 0.04);
   border: 1px dashed rgba(var(--v-theme-primary), 0.25);
   border-radius: 8px;
   color: rgb(var(--v-theme-on-surface));

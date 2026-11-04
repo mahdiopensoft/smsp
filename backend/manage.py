@@ -4,10 +4,12 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+from pathlib import Path
 
 
 def main():
     """Run administrative tasks."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
     os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
     try:

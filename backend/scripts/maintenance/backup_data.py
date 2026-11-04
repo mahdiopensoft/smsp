@@ -39,6 +39,19 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
+# ضبط مخرجات الطرفية لدعم UTF-8 على ويندوز لتفادي أخطاء الرموز
+if sys.platform == 'win32':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
+# مسار مجلد backend الرئيسي
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
 # تهيئة بيئة Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 import django
@@ -50,7 +63,6 @@ from django.core.management import call_command
 from django.conf import settings
 
 # مسار مجلد النسخ الاحتياطية
-BASE_DIR = Path(__file__).resolve().parent
 BACKUP_ROOT = BASE_DIR / 'backup'
 
 # قواعد البيانات المعرفة

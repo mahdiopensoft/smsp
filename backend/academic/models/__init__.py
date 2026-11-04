@@ -10,12 +10,20 @@
 from .common.BaseSyncModel import BaseSyncModel
 from .common.Organization import Organization
 from .common.AcademicYear import AcademicYear
-from .common.ExamPeriod import ExamPeriod
 from .common.Student import Student
-from .common.Subject import Subject
-from .common.Unit import Unit
-from .common.Lesson import Lesson
 from .common.LearningOutcome import LearningOutcome
+
+# Models moved to universities (stubs remain in common for backward compat)
+from .universities.UniversitySubject import UniversitySubject
+from .universities.UniversityUnit import UniversityUnit
+from .universities.UniversityLesson import UniversityLesson
+from .universities.UniversityExamPeriod import UniversityExamPeriod
+
+# Backward compatibility aliases for old common names
+Subject = UniversitySubject
+Unit = UniversityUnit
+Lesson = UniversityLesson
+ExamPeriod = UniversityExamPeriod
 
 # 2. المدارس (Schools)
 from .schools.SchoolStage import SchoolStage
@@ -80,12 +88,19 @@ __all__ = [
     'BaseSyncModel',
     'Organization',
     'AcademicYear',
-    'ExamPeriod',
     'Student',
+    'LearningOutcome',
+
+    # University Models (previously in common)
+    'UniversitySubject',
+    'UniversityUnit',
+    'UniversityLesson',
+    'UniversityExamPeriod',
+    # Backward compat aliases
+    'ExamPeriod',
     'Subject',
     'Unit',
     'Lesson',
-    'LearningOutcome',
 
     # Schools (New Standard)
     'SchoolStage',

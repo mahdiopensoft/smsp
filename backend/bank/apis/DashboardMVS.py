@@ -4,12 +4,12 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.utils import timezone
 from datetime import timedelta
-from django.db.models import Count
+from django.db.models import Count, Q
 import re
 
 from bank.models.Question import Question
 from exams.models.Exam import Exam
-from academic.models.common.Subject import Subject
+from academic.models.universities.UniversitySubject import UniversitySubject as Subject
 
 class DashboardMVS(ViewSet):
     """
@@ -48,28 +48,71 @@ class DashboardMVS(ViewSet):
             period_qs = base_qs.filter(created_at__gte=now - timedelta(days=365))
 
         # Questions by Subject
-        subject_counts = (
-            period_qs.filter(lesson__unit__class_subject__subject__isnull=False)
+        subject_map = {}
+
+        # 1. Subject from semester_subject__fk_subject
+        for sc in (
+            period_qs.filter(lesson__unit__semester_subject__fk_subject__isnull=False)
             .values(
-                'lesson__unit__class_subject__subject__id',
-                'lesson__unit__class_subject__subject__name_ar'
+                'lesson__unit__semester_subject__fk_subject__id',
+                'lesson__unit__semester_subject__fk_subject__name_ar'
             )
             .annotate(count=Count('id'))
-            .order_by('-count')
-        )
-        
-        questions_by_subject = []
-        for sc in subject_counts:
-            questions_by_subject.append({
-                "id": sc['lesson__unit__class_subject__subject__id'],
-                "name": sc['lesson__unit__class_subject__subject__name_ar'] or 'مادة',
-                "count": sc['count']
-            })
+        ):
+            s_id = sc['lesson__unit__semester_subject__fk_subject__id']
+            s_name = sc['lesson__unit__semester_subject__fk_subject__name_ar'] or 'مادة'
+            subject_map[s_id] = {
+                "id": s_id,
+                "name": s_name,
+                "count": subject_map.get(s_id, {}).get("count", 0) + sc['count']
+            }
+
+        # 2. Subject directly from lesson__subject
+        for sc in (
+            period_qs.filter(lesson__subject__isnull=False)
+            .values(
+                'lesson__subject__id',
+                'lesson__subject__name_ar'
+            )
+            .annotate(count=Count('id'))
+        ):
+            s_id = sc['lesson__subject__id']
+            s_name = sc['lesson__subject__name_ar'] or 'مادة'
+            subject_map[s_id] = {
+                "id": s_id,
+                "name": s_name,
+                "count": subject_map.get(s_id, {}).get("count", 0) + sc['count']
+            }
+
+        # 3. Fallback from course if fk_subject is null
+        for sc in (
+            period_qs.filter(
+                lesson__unit__semester_subject__course__isnull=False,
+                lesson__unit__semester_subject__fk_subject__isnull=True,
+                lesson__subject__isnull=True
+            )
+            .values(
+                'lesson__unit__semester_subject__course__id',
+                'lesson__unit__semester_subject__course__name_ar'
+            )
+            .annotate(count=Count('id'))
+        ):
+            s_id = f"c_{sc['lesson__unit__semester_subject__course__id']}"
+            s_name = sc['lesson__unit__semester_subject__course__name_ar'] or 'مقرر'
+            subject_map[s_id] = {
+                "id": s_id,
+                "name": s_name,
+                "count": subject_map.get(s_id, {}).get("count", 0) + sc['count']
+            }
+
+        questions_by_subject = sorted(subject_map.values(), key=lambda x: x['count'], reverse=True)
 
         if not questions_by_subject:
             all_subjects = Subject.objects.filter(is_deleted=False)[:8]
             for s in all_subjects:
-                cnt = base_qs.filter(lesson__unit__class_subject__subject=s).count()
+                cnt = base_qs.filter(
+                    Q(lesson__unit__semester_subject__fk_subject=s) | Q(lesson__subject=s)
+                ).count()
                 questions_by_subject.append({
                     "id": s.id,
                     "name": s.name_ar or s.name_en or f"مادة {s.id}",
@@ -141,7 +184,11 @@ class DashboardMVS(ViewSet):
 
         # 6. Recent Questions
         recent_qs = base_qs.select_related(
-            'lesson__unit__class_subject__subject'
+            'lesson',
+            'lesson__subject',
+            'lesson__unit',
+            'lesson__unit__semester_subject__fk_subject',
+            'lesson__unit__semester_subject__course',
         ).order_by('-created_at')[:5]
         recent_questions = []
         diff_labels_map = {1: 'سهل', 2: 'متوسط', 3: 'صعب'}
@@ -150,8 +197,16 @@ class DashboardMVS(ViewSet):
             subject_name = 'عام'
             lesson_name = 'عام'
             try:
-                subject_name = q.lesson.unit.class_subject.subject.name_ar
-                lesson_name = q.lesson.name_ar
+                if q.lesson:
+                    lesson_name = q.lesson.name_ar or q.lesson.name_en or 'عام'
+                    if getattr(q.lesson, 'subject', None):
+                        subject_name = q.lesson.subject.name_ar or q.lesson.subject.name_en or 'عام'
+                    elif getattr(q.lesson, 'unit', None) and getattr(q.lesson.unit, 'semester_subject', None):
+                        ss = q.lesson.unit.semester_subject
+                        if getattr(ss, 'fk_subject', None):
+                            subject_name = ss.fk_subject.name_ar or ss.fk_subject.name_en or 'عام'
+                        elif getattr(ss, 'course', None):
+                            subject_name = ss.course.name_ar or ss.course.name_en or 'عام'
             except Exception:
                 pass
             recent_questions.append({

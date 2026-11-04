@@ -19,10 +19,11 @@ class QuestionReviewMVS(AllMVS):
     Used by: ReviewQueueView.vue
     """
     queryset = Question.objects.select_related(
-        'lesson__unit__class_subject__subject',
-        'lesson__unit__class_subject__class_track__level__stage',
-        'lesson__unit__class_subject__class_track__track',
+        'lesson',
+        'lesson__subject',
+        'lesson__unit',
         'lesson__unit__semester_subject__fk_subject',
+        'lesson__unit__semester_subject__course',
         'lesson__unit__semester_subject__fk_specialization__fk_college',
         'lesson__unit__semester_subject__fk_specialization__fk_section',
         'lesson__unit__semester_subject__semester',
@@ -37,18 +38,14 @@ class QuestionReviewMVS(AllMVS):
         'bloomLevel': ['exact', 'in'],
         'institution_type': ['exact', 'in'],
         'lesson': ['exact'],
+        'lesson__subject': ['exact'],
         'lesson__unit': ['exact'],
-        'lesson__unit__class_subject__subject': ['exact'],
-        'lesson__unit__class_subject__class_track': ['exact'],
-        'lesson__unit__class_subject__class_track__level': ['exact'],
-        'lesson__unit__class_subject__class_track__track': ['exact'],
-        'lesson__unit__class_subject__class_track__level__stage': ['exact'],
         'lesson__unit__semester_subject': ['exact'],
         'lesson__unit__semester_subject__fk_subject': ['exact'],
+        'lesson__unit__semester_subject__course': ['exact'],
         'lesson__unit__semester_subject__fk_specialization': ['exact'],
         'lesson__unit__semester_subject__fk_specialization__fk_college': ['exact'],
         'lesson__unit__semester_subject__fk_specialization__fk_section': ['exact'],
-        'lesson__subject': ['exact'],
     }
 
     def get_queryset(self):
@@ -83,14 +80,14 @@ class QuestionReviewMVS(AllMVS):
         if semester_subject:
             qs = qs.filter(lesson__unit__semester_subject_id=semester_subject)
 
-        # 3. School Filters
+        # 3. School Filters (Guarded: questions currently reference UniversityLesson)
         stage = params.get('stage')
         if stage:
-            qs = qs.filter(lesson__unit__class_subject__class_track__level__stage_id=stage)
+            qs = qs.none()
 
         class_track = params.get('class_track')
         if class_track:
-            qs = qs.filter(lesson__unit__class_subject__class_track_id=class_track)
+            qs = qs.none()
 
         # 4. Institute Filters
         inst_field = params.get('field') or params.get('institute_field')
@@ -101,9 +98,9 @@ class QuestionReviewMVS(AllMVS):
         subject = params.get('subject') or params.get('institute_subject')
         if subject:
             qs = qs.filter(
-                Q(lesson__unit__class_subject__subject_id=subject) |
                 Q(lesson__unit__semester_subject__fk_subject_id=subject) |
-                Q(lesson__subject_id=subject)
+                Q(lesson__subject_id=subject) |
+                Q(lesson__unit__semester_subject__course_id=subject)
             )
 
         unit = params.get('unit') or params.get('lesson__unit')

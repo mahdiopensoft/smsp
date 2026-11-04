@@ -14,7 +14,7 @@ class UniversitySemesterSubject(BaseSyncModel):
         blank=True
     )
     fk_subject = models.ForeignKey(
-        'academic.Subject', 
+        'academic.UniversitySubject', 
         related_name="semester_subjects", 
         on_delete=models.PROTECT, 
         verbose_name=_("المادة / المقرر (تاريخي)"),

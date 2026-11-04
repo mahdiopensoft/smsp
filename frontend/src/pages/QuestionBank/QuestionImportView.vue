@@ -7,7 +7,7 @@
         <custom-btn
           type="add"
           icon="mdi-download"
-          label="تحميل قالب الإكسل المعتمد"
+          label="تحميل القالب الشامل المعتمد (Excel)"
           color="primary"
           class="font-weight-bold px-6"
           :click="downloadTemplate"
@@ -247,10 +247,55 @@
             </v-form>
           </div>
 
-          <v-alert type="info" variant="tonal" density="compact" class="mt-4 rounded-xl">
-            <v-icon start size="16">mdi-information</v-icon>
-            تأكد من مطابقة ترتيب الأعمدة في ملف الإكسل للقالب المعتمد.
-          </v-alert>
+          <!-- Instructions & Types Guide Card -->
+          <div class="mt-4 pa-4 rounded-2xl border" style="background: rgba(var(--v-theme-surface), 0.7);">
+            <div class="d-flex align-center gap-2 mb-3">
+              <v-icon color="primary" size="20">mdi-lightbulb-on-outline</v-icon>
+              <span class="text-subtitle-2 font-weight-black">إرشادات تعبئة أنواع الأسئلة في القالب الموحد:</span>
+            </div>
+
+            <div class="d-flex flex-column gap-2 text-caption">
+              <!-- Single Choice -->
+              <div class="pa-2 rounded-lg border bg-surface d-flex align-start gap-2">
+                <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold flex-shrink-0">
+                  اختيار واحد
+                </v-chip>
+                <span class="text-medium-emphasis">
+                  الخيارات (1-4)، والإجابة رقم الخيار الصحيح (مثال: <strong class="text-primary">1</strong>).
+                </span>
+              </div>
+
+              <!-- Multiple Choice -->
+              <div class="pa-2 rounded-lg border bg-surface d-flex align-start gap-2">
+                <v-chip size="x-small" color="indigo" variant="flat" class="font-weight-bold flex-shrink-0">
+                  خيارات متعددة
+                </v-chip>
+                <span class="text-medium-emphasis">
+                  الخيارات، وأرقام الإجابات مفصولة بفواصل (مثال: <strong class="text-indigo">1, 3</strong>).
+                </span>
+              </div>
+
+              <!-- True / False -->
+              <div class="pa-2 rounded-lg border bg-surface d-flex align-start gap-2">
+                <v-chip size="x-small" color="teal" variant="flat" class="font-weight-bold flex-shrink-0">
+                  صح وخطأ
+                </v-chip>
+                <span class="text-medium-emphasis">
+                  الخيارات فارغة، والإجابة كلمة <strong class="text-teal">صح</strong> أو <strong class="text-teal">خطأ</strong> (أو 1 / 2).
+                </span>
+              </div>
+
+              <!-- Essay -->
+              <div class="pa-2 rounded-lg border bg-surface d-flex align-start gap-2">
+                <v-chip size="x-small" color="amber-darken-3" variant="flat" class="font-weight-bold flex-shrink-0">
+                  مقالي
+                </v-chip>
+                <span class="text-medium-emphasis">
+                  الخيارات فارغة، والإجابة تحتوي على <strong class="text-amber-darken-3">الإجابة النموذجية المرجعية</strong>.
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </v-col>
 
@@ -310,6 +355,65 @@
                   :click="(e) => { if(e) e.stopPropagation(); removeFile(); }"
                 />
               </template>
+            </div>
+
+            <!-- File Preview & Breakdown Card -->
+            <div v-if="parsedPreview && parsedPreview.total > 0" class="mt-4 pa-4 rounded-2xl border" style="background: rgba(var(--v-theme-surface), 0.7);">
+              <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3">
+                <div class="d-flex align-center gap-2">
+                  <v-icon color="emerald" size="20">mdi-eye-check-outline</v-icon>
+                  <span class="text-subtitle-2 font-weight-black">معاينة الأسئلة المقروءة من الملف</span>
+                  <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold">
+                    {{ parsedPreview.total }} سؤال
+                  </v-chip>
+                </div>
+                <!-- Breakdown Chips -->
+                <div class="d-flex align-center gap-1 flex-wrap">
+                  <v-chip v-if="parsedPreview.types['Single Choice']" size="x-small" color="primary" variant="tonal" class="font-weight-bold">
+                    {{ parsedPreview.types['Single Choice'] }} اختيار واحد
+                  </v-chip>
+                  <v-chip v-if="parsedPreview.types['Multiple Choice']" size="x-small" color="indigo" variant="tonal" class="font-weight-bold">
+                    {{ parsedPreview.types['Multiple Choice'] }} خيارات متعددة
+                  </v-chip>
+                  <v-chip v-if="parsedPreview.types['True/False']" size="x-small" color="teal" variant="tonal" class="font-weight-bold">
+                    {{ parsedPreview.types['True/False'] }} صح وخطأ
+                  </v-chip>
+                  <v-chip v-if="parsedPreview.types['Essay']" size="x-small" color="amber-darken-3" variant="tonal" class="font-weight-bold">
+                    {{ parsedPreview.types['Essay'] }} مقالي
+                  </v-chip>
+                </div>
+              </div>
+
+              <!-- Preview Table (first 5 questions) -->
+              <v-table density="compact" class="bg-transparent rounded-lg border text-caption">
+                <thead>
+                  <tr style="background: rgba(var(--v-theme-surface-variant), 0.3);">
+                    <th style="width: 40px;">#</th>
+                    <th style="width: 120px;">النوع</th>
+                    <th>نص السؤال</th>
+                    <th style="width: 160px;">الإجابة المكتشفة</th>
+                    <th style="width: 60px;">الدرجة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(row, idx) in parsedPreview.rows.slice(0, 5)" :key="idx">
+                    <td class="font-weight-bold">{{ idx + 1 }}</td>
+                    <td>
+                      <v-chip size="x-small" :color="getTypeColor(row.type)" variant="tonal" class="font-weight-bold">
+                        {{ getTypeText(row.type) }}
+                      </v-chip>
+                    </td>
+                    <td class="text-truncate" style="max-width: 250px;">{{ row.text }}</td>
+                    <td class="text-truncate font-weight-bold" style="max-width: 160px; color: rgb(var(--v-theme-primary));">
+                      {{ row.answer || '-' }}
+                    </td>
+                    <td>{{ row.mark || 1 }}</td>
+                  </tr>
+                </tbody>
+              </v-table>
+              <div v-if="parsedPreview.total > 5" class="text-caption text-medium-emphasis text-center mt-2">
+                ... بالإضافة إلى {{ parsedPreview.total - 5 }} أسئلة أخرى سيتم استيرادها
+              </div>
             </div>
           </div>
 
@@ -388,6 +492,7 @@ export default {
       // File
       isDragover: false,
       selectedFile: null,
+      parsedPreview: null,
 
       rules: {
         required: (v) => !!v || "مطلوب",
@@ -526,6 +631,7 @@ export default {
       const files = event.target.files;
       if (files && files.length > 0) {
         this.selectedFile = files[0];
+        this.parsePreviewFile(this.selectedFile);
       }
     },
     onDrop(event) {
@@ -536,6 +642,7 @@ export default {
         const ext = file.name.split(".").pop().toLowerCase();
         if (["xlsx", "xls", "csv"].includes(ext)) {
           this.selectedFile = file;
+          this.parsePreviewFile(this.selectedFile);
         } else {
           this.$alert("errorData", { message: "نوع الملف غير مدعوم. يدعم Excel و CSV فقط" });
         }
@@ -544,6 +651,7 @@ export default {
     removeFile(event) {
       if (event) event.stopPropagation();
       this.selectedFile = null;
+      this.parsedPreview = null;
       if (this.$refs.fileInput) this.$refs.fileInput.value = "";
     },
     formatBytes(bytes, decimals = 2) {
@@ -559,16 +667,228 @@ export default {
     downloadTemplate() {
       const wb = XLSX.utils.book_new();
       const wsData = [
-        ["نص السؤال", "الخيار الأول", "الخيار الثاني", "الخيار الثالث", "الخيار الرابع", "الإجابة الصحيحة (رقم الخيار)"],
-        ["ما عاصمة اليمن؟", "صنعاء", "عدن", "تعز", "مأرب", "1"],
+        [
+          "نوع السؤال",
+          "نص السؤال",
+          "الخيار 1",
+          "الخيار 2",
+          "الخيار 3",
+          "الخيار 4",
+          "الإجابة الصحيحة / المرجعية",
+          "الدرجة",
+          "مستوى الصعوبة",
+          "مستوى بلوم"
+        ],
+        [
+          "اختيار واحد",
+          "ما هي عاصمة الجمهورية اليمنية؟",
+          "صنعاء",
+          "عدن",
+          "تعز",
+          "مأرب",
+          "1",
+          1,
+          "سهل",
+          "تذكر"
+        ],
+        [
+          "خيارات متعددة",
+          "أي من المدن التالية تعتبر مدناً ساحلية يمنية؟",
+          "عدن",
+          "صنعاء",
+          "المكلا",
+          "ذمار",
+          "1, 3",
+          2,
+          "متوسط",
+          "فهم"
+        ],
+        [
+          "صح وخطأ",
+          "تقع مدينة صنعاء التاريخية في قارة آسيا.",
+          "",
+          "",
+          "",
+          "",
+          "صح",
+          1,
+          "سهل",
+          "تذكر"
+        ],
+        [
+          "صح وخطأ",
+          "يمر نهر النيل في أراضي الجمهورية اليمنية.",
+          "",
+          "",
+          "",
+          "",
+          "خطأ",
+          1,
+          "سهل",
+          "تذكر"
+        ],
+        [
+          "مقالي",
+          "اشرح الأهمية الاستراتيجية لموقع مضيق باب المندب للتجارة الدولية.",
+          "",
+          "",
+          "",
+          "",
+          "ممر مائي استراتيجي يربط البحر الأحمر بالمحيط الهندي ويوفر أقصر طريق بحري بين آسيا وأوروبا...",
+          3,
+          "صعب",
+          "تحليل"
+        ]
       ];
       const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-      const wscols = [{ wch: 40 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 25 }];
+      const wscols = [
+        { wch: 16 },
+        { wch: 45 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 30 },
+        { wch: 10 },
+        { wch: 14 },
+        { wch: 14 }
+      ];
       ws["!cols"] = wscols;
 
       XLSX.utils.book_append_sheet(wb, ws, "الأسئلة");
-      XLSX.writeFile(wb, "Question_Import_Template.xlsx");
+      XLSX.writeFile(wb, "Universal_Questions_Template.xlsx");
+    },
+
+    async parsePreviewFile(file) {
+      if (!file) {
+        this.parsedPreview = null;
+        return;
+      }
+      try {
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, { type: "array" });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const rawJson = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        if (!rawJson || rawJson.length < 2) {
+          this.parsedPreview = null;
+          return;
+        }
+
+        const headers = (rawJson[0] || []).map((h) => String(h || "").trim());
+        let typeIdx = -1;
+        let qIdx = -1;
+        let ansIdx = -1;
+        let markIdx = -1;
+        const optIndices = [];
+
+        headers.forEach((h, idx) => {
+          const hl = h.toLowerCase();
+          if (hl.includes("نوع") || hl.includes("type")) typeIdx = idx;
+          else if (hl.includes("نص") || hl.includes("سؤال") || hl.includes("content") || hl.includes("question")) qIdx = idx;
+          else if (hl.includes("خيار") || hl.includes("بديل") || hl.includes("option")) optIndices.push(idx);
+          else if (hl.includes("صحيحة") || hl.includes("إجابة") || hl.includes("مرجعية") || hl.includes("answer") || hl.includes("correct")) ansIdx = idx;
+          else if (hl.includes("درجة") || hl.includes("mark")) markIdx = idx;
+        });
+
+        const totalCols = (rawJson[0] || []).length;
+        if (qIdx === -1) {
+          const col0Header = (headers[0] || "").toLowerCase();
+          const col0FirstVal = String(rawJson[1]?.[0] || "").toLowerCase();
+          const isTypeCol = col0Header.includes("نوع") || ["اختيار واحد", "صح وخطأ", "خيارات متعددة", "مقالي"].some((k) => col0FirstVal.includes(k));
+          if (isTypeCol) {
+            typeIdx = 0;
+            qIdx = 1;
+            ansIdx = totalCols > 6 ? 6 : (totalCols === 6 ? 5 : -1);
+            markIdx = totalCols > 7 ? 7 : -1;
+          } else {
+            typeIdx = -1;
+            qIdx = 0;
+            ansIdx = totalCols > 5 ? 5 : (totalCols === 5 ? 4 : -1);
+            markIdx = totalCols > 6 ? 6 : -1;
+          }
+        }
+
+        const previewRows = [];
+        const typeCounts = {
+          "Single Choice": 0,
+          "Multiple Choice": 0,
+          "True/False": 0,
+          "Essay": 0,
+        };
+
+        for (let i = 1; i < rawJson.length; i++) {
+          const row = rawJson[i];
+          if (!row || row.length === 0) continue;
+          const qText = String(row[qIdx] || "").trim();
+          if (!qText || qText.startsWith("نص السؤال") || qText.startsWith("نوع السؤال")) continue;
+
+          const rawType = typeIdx >= 0 ? String(row[typeIdx] || "").trim().toLowerCase() : "";
+          const rawAns = ansIdx >= 0 ? String(row[ansIdx] || "").trim() : "";
+          const mark = markIdx >= 0 ? parseFloat(row[markIdx]) || 1 : 1;
+
+          let determinedType = "Single Choice";
+          if (rawType.includes("صح") || rawType.includes("true") || rawType.includes("صواب")) {
+            determinedType = "True/False";
+          } else if (rawType.includes("متعدد") || rawType.includes("multiple")) {
+            determinedType = "Multiple Choice";
+          } else if (rawType.includes("مقال") || rawType.includes("essay")) {
+            determinedType = "Essay";
+          } else if (rawType.includes("واحد") || rawType.includes("single")) {
+            determinedType = "Single Choice";
+          } else {
+            const ansLower = rawAns.toLowerCase();
+            if (["صح", "صواب", "نعم", "true", "خطأ", "خطا", "لا", "false"].includes(ansLower)) {
+              determinedType = "True/False";
+            } else if (ansLower.includes(",") || ansLower.includes("،") || ansLower.includes(";")) {
+              determinedType = "Multiple Choice";
+            } else if (ansLower.length > 3 && isNaN(Number(ansLower)) && optIndices.every((oi) => !String(row[oi] || "").trim())) {
+              determinedType = "Essay";
+            } else {
+              determinedType = "Single Choice";
+            }
+          }
+
+          typeCounts[determinedType] = (typeCounts[determinedType] || 0) + 1;
+          previewRows.push({
+            text: qText,
+            type: determinedType,
+            answer: rawAns,
+            mark: mark,
+          });
+        }
+
+        this.parsedPreview = {
+          total: previewRows.length,
+          types: typeCounts,
+          rows: previewRows,
+        };
+      } catch (err) {
+        console.warn("Could not parse excel preview:", err);
+        this.parsedPreview = null;
+      }
+    },
+
+    getTypeText(type) {
+      const map = {
+        "Single Choice": "اختيار واحد",
+        "Multiple Choice": "خيارات متعددة",
+        "True/False": "صح وخطأ",
+        Essay: "مقالي",
+      };
+      return map[type] || type || "-";
+    },
+
+    getTypeColor(type) {
+      const map = {
+        "Single Choice": "primary",
+        "Multiple Choice": "indigo",
+        "True/False": "teal",
+        Essay: "amber-darken-3",
+      };
+      return map[type] || "grey";
     },
 
     // === SUBMIT ===

@@ -40,7 +40,7 @@ class Question(SoftDeleteModel):
     content = models.TextField(verbose_name=_("نص السؤال (HTML)"))
     description = models.CharField(max_length=255, null=True, blank=True, verbose_name=_("وصف/فكرة السؤال"))
     lesson = models.ForeignKey(
-        'academic.Lesson', 
+        'academic.UniversityLesson', 
         on_delete=models.CASCADE, 
         related_name='questions', 
         verbose_name=_("الدرس"), 

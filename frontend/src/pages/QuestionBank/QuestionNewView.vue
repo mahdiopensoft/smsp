@@ -439,6 +439,7 @@
                   label="الفصل الدراسي"
                   cols="12"
                   :add="false"
+                  @update:model-value="onSemesterChange"
                 />
               </template>
 
@@ -566,11 +567,12 @@
               <auto-list
                 v-model="form.lessonId"
                 name="LessonByUnit"
-                :param="form.unitId"
+                :param="formLessonParam"
                 :label="form.institution_type === 'university' ? 'المحاضرة / الدرس الأكاديمي' : (form.institution_type === 'institute' ? 'التدريب / الدرس المهني' : 'الدرس المدرسي')"
                 cols="12"
                 :add="false"
                 :disabled="!form.unitId"
+                @update:model-value="onLessonChange"
               />
             </div>
           </div>
@@ -689,6 +691,13 @@ export default {
       optionCursorPositions: {},
 
       // Tracking variables to prevent cascading resets during mount/edit
+      isPreservingState: false,
+      _stableUnitParam: null,
+      _lastUnitParamKey: null,
+      _stableInstituteSpecParam: null,
+      _lastInstituteSpecKey: null,
+      _stableInstituteSubjectParam: null,
+      _lastInstituteSubjectKey: null,
       _lastCollegeId: null,
       _lastDepartmentId: null,
       _lastSpecializationId: null,
@@ -696,7 +705,10 @@ export default {
       _lastStageId: null,
       _lastClassTrackId: null,
       _lastSubjectId: null,
+      _lastSemesterId: null,
       _lastUnitId: null,
+      _stableLessonParam: null,
+      _lastLessonParamKey: null,
 
       // State snapshots to preserve selections across toggling between school and university
       schoolState: {
@@ -813,31 +825,124 @@ export default {
     },
 
     formInstituteSpecParam() {
-      const p = {};
-      if (this.form.instituteFieldId) p.field = this.form.instituteFieldId;
-      if (this.form.instituteEducationSystemId) p.education_system = this.form.instituteEducationSystemId;
-      return Object.keys(p).length ? p : null;
+      const fieldId = this.form.instituteFieldId || "";
+      const eduSysId = this.form.instituteEducationSystemId || "";
+      const key = `${fieldId}_${eduSysId}`;
+      if (key !== this._lastInstituteSpecKey) {
+        this._lastInstituteSpecKey = key;
+        const p = {};
+        if (this.form.instituteFieldId) p.field = this.form.instituteFieldId;
+        if (this.form.instituteEducationSystemId) p.education_system = this.form.instituteEducationSystemId;
+        this._stableInstituteSpecParam = Object.keys(p).length ? p : null;
+      }
+      return this._stableInstituteSpecParam;
     },
 
     formInstituteSubjectParam() {
-      if (this.form.instituteFieldId) return { field: this.form.instituteFieldId };
-      return null;
+      const fieldId = this.form.instituteFieldId || "";
+      const key = `${fieldId}`;
+      if (key !== this._lastInstituteSubjectKey) {
+        this._lastInstituteSubjectKey = key;
+        this._stableInstituteSubjectParam = this.form.instituteFieldId ? { field: this.form.instituteFieldId } : null;
+      }
+      return this._stableInstituteSubjectParam;
     },
 
     formUnitParam() {
+      let key = null;
+      let paramObj = null;
       if (this.form.institution_type === 'university') {
-        return this.form.semesterSubjectId ? { semester_subject: this.form.semesterSubjectId } : null;
+        key = `univ_${this.form.semesterSubjectId || ''}`;
+        paramObj = this.form.semesterSubjectId ? {
+          institution_type: 'university',
+          semester_subject: this.form.semesterSubjectId,
+        } : null;
+      } else if (this.form.institution_type === 'institute') {
+        key = `inst_${this.form.instituteSubjectId || ''}`;
+        paramObj = this.form.instituteSubjectId ? {
+          institution_type: 'institute',
+          subject: this.form.instituteSubjectId,
+        } : null;
+      } else {
+        key = `school_${this.form.subjectId || ''}_${this.form.semesterId || ''}_${this.form.classTrackId || ''}_${this.form.stageId || ''}`;
+        paramObj = (this.form.subjectId || this.form.classTrackId) ? {
+          institution_type: 'school',
+          school_subject: this.form.subjectId,
+          subject: this.form.subjectId,
+          semester: this.form.semesterId,
+          class_track: this.form.classTrackId,
+          stage: this.form.stageId,
+        } : null;
       }
-      if (this.form.institution_type === 'institute') {
-        return this.form.instituteSubjectId ? { subject: this.form.instituteSubjectId } : null;
+
+      if (key !== this._lastUnitParamKey) {
+        this._lastUnitParamKey = key;
+        this._stableUnitParam = paramObj;
       }
-      return this.form.subjectId ? { subject: this.form.subjectId } : null;
+      return this._stableUnitParam;
+    },
+
+    formLessonParam() {
+      let key = null;
+      let paramObj = null;
+      if (this.form.unitId) {
+        key = `${this.form.institution_type || 'school'}_${this.form.unitId}`;
+        paramObj = {
+          unit: this.form.unitId,
+          institution_type: this.form.institution_type,
+        };
+      }
+      if (key !== this._lastLessonParamKey) {
+        this._lastLessonParamKey = key;
+        this._stableLessonParam = paramObj;
+      }
+      return this._stableLessonParam;
     },
   },
 
   watch: {
     "form.type"() {
       this.activeFormulaTarget = { id: "question", label: "نص السؤال" };
+    },
+    "form.defaultScore"(val) {
+      if (val !== undefined && !this.isEditMode) {
+        this.persistAcademicAndSpecs(null, {
+          defaultScore: this.form.defaultScore,
+          expectedTimeMinutes: this.form.expectedTimeMinutes,
+          difficulty: this.form.difficulty,
+          bloomLevel: this.form.bloomLevel,
+        });
+      }
+    },
+    "form.expectedTimeMinutes"(val) {
+      if (val !== undefined && !this.isEditMode) {
+        this.persistAcademicAndSpecs(null, {
+          defaultScore: this.form.defaultScore,
+          expectedTimeMinutes: this.form.expectedTimeMinutes,
+          difficulty: this.form.difficulty,
+          bloomLevel: this.form.bloomLevel,
+        });
+      }
+    },
+    "form.difficulty"(val) {
+      if (val !== undefined && !this.isEditMode) {
+        this.persistAcademicAndSpecs(null, {
+          defaultScore: this.form.defaultScore,
+          expectedTimeMinutes: this.form.expectedTimeMinutes,
+          difficulty: this.form.difficulty,
+          bloomLevel: this.form.bloomLevel,
+        });
+      }
+    },
+    "form.bloomLevel"(val) {
+      if (val !== undefined && !this.isEditMode) {
+        this.persistAcademicAndSpecs(null, {
+          defaultScore: this.form.defaultScore,
+          expectedTimeMinutes: this.form.expectedTimeMinutes,
+          difficulty: this.form.difficulty,
+          bloomLevel: this.form.bloomLevel,
+        });
+      }
     },
   },
 
@@ -847,6 +952,8 @@ export default {
       this.isEditMode = true;
       this.editId = this.$route.query.id;
       await this.loadQuestionForEdit(this.editId);
+    } else {
+      this.restorePersistedAcademicAndSpecs();
     }
   },
 
@@ -974,6 +1081,7 @@ export default {
           this.form.stageId = q.stage_id ? Number(q.stage_id) : null;
           this.form.classTrackId = q.class_track_id ? Number(q.class_track_id) : null;
           this.form.subjectId = (q.subject_id || q.fk_subject) ? Number(q.subject_id || q.fk_subject) : null;
+          this.form.semesterId = q.semester_id ? Number(q.semester_id) : null;
         } else if (this.form.institution_type === 'institute') {
           this.form.instituteFieldId = q.institute_field_id ? Number(q.institute_field_id) : null;
           this.form.instituteEducationSystemId = q.institute_education_system_id ? Number(q.institute_education_system_id) : null;
@@ -985,6 +1093,7 @@ export default {
           this.form.departmentId = q.department_id ? Number(q.department_id) : null;
           this.form.specializationId = q.specialization_id ? Number(q.specialization_id) : null;
           this.form.semesterSubjectId = q.semester_subject_id ? Number(q.semester_subject_id) : null;
+          this.form.semesterId = q.semester_id ? Number(q.semester_id) : null;
           this.form.subjectId = (q.subject_id || q.fk_subject) ? Number(q.subject_id || q.fk_subject) : null;
         }
         this.form.unitId = (q.unit_id || q.fk_unit) ? Number(q.unit_id || q.fk_unit) : null;
@@ -1034,7 +1143,32 @@ export default {
         this._lastStageId = this.form.stageId;
         this._lastClassTrackId = this.form.classTrackId;
         this._lastSubjectId = this.form.subjectId;
+        this._lastSemesterId = this.form.semesterId;
         this._lastUnitId = this.form.unitId;
+
+        if (this.form.institution_type === 'university') {
+          this._lastUnitParamKey = `univ_${this.form.semesterSubjectId || ''}`;
+          this._stableUnitParam = this.form.semesterSubjectId ? {
+            institution_type: 'university',
+            semester_subject: this.form.semesterSubjectId,
+          } : null;
+        } else if (this.form.institution_type === 'institute') {
+          this._lastUnitParamKey = `inst_${this.form.instituteSubjectId || ''}`;
+          this._stableUnitParam = this.form.instituteSubjectId ? {
+            institution_type: 'institute',
+            subject: this.form.instituteSubjectId,
+          } : null;
+        } else {
+          this._lastUnitParamKey = `school_${this.form.subjectId || ''}_${this.form.semesterId || ''}_${this.form.classTrackId || ''}_${this.form.stageId || ''}`;
+          this._stableUnitParam = (this.form.subjectId || this.form.classTrackId) ? {
+            institution_type: 'school',
+            school_subject: this.form.subjectId,
+            subject: this.form.subjectId,
+            semester: this.form.semesterId,
+            class_track: this.form.classTrackId,
+            stage: this.form.stageId,
+          } : null;
+        }
 
         // Options / Answers
         const answers = q.answers || q.options || [];
@@ -1162,7 +1296,7 @@ export default {
     },
 
     onInstituteFieldChange(val) {
-      if (this.isLoadingQuestion) return;
+      if (this.isLoadingQuestion || this.isPreservingState) return;
       this.form.instituteEducationSystemId = null;
       this.form.instituteSpecializationId = null;
       this.form.instituteCurriculumId = null;
@@ -1170,29 +1304,33 @@ export default {
       this.form.unitId = null;
       this.form.lessonId = null;
       this.form.learningOutcomeId = null;
+      this.persistCurrentAcademic();
     },
 
     onInstituteEducationSystemChange(val) {
-      if (this.isLoadingQuestion) return;
+      if (this.isLoadingQuestion || this.isPreservingState) return;
       this.form.instituteSpecializationId = null;
       this.form.instituteCurriculumId = null;
+      this.persistCurrentAcademic();
     },
 
     onInstituteSpecializationChange(val) {
-      if (this.isLoadingQuestion) return;
+      if (this.isLoadingQuestion || this.isPreservingState) return;
       this.form.instituteCurriculumId = null;
+      this.persistCurrentAcademic();
     },
 
     onInstituteSubjectChange(val) {
-      if (this.isLoadingQuestion) return;
+      if (this.isLoadingQuestion || this.isPreservingState) return;
       this.form.subjectId = val;
       this.form.unitId = null;
       this.form.lessonId = null;
       this.form.learningOutcomeId = null;
+      this.persistCurrentAcademic();
     },
 
     onStageChange(val) {
-      if (this.isLoadingQuestion) return;
+      if (this.isLoadingQuestion || this.isPreservingState) return;
       if (val === this._lastStageId) return;
       this._lastStageId = val;
       this.form.classTrackId = null;
@@ -1200,29 +1338,42 @@ export default {
       this.form.unitId = null;
       this.form.lessonId = null;
       this.form.learningOutcomeId = null;
+      this.persistCurrentAcademic();
     },
 
     onClassTrackChange(val) {
-      if (this.isLoadingQuestion) return;
+      if (this.isLoadingQuestion || this.isPreservingState) return;
       if (val === this._lastClassTrackId) return;
       this._lastClassTrackId = val;
       this.form.subjectId = null;
       this.form.unitId = null;
       this.form.lessonId = null;
       this.form.learningOutcomeId = null;
+      this.persistCurrentAcademic();
     },
 
     onSubjectChange(val) {
-      if (this.isLoadingQuestion) return;
+      if (this.isLoadingQuestion || this.isPreservingState) return;
       if (val === this._lastSubjectId) return;
       this._lastSubjectId = val;
       this.form.unitId = null;
       this.form.lessonId = null;
       this.form.learningOutcomeId = null;
+      this.persistCurrentAcademic();
+    },
+
+    onSemesterChange(val) {
+      if (this.isLoadingQuestion || this.isPreservingState) return;
+      if (val === this._lastSemesterId) return;
+      this._lastSemesterId = val;
+      this.form.unitId = null;
+      this.form.lessonId = null;
+      this.form.learningOutcomeId = null;
+      this.persistCurrentAcademic();
     },
 
     onCollegeChange(val) {
-      if (this.isLoadingQuestion) return;
+      if (this.isLoadingQuestion || this.isPreservingState) return;
       if (val === this._lastCollegeId) return;
       this._lastCollegeId = val;
       this.form.departmentId = null;
@@ -1231,10 +1382,11 @@ export default {
       this.form.unitId = null;
       this.form.lessonId = null;
       this.form.learningOutcomeId = null;
+      this.persistCurrentAcademic();
     },
 
     onDepartmentChange(val) {
-      if (this.isLoadingQuestion) return;
+      if (this.isLoadingQuestion || this.isPreservingState) return;
       if (val === this._lastDepartmentId) return;
       this._lastDepartmentId = val;
       this.form.specializationId = null;
@@ -1242,33 +1394,154 @@ export default {
       this.form.unitId = null;
       this.form.lessonId = null;
       this.form.learningOutcomeId = null;
+      this.persistCurrentAcademic();
     },
 
     onSpecializationChange(val) {
-      if (this.isLoadingQuestion) return;
+      if (this.isLoadingQuestion || this.isPreservingState) return;
       if (val === this._lastSpecializationId) return;
       this._lastSpecializationId = val;
       this.form.semesterSubjectId = null;
       this.form.unitId = null;
       this.form.lessonId = null;
       this.form.learningOutcomeId = null;
+      this.persistCurrentAcademic();
     },
 
     onSemesterSubjectChange(val) {
-      if (this.isLoadingQuestion) return;
+      if (this.isLoadingQuestion || this.isPreservingState) return;
       if (val === this._lastSemesterSubjectId) return;
       this._lastSemesterSubjectId = val;
       this.form.unitId = null;
       this.form.lessonId = null;
       this.form.learningOutcomeId = null;
+      this.persistCurrentAcademic();
     },
 
     onUnitChange(val) {
-      if (this.isLoadingQuestion) return;
+      if (this.isLoadingQuestion || this.isPreservingState) return;
       if (val === this._lastUnitId) return;
       this._lastUnitId = val;
       this.form.lessonId = null;
       this.form.learningOutcomeId = null;
+      this.persistCurrentAcademic();
+    },
+
+    onLessonChange(val) {
+      if (this.isLoadingQuestion || this.isPreservingState) return;
+      this.persistCurrentAcademic();
+    },
+
+    // === PERSISTENCE HELPERS (Preserve selections across fast-entry & reloads) ===
+    persistAcademicAndSpecs(academic, specs) {
+      if (this.isEditMode) return;
+      try {
+        if (academic) {
+          localStorage.setItem('qb_new_saved_academic', JSON.stringify(academic));
+        }
+        if (specs) {
+          localStorage.setItem('qb_new_saved_specs', JSON.stringify(specs));
+        }
+      } catch (e) {
+        console.warn("Could not save to localStorage", e);
+      }
+    },
+
+    persistCurrentAcademic() {
+      if (this.isEditMode || this.isLoadingQuestion || this.isPreservingState) return;
+      this.persistAcademicAndSpecs({
+        institution_type: this.form.institution_type,
+        stageId: this.form.stageId,
+        classTrackId: this.form.classTrackId,
+        subjectId: this.form.subjectId,
+        semesterId: this.form.semesterId,
+        collegeId: this.form.collegeId,
+        departmentId: this.form.departmentId,
+        specializationId: this.form.specializationId,
+        semesterSubjectId: this.form.semesterSubjectId,
+        instituteFieldId: this.form.instituteFieldId,
+        instituteEducationSystemId: this.form.instituteEducationSystemId,
+        instituteSpecializationId: this.form.instituteSpecializationId,
+        instituteCurriculumId: this.form.instituteCurriculumId,
+        instituteSubjectId: this.form.instituteSubjectId,
+        unitId: this.form.unitId,
+        lessonId: this.form.lessonId,
+        learningOutcomeId: this.form.learningOutcomeId,
+      }, null);
+    },
+
+    restorePersistedAcademicAndSpecs() {
+      if (this.isEditMode) return;
+      try {
+        const savedSpecsStr = localStorage.getItem('qb_new_saved_specs');
+        if (savedSpecsStr) {
+          const specs = JSON.parse(savedSpecsStr);
+          if (specs.defaultScore !== undefined && specs.defaultScore !== null) this.form.defaultScore = specs.defaultScore;
+          if (specs.expectedTimeMinutes !== undefined && specs.expectedTimeMinutes !== null) this.form.expectedTimeMinutes = specs.expectedTimeMinutes;
+          if (specs.difficulty !== undefined && specs.difficulty !== null) this.form.difficulty = specs.difficulty;
+          if (specs.bloomLevel !== undefined && specs.bloomLevel !== null) this.form.bloomLevel = specs.bloomLevel;
+        }
+
+        const savedAcadStr = localStorage.getItem('qb_new_saved_academic');
+        if (savedAcadStr) {
+          const acad = JSON.parse(savedAcadStr);
+          this.isLoadingQuestion = true;
+          this.form.institution_type = acad.institution_type || 'school';
+          this._currentActiveType = this.form.institution_type;
+
+          if (this.form.institution_type === 'school') {
+            this.form.stageId = acad.stageId ? Number(acad.stageId) : null;
+            this.form.classTrackId = acad.classTrackId ? Number(acad.classTrackId) : null;
+            this.form.subjectId = acad.subjectId ? Number(acad.subjectId) : null;
+            this.form.semesterId = acad.semesterId ? Number(acad.semesterId) : null;
+            this._lastStageId = this.form.stageId;
+            this._lastClassTrackId = this.form.classTrackId;
+            this._lastSubjectId = this.form.subjectId;
+            this._lastSemesterId = this.form.semesterId;
+            this._lastUnitParamKey = `school_${this.form.subjectId || ''}_${this.form.semesterId || ''}_${this.form.classTrackId || ''}_${this.form.stageId || ''}`;
+            this._stableUnitParam = (this.form.subjectId || this.form.classTrackId) ? {
+              institution_type: 'school',
+              school_subject: this.form.subjectId,
+              subject: this.form.subjectId,
+              semester: this.form.semesterId,
+              class_track: this.form.classTrackId,
+              stage: this.form.stageId,
+            } : null;
+          } else if (this.form.institution_type === 'university') {
+            this.form.collegeId = acad.collegeId ? Number(acad.collegeId) : null;
+            this.form.departmentId = acad.departmentId ? Number(acad.departmentId) : null;
+            this.form.specializationId = acad.specializationId ? Number(acad.specializationId) : null;
+            this.form.semesterSubjectId = acad.semesterSubjectId ? Number(acad.semesterSubjectId) : null;
+            this._lastCollegeId = this.form.collegeId;
+            this._lastDepartmentId = this.form.departmentId;
+            this._lastSpecializationId = this.form.specializationId;
+            this._lastSemesterSubjectId = this.form.semesterSubjectId;
+            this._lastUnitParamKey = `univ_${this.form.semesterSubjectId || ''}`;
+            this._stableUnitParam = this.form.semesterSubjectId ? { semester_subject: this.form.semesterSubjectId } : null;
+          } else if (this.form.institution_type === 'institute') {
+            this.form.instituteFieldId = acad.instituteFieldId ? Number(acad.instituteFieldId) : null;
+            this.form.instituteEducationSystemId = acad.instituteEducationSystemId ? Number(acad.instituteEducationSystemId) : null;
+            this.form.instituteSpecializationId = acad.instituteSpecializationId ? Number(acad.instituteSpecializationId) : null;
+            this.form.instituteCurriculumId = acad.instituteCurriculumId ? Number(acad.instituteCurriculumId) : null;
+            this.form.instituteSubjectId = acad.instituteSubjectId ? Number(acad.instituteSubjectId) : null;
+            this.form.subjectId = this.form.instituteSubjectId;
+            this._lastUnitParamKey = `inst_${this.form.instituteSubjectId || ''}`;
+            this._stableUnitParam = this.form.instituteSubjectId ? { subject: this.form.instituteSubjectId } : null;
+          }
+
+          this.form.unitId = acad.unitId ? Number(acad.unitId) : null;
+          this.form.lessonId = acad.lessonId ? Number(acad.lessonId) : null;
+          this.form.learningOutcomeId = acad.learningOutcomeId ? Number(acad.learningOutcomeId) : null;
+          this._lastUnitId = this.form.unitId;
+
+          setTimeout(() => {
+            this.isLoadingQuestion = false;
+          }, 350);
+        }
+      } catch (e) {
+        console.warn("Could not restore from localStorage", e);
+        this.isLoadingQuestion = false;
+      }
     },
 
 
@@ -1359,16 +1632,17 @@ export default {
             text: text,
             isTrue: this.form.type === "single_choice" ? i === this.form.correctAnswerIndex : this.form.correctAnswerIndices.includes(i),
             order: i + 1,
+            order_index: i,
           });
         });
       } else if (this.form.type === "true_false") {
-        optionsPayload.push({ text: "صواب", isTrue: this.form.tfCorrect === true, order: 1 });
-        optionsPayload.push({ text: "خطأ", isTrue: this.form.tfCorrect === false, order: 2 });
+        optionsPayload.push({ text: "صواب", isTrue: this.form.tfCorrect === true, order: 1, order_index: 0 });
+        optionsPayload.push({ text: "خطأ", isTrue: this.form.tfCorrect === false, order: 2, order_index: 1 });
       } else if (this.form.type === "essay") {
-        optionsPayload.push({ text: this.form.options[0] || "", isTrue: true, order: 1 });
+        optionsPayload.push({ text: this.form.options[0] || "", isTrue: true, order: 1, order_index: 0 });
       } else if (this.form.type === "fill_blanks") {
         this.form.options.forEach((text, i) => {
-          optionsPayload.push({ text: text, isTrue: true, order: i + 1 });
+          optionsPayload.push({ text: text, isTrue: true, order: i + 1, order_index: i });
         });
       }
 
@@ -1413,7 +1687,39 @@ export default {
         } else {
           await bankService.createQuestion(questionPayload);
           this.$alert("success", { message: `تم حفظ السؤال بنجاح كـ ${status}` });
-          // Stay on the same screen: Reset question text and answers, keeping academic classification intact for fast entry
+
+          // Preserve academic classification and question specifications
+          const preservedSpecs = {
+            defaultScore: this.form.defaultScore,
+            expectedTimeMinutes: this.form.expectedTimeMinutes,
+            difficulty: this.form.difficulty,
+            bloomLevel: this.form.bloomLevel,
+          };
+          const preservedAcademic = {
+            institution_type: this.form.institution_type,
+            stageId: this.form.stageId,
+            classTrackId: this.form.classTrackId,
+            subjectId: this.form.subjectId,
+            semesterId: this.form.semesterId,
+            collegeId: this.form.collegeId,
+            departmentId: this.form.departmentId,
+            specializationId: this.form.specializationId,
+            semesterSubjectId: this.form.semesterSubjectId,
+            instituteFieldId: this.form.instituteFieldId,
+            instituteEducationSystemId: this.form.instituteEducationSystemId,
+            instituteSpecializationId: this.form.instituteSpecializationId,
+            instituteCurriculumId: this.form.instituteCurriculumId,
+            instituteSubjectId: this.form.instituteSubjectId,
+            unitId: this.form.unitId,
+            lessonId: this.form.lessonId,
+            learningOutcomeId: this.form.learningOutcomeId,
+          };
+
+          this.persistAcademicAndSpecs(preservedAcademic, preservedSpecs);
+
+          this.isPreservingState = true;
+
+          // Stay on the same screen: Reset ONLY question text, options, and media
           this.form.text = "";
           this.form.options = ["", "", "", ""];
           this.form.correctAnswerIndex = 0;
@@ -1421,7 +1727,23 @@ export default {
           this.form.tfCorrect = true;
           this.form.image = "";
           if (this.$refs.imageInput) this.$refs.imageInput.value = null;
+
+          // Explicitly re-affirm specs and classification to prevent any auto-reset
+          this.form.defaultScore = preservedSpecs.defaultScore;
+          this.form.expectedTimeMinutes = preservedSpecs.expectedTimeMinutes;
+          this.form.difficulty = preservedSpecs.difficulty;
+          this.form.bloomLevel = preservedSpecs.bloomLevel;
+
+          this.form.unitId = preservedAcademic.unitId;
+          this.form.lessonId = preservedAcademic.lessonId;
+          this._lastUnitId = preservedAcademic.unitId;
+
+          await this.$nextTick();
           this.$refs.formRef?.resetValidation?.();
+
+          setTimeout(() => {
+            this.isPreservingState = false;
+          }, 200);
         }
       } catch (err) {
         this.$alert("errorData", { message: "حدث خطأ أثناء محاولة حفظ السؤال" });

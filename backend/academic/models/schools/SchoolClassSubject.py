@@ -11,7 +11,7 @@ class SchoolClassSubject(BaseSyncModel):
         verbose_name=_("مسار الصف المدرسي")
     )
     subject = models.ForeignKey(
-        'academic.Subject', 
+        'academic.UniversitySubject', 
         related_name='class_subjects', 
         on_delete=models.CASCADE, 
         verbose_name=_("المادة (تاريخي)"),

@@ -22,13 +22,13 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
 from django.db import transaction
-from academic.models.common.Subject import Subject
+from academic.models.universities.UniversitySubject import UniversitySubject as Subject
 from academic.models.schools.SchoolSubject import SchoolSubject
 from academic.models.universities.UniversityCourse import UniversityCourse
 from academic.models.schools.SchoolClassSubject import SchoolClassSubject as ClassSubject
 from academic.models.universities.UniversitySemesterSubject import UniversitySemesterSubject as SemesterSubject
-from academic.models.common.Unit import Unit
-from academic.models.common.Lesson import Lesson
+from academic.models.universities.UniversityUnit import UniversityUnit as Unit
+from academic.models.universities.UniversityLesson import UniversityLesson as Lesson
 from academic.models.common.LearningOutcome import LearningOutcome
 from academic.models.schools.SchoolUnit import SchoolUnit
 from academic.models.schools.SchoolLesson import SchoolLesson

@@ -1,5 +1,5 @@
 <template>
-  <drawer :data="data" :getData="getData" click="api/academic/units/" :items="items">
+  <drawer :data="data" :getData="getData" click="api/academic/school-units/" :items="items">
     <template v-slot>
       <v-row>
         <fields :data="data" url="units" :attr="{}" />

@@ -4,7 +4,7 @@ from .BaseSyncModel import BaseSyncModel
 
 class LearningOutcome(BaseSyncModel):
     subject = models.ForeignKey(
-        'academic.Subject',
+        'academic.UniversitySubject',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
@@ -12,7 +12,7 @@ class LearningOutcome(BaseSyncModel):
         verbose_name=_("المادة الدراسية")
     )
     unit = models.ForeignKey(
-        'academic.Unit', 
+        'academic.UniversityUnit', 
         on_delete=models.CASCADE, 
         related_name='learning_outcomes', 
         verbose_name=_("الوحدة")
@@ -29,11 +29,10 @@ class LearningOutcome(BaseSyncModel):
 
     def save(self, *args, **kwargs):
         if self.unit and not self.subject:
-            if self.unit.class_subject and self.unit.class_subject.subject:
-                self.subject = self.unit.class_subject.subject
-            elif self.unit.semester_subject and self.unit.semester_subject.fk_subject:
+            if getattr(self.unit, 'semester_subject', None) and getattr(self.unit.semester_subject, 'fk_subject', None):
                 self.subject = self.unit.semester_subject.fk_subject
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.unit.name_ar} - {self.code}"
+        unit_name = self.unit.name_ar if self.unit else ''
+        return f"{unit_name} - {self.code}"

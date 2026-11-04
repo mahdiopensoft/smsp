@@ -148,7 +148,7 @@ export default {
       data: {},
       items: {},
       drawer: false,
-      url: "api/academic/units/",
+      url: "api/academic/school-units/",
       loading: false,
 
       // Filters

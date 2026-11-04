@@ -164,8 +164,25 @@ export const academicService = {
         await api.delete(`${BASE}semesters/${id}/`)
     },
 
+    // School Units (وحدات المدارس)
+    async getSchoolUnits(params = {}) {
+        try {
+            const { data } = await api.get(`${BASE}school-units/all/`, { params })
+            const list = Array.isArray(data) ? data : (data?.results || [])
+            if (list.length > 0) return list
+        } catch (e) {
+            console.warn("getSchoolUnits all endpoint fallback:", e)
+        }
+        const query = params && Object.keys(params).length ? '?' + new URLSearchParams(params).toString() : ''
+        return await fetchAllPages(`${BASE}school-units/${query}`)
+    },
+
     // Units (الوحدات)
     async getUnits(params = {}) {
+        const isSchool = params.institution_type === 'school' || params.school_subject || params.class_track_id || params.class_track || params.stage_id || params.stage
+        if (isSchool) {
+            return await this.getSchoolUnits(params)
+        }
         const query = params && Object.keys(params).length ? '?' + new URLSearchParams(params).toString() : ''
         return await fetchAllPages(`${BASE}units/${query}`)
     },

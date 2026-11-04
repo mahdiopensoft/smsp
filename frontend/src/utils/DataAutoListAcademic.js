@@ -284,6 +284,9 @@ export default function DataAutoListAcademic(param) {
         let isUniversity = false;
         if (raw) {
           if (typeof raw === 'object') {
+            if (raw.institution_type === 'university' || raw.institutionType === 'university') {
+              isUniversity = true;
+            }
             if (raw.semester_subject || raw.semesterSubjectId) {
               queryParams.semester_subject = raw.semester_subject || raw.semesterSubjectId;
               isUniversity = true;
@@ -291,28 +294,40 @@ export default function DataAutoListAcademic(param) {
               queryParams.semester_subject = raw.course || raw.courseId;
               isUniversity = true;
             }
-            if (raw.subject || raw.subjectId || raw.school_subject) {
-              queryParams.subject = raw.subject || raw.subjectId || raw.school_subject;
+            if (raw.school_subject || raw.subject || raw.subjectId) {
+              queryParams.school_subject = raw.school_subject || raw.subject || raw.subjectId;
+              queryParams.subject = queryParams.school_subject;
             }
             if (raw.class_subject || raw.classSubjectId) {
               queryParams.class_subject = raw.class_subject || raw.classSubjectId;
             }
+            if (raw.class_track || raw.classTrackId) {
+              queryParams.class_track = raw.class_track || raw.classTrackId;
+            }
+            if (raw.semester || raw.semesterId) {
+              queryParams.semester = raw.semester || raw.semesterId;
+            }
+            if (raw.stage || raw.stageId) {
+              queryParams.stage = raw.stage || raw.stageId;
+            }
             if (raw.id && !queryParams.subject && !queryParams.semester_subject && !queryParams.class_subject) {
               queryParams.subject = raw.id;
+              queryParams.school_subject = raw.id;
             }
           } else {
             queryParams.subject = raw;
+            queryParams.school_subject = raw;
           }
         }
-        if (isUniversity && queryParams.semester_subject) {
-          return shared.getData({
-            path: "api/academic/units/all/",
-            params: { semester_subject: queryParams.semester_subject },
-          });
+        if (isUniversity) {
+          return (queryParams.semester_subject || queryParams.subject) ? shared.getData({
+            path: "api/academic/university-units/all/",
+            params: queryParams,
+          }) : Promise.resolve([]);
         }
-        return (queryParams.subject || queryParams.class_subject) ?
+        return (queryParams.school_subject || queryParams.subject || queryParams.class_subject || queryParams.class_track) ?
           shared.getData({
-            path: "api/academic/units/all/",
+            path: "api/academic/school-units/all/",
             params: queryParams,
           }) : Promise.resolve([]);
       },
@@ -329,6 +344,9 @@ export default function DataAutoListAcademic(param) {
         let isUniversity = false;
         if (raw) {
           if (typeof raw === 'object') {
+            if (raw.institution_type === 'university' || raw.institutionType === 'university') {
+              isUniversity = true;
+            }
             if (raw.semester_subject || raw.semesterSubjectId) {
               queryParams.semester_subject = raw.semester_subject || raw.semesterSubjectId;
               isUniversity = true;
@@ -336,8 +354,9 @@ export default function DataAutoListAcademic(param) {
               queryParams.semester_subject = raw.course || raw.courseId;
               isUniversity = true;
             }
-            if (raw.subject || raw.subjectId || raw.school_subject) {
-              queryParams.subject = raw.subject || raw.subjectId || raw.school_subject;
+            if (raw.school_subject || raw.subject || raw.subjectId) {
+              queryParams.school_subject = raw.school_subject || raw.subject || raw.subjectId;
+              queryParams.subject = queryParams.school_subject;
             }
             if (raw.institute_subject || raw.instituteSubjectId) {
               queryParams.subject = raw.institute_subject || raw.instituteSubjectId;
@@ -345,22 +364,33 @@ export default function DataAutoListAcademic(param) {
             if (raw.class_subject || raw.classSubjectId) {
               queryParams.class_subject = raw.class_subject || raw.classSubjectId;
             }
+            if (raw.class_track || raw.classTrackId) {
+              queryParams.class_track = raw.class_track || raw.classTrackId;
+            }
+            if (raw.semester || raw.semesterId) {
+              queryParams.semester = raw.semester || raw.semesterId;
+            }
+            if (raw.stage || raw.stageId) {
+              queryParams.stage = raw.stage || raw.stageId;
+            }
             if (raw.id && !queryParams.subject && !queryParams.semester_subject && !queryParams.class_subject) {
               queryParams.subject = raw.id;
+              queryParams.school_subject = raw.id;
             }
           } else {
             queryParams.subject = raw;
+            queryParams.school_subject = raw;
           }
         }
-        if (isUniversity && queryParams.semester_subject) {
-          return shared.getData({
-            path: "api/academic/units/all/",
-            params: { semester_subject: queryParams.semester_subject },
-          });
+        if (isUniversity) {
+          return (queryParams.semester_subject || queryParams.subject) ? shared.getData({
+            path: "api/academic/university-units/all/",
+            params: queryParams,
+          }) : Promise.resolve([]);
         }
-        return (queryParams.subject || queryParams.class_subject) ?
+        return (queryParams.school_subject || queryParams.subject || queryParams.class_subject || queryParams.class_track) ?
           shared.getData({
-            path: "api/academic/units/all/",
+            path: "api/academic/school-units/all/",
             params: queryParams,
           }) : Promise.resolve([]);
       },
@@ -377,10 +407,13 @@ export default function DataAutoListAcademic(param) {
         if (raw && typeof raw === 'object') {
           if (raw.school_subject || raw.subject) queryParams.school_subject = raw.school_subject || raw.subject;
           if (raw.class_subject) queryParams.class_subject = raw.class_subject;
+          if (raw.class_track) queryParams.class_track = raw.class_track;
+          if (raw.semester) queryParams.semester = raw.semester;
+          if (raw.stage) queryParams.stage = raw.stage;
         } else if (raw) {
           queryParams.school_subject = raw;
         }
-        return (queryParams.school_subject || queryParams.class_subject) ? shared.getData({
+        return (queryParams.school_subject || queryParams.class_subject || queryParams.class_track) ? shared.getData({
           path: "api/academic/school-units/all/",
           params: queryParams,
         }) : Promise.resolve([]);
@@ -394,12 +427,27 @@ export default function DataAutoListAcademic(param) {
       icon: "file-document-outline",
       method: (p) => {
         const raw = (p !== undefined && p !== null) ? p : param;
-        const unitId = (raw && typeof raw === 'object') ? (raw.unit || raw.unitId || raw.id || raw.value) : raw;
-        return unitId ?
-          shared.getData({
-            path: "api/academic/lessons/all/",
+        let unitId = null;
+        let isUniversity = false;
+        if (raw && typeof raw === 'object') {
+          unitId = raw.unit || raw.unitId || raw.id || raw.value;
+          if (raw.institution_type === 'university' || raw.institutionType === 'university') {
+            isUniversity = true;
+          }
+        } else {
+          unitId = raw;
+        }
+        if (!unitId) return Promise.resolve([]);
+        if (isUniversity) {
+          return shared.getData({
+            path: "api/academic/university-lessons/all/",
             params: { unit: unitId }
-          }) : Promise.resolve([]);
+          });
+        }
+        return shared.getData({
+          path: "api/academic/school-lessons/all/",
+          params: { unit: unitId }
+        });
       },
       title: "name_ar",
       value: "id",

@@ -68,7 +68,7 @@
                         variant="tonal"
                         class="font-weight-bold"
                       >
-                        {{ activeStep1Section }} / 5
+                        {{ activeStep1Section }} / 3
                       </v-chip>
                     </div>
 
@@ -143,341 +143,126 @@
                     <div class="d-flex align-center gap-2">
                       <v-icon size="20">mdi-alert-circle-outline</v-icon>
                       <span class="font-weight-bold text-body-2">
-                        توجد حقول إجبارية غير مكتملة في الأقسام المحددة باللون الأحمر ({{ invalidSectionsCount }} من 5 بحاجة للاستكمال).
+                        توجد حقول إجبارية غير مكتملة في الأقسام المحددة باللون الأحمر ({{ invalidSectionsCount }} من 3 بحاجة للاستكمال).
                       </span>
                     </div>
                   </v-alert>
-                  <!-- Section 1: Setup Mode & Schedule -->
+                  <!-- Section 1: Academic Classification Scope -->
                   <div v-show="activeStep1Section === 1" class="section-group-card pa-6 rounded-2xl mb-6">
-                    <div class="d-flex align-center gap-3 mb-5">
-                      <v-avatar size="40" color="primary" variant="tonal" class="rounded-xl">
-                        <v-icon size="22">mdi-tune-variant</v-icon>
-                      </v-avatar>
-                      <div>
-                        <h4 class="text-subtitle-1 font-weight-black mb-0">1. نمط الإعداد والربط الهيكلي</h4>
-                        <span class="text-caption text-medium-emphasis">تحديد طريقة بناء مواصفات الاختبار ومصدر البيانات</span>
-                      </div>
-                    </div>
-
-                    <!-- Primary Choice: New Setup vs Template Side-by-Side (متقابلة وواضحة) -->
-                    <v-row dense class="mb-4">
-                      <!-- Card A: New Exam Setup -->
-                      <v-col cols="12" md="6">
-                        <div
-                          class="selection-card h-100 pa-4 rounded-xl cursor-pointer"
-                          :class="{ 'is-active': settingsMode === 'new' }"
-                          @click="settingsMode = 'new'"
-                        >
-                          <div class="d-flex align-start gap-3">
-                            <v-avatar size="40" :color="settingsMode === 'new' ? 'primary' : 'surface-variant'" :variant="settingsMode === 'new' ? 'flat' : 'tonal'" class="rounded-lg flex-shrink-0">
-                              <v-icon size="20" :color="settingsMode === 'new' ? 'white' : 'medium-emphasis'">mdi-plus-circle-outline</v-icon>
-                            </v-avatar>
-                            <div class="flex-grow-1">
-                              <div class="d-flex align-center justify-space-between mb-1">
-                                <span class="font-weight-black text-subtitle-1">إعداد جديد ومخصص</span>
-                                <v-icon :color="settingsMode === 'new' ? 'primary' : 'medium-emphasis'" size="20">
-                                  {{ settingsMode === 'new' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank' }}
-                                </v-icon>
-                              </div>
-                              <p class="text-caption text-medium-emphasis mb-0 leading-relaxed">
-                                تحديد المعايير، الأوزان النسبية، ومستويات الصعوبة بشكل مباشر وتفاعلي لهذا الاختبار.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </v-col>
-
-                      <!-- Card B: Template Setup -->
-                      <v-col cols="12" md="6">
-                        <div
-                          class="selection-card h-100 pa-4 rounded-xl cursor-pointer"
-                          :class="{ 'is-active': settingsMode === 'template' }"
-                          @click="settingsMode = 'template'"
-                        >
-                          <div class="d-flex align-start gap-3">
-                            <v-avatar size="40" :color="settingsMode === 'template' ? 'secondary' : 'surface-variant'" :variant="settingsMode === 'template' ? 'flat' : 'tonal'" class="rounded-lg flex-shrink-0">
-                              <v-icon size="20" :color="settingsMode === 'template' ? 'white' : 'medium-emphasis'">mdi-file-document-outline</v-icon>
-                            </v-avatar>
-                            <div class="flex-grow-1">
-                              <div class="d-flex align-center justify-space-between mb-1">
-                                <span class="font-weight-black text-subtitle-1">استدعاء قالب معتمد</span>
-                                <v-icon :color="settingsMode === 'template' ? 'secondary' : 'medium-emphasis'" size="20">
-                                  {{ settingsMode === 'template' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank' }}
-                                </v-icon>
-                              </div>
-                              <p class="text-caption text-medium-emphasis mb-0 leading-relaxed">
-                                تحميل مصفوفة مواصفات سابقة تم اعتمادها لتطبيق معاييرها وأوزانها فوراً وتوفير الوقت.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </v-col>
-                    </v-row>
-
-                    <!-- Sub-options for Template Mode -->
-                    <v-expand-transition>
-                      <div v-if="settingsMode === 'template'" class="pt-3">
-                        <div class="d-flex align-center gap-2 mb-2">
-                          <v-icon color="secondary" size="18">mdi-file-download-outline</v-icon>
-                          <span class="text-subtitle-2 font-weight-bold">اختر القالب المعتمد لتطبيقه:</span>
-                        </div>
-                        <v-autocomplete
-                          v-model="selectedTemplate"
-                          :items="savedTemplates"
-                          item-title="name"
-                          item-value="id"
-                          placeholder="ابحث واختر من القوالب المعتمدة المحفوظة..."
-                          prepend-inner-icon="mdi-file-document-outline"
-                          variant="outlined"
-                          density="compact"
-                          rounded="lg"
-                          return-object
-                          hide-details="auto"
-                          :rules="settingsMode === 'template' ? [v => !!v || 'يرجى اختيار القالب المعتمد'] : []"
-                          @update:model-value="applyTemplate"
-                        >
-                          <template #append>
-                            <v-btn icon variant="text" size="small" color="error" v-if="selectedTemplate" @click.stop="deleteTemplate(selectedTemplate.id)">
-                              <v-icon size="18">mdi-delete</v-icon>
-                            </v-btn>
-                          </template>
-                        </v-autocomplete>
-                      </div>
-                    </v-expand-transition>
-
-                    <!-- Sub-options for New Mode (Subject Assignment Method) -->
-                    <v-expand-transition>
-                      <div v-if="settingsMode === 'new'" class="pt-3">
-                        <div class="d-flex align-center justify-space-between flex-wrap gap-3">
-                          <div>
-                            <div class="text-subtitle-2 font-weight-bold d-flex align-center gap-2">
-                              <v-icon size="18" color="primary">mdi-source-branch</v-icon>
-                              طريقة تعيين المقرر الدراسي للاختبار:
-                            </div>
-                            <div class="text-caption text-medium-emphasis">هل تريد تحديد المادة يدوياً من الشجرة الأكاديمية أم استيرادها من جدول امتحانات مجدول؟</div>
-                          </div>
-                          <v-btn-toggle
-                            v-model="scheduleMode"
-                            mandatory
-                            color="primary"
-                            variant="outlined"
-                            density="comfortable"
-                            rounded="lg"
-                          >
-                            <v-btn value="manual" class="font-weight-bold" prepend-icon="mdi-cursor-default-click">
-                              تحديد يدوي مباشر
-                            </v-btn>
-                            <v-btn value="schedule" class="font-weight-bold" prepend-icon="mdi-calendar-clock">
-                              من جدول الاختبارات المعتمد
-                            </v-btn>
-                          </v-btn-toggle>
-                        </div>
-
-                        <!-- Schedule Dropdown if scheduleMode === 'schedule' -->
-                        <v-expand-transition>
-                          <div v-if="scheduleMode === 'schedule'" class="mt-3">
-                            <v-select
-                              v-model="exam.examScheduleId"
-                              :items="enrichedSchedules"
-                              item-title="displayLabel"
-                              item-value="id"
-                              placeholder="اختر من جدول الاختبارات المتاح..."
-                              prepend-inner-icon="mdi-calendar-clock"
-                              clearable
-                              density="compact"
-                              variant="outlined"
-                              rounded="lg"
-                              :rules="scheduleMode === 'schedule' ? [v => !!v || 'يرجى اختيار جدول الاختبار'] : []"
-                              hide-details="auto"
-                              @update:model-value="onScheduleChange"
-                            />
-                          </div>
-                        </v-expand-transition>
-                      </div>
-                    </v-expand-transition>
-                  </div>
-
-                  <!-- Section 2: Academic Classification Scope -->
-                  <div v-show="activeStep1Section === 2" class="section-group-card pa-6 rounded-2xl mb-6">
                     <div class="d-flex align-center gap-3 mb-4">
-                      <v-avatar size="40" color="secondary" variant="tonal" class="rounded-xl">
+                      <v-avatar size="40" color="primary" variant="tonal" class="rounded-xl">
                         <v-icon size="22">mdi-school-outline</v-icon>
                       </v-avatar>
                       <div>
-                        <h4 class="text-subtitle-1 font-weight-black mb-0">2. النطاق والتصنيف الأكاديمي</h4>
+                        <h4 class="text-subtitle-1 font-weight-black mb-0">1. النطاق والتصنيف الأكاديمي</h4>
                         <span class="text-caption text-medium-emphasis">تحديد الفترة، القسم، الصف، والمادة أو المقرر المستهدف</span>
                       </div>
                     </div>
 
-                    <!-- Case A: Manual Selection -->
-                    <div v-if="settingsMode === 'new' && scheduleMode === 'manual'">
-                      <!-- Modern Segmented Tabs for Institution Type -->
-                      <div class="mb-5">
-                        <div class="segmented-control rounded-xl pa-1 border-subtle d-flex flex-wrap gap-1">
-                          <button type="button" class="segmented-control-btn" :class="{ 'is-active': exam.institution_type === 'school' }"
-                            @click="exam.institution_type = 'school'; onInstitutionTypeToggle()">
-                            <v-icon start size="18">mdi-school</v-icon>
-                            <span>التعليم العام والمدرسي</span>
-                          </button>
-                          <button type="button" class="segmented-control-btn" :class="{ 'is-active': exam.institution_type === 'university' }"
-                            @click="exam.institution_type = 'university'; onInstitutionTypeToggle()">
-                            <v-icon start size="18">mdi-domain</v-icon>
-                            <span>التعليم الجامعي والأكاديمي</span>
-                          </button>
-                          <button type="button" class="segmented-control-btn" :class="{ 'is-active': exam.institution_type === 'institute' }"
-                            @click="exam.institution_type = 'institute'; onInstitutionTypeToggle()">
-                            <v-icon start size="18">mdi-tools</v-icon>
-                            <span>التعليم الفني والمهني</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      <v-row dense>
-                        <auto-list v-model="exam.yearId" name="AcademicYear" label="السنة الدراسية" placeholder="اختر السنة الدراسية" cols="3" :add="false"
-                          :rules="requiredRule" />
-                        <auto-list v-model="exam.examPeriodId" name="Period" label="الفترة الامتحانية" placeholder="اختر الفترة الامتحانية" cols="3" :add="false"
-                          :rules="requiredRule" />
-
-                        <!-- 🏫 School Classification Fields -->
-                        <template v-if="exam.institution_type === 'school'">
-                          <auto-list v-model="exam.stageId" name="Stage" placeholder="اختر المرحلة الدراسية" cols="3" :add="false"
-                            :rules="requiredRule" @update:model-value="() => { exam.classTrackId = null; exam.subjectId = null; }" />
-                          <auto-list v-model="exam.classTrackId" name="ClassTrackByStage" :param="exam.stageId" placeholder="اختر الصف والمسار"
-                            cols="3" :add="false" :rules="requiredRule" :disabled="!exam.stageId" @update:model-value="exam.subjectId = null" />
-                          <auto-list v-model="exam.subjectId" name="Subject" :param="exam.classTrackId || exam.stageId" placeholder="اختر المادة الدراسية" cols="3" :add="false"
-                            :rules="requiredRule" :disabled="!exam.classTrackId && !exam.stageId" />
-                        </template>
-
-                        <!-- 🎓 University Classification Fields -->
-                        <template v-if="exam.institution_type === 'university'">
-                          <auto-list v-model="exam.collegeId" name="College" placeholder="الكلية الجامعية" cols="3" :add="false"
-                            :rules="requiredRule" @update:model-value="exam.departmentId = null" />
-                          <auto-list v-model="exam.departmentId" name="DepartmentByCollege" :param="exam.collegeId" placeholder="القسم الأكاديمي"
-                            cols="3" :add="false" :rules="requiredRule" :disabled="!exam.collegeId" @update:model-value="exam.specializationId = null" />
-                          <auto-list v-model="exam.specializationId" name="Specialization" :param="exam.departmentId" placeholder="التخصص والبرنامج"
-                            cols="3" :add="false" :rules="requiredRule" :disabled="!exam.departmentId" />
-                          <auto-list v-model="exam.semesterSubjectId" name="SemesterSubject" :param="exam.specializationId" placeholder="مقرر الفصل الجامعي"
-                            cols="3" :add="false" :rules="requiredRule" />
-                        </template>
-
-                        <!-- 🏢 Institute Classification Fields -->
-                        <template v-if="exam.institution_type === 'institute'">
-                          <auto-list
-                            v-model="exam.instituteFieldId"
-                            name="InstituteField"
-                            placeholder="المجال المهني"
-                            cols="3"
-                            :add="false"
-                            :rules="requiredRule"
-                            @update:model-value="() => { exam.instituteEducationSystemId = null; exam.instituteSpecializationId = null; exam.instituteCurriculumId = null; exam.instituteSubjectId = null; }"
-                          />
-                          <auto-list
-                            v-model="exam.instituteEducationSystemId"
-                            name="InstituteEducationSystem"
-                            :param="exam.instituteFieldId"
-                            placeholder="نظام التعليم"
-                            cols="3"
-                            :add="false"
-                            :rules="requiredRule"
-                            :disabled="!exam.instituteFieldId"
-                            @update:model-value="() => { exam.instituteSpecializationId = null; exam.instituteCurriculumId = null; exam.instituteSubjectId = null; }"
-                          />
-                          <auto-list
-                            v-model="exam.instituteSpecializationId"
-                            name="InstituteSpecialization"
-                            :param="instituteSpecParam"
-                            placeholder="التخصص المهني"
-                            cols="3"
-                            :add="false"
-                            :rules="requiredRule"
-                            :disabled="!exam.instituteEducationSystemId"
-                            @update:model-value="() => { exam.instituteCurriculumId = null; exam.instituteSubjectId = null; }"
-                          />
-                          <auto-list
-                            v-model="exam.instituteCurriculumId"
-                            name="InstituteCurriculum"
-                            :param="exam.instituteSpecializationId"
-                            placeholder="الخطة الدراسية"
-                            cols="3"
-                            :add="false"
-                            :rules="requiredRule"
-                            :disabled="!exam.instituteSpecializationId"
-                            @update:model-value="exam.instituteSubjectId = null"
-                          />
-                          <auto-list
-                            v-model="exam.instituteSubjectId"
-                            name="InstituteSubject"
-                            :param="exam.instituteCurriculumId"
-                            placeholder="المادة التدريبية"
-                            cols="3"
-                            :add="false"
-                            :rules="requiredRule"
-                            :disabled="!exam.instituteCurriculumId"
-                          />
-                        </template>
-                      </v-row>
-                    </div>
-
-                    <!-- Case B: From Schedule -->
-                    <div v-else-if="scheduleMode === 'schedule'">
-                      <div class="pa-5 rounded-xl border-subtle text-center">
-                        <v-avatar size="52" color="primary" variant="tonal" class="mb-3 rounded-2xl">
-                          <v-icon size="28">mdi-calendar-check</v-icon>
-                        </v-avatar>
-                        <h4 class="text-subtitle-1 font-weight-black mb-1">البيانات الأكاديمية مرتبطة بجدول الاختبارات المعتمد</h4>
-                        <p class="text-caption text-medium-emphasis mb-4">
-                          تم استيراد المادة والصف والفترة الامتحانية تلقائياً بناءً على جدول الامتحانات المختار في القسم الأول.
-                        </p>
-
-                        <div v-if="selectedScheduleInfo" class="pa-4 rounded-xl schedule-ribbon d-flex flex-wrap gap-2 justify-center align-center mb-4">
-                          <v-chip variant="tonal" color="primary" class="font-weight-bold" prepend-icon="mdi-calendar-range">
-                            {{ selectedScheduleInfo.periodName }}
-                          </v-chip>
-                          <v-chip variant="tonal" color="secondary" class="font-weight-bold" prepend-icon="mdi-book">
-                            {{ selectedScheduleInfo.subjectName }}
-                          </v-chip>
-                          <v-chip variant="tonal" color="info" class="font-weight-bold" prepend-icon="mdi-school">
-                            {{ selectedScheduleInfo.levelName }}
-                          </v-chip>
-                          <v-chip variant="tonal" color="warning" class="font-weight-bold" prepend-icon="mdi-shape">
-                            {{ selectedScheduleInfo.branchName }}
-                          </v-chip>
-                          <v-chip variant="tonal" color="success" class="font-weight-bold" prepend-icon="mdi-calendar">
-                            {{ selectedScheduleInfo.date }}
-                          </v-chip>
-                        </div>
-
-                        <v-btn variant="tonal" color="primary" size="small" class="font-weight-bold" prepend-icon="mdi-tune" @click="goToStep1Section(1)">
-                          تغيير جدول الاختبارات من القسم الأول
-                        </v-btn>
+                    <!-- Modern Segmented Tabs for Institution Type -->
+                    <div class="mb-5">
+                      <div class="segmented-control rounded-xl pa-1 border-subtle d-flex flex-wrap gap-1">
+                        <button type="button" class="segmented-control-btn" :class="{ 'is-active': exam.institution_type === 'school' }"
+                          @click="exam.institution_type = 'school'; onInstitutionTypeToggle()">
+                          <v-icon start size="18">mdi-school</v-icon>
+                          <span>التعليم العام والمدرسي</span>
+                        </button>
+                        <button type="button" class="segmented-control-btn" :class="{ 'is-active': exam.institution_type === 'university' }"
+                          @click="exam.institution_type = 'university'; onInstitutionTypeToggle()">
+                          <v-icon start size="18">mdi-domain</v-icon>
+                          <span>التعليم الجامعي والأكاديمي</span>
+                        </button>
+                        <button type="button" class="segmented-control-btn" :class="{ 'is-active': exam.institution_type === 'institute' }"
+                          @click="exam.institution_type = 'institute'; onInstitutionTypeToggle()">
+                          <v-icon start size="18">mdi-tools</v-icon>
+                          <span>التعليم الفني والمهني</span>
+                        </button>
                       </div>
                     </div>
 
-                    <!-- Case C: From Template -->
-                    <div v-else>
-                      <div class="pa-5 rounded-xl border-subtle text-center">
-                        <v-avatar size="52" color="secondary" variant="tonal" class="mb-3 rounded-2xl">
-                          <v-icon size="28">mdi-file-document-check-outline</v-icon>
-                        </v-avatar>
-                        <h4 class="text-subtitle-1 font-weight-black mb-1">بيانات المقرر مستوردة من القالب المعتمد</h4>
-                        <p class="text-caption text-medium-emphasis mb-4">
-                          {{ selectedTemplate ? `تم استدعاء مصفوفة المواصفات والمقرر من القالب: ${selectedTemplate.name}` : 'يرجى اختيار القالب من القسم الأول' }}
-                        </p>
-                        <v-btn variant="tonal" color="secondary" size="small" class="font-weight-bold" prepend-icon="mdi-tune" @click="goToStep1Section(1)">
-                          تعديل اختيار القالب من القسم الأول
-                        </v-btn>
-                      </div>
-                    </div>
+                    <v-row dense>
+                      <auto-list v-model="exam.yearId" name="AcademicYear" label="السنة الدراسية" placeholder="اختر السنة الدراسية" cols="3" :add="false"
+                        :rules="requiredRule" />
+                      <auto-list v-model="exam.examPeriodId" name="Period" label="الفترة الامتحانية" placeholder="اختر الفترة الامتحانية" cols="3" :add="false"
+                        :rules="requiredRule" />
+
+                      <!-- 🏫 School Classification Fields -->
+                      <template v-if="exam.institution_type === 'school'">
+                        <auto-list v-model="exam.stageId" name="Stage" placeholder="اختر المرحلة الدراسية" cols="3" :add="false"
+                          :rules="requiredRule" @update:model-value="() => { exam.classTrackId = null; exam.subjectId = null; }" />
+                        <auto-list v-model="exam.classTrackId" name="ClassTrackByStage" :param="exam.stageId" placeholder="اختر الصف والمسار"
+                          cols="3" :add="false" :rules="requiredRule" :disabled="!exam.stageId" @update:model-value="exam.subjectId = null" />
+                        <auto-list v-model="exam.subjectId" name="Subject" :param="exam.classTrackId || exam.stageId" placeholder="اختر المادة الدراسية" cols="3" :add="false"
+                          :rules="requiredRule" :disabled="!exam.classTrackId && !exam.stageId" />
+                      </template>
+
+                      <!-- 🎓 University Classification Fields -->
+                      <template v-else-if="exam.institution_type === 'university'">
+                        <auto-list v-model="exam.collegeId" name="College" placeholder="اختر الكلية" cols="3" :add="false"
+                          :rules="requiredRule" @update:model-value="() => { exam.departmentId = null; exam.specializationId = null; exam.semesterSubjectId = null; }" />
+                        <auto-list v-model="exam.departmentId" name="UniversitySection" :param="exam.collegeId" placeholder="اختر القسم الأكاديمي"
+                          cols="3" :add="false" :rules="requiredRule" :disabled="!exam.collegeId"
+                          @update:model-value="() => { exam.specializationId = null; exam.semesterSubjectId = null; }" />
+                        <auto-list v-model="exam.specializationId" name="Specialization" :param="exam.departmentId" placeholder="اختر التخصص الدراسي"
+                          cols="3" :add="false" :rules="requiredRule" :disabled="!exam.departmentId"
+                          @update:model-value="exam.semesterSubjectId = null" />
+                        <auto-list v-model="exam.semesterSubjectId" name="SemesterSubjectBySpec" :param="exam.specializationId"
+                          placeholder="اختر المقرر الدراسي" cols="3" :add="false" :rules="requiredRule"
+                          :disabled="!exam.specializationId" />
+                      </template>
+
+                      <!-- 🏢 Institute & Vocational Training Classification Fields -->
+                      <template v-else-if="exam.institution_type === 'institute'">
+                        <auto-list v-model="exam.instituteFieldId" name="InstituteField" placeholder="اختر المجال المهني" cols="3" :add="false"
+                          :rules="requiredRule"
+                          @update:model-value="() => { exam.instituteSpecializationId = null; exam.instituteCurriculumId = null; exam.instituteSubjectId = null; }" />
+                        <auto-list v-model="exam.instituteEducationSystemId" name="InstituteEducationSystem" placeholder="اختر النظام التعليمي"
+                          cols="3" :add="false" :rules="requiredRule"
+                          @update:model-value="() => { exam.instituteSpecializationId = null; exam.instituteCurriculumId = null; exam.instituteSubjectId = null; }" />
+                        <auto-list
+                          v-model="exam.instituteSpecializationId"
+                          name="InstituteSpecialization"
+                          :param="{ field: exam.instituteFieldId, education_system: exam.instituteEducationSystemId }"
+                          placeholder="اختر التخصص المهني"
+                          cols="3"
+                          :add="false"
+                          :rules="requiredRule"
+                          :disabled="!exam.instituteFieldId || !exam.instituteEducationSystemId"
+                          @update:model-value="() => { exam.instituteCurriculumId = null; exam.instituteSubjectId = null; }"
+                        />
+                        <auto-list
+                          v-model="exam.instituteCurriculumId"
+                          name="InstituteCurriculum"
+                          :param="{ specialization: exam.instituteSpecializationId }"
+                          placeholder="اختر الخطة الدراسية / المنهج"
+                          cols="3"
+                          :add="false"
+                          :rules="requiredRule"
+                          :disabled="!exam.instituteSpecializationId"
+                          @update:model-value="exam.instituteSubjectId = null"
+                        />
+                        <auto-list
+                          v-model="exam.instituteSubjectId"
+                          name="InstituteSubject"
+                          :param="{ curriculum: exam.instituteCurriculumId }"
+                          placeholder="اختر المادة التدريبية"
+                          cols="3"
+                          :add="false"
+                          :rules="requiredRule"
+                          :disabled="!exam.instituteCurriculumId"
+                        />
+                      </template>
+                    </v-row>
                   </div>
 
-                  <!-- Section 3: Technical Details & Capacity -->
-                  <div v-show="activeStep1Section === 3" class="section-group-card pa-6 rounded-2xl mb-6">
+                  <!-- Section 2: Technical Details & Capacity -->
+                  <div v-show="activeStep1Section === 2" class="section-group-card pa-6 rounded-2xl mb-6">
                     <div class="d-flex align-center gap-3 mb-5">
                       <v-avatar size="40" color="info" variant="tonal" class="rounded-xl">
                         <v-icon size="22">mdi-card-account-details-outline</v-icon>
                       </v-avatar>
                       <div>
-                        <h4 class="text-subtitle-1 font-weight-black mb-0">3. تفاصيل وسعة ورقة الاختبار</h4>
+                        <h4 class="text-subtitle-1 font-weight-black mb-0">2. تفاصيل وسعة ورقة الاختبار</h4>
                         <span class="text-caption text-medium-emphasis">تحديد عنوان ورقة الاختبار، رصيد الأسئلة، وإعدادات مكافحة التكرار</span>
                       </div>
                     </div>
@@ -486,7 +271,6 @@
                       <custom-text-field v-model="exam.title" cols="12" label="عنوان الاختبار الرسمي" icon="text"
                         :rules="[rules.required]" />
 
-                      <!-- Questions Count: Field on one side, Quick Presets directly opposite (مقابل الحقل وبشكل جميل) -->
                       <v-col cols="12" md="6">
                         <v-text-field
                           v-model.number="exam.questionsCount"
@@ -501,21 +285,6 @@
                           :rules="[v => (!!v && Number(v) >= 5 && Number(v) <= 100) || 'مطلوب (بين 5 و 100 سؤال)']"
                           prepend-inner-icon="mdi-counter"
                         />
-                      </v-col>
-                      <v-col cols="12" md="6" class="d-flex align-center gap-1.5 flex-wrap pt-md-2">
-                        <span class="text-caption font-weight-bold text-medium-emphasis me-1">سريع:</span>
-                        <v-btn
-                          v-for="qCount in [20, 30, 40, 50]"
-                          :key="qCount"
-                          size="small"
-                          rounded="pill"
-                          :color="exam.questionsCount === qCount ? 'primary' : undefined"
-                          :variant="exam.questionsCount === qCount ? 'flat' : 'tonal'"
-                          class="font-weight-bold px-2.5"
-                          @click="setQuestionsCount(qCount)"
-                        >
-                          {{ qCount }} سؤال
-                        </v-btn>
                       </v-col>
                     </v-row>
 
@@ -535,205 +304,14 @@
                     </div>
                   </div>
 
-                  <!-- Section 4: Geographic Target Scope (Segmented Controls Aligned) -->
-                  <div v-show="activeStep1Section === 4" class="section-group-card pa-6 rounded-2xl mb-6">
-                    <div class="d-flex align-center gap-3 mb-5">
-                      <v-avatar size="40" color="deep-purple" variant="tonal" class="rounded-xl">
-                        <v-icon size="22">mdi-map-marker-radius</v-icon>
-                      </v-avatar>
-                      <div>
-                        <h4 class="text-subtitle-1 font-weight-black mb-0">4. النطاق الجغرافي للاختبار</h4>
-                        <span class="text-caption text-medium-emphasis">حدد مستوى الاستهداف والمناطق أو المؤسسات المشمولة في هذا الاختبار</span>
-                      </div>
-                    </div>
-
-                    <!-- Country and Scope Level Options directly opposite each other on the same row -->
-                    <v-row dense class="align-center mb-2">
-                      <auto-list v-model="exam.countryId" name="Country" placeholder="اختر الدولة" cols="4" :add="false" />
-                      <v-col cols="12" md="8">
-                        <v-btn-toggle
-                          v-model="exam.target_scope_level"
-                          mandatory
-                          color="primary"
-                          variant="outlined"
-                          density="comfortable"
-                          rounded="lg"
-                          class="w-100 d-flex flex-wrap"
-                          @update:model-value="(val) => { if (val === 'all') selectedTargetIds = []; }"
-                        >
-                          <v-btn value="all" class="flex-grow-1 font-weight-bold" prepend-icon="mdi-earth">
-                            كافة المناطق (شامل)
-                          </v-btn>
-                          <v-btn value="governorate" class="flex-grow-1 font-weight-bold" prepend-icon="mdi-city-variant-outline">
-                            محافظات محددة
-                          </v-btn>
-                          <v-btn v-if="exam.institution_type === 'school'" value="directorate" class="flex-grow-1 font-weight-bold" prepend-icon="mdi-map-marker-radius">
-                            مديريات محددة
-                          </v-btn>
-                          <v-btn value="school" class="flex-grow-1 font-weight-bold" prepend-icon="mdi-school-outline">
-                            {{ exam.institution_type === 'university' ? 'جامعات محددة' : exam.institution_type === 'institute' ? 'معاهد محددة' : 'مدارس / مراكز' }}
-                          </v-btn>
-                        </v-btn-toggle>
-                      </v-col>
-                    </v-row>
-
-                    <v-expand-transition>
-                      <div v-if="exam.target_scope_level !== 'all'" class="mt-3 pt-4 border-t border-subtle">
-                        <v-row dense>
-                          <!-- محافظات محددة -->
-                          <v-col cols="12" v-if="exam.target_scope_level === 'governorate'">
-                            <v-autocomplete
-                              v-model="selectedTargetIds"
-                              :items="governoratesList"
-                              item-title="name_ar"
-                              item-value="id"
-                              label="المحافظات المستهدفة للاختبار *"
-                              placeholder="اختر المحافظات (أمانة العاصمة، صنعاء، تعز، الحديدة...)"
-                              cols="12"
-                              multiple
-                              chips
-                              closable-chips
-                              variant="outlined"
-                              density="compact"
-                              rounded="lg"
-                              hide-details="auto"
-                              :rules="exam.target_scope_level === 'governorate' ? [v => (Array.isArray(v) && v.length > 0) || 'يرجى تحديد محافظة واحدة على الأقل'] : []"
-                              prepend-inner-icon="mdi-city-variant-outline"
-                              :loading="loadingGeoData"
-                            />
-                          </v-col>
-
-                          <!-- مديريات محددة -->
-                          <v-col cols="12" v-if="exam.target_scope_level === 'directorate'">
-                            <v-row dense>
-                              <v-col cols="12" md="4">
-                                <v-autocomplete
-                                  v-model="selectedGovernorateForFilter"
-                                  :items="governoratesList"
-                                  item-title="name_ar"
-                                  item-value="id"
-                                  label="تصفية حسب المحافظة (اختياري)"
-                                  placeholder="اختر المحافظة لتصفية المديريات..."
-                                  clearable
-                                  variant="outlined"
-                                  density="compact"
-                                  rounded="lg"
-                                  hide-details="auto"
-                                  prepend-inner-icon="mdi-filter-variant"
-                                  :loading="loadingGeoData"
-                                  @update:model-value="onFilterGovForDirectorates"
-                                />
-                              </v-col>
-                              <v-col cols="12" md="8">
-                                <v-autocomplete
-                                  v-model="selectedTargetIds"
-                                  :items="directoratesList"
-                                  item-title="name_ar"
-                                  item-value="id"
-                                  label="المديريات المستهدفة للاختبار *"
-                                  placeholder="اختر المديريات المستهدفة..."
-                                  multiple
-                                  chips
-                                  closable-chips
-                                  variant="outlined"
-                                  density="compact"
-                                  rounded="lg"
-                                  hide-details="auto"
-                                  :rules="exam.target_scope_level === 'directorate' ? [v => (Array.isArray(v) && v.length > 0) || 'يرجى تحديد مديرية واحدة على الأقل'] : []"
-                                  prepend-inner-icon="mdi-map-marker-radius"
-                                  :loading="loadingGeoData"
-                                />
-                              </v-col>
-                            </v-row>
-                          </v-col>
-
-                          <!-- مدارس / مؤسسات محددة -->
-                          <v-col cols="12" v-if="exam.target_scope_level === 'school'">
-                            <v-row dense>
-                              <v-col cols="12" :md="exam.institution_type === 'school' ? 3 : 4">
-                                <v-autocomplete
-                                  v-model="selectedGovernorateForFilter"
-                                  :items="governoratesList"
-                                  item-title="name_ar"
-                                  item-value="id"
-                                  label="المحافظة *"
-                                  placeholder="المحافظة..."
-                                  clearable
-                                  variant="outlined"
-                                  density="compact"
-                                  rounded="lg"
-                                  hide-details="auto"
-                                  :loading="loadingGeoData"
-                                  @update:model-value="onFilterGovForSchoolChange"
-                                />
-                              </v-col>
-                              <v-col cols="12" md="3" v-if="exam.institution_type === 'school'">
-                                <v-autocomplete
-                                  v-model="selectedDirectorateForFilter"
-                                  :items="filteredDirectoratesForSchool"
-                                  item-title="name_ar"
-                                  item-value="id"
-                                  label="المديرية *"
-                                  :placeholder="selectedGovernorateForFilter ? 'المديرية...' : 'اختر المحافظة أولاً'"
-                                  clearable
-                                  variant="outlined"
-                                  density="compact"
-                                  rounded="lg"
-                                  hide-details="auto"
-                                  :disabled="!selectedGovernorateForFilter"
-                                  :loading="loadingGeoData"
-                                  @update:model-value="onFilterDirForSchoolChange"
-                                />
-                              </v-col>
-                              <v-col cols="12" :md="exam.institution_type === 'school' ? 6 : 8">
-                                <v-autocomplete
-                                  v-model="selectedTargetIds"
-                                  :items="allSchoolsList"
-                                  item-title="name_ar"
-                                  item-value="id"
-                                  :label="exam.institution_type === 'university' ? 'الجامعات / الكليات المستهدفة *' : exam.institution_type === 'institute' ? 'المعاهد المستهدفة *' : 'المدارس / المؤسسات المستهدفة *'"
-                                  :placeholder="targetInstitutionsPlaceholder"
-                                  :disabled="isTargetInstitutionsDisabled"
-                                  multiple
-                                  chips
-                                  closable-chips
-                                  variant="outlined"
-                                  density="compact"
-                                  rounded="lg"
-                                  hide-details="auto"
-                                  :rules="exam.target_scope_level === 'school' ? [v => (Array.isArray(v) && v.length > 0) || 'يرجى تحديد مؤسسة/مدرسة واحدة على الأقل'] : []"
-                                  :prepend-inner-icon="exam.institution_type === 'university' ? 'mdi-domain' : 'mdi-school'"
-                                  :loading="loadingSchools"
-                                />
-                              </v-col>
-                            </v-row>
-                          </v-col>
-                        </v-row>
-
-                        <!-- Selected Targets Summary Badge -->
-                        <div v-if="selectedTargetIds && selectedTargetIds.length > 0" class="mt-3 pa-3 rounded-lg border-subtle d-flex align-center justify-space-between flex-wrap gap-2">
-                          <div class="d-flex align-center gap-2">
-                            <v-icon size="18" color="success">mdi-check-circle</v-icon>
-                            <span class="text-caption font-weight-bold">
-                              تم اعتماد تحديد {{ selectedTargetIds.length }} منطقة / مؤسسة مستهدفة في نطاق الاختبار
-                            </span>
-                          </div>
-                          <v-btn size="x-small" variant="text" color="error" class="font-weight-bold" @click="selectedTargetIds = []">
-                            مسح التحديد
-                          </v-btn>
-                        </div>
-                      </div>
-                    </v-expand-transition>
-                  </div>
-
-                  <!-- Section 5: Advanced Models Configuration -->
-                  <div v-show="activeStep1Section === 5" class="section-group-card pa-6 rounded-2xl mb-6">
+                  <!-- Section 3: Advanced Models Configuration -->
+                  <div v-show="activeStep1Section === 3" class="section-group-card pa-6 rounded-2xl mb-6">
                     <div class="d-flex align-center gap-3 mb-5">
                       <v-avatar size="40" color="warning" variant="tonal" class="rounded-xl">
                         <v-icon size="22">mdi-file-multiple-outline</v-icon>
                       </v-avatar>
                       <div>
-                        <h4 class="text-subtitle-1 font-weight-black mb-0">5. إعدادات النماذج التوليدية</h4>
+                        <h4 class="text-subtitle-1 font-weight-black mb-0">3. إعدادات النماذج التوليدية والتوزيع المناطقي</h4>
                         <span class="text-caption text-medium-emphasis">اختر نمط توليد النماذج: متطابقة وموحدة، أو متقدمة بمستويات صعوبة وتوزيع جغرافي</span>
                       </div>
                     </div>
@@ -851,7 +429,7 @@
                                 <span class="text-subtitle-2 font-weight-black text-white">{{ gIdx + 1 }}</span>
                               </v-avatar>
                               <div>
-                                <span class="font-weight-black text-subtitle-2">المجموعة {{ gIdx + 1 }}</span>
+                                <span class="font-weight-black text-subtitle-2">{{ group.name || ('المجموعة ' + (gIdx + 1)) }}</span>
                                 <span class="text-caption text-medium-emphasis ms-2">({{ group.count }} نماذج)</span>
                               </div>
                               <v-chip size="small" :color="difficultyColor(group.difficulty_profile)" variant="tonal" class="font-weight-bold">
@@ -864,6 +442,18 @@
                           </div>
 
                           <v-row dense class="mb-4">
+                            <v-col cols="12" md="4">
+                              <v-text-field
+                                v-model="group.name"
+                                label="اسم / مسمى المجموعة"
+                                :placeholder="'المجموعة ' + (gIdx + 1)"
+                                variant="outlined"
+                                density="compact"
+                                rounded="lg"
+                                hide-details="auto"
+                                prepend-inner-icon="mdi-tag-outline"
+                              />
+                            </v-col>
                             <v-col cols="12" md="4">
                               <v-text-field
                                 v-model.number="group.count"
@@ -897,61 +487,247 @@
 
                           <!-- Difficulty Distribution Sliders -->
                           <div class="pa-4 rounded-xl border-subtle mb-3">
-                            <span class="text-caption font-weight-bold text-medium-emphasis mb-3 d-block">
-                              <v-icon size="14" class="me-1">mdi-speedometer</v-icon>
-                              توزيع أوزان الصعوبة للمجموعة {{ gIdx + 1 }}:
-                            </span>
+                            <div class="d-flex align-center justify-space-between mb-3 flex-wrap gap-2">
+                              <span class="text-caption font-weight-bold text-medium-emphasis d-flex align-center">
+                                <v-icon size="16" class="me-1">mdi-speedometer</v-icon>
+                                توزيع أوزان الصعوبة لـ {{ group.name || ('المجموعة ' + (gIdx + 1)) }}:
+                              </span>
+                              <div class="d-flex align-center gap-2">
+                                <v-chip
+                                  size="small"
+                                  :color="groupDiffTotal(group) === 100 ? 'success' : 'warning'"
+                                  variant="tonal"
+                                  class="font-weight-bold"
+                                >
+                                  الإجمالي: {{ groupDiffTotal(group) }}% / 100%
+                                </v-chip>
+                              </div>
+                            </div>
+
                             <v-row dense>
                               <v-col v-for="diff in difficultyItems" :key="diff.key" cols="12" md="4">
-                                <div class="pa-3 rounded-lg border-subtle">
-                                  <div class="d-flex align-center justify-space-between mb-1">
+                                <div class="pa-3 rounded-lg border-subtle h-100 d-flex flex-column justify-space-between">
+                                  <div class="d-flex align-center justify-space-between mb-2">
                                     <span class="text-caption font-weight-bold">{{ diff.label }}</span>
-                                    <v-chip size="x-small" :color="diff.color" variant="tonal" class="font-weight-bold">
-                                      {{ group.difficulty_distribution[diff.key] }}%
+                                    <v-chip size="x-small" :color="diff.color" variant="flat" class="font-weight-black">
+                                      {{ Math.round(group.difficulty_distribution[diff.key] || 0) }}%
                                     </v-chip>
                                   </div>
-                                  <v-slider
-                                    v-model="group.difficulty_distribution[diff.key]"
-                                    :min="0" :max="100" :step="5"
-                                    :color="diff.color"
-                                    hide-details
-                                    thumb-size="14"
-                                    track-size="5"
-                                  />
+
+                                  <div class="d-flex align-center gap-2">
+                                    <v-btn
+                                      icon
+                                      size="x-small"
+                                      variant="tonal"
+                                      :color="diff.color"
+                                      :disabled="(group.difficulty_distribution[diff.key] || 0) <= 0"
+                                      @click="stepGroupDiff(group, diff.key, -5)"
+                                    >
+                                      <v-icon size="14">mdi-minus</v-icon>
+                                    </v-btn>
+
+                                    <v-slider
+                                      :model-value="group.difficulty_distribution[diff.key]"
+                                      :min="0"
+                                      :max="100"
+                                      :step="5"
+                                      :color="diff.color"
+                                      hide-details
+                                      thumb-size="14"
+                                      track-size="6"
+                                      class="flex-grow-1"
+                                      @update:model-value="(val) => updateGroupDiff(group, diff.key, val)"
+                                    />
+
+                                    <v-btn
+                                      icon
+                                      size="x-small"
+                                      variant="tonal"
+                                      :color="diff.color"
+                                      :disabled="groupDiffTotal(group) >= 100"
+                                      @click="stepGroupDiff(group, diff.key, 5)"
+                                    >
+                                      <v-icon size="14">mdi-plus</v-icon>
+                                    </v-btn>
+                                  </div>
                                 </div>
                               </v-col>
                             </v-row>
+
                             <v-alert v-if="groupDiffTotal(group) !== 100" type="warning" density="compact" variant="tonal" class="mt-3 rounded-lg">
-                              إجمالي نسب الصعوبة: {{ groupDiffTotal(group) }}% (يجب أن يعادل 100%)
+                              إجمالي نسب الصعوبة: {{ groupDiffTotal(group) }}% (المتبقي: {{ 100 - groupDiffTotal(group) }}% يجب توزيعه للوصول إلى 100%)
                             </v-alert>
                           </div>
 
-                          <!-- Region Assignment for this group -->
-                          <div v-if="exam.target_scope_level !== 'all' && selectedTargetIds.length > 0" class="pa-4 rounded-xl border-subtle">
-                            <div class="d-flex align-center justify-space-between mb-2 flex-wrap gap-1">
+                          <!-- Geographic Target Scope for this Model Group -->
+                          <div class="pa-4 rounded-xl border-subtle mb-3">
+                            <div class="d-flex align-center justify-space-between mb-3 flex-wrap gap-2">
                               <span class="text-caption font-weight-bold text-medium-emphasis d-flex align-center">
-                                <v-icon size="16" class="me-1" color="primary">mdi-map-marker-multiple</v-icon>
-                                المناطق المستهدفة حصرياً بهذه المجموعة:
+                                <v-icon size="16" class="me-1" color="deep-purple">mdi-map-marker-radius</v-icon>
+                                النطاق والمناطق المستهدفة حصرياً لـ {{ group.name || ('المجموعة ' + (gIdx + 1)) }}:
                               </span>
-                              <span class="text-caption text-primary font-weight-bold">
-                                (متاح {{ targetOptionsForGroups.length }} منطقة محددة من النطاق الجغرافي للاختبار)
-                              </span>
+                              <v-chip v-if="(group.scope_level || 'all') !== 'all' && group.target_ids?.length" size="x-small" color="deep-purple" variant="tonal" class="font-weight-bold">
+                                تم تحديد {{ group.target_ids.length }} منطقة
+                              </v-chip>
                             </div>
-                            <v-autocomplete
-                              v-model="group.assigned_target_ids"
-                              :items="targetOptionsForGroups"
-                              item-title="name"
-                              item-value="id"
+
+                            <!-- Scope Level Toggle -->
+                            <v-btn-toggle
+                              v-model="group.scope_level"
+                              mandatory
+                              color="deep-purple"
                               variant="outlined"
                               density="compact"
                               rounded="lg"
-                              hide-details
-                              multiple
-                              chips
-                              closable-chips
-                              placeholder="اختر من المناطق المحددة للاختبار لهذه المجموعة..."
-                              no-data-text="لا توجد مناطق متاحة — حدد المناطق أولاً في النطاق الجغرافي للاختبار"
-                            />
+                              class="mb-3 d-flex flex-wrap"
+                              @update:model-value="onGroupScopeLevelChange(group)"
+                            >
+                              <v-btn value="all" size="small" class="flex-grow-1 font-weight-bold" prepend-icon="mdi-earth">
+                                كافة المناطق (عام)
+                              </v-btn>
+                              <v-btn value="governorate" size="small" class="flex-grow-1 font-weight-bold" prepend-icon="mdi-city-variant-outline">
+                                محافظات محددة
+                              </v-btn>
+                              <v-btn v-if="exam.institution_type === 'school'" value="directorate" size="small" class="flex-grow-1 font-weight-bold" prepend-icon="mdi-map-marker-radius">
+                                مديريات محددة
+                              </v-btn>
+                              <v-btn value="school" size="small" class="flex-grow-1 font-weight-bold" prepend-icon="mdi-school-outline">
+                                {{ exam.institution_type === 'university' ? 'جامعات محددة' : exam.institution_type === 'institute' ? 'معاهد محددة' : 'مدارس محددة' }}
+                              </v-btn>
+                            </v-btn-toggle>
+
+                            <!-- Level 1: All regions -->
+                            <div v-if="(group.scope_level || 'all') === 'all'" class="d-flex align-center gap-2 py-1 text-medium-emphasis text-caption">
+                              <v-icon size="16" color="success">mdi-check-circle-outline</v-icon>
+                              <span>تسري هذه المجموعة على جميع المناطق دون حصر جغرافي.</span>
+                            </div>
+
+                            <!-- Level 2: Specific Governorates -->
+                            <div v-else-if="group.scope_level === 'governorate'">
+                              <v-autocomplete
+                                v-model="group.target_ids"
+                                :items="governoratesList"
+                                item-title="name_ar"
+                                item-value="id"
+                                label="المحافظات المستهدفة لهذه المجموعة *"
+                                placeholder="اختر المحافظات المستهدفة (مثال: أمانة العاصمة، صنعاء، تعز، عدن...)"
+                                multiple
+                                chips
+                                closable-chips
+                                variant="outlined"
+                                density="compact"
+                                rounded="lg"
+                                hide-details="auto"
+                                prepend-inner-icon="mdi-city-variant-outline"
+                                :rules="[v => (Array.isArray(v) && v.length > 0) || 'يرجى تحديد محافظة واحدة على الأقل لهذه المجموعة']"
+                                :loading="loadingGeoData"
+                              />
+                            </div>
+
+                            <!-- Level 3: Specific Directorates -->
+                            <div v-else-if="group.scope_level === 'directorate'">
+                              <v-row dense>
+                                <v-col cols="12" md="4">
+                                  <v-autocomplete
+                                    v-model="group.filter_governorate_id"
+                                    :items="governoratesList"
+                                    item-title="name_ar"
+                                    item-value="id"
+                                    label="تصفية بالمحافظة (اختياري)"
+                                    placeholder="اختر المحافظة لتصفية المديريات..."
+                                    clearable
+                                    variant="outlined"
+                                    density="compact"
+                                    rounded="lg"
+                                    hide-details="auto"
+                                    prepend-inner-icon="mdi-filter-variant"
+                                    :loading="loadingGeoData"
+                                  />
+                                </v-col>
+                                <v-col cols="12" md="8">
+                                  <v-autocomplete
+                                    v-model="group.target_ids"
+                                    :items="getDirectoratesForGroup(group)"
+                                    item-title="name_ar"
+                                    item-value="id"
+                                    label="المديريات المستهدفة لهذه المجموعة *"
+                                    placeholder="اختر المديريات..."
+                                    multiple
+                                    chips
+                                    closable-chips
+                                    variant="outlined"
+                                    density="compact"
+                                    rounded="lg"
+                                    hide-details="auto"
+                                    prepend-inner-icon="mdi-map-marker-radius"
+                                    :rules="[v => (Array.isArray(v) && v.length > 0) || 'يرجى تحديد مديرية واحدة على الأقل']"
+                                    :loading="loadingGeoData"
+                                  />
+                                </v-col>
+                              </v-row>
+                            </div>
+
+                            <!-- Level 4: Specific Schools / Institutions -->
+                            <div v-else-if="group.scope_level === 'school'">
+                              <v-row dense>
+                                <v-col cols="12" :md="exam.institution_type === 'school' ? 3 : 4">
+                                  <v-autocomplete
+                                    v-model="group.filter_governorate_id"
+                                    :items="governoratesList"
+                                    item-title="name_ar"
+                                    item-value="id"
+                                    label="المحافظة *"
+                                    placeholder="المحافظة..."
+                                    clearable
+                                    variant="outlined"
+                                    density="compact"
+                                    rounded="lg"
+                                    hide-details="auto"
+                                    :loading="loadingGeoData"
+                                    @update:model-value="onGroupFilterGovForSchool(group)"
+                                  />
+                                </v-col>
+                                <v-col cols="12" md="3" v-if="exam.institution_type === 'school'">
+                                  <v-autocomplete
+                                    v-model="group.filter_directorate_id"
+                                    :items="getDirectoratesForFilterGov(group.filter_governorate_id)"
+                                    item-title="name_ar"
+                                    item-value="id"
+                                    label="المديرية *"
+                                    :placeholder="group.filter_governorate_id ? 'المديرية...' : 'اختر المحافظة أولاً'"
+                                    clearable
+                                    variant="outlined"
+                                    density="compact"
+                                    rounded="lg"
+                                    hide-details="auto"
+                                    :disabled="!group.filter_governorate_id"
+                                    :loading="loadingGeoData"
+                                    @update:model-value="onGroupFilterDirForSchool(group)"
+                                  />
+                                </v-col>
+                                <v-col cols="12" :md="exam.institution_type === 'school' ? 6 : 8">
+                                  <v-autocomplete
+                                    v-model="group.target_ids"
+                                    :items="group.availableSchools || []"
+                                    item-title="name_ar"
+                                    item-value="id"
+                                    :label="exam.institution_type === 'university' ? 'الجامعات / الكليات المستهدفة *' : exam.institution_type === 'institute' ? 'المعاهد المستهدفة *' : 'المدارس المستهدفة *'"
+                                    placeholder="اختر المؤسسات المستهدفة..."
+                                    :disabled="isGroupSchoolDisabled(group)"
+                                    multiple
+                                    chips
+                                    closable-chips
+                                    variant="outlined"
+                                    density="compact"
+                                    rounded="lg"
+                                    hide-details="auto"
+                                    :rules="[v => (Array.isArray(v) && v.length > 0) || 'يرجى تحديد مؤسسة واحدة على الأقل']"
+                                    :prepend-inner-icon="exam.institution_type === 'university' ? 'mdi-domain' : 'mdi-school'"
+                                    :loading="group.loadingSchools"
+                                  />
+                                </v-col>
+                              </v-row>
+                            </div>
                           </div>
                         </div>
 
@@ -974,17 +750,6 @@
           <!-- STEP 2: BLUEPRINT MATRIX (SEGMENTED CONTROL OVERHAUL)            -->
           <!-- ════════════════════════════════════════════════════════════════ -->
           <v-window-item :value="2">
-            <div class="d-flex align-center justify-space-between mb-6 flex-wrap gap-2">
-              <h3 class="text-h5 font-weight-black mb-0 d-flex align-center gap-2">
-                <v-icon color="secondary">mdi-chart-pie</v-icon>
-                مصفوفة المعايير والمواصفات
-              </h3>
-              <div class="d-flex align-center gap-2">
-                <custom-btn type="add" label="تطبيق التوزيع القياسي" icon="mdi-tune-vertical" variant="tonal"
-                  color="primary" class="font-weight-bold" :click="applyStandardCriteria" />
-              </div>
-            </div>
-
             <!-- Integrated Flush Tabs inside a single card -->
             <div class="section-group-card rounded-2xl overflow-hidden mb-6 border-subtle">
               <div class="matrix-tabs-bar border-b-subtle d-flex" style="overflow-x: auto;">
@@ -1000,68 +765,440 @@
               <v-window v-model="activeTab" class="pa-6 bg-transparent">
                 <!-- Units Distribution -->
                 <v-window-item :value="0">
-                  <div class="d-flex justify-space-between align-center mb-4 flex-wrap gap-2">
-                    <div>
-                      <h4 class="text-subtitle-1 font-weight-black mb-0">
-                        {{ exam.institution_type === 'university' ? 'توزيع الأسئلة على مفردات وموضوعات المقرر' : 'توزيع الأسئلة على الوحدات الدراسية' }}
-                      </h4>
-                      <span class="text-caption text-medium-emphasis">تحديد الأوزان النسبية للوحدات بحيث يكون المجموع 100%</span>
+                  <!-- Units Header & Actions -->
+                  <div class="units-tab-header d-flex justify-space-between align-center mb-5 flex-wrap gap-3">
+                    <div class="d-flex align-center gap-3">
+                      <div class="units-header-icon-box">
+                        <v-icon size="26" color="primary">mdi-layers-triple</v-icon>
+                      </div>
+                      <div>
+                        <div class="d-flex align-center gap-2 flex-wrap">
+                          <h3 class="text-subtitle-1 font-weight-black mb-0 text-high-emphasis">
+                            {{ exam.institution_type === 'university' ? 'توزيع الأسئلة على المفردات والموضوعات' : 'توزيع الأسئلة على الوحدات الدراسية' }}
+                          </h3>
+                          <v-chip v-if="modelsMode === 'advanced'" size="x-small" color="primary" variant="tonal" class="font-weight-bold">
+                            تخصيص حسب المجموعات
+                          </v-chip>
+                        </div>
+                        <p class="text-caption text-medium-emphasis mb-0 mt-0.5">
+                          {{ modelsMode === 'advanced' ? 'تحديد وتخصيص الأوزان النسبية للوحدات لكل مجموعة نماذج بشكل مستقل لضمان تنوع المحتوى، بحيث يعادل مجموع كل مجموعة 100%' : 'تحديد الأوزان النسبية للوحدات بحيث يكون مجموع نسب الأسئلة 100% تماماً' }}
+                        </p>
+                      </div>
                     </div>
-                    <custom-btn label="توزيع متساوٍ" icon="mdi-scale-balance" variant="tonal" color="primary" class="font-weight-bold"
-                      :click="() => autoDistribute('units')" />
+
+                    <!-- Global Action buttons -->
+                    <div v-if="modelsMode === 'advanced'" class="d-flex align-center gap-2 flex-wrap">
+                      <v-btn
+                        variant="tonal"
+                        color="secondary"
+                        size="small"
+                        class="font-weight-bold rounded-xl text-none px-4"
+                        prepend-icon="mdi-equal-box"
+                        @click="autoDistributeAllGroupsUnits"
+                      >
+                        توزيع متساوٍ للكل
+                      </v-btn>
+                      <v-btn
+                        v-if="modelGroups.length > 1"
+                        variant="outlined"
+                        color="info"
+                        size="small"
+                        class="font-weight-bold rounded-xl text-none px-4"
+                        prepend-icon="mdi-content-copy"
+                        @click="copyCurrentGroupUnitsToAll"
+                      >
+                        نسخ هذا التوزيع للباقي
+                      </v-btn>
+                    </div>
+                    <v-btn
+                      v-else
+                      variant="tonal"
+                      color="primary"
+                      size="small"
+                      class="font-weight-bold rounded-xl text-none px-4"
+                      prepend-icon="mdi-scale-balance"
+                      @click="() => autoDistribute('units')"
+                    >
+                      توزيع متساوٍ
+                    </v-btn>
                   </div>
 
-                  <template v-for="termId in [1, 2, 3]" :key="termId">
-                    <div v-if="blueprint.units.some(u => u.term === termId)" class="mb-4">
-                      <v-divider v-if="termId > 1" class="my-4 opacity-20" />
-                      <div class="d-flex align-center justify-space-between mb-3">
-                        <h5 class="text-subtitle-2 font-weight-black text-primary d-flex align-center gap-2 mb-0">
-                          <v-icon size="18">mdi-book-open-page-variant</v-icon>
-                          <span v-if="termId === 1">الفصل الدراسي الأول</span>
-                          <span v-else-if="termId === 2">الفصل الدراسي الثاني</span>
-                          <span v-else>{{ exam.institution_type === 'university' ? 'موضوعات عامة' : 'وحدات عامة' }}</span>
-                        </h5>
+                  <!-- Advanced Mode: Modern Model Groups Selector Hub (Zero Gray) -->
+                  <div v-if="modelsMode === 'advanced'" class="model-groups-selector-hub mb-5">
+                    <div class="d-flex align-center justify-space-between mb-3 flex-wrap gap-2">
+                      <div class="d-flex align-center gap-2">
+                        <div class="hub-bullet-dot"></div>
+                        <span class="font-weight-black text-subtitle-2 text-high-emphasis">اختر مجموعة النماذج لتخصيص وحداتها:</span>
+                        <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold">
+                          {{ modelGroups.length }} مجموعات
+                        </v-chip>
                       </div>
-                      <v-row dense>
-                        <v-col v-for="unit in blueprint.units.filter(u => u.term === termId)" :key="unit.id" cols="12"
-                          md="6">
-                          <div class="pa-4 rounded-xl border-subtle mb-2" :style="unit.isExcluded ? 'background: rgba(var(--v-theme-error), 0.08); border-color: rgba(var(--v-theme-error), 0.3);' : ''">
-                            <div class="d-flex justify-space-between align-start mb-1">
-                              <div>
-                                <div class="font-weight-bold text-subtitle-2 d-flex align-center gap-1">
-                                  <span>{{ unit.name }}</span>
-                                  <v-chip v-if="unit.isExcluded" size="x-small" color="error" variant="tonal" class="font-weight-bold">
-                                    <v-icon start size="12">mdi-cancel</v-icon>
-                                    محذوف من الاختبارات
-                                  </v-chip>
+                      <span class="text-caption text-medium-emphasis d-flex align-center gap-1">
+                        <v-icon size="14" color="primary">mdi-gesture-tap</v-icon>
+                        انقر على أي مجموعة للانتقال لتخصيص وحداتها الدراسية
+                      </span>
+                    </div>
+
+                    <div class="group-pills-grid">
+                      <div
+                        v-for="(grp, gIdx) in modelGroups"
+                        :key="gIdx"
+                        class="group-switch-pill"
+                        :class="{ 'is-active': activeUnitGroupIndex === gIdx }"
+                        @click="selectUnitGroup(gIdx)"
+                      >
+                        <div class="d-flex align-center justify-space-between gap-2 mb-1.5">
+                          <div class="d-flex align-center gap-2">
+                            <v-icon size="20" :color="activeUnitGroupIndex === gIdx ? 'primary' : 'medium-emphasis'">
+                              {{ activeUnitGroupIndex === gIdx ? 'mdi-folder-open' : 'mdi-folder-outline' }}
+                            </v-icon>
+                            <span class="group-pill-title font-weight-black">
+                              {{ grp.name || ('المجموعة ' + (gIdx + 1)) }}
+                            </span>
+                          </div>
+                          <v-chip
+                            size="x-small"
+                            :color="difficultyColor(grp.difficulty_profile)"
+                            variant="tonal"
+                            class="font-weight-bold"
+                          >
+                            {{ difficultyLabel(grp.difficulty_profile) }}
+                          </v-chip>
+                        </div>
+
+                        <div class="d-flex align-center justify-space-between mt-2 pt-2 border-t-subtle text-caption">
+                          <span class="text-medium-emphasis">
+                            النماذج: <strong class="text-high-emphasis">{{ getGroupVersionCodes(gIdx) }}</strong>
+                            ({{ grp.count || 1 }})
+                          </span>
+                          <span
+                            class="font-weight-black font-mono pill-percentage-badge"
+                            :class="getGroupUnitsTotal(grp) === 100 ? 'is-complete' : 'is-pending'"
+                          >
+                            <v-icon size="12" start>{{ getGroupUnitsTotal(grp) === 100 ? 'mdi-check' : 'mdi-clock-outline' }}</v-icon>
+                            {{ getGroupUnitsTotal(grp) }}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Advanced Mode: Prominent Active Group Hero Command Banner -->
+                  <div v-if="modelsMode === 'advanced'" class="active-group-hero-banner mb-5">
+                    <div class="d-flex align-center justify-space-between flex-wrap gap-4">
+                      <div class="d-flex align-center gap-3">
+                        <div class="active-group-hero-avatar">
+                          <v-icon size="28" color="white">mdi-tune-vertical-variant</v-icon>
+                        </div>
+                        <div>
+                          <div class="d-flex align-center gap-2 flex-wrap mb-1">
+                            <h4 class="text-subtitle-1 font-weight-black mb-0 text-primary">
+                              أوزان: {{ currentUnitGroup ? (currentUnitGroup.name || ('المجموعة ' + (activeUnitGroupIndex + 1))) : '' }}
+                            </h4>
+                            <v-chip size="small" color="primary" variant="flat" class="font-weight-bold">
+                              {{ getGroupVersionCodes(activeUnitGroupIndex) }} ({{ currentUnitGroup ? currentUnitGroup.count : 1 }} نماذج)
+                            </v-chip>
+                            <v-chip size="small" :color="difficultyColor(currentUnitGroup?.difficulty_profile)" variant="tonal" class="font-weight-bold">
+                              {{ difficultyLabel(currentUnitGroup?.difficulty_profile) }}
+                            </v-chip>
+                          </div>
+                          <span class="text-caption text-medium-emphasis d-block">
+                            النسب المحددة بالأسفل تنطبق حصرياً على نماذج هذه المجموعة وتحدد نسبة الأسئلة المستخرجة من كل وحدة
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="d-flex align-center gap-3 flex-wrap">
+                        <div class="hero-total-badge d-flex align-center gap-2 px-3 py-2 rounded-xl"
+                          :class="currentGroupUnitsTotal === 100 ? 'badge-success' : 'badge-warning'">
+                          <div>
+                            <div class="text-caption font-weight-bold opacity-80">إجمالي النسبة</div>
+                            <div class="font-weight-black text-h6 font-mono leading-none">
+                              {{ currentGroupUnitsTotal }}%
+                            </div>
+                          </div>
+                          <v-icon size="24">{{ currentGroupUnitsTotal === 100 ? 'mdi-check-decagram' : 'mdi-alert-circle-outline' }}</v-icon>
+                        </div>
+
+                        <v-btn
+                          variant="tonal"
+                          color="primary"
+                          size="small"
+                          class="font-weight-bold rounded-xl px-4"
+                          prepend-icon="mdi-scale-balance"
+                          @click="autoDistributeCurrentGroupUnits"
+                        >
+                          توزيع متساوٍ لهذه المجموعة
+                        </v-btn>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Empty State when no units loaded (Zero Gray, clean dotted border) -->
+                  <div v-if="!currentActiveUnitsList || currentActiveUnitsList.length === 0" class="modern-empty-state mb-5">
+                    <div class="empty-state-icon-box mx-auto mb-3">
+                      <v-icon size="36" color="primary">mdi-book-open-blank-variant</v-icon>
+                    </div>
+                    <h4 class="font-weight-black text-subtitle-1 mb-1 text-high-emphasis">
+                      لا توجد وحدات أو مفردات دراسية مسجلة لهذه المادة حالياً
+                    </h4>
+                    <p class="text-caption text-medium-emphasis mb-4 mx-auto" style="max-width: 480px;">
+                      تأكد من اختيار المادة والصف الدراسي في الخطوة 1، أو انقر على الزر أدناه لإعادة فحص وتحميل الوحدات من قاعدة البيانات.
+                    </p>
+                    <v-btn
+                      variant="tonal"
+                      color="primary"
+                      class="font-weight-bold rounded-xl px-5"
+                      prepend-icon="mdi-refresh"
+                      @click="loadBlueprintUnits"
+                    >
+                      إعادة تحميل وفحص الوحدات
+                    </v-btn>
+                  </div>
+
+                  <!-- Units Cards Rendering -->
+                  <template v-else-if="hasTermSeparation">
+                    <template v-for="termId in [1, 2, 3]" :key="'term-' + termId">
+                      <div v-if="currentActiveUnitsList.some(u => isUnitInTerm(u, termId))" class="mb-5">
+                        <div class="term-header-banner mb-3 d-flex align-center gap-2">
+                          <v-icon size="20" color="primary">mdi-book-open-page-variant</v-icon>
+                          <span class="font-weight-black text-subtitle-2 text-primary" v-if="termId === 1">الفصل الدراسي الأول</span>
+                          <span class="font-weight-black text-subtitle-2 text-primary" v-else-if="termId === 2">الفصل الدراسي الثاني</span>
+                          <span class="font-weight-black text-subtitle-2 text-primary" v-else>{{ exam.institution_type === 'university' ? 'موضوعات عامة' : 'وحدات عامة' }}</span>
+                        </div>
+                        <v-row dense>
+                          <v-col
+                            v-for="unit in currentActiveUnitsList.filter(u => isUnitInTerm(u, termId))"
+                            :key="'grp-' + activeUnitGroupIndex + '-u-' + unit.id"
+                            cols="12"
+                            md="6"
+                          >
+                            <div class="modern-unit-card mb-3" :class="{ 'is-excluded': unit.isExcluded }">
+                              <div class="d-flex justify-space-between align-start mb-2 gap-2">
+                                <div class="flex-grow-1">
+                                  <div class="d-flex align-center gap-2 flex-wrap mb-1">
+                                    <span class="unit-title font-weight-black text-subtitle-2">{{ unit.name }}</span>
+                                    <v-chip v-if="unit.isExcluded" size="x-small" color="error" variant="flat" class="font-weight-bold">
+                                      <v-icon start size="12">mdi-cancel</v-icon>
+                                      مستبعد من الاختبار
+                                    </v-chip>
+                                  </div>
+                                  
+                                  <div class="d-flex align-center gap-2 flex-wrap">
+                                    <v-chip size="x-small" variant="tonal" color="primary" class="font-weight-bold">
+                                      <v-icon start size="12">mdi-book-open-page-variant</v-icon>
+                                      {{ getUnitLessonsCount(unit.id) }} {{ exam.institution_type === 'university' ? 'محاضرة' : 'درس' }}
+                                    </v-chip>
+                                    <v-chip size="x-small" variant="tonal" color="success" class="font-weight-bold">
+                                      <v-icon start size="12">mdi-check-circle-outline</v-icon>
+                                      {{ getUnitApprovedQuestionsCount(unit.id) }} سؤال معتمد
+                                    </v-chip>
+                                    <v-btn
+                                      variant="text"
+                                      color="info"
+                                      size="x-small"
+                                      class="font-weight-bold px-1 text-none"
+                                      prepend-icon="mdi-eye-outline"
+                                      @click="openUnitDetails(unit.id, unit.name)"
+                                    >
+                                      {{ exam.institution_type === 'university' ? 'محتوى المفردة' : 'محتوى الوحدة' }}
+                                    </v-btn>
+                                  </div>
                                 </div>
-                                <div class="d-flex align-center mt-1 gap-2 flex-wrap">
-                                  <custom-btn :label="exam.institution_type === 'university' ? 'محتوى المفردة' : 'محتوى الوحدة'" variant="tonal" color="info" class="font-weight-bold"
-                                    :click="() => openUnitDetails(unit.id, unit.name)" />
-                                  <span class="text-caption text-medium-emphasis">({{ getUnitLessonsCount(unit.id) }}
-                                    {{ exam.institution_type === 'university' ? 'محاضرة' : 'درس' }}،
-                                    {{ getUnitApprovedQuestionsCount(unit.id) }} سؤال)</span>
+
+                                <!-- Stepper & Direct Percentage Display -->
+                                <div class="d-flex align-center gap-1 unit-stepper-box">
+                                  <v-btn
+                                    icon="mdi-minus"
+                                    size="x-small"
+                                    variant="tonal"
+                                    color="primary"
+                                    class="rounded-lg"
+                                    :disabled="unit.isExcluded || (unit.percentage || 0) <= 0"
+                                    @click="adjustUnitPercentage(unit.id, -5)"
+                                  />
+                                  <div class="unit-percentage-display font-mono" :class="{ 'is-zero': !unit.percentage, 'is-excluded': unit.isExcluded }">
+                                    {{ unit.percentage || 0 }}%
+                                  </div>
+                                  <v-btn
+                                    icon="mdi-plus"
+                                    size="x-small"
+                                    variant="tonal"
+                                    color="primary"
+                                    class="rounded-lg"
+                                    :disabled="unit.isExcluded || currentGroupUnitsTotal >= 100"
+                                    @click="adjustUnitPercentage(unit.id, 5)"
+                                  />
                                 </div>
                               </div>
-                              <v-chip size="small" :color="unit.isExcluded ? 'error' : 'primary'" variant="tonal" class="font-weight-bold">{{
-                                unit.percentage }}%</v-chip>
+
+                              <!-- Custom Slider -->
+                              <v-slider
+                                :model-value="unit.percentage"
+                                :disabled="unit.isExcluded"
+                                @update:model-value="(val) => updateUnitPercentage(unit.id, val)"
+                                :min="0"
+                                :max="100"
+                                :step="5"
+                                :color="unit.isExcluded ? 'error' : 'primary'"
+                                track-color="rgba(var(--v-theme-primary), 0.15)"
+                                hide-details
+                                thumb-size="16"
+                                track-size="6"
+                                class="mt-1"
+                              />
                             </div>
-                            <v-slider :model-value="unit.percentage" :disabled="unit.isExcluded" @update:model-value="(val) => {
-                              const realIndex = blueprint.units.findIndex(u => u.id === unit.id);
-                              updateDistribution(blueprint.units, realIndex, val);
-                            }" :min="0" :max="100" :step="5" :color="unit.isExcluded ? 'error' : 'primary'" hide-details thumb-size="14"
-                              track-size="6" class="mt-2" />
+                          </v-col>
+                        </v-row>
+                      </div>
+                    </template>
+                  </template>
+                  <template v-else>
+                    <v-row dense>
+                      <v-col
+                        v-for="unit in currentActiveUnitsList"
+                        :key="'grp-' + activeUnitGroupIndex + '-u-' + unit.id"
+                        cols="12"
+                        md="6"
+                      >
+                        <div class="modern-unit-card mb-3" :class="{ 'is-excluded': unit.isExcluded }">
+                          <div class="d-flex justify-space-between align-start mb-2 gap-2">
+                            <div class="flex-grow-1">
+                              <div class="d-flex align-center gap-2 flex-wrap mb-1">
+                                <span class="unit-title font-weight-black text-subtitle-2">{{ unit.name }}</span>
+                                <v-chip v-if="unit.isExcluded" size="x-small" color="error" variant="flat" class="font-weight-bold">
+                                  <v-icon start size="12">mdi-cancel</v-icon>
+                                  مستبعد من الاختبار
+                                </v-chip>
+                              </div>
+                              
+                              <div class="d-flex align-center gap-2 flex-wrap">
+                                <v-chip size="x-small" variant="tonal" color="primary" class="font-weight-bold">
+                                  <v-icon start size="12">mdi-book-open-page-variant</v-icon>
+                                  {{ getUnitLessonsCount(unit.id) }} {{ exam.institution_type === 'university' ? 'محاضرة' : 'درس' }}
+                                </v-chip>
+                                <v-chip size="x-small" variant="tonal" color="success" class="font-weight-bold">
+                                  <v-icon start size="12">mdi-check-circle-outline</v-icon>
+                                  {{ getUnitApprovedQuestionsCount(unit.id) }} سؤال معتمد
+                                </v-chip>
+                                <v-btn
+                                  variant="text"
+                                  color="info"
+                                  size="x-small"
+                                  class="font-weight-bold px-1 text-none"
+                                  prepend-icon="mdi-eye-outline"
+                                  @click="openUnitDetails(unit.id, unit.name)"
+                                >
+                                  {{ exam.institution_type === 'university' ? 'محتوى المفردة' : 'محتوى الوحدة' }}
+                                </v-btn>
+                              </div>
+                            </div>
+
+                            <!-- Stepper & Direct Percentage Display -->
+                            <div class="d-flex align-center gap-1 unit-stepper-box">
+                              <v-btn
+                                icon="mdi-minus"
+                                size="x-small"
+                                variant="tonal"
+                                color="primary"
+                                class="rounded-lg"
+                                :disabled="unit.isExcluded || (unit.percentage || 0) <= 0"
+                                @click="adjustUnitPercentage(unit.id, -5)"
+                              />
+                              <div class="unit-percentage-display font-mono" :class="{ 'is-zero': !unit.percentage, 'is-excluded': unit.isExcluded }">
+                                {{ unit.percentage || 0 }}%
+                              </div>
+                              <v-btn
+                                icon="mdi-plus"
+                                size="x-small"
+                                variant="tonal"
+                                color="primary"
+                                class="rounded-lg"
+                                :disabled="unit.isExcluded || currentGroupUnitsTotal >= 100"
+                                @click="adjustUnitPercentage(unit.id, 5)"
+                              />
+                            </div>
                           </div>
-                        </v-col>
-                      </v-row>
-                    </div>
+
+                          <!-- Custom Slider -->
+                          <v-slider
+                            :model-value="unit.percentage"
+                            :disabled="unit.isExcluded"
+                            @update:model-value="(val) => updateUnitPercentage(unit.id, val)"
+                            :min="0"
+                            :max="100"
+                            :step="5"
+                            :color="unit.isExcluded ? 'error' : 'primary'"
+                            track-color="rgba(var(--v-theme-primary), 0.15)"
+                            hide-details
+                            thumb-size="16"
+                            track-size="6"
+                            class="mt-1"
+                          />
+                        </div>
+                      </v-col>
+                    </v-row>
                   </template>
 
-                  <v-alert v-if="totalUnitsPercentage !== 100"
-                    :type="totalUnitsPercentage === 100 ? 'success' : 'warning'" density="compact" variant="tonal"
-                    class="mt-4 rounded-xl">
-                    إجمالي النسبة الحالية: {{ totalUnitsPercentage }}% (يجب أن يعادل 100% تماماً)
-                  </v-alert>
+                  <!-- Bottom Balance Status Card (Modern and Zero Gray) -->
+                  <div v-if="currentGroupUnitsTotal !== 100" class="unit-balance-alert-card is-warning mt-4">
+                    <div class="d-flex align-center justify-space-between flex-wrap gap-3">
+                      <div class="d-flex align-center gap-3">
+                        <v-icon size="26" color="warning">mdi-alert-circle</v-icon>
+                        <div>
+                          <div class="font-weight-black text-subtitle-2 mb-0.5">
+                            <span v-if="modelsMode === 'advanced'">
+                              توزيع أوزان الوحدات لـ ({{ currentUnitGroup ? (currentUnitGroup.name || ('المجموعة ' + (activeUnitGroupIndex + 1))) : '' }}) غير مكتمل
+                            </span>
+                            <span v-else>
+                              توزيع أوزان الوحدات غير مكتمل
+                            </span>
+                          </div>
+                          <span class="text-caption text-medium-emphasis">
+                            <template v-if="currentGroupUnitsTotal < 100">
+                              المجموع الحالي <strong>{{ currentGroupUnitsTotal }}%</strong>. يتبقى <strong>{{ 100 - currentGroupUnitsTotal }}%</strong> للوصول إلى 100% تماماً.
+                            </template>
+                            <template v-else>
+                              المجموع الحالي <strong>{{ currentGroupUnitsTotal }}%</strong>. تم تجاوز 100% بمقدار <strong>{{ currentGroupUnitsTotal - 100 }}%</strong>، يرجى تخفيض بعض الوحدات.
+                            </template>
+                          </span>
+                        </div>
+                      </div>
+
+                      <v-btn
+                        v-if="currentGroupUnitsTotal < 100"
+                        variant="tonal"
+                        color="warning"
+                        size="small"
+                        class="font-weight-bold rounded-xl text-none px-4"
+                        prepend-icon="mdi-scale-balance"
+                        @click="autoDistributeCurrentGroupUnits"
+                      >
+                        إعادة توزيع متساوٍ لهذه المجموعة
+                      </v-btn>
+                    </div>
+                  </div>
+
+                  <div v-else class="unit-balance-alert-card is-success mt-4">
+                    <div class="d-flex align-center justify-space-between flex-wrap gap-3">
+                      <div class="d-flex align-center gap-3">
+                        <v-icon size="26" color="success">mdi-check-decagram</v-icon>
+                        <div>
+                          <div class="font-weight-black text-subtitle-2 mb-0.5 text-success">
+                            توزيع أوزان الوحدات مكتمل تماماً ومثالي (100%)
+                          </div>
+                          <span class="text-caption text-medium-emphasis">
+                            <template v-if="modelsMode === 'advanced'">
+                              أوزان الوحدات لـ ({{ currentUnitGroup ? (currentUnitGroup.name || ('المجموعة ' + (activeUnitGroupIndex + 1))) : '' }}) جاهزة ومعتمدة لتوليد نماذج هذه المجموعة.
+                            </template>
+                            <template v-else>
+                              تم ضبط نسب جميع الوحدات بنجاح وجاهزة لتوليد أسئلة الاختبار.
+                            </template>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </v-window-item>
 
                 <!-- Difficulty Distribution -->
@@ -1102,12 +1239,12 @@
                             <th class="font-weight-bold">سهل</th>
                             <th class="font-weight-bold">متوسط</th>
                             <th class="font-weight-bold">صعب</th>
-                            <th class="font-weight-bold" v-if="exam.target_scope_level !== 'all'">المناطق المستهدفة</th>
+                            <th class="font-weight-bold">المناطق المستهدفة</th>
                           </tr>
                         </thead>
                         <tbody>
                           <tr v-for="(group, gIdx) in modelGroups" :key="gIdx">
-                            <td class="font-weight-bold">مجموعة {{ gIdx + 1 }}</td>
+                            <td class="font-weight-bold">{{ group.name || ('المجموعة ' + (gIdx + 1)) }}</td>
                             <td>
                               <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold font-mono">
                                 {{ getGroupVersionCodes(gIdx) }} ({{ group.count }} نماذج)
@@ -1127,11 +1264,14 @@
                             <td>
                               <span class="text-error font-weight-bold">{{ group.difficulty_distribution.hard }}%</span>
                             </td>
-                            <td v-if="exam.target_scope_level !== 'all'" class="text-caption">
-                              <span v-if="group.assigned_target_ids && group.assigned_target_ids.length > 0" class="font-weight-bold text-primary">
-                                {{ getAssignedTargetNames(group.assigned_target_ids) }}
+                            <td class="text-caption">
+                              <span v-if="group.target_ids && group.target_ids.length > 0" class="font-weight-bold text-primary">
+                                {{ getGroupTargetNames(group) }}
                               </span>
-                              <span v-else class="text-medium-emphasis">غير مخصص (جميع المناطق المستهدفة)</span>
+                              <span v-else-if="(group.scope_level || 'all') === 'all'" class="text-success font-weight-bold">
+                                كافة المناطق (عام)
+                              </span>
+                              <span v-else class="text-medium-emphasis">لم يتم التحديد</span>
                             </td>
                           </tr>
                         </tbody>
@@ -1186,7 +1326,7 @@
                         hide-details
                         density="compact"
                         class="ma-0 pa-0"
-                        :label="bloomEnabled ? 'مفعّل' : 'معطّل'"
+                        :label="bloomEnabled ? 'مفعّل' : 'معطّل (تلقائي)'"
                       />
                     </div>
                     <custom-btn v-if="bloomEnabled" label="توزيع متساوٍ" icon="mdi-scale-balance" variant="tonal" color="primary" class="font-weight-bold"
@@ -1195,7 +1335,7 @@
 
                   <v-alert v-if="!bloomEnabled" type="info" variant="tonal" density="compact" class="rounded-xl mb-4">
                     <v-icon start>mdi-information</v-icon>
-                    مستويات بلوم معطلة — سيتم توزيع الأسئلة حسب الصعوبة والوحدات فقط دون إلزام بلوم
+                    مستويات بلوم المعرفية معطلة تلقائياً — لن تدخل في حسبة توليد الاختبار، ويتم توزيع الأسئلة واعتمادها حسب أوزان الصعوبة والوحدات فقط.
                   </v-alert>
 
                   <v-row v-if="bloomEnabled" dense>
@@ -1223,99 +1363,426 @@
 
                 <!-- Question Types -->
                 <v-window-item :value="3">
-                  <div class="d-flex justify-space-between align-center mb-4 flex-wrap gap-2">
-                    <div>
-                      <h4 class="text-subtitle-1 font-weight-black mb-0">توزيع أنواع الأسئلة</h4>
-                      <span class="text-caption text-medium-emphasis">تحديد نسبة كل نوع من أنواع الأسئلة (اختيار من متعدد، صح وخطأ، وغيرها)</span>
+                  <!-- Types Tab Header & Actions -->
+                  <div class="units-tab-header d-flex justify-space-between align-center mb-5 flex-wrap gap-3">
+                    <div class="d-flex align-center gap-3">
+                      <div class="units-header-icon-box">
+                        <v-icon size="26" color="primary">mdi-shape</v-icon>
+                      </div>
+                      <div>
+                        <div class="d-flex align-center gap-2 flex-wrap">
+                          <h3 class="text-subtitle-1 font-weight-black mb-0 text-high-emphasis">
+                            توزيع أنواع الأسئلة ودرجات الاختبار
+                          </h3>
+                          <v-chip v-if="modelsMode === 'advanced'" size="x-small" color="primary" variant="tonal" class="font-weight-bold">
+                            تخصيص حسب المجموعات
+                          </v-chip>
+                        </div>
+                        <p class="text-caption text-medium-emphasis mb-0 mt-0.5">
+                          تحديد الدرجة النهائية للاختبار وتوزيع أوزان أنواع الأسئلة ودرجة كل سؤال
+                        </p>
+                      </div>
                     </div>
-                    <custom-btn label="توزيع متساوٍ" icon="mdi-scale-balance" variant="tonal" color="primary" class="font-weight-bold"
-                      :click="() => autoDistribute('types')" />
+
+                    <!-- Global Action buttons -->
+                    <div v-if="modelsMode === 'advanced'" class="d-flex align-center gap-2 flex-wrap">
+                      <v-btn
+                        variant="tonal"
+                        color="secondary"
+                        size="small"
+                        class="font-weight-bold rounded-xl text-none px-4"
+                        prepend-icon="mdi-equal-box"
+                        @click="autoDistributeAllGroupsTypes"
+                      >
+                        توزيع متساوٍ للكل
+                      </v-btn>
+                      <v-btn
+                        v-if="modelGroups.length > 1"
+                        variant="outlined"
+                        color="info"
+                        size="small"
+                        class="font-weight-bold rounded-xl text-none px-4"
+                        prepend-icon="mdi-content-copy"
+                        @click="copyCurrentGroupTypesToAll"
+                      >
+                        نسخ هذا التوزيع للباقي
+                      </v-btn>
+                    </div>
+                    <v-btn
+                      v-else
+                      variant="tonal"
+                      color="primary"
+                      size="small"
+                      class="font-weight-bold rounded-xl text-none px-4"
+                      prepend-icon="mdi-scale-balance"
+                      @click="() => autoDistributeCurrentGroupTypes()"
+                    >
+                      توزيع متساوٍ
+                    </v-btn>
                   </div>
 
-                  <v-row dense>
-                    <v-col v-for="(type, index) in blueprint.types" :key="index" cols="12" md="6">
-                      <div class="pa-4 rounded-xl border-subtle mb-2">
-                        <div class="d-flex justify-space-between align-center mb-1">
-                          <span class="font-weight-bold">{{ type.name }}</span>
-                          <v-chip size="small" :color="type.color" variant="tonal" class="font-weight-bold">{{
-                            type.percentage }}%</v-chip>
+                  <!-- 🌟 Final Exam Total Score Command Card (Zero Gray) -->
+                  <div class="exam-total-marks-card mb-5">
+                    <div class="d-flex align-center justify-space-between flex-wrap gap-4">
+                      <div class="d-flex align-center gap-3">
+                        <div class="total-marks-icon-box">
+                          <v-icon size="28" color="amber-darken-2">mdi-star-circle</v-icon>
                         </div>
-                        <v-slider :model-value="type.percentage"
-                          @update:model-value="(val) => updateDistribution(blueprint.types, index, val)" :min="0"
-                          :max="100" :step="5" :color="type.color" hide-details thumb-size="14" track-size="6"
-                          class="mt-2" />
-                      </div>
-                    </v-col>
-                  </v-row>
-
-                  <v-alert v-if="totalTypesPercentage !== 100"
-                    :type="totalTypesPercentage === 100 ? 'success' : 'warning'" density="compact" variant="tonal"
-                    class="mt-4 rounded-xl">
-                    إجمالي النسبة: {{ totalTypesPercentage }}% (يجب أن يعادل 100%)
-                  </v-alert>
-                </v-window-item>
-
-                <!-- Summary Dashboard -->
-                <v-window-item :value="4">
-                  <v-row>
-                    <!-- Types Breakdown -->
-                    <v-col cols="12" md="6">
-                      <div class="pa-5 rounded-2xl border-subtle">
-                        <h4 class="text-subtitle-1 font-weight-bold mb-4 d-flex align-center gap-2">
-                          <v-icon color="primary" size="20">mdi-shape</v-icon>
-                          توزيع أنواع الأسئلة ورصيدها
-                        </h4>
-                        <div v-for="type in blueprint.types" :key="type.name"
-                          class="d-flex align-center justify-space-between pa-3 rounded-lg mb-2 border-subtle">
-                          <span class="font-weight-bold">{{ type.name }}</span>
-                          <v-chip size="small" :color="type.color" variant="tonal" class="font-weight-bold">
-                            {{ Math.round(exam.questionsCount * type.percentage / 100) }} سؤال ({{ type.percentage }}%)
-                          </v-chip>
+                        <div>
+                          <div class="d-flex align-center gap-2 flex-wrap mb-1">
+                            <span class="font-weight-black text-subtitle-1 text-high-emphasis">الدرجة النهائية للاختبار:</span>
+                            <div class="d-flex align-center gap-1.5 ms-1">
+                              <v-btn
+                                v-for="scorePreset in [100, 60, 50, 40, 30]"
+                                :key="scorePreset"
+                                size="x-small"
+                                :variant="exam.totalMarks === scorePreset ? 'flat' : 'outlined'"
+                                :color="exam.totalMarks === scorePreset ? 'primary' : undefined"
+                                class="font-weight-black px-2.5 rounded-lg font-mono text-none"
+                                @click="setTotalMarks(scorePreset)"
+                              >
+                                {{ scorePreset }}
+                              </v-btn>
+                            </div>
+                          </div>
+                          <span class="text-caption text-medium-emphasis d-block">
+                            إجمالي درجات الامتحان التي يتم احتساب درجات الطلاب بناءً عليها (مثلاً 100 أو 60 درجة)
+                          </span>
                         </div>
                       </div>
-                    </v-col>
 
-                    <!-- Difficulty Breakdown -->
-                    <v-col cols="12" md="6">
-                      <div class="pa-5 rounded-2xl border-subtle">
-                        <div class="d-flex align-center justify-space-between mb-4">
-                          <h4 class="text-subtitle-1 font-weight-bold mb-0 d-flex align-center gap-2">
-                            <v-icon color="warning" size="20">mdi-speedometer</v-icon>
-                            توزيع الصعوبة المعتمد
-                          </h4>
-                          <v-chip size="small" :color="modelsMode === 'advanced' ? 'warning' : 'primary'" variant="tonal" class="font-weight-bold">
-                            {{ modelsMode === 'advanced' ? 'وضع متقدم' : 'وضع موحد' }}
+                      <!-- Score Input & Quick Auto-Balance -->
+                      <div class="d-flex align-center gap-3 flex-wrap">
+                        <div class="score-input-wrapper d-flex align-center px-3 py-1.5 rounded-xl border-subtle">
+                          <span class="text-caption text-medium-emphasis font-weight-bold me-2">الدرجة:</span>
+                          <input
+                            type="number"
+                            v-model.number="exam.totalMarks"
+                            min="1"
+                            max="1000"
+                            class="score-number-input font-weight-black font-mono"
+                            @change="autoBalanceMarks"
+                          />
+                          <span class="text-caption text-medium-emphasis ms-1.5">درجة</span>
+                        </div>
+
+                        <!-- Distributed Marks Indicator -->
+                        <div
+                          class="hero-total-badge d-flex align-center gap-2 px-3 py-2 rounded-xl"
+                          :class="currentGroupDistributedMarks === exam.totalMarks ? 'badge-success' : 'badge-warning'"
+                        >
+                          <div>
+                            <div class="text-caption font-weight-bold opacity-80">الدرجات الموزعة</div>
+                            <div class="font-weight-black text-h6 font-mono leading-none">
+                              {{ currentGroupDistributedMarks }} / {{ exam.totalMarks }}
+                            </div>
+                          </div>
+                          <v-icon size="22">{{ currentGroupDistributedMarks === exam.totalMarks ? 'mdi-check-decagram' : 'mdi-alert-circle-outline' }}</v-icon>
+                        </div>
+
+                        <v-btn
+                          variant="tonal"
+                          color="primary"
+                          size="small"
+                          class="font-weight-bold rounded-xl px-4"
+                          prepend-icon="mdi-calculator-variant"
+                          @click="autoBalanceMarks"
+                        >
+                          موازنة الدرجات تلقائياً
+                        </v-btn>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Advanced Mode: Groups Tabs Selector (Zero Gray) -->
+                  <div v-if="modelsMode === 'advanced'" class="model-groups-selector-hub mb-5">
+                    <div class="d-flex align-center justify-space-between mb-3 flex-wrap gap-2">
+                      <div class="d-flex align-center gap-2">
+                        <div class="hub-bullet-dot"></div>
+                        <span class="font-weight-black text-subtitle-2 text-high-emphasis">اختر مجموعة النماذج لتخصيص أنواع أسئلتها ودرجاتها:</span>
+                        <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold">
+                          {{ modelGroups.length }} مجموعات
+                        </v-chip>
+                      </div>
+                      <span class="text-caption text-medium-emphasis d-flex align-center gap-1">
+                        <v-icon size="14" color="primary">mdi-gesture-tap</v-icon>
+                        انقر على أي مجموعة لتخصيص نسب ودرجات أنواع أسئلتها بشكل مستقل
+                      </span>
+                    </div>
+
+                    <div class="group-pills-grid">
+                      <div
+                        v-for="(grp, gIdx) in modelGroups"
+                        :key="gIdx"
+                        class="group-switch-pill"
+                        :class="{ 'is-active': activeTypeGroupIndex === gIdx }"
+                        @click="selectTypeGroup(gIdx)"
+                      >
+                        <div class="d-flex align-center justify-space-between gap-2 mb-1.5">
+                          <div class="d-flex align-center gap-2">
+                            <v-icon size="20" :color="activeTypeGroupIndex === gIdx ? 'primary' : 'medium-emphasis'">
+                              {{ activeTypeGroupIndex === gIdx ? 'mdi-folder-open' : 'mdi-folder-outline' }}
+                            </v-icon>
+                            <span class="group-pill-title font-weight-black">
+                              {{ grp.name || ('المجموعة ' + (gIdx + 1)) }}
+                            </span>
+                          </div>
+                          <v-chip
+                            size="x-small"
+                            :color="difficultyColor(grp.difficulty_profile)"
+                            variant="tonal"
+                            class="font-weight-bold"
+                          >
+                            {{ difficultyLabel(grp.difficulty_profile) }}
                           </v-chip>
                         </div>
-                        <template v-if="modelsMode === 'uniform'">
-                          <div v-for="level in blueprint.difficulty" :key="level.name"
-                            class="d-flex align-center justify-space-between pa-3 rounded-lg mb-2 border-subtle">
-                            <span class="font-weight-bold">{{ level.name }}</span>
-                            <v-chip size="small" :color="level.color" variant="tonal" class="font-weight-bold">
-                              {{ Math.round(exam.questionsCount * level.percentage / 100) }} سؤال ({{ level.percentage }}%)
+
+                        <div class="d-flex align-center justify-space-between mt-2 pt-2 border-t-subtle text-caption">
+                          <span class="text-medium-emphasis">
+                            النماذج: <strong class="text-high-emphasis">{{ getGroupVersionCodes(gIdx) }}</strong>
+                            ({{ grp.count || 1 }})
+                          </span>
+                          <span
+                            class="font-weight-black font-mono pill-percentage-badge"
+                            :class="getGroupTypesTotal(grp) === 100 ? 'is-complete' : 'is-pending'"
+                          >
+                            <v-icon size="12" start>{{ getGroupTypesTotal(grp) === 100 ? 'mdi-check' : 'mdi-clock-outline' }}</v-icon>
+                            {{ getGroupTypesTotal(grp) }}% أسئلة
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Advanced Mode: Prominent Active Group Hero Command Banner -->
+                  <div v-if="modelsMode === 'advanced'" class="active-group-hero-banner mb-5">
+                    <div class="d-flex align-center justify-space-between flex-wrap gap-4">
+                      <div class="d-flex align-center gap-3">
+                        <div class="active-group-hero-avatar">
+                          <v-icon size="28" color="white">mdi-shape</v-icon>
+                        </div>
+                        <div>
+                          <div class="d-flex align-center gap-2 flex-wrap mb-1">
+                            <h4 class="text-subtitle-1 font-weight-black mb-0 text-primary">
+                              أنواع أسئلة ودرجات: {{ currentTypeGroup ? (currentTypeGroup.name || ('المجموعة ' + (activeTypeGroupIndex + 1))) : '' }}
+                            </h4>
+                            <v-chip size="small" color="primary" variant="flat" class="font-weight-bold">
+                              {{ getGroupVersionCodes(activeTypeGroupIndex) }} ({{ currentTypeGroup ? currentTypeGroup.count : 1 }} نماذج)
+                            </v-chip>
+                            <v-chip size="small" :color="difficultyColor(currentTypeGroup?.difficulty_profile)" variant="tonal" class="font-weight-bold">
+                              {{ difficultyLabel(currentTypeGroup?.difficulty_profile) }}
                             </v-chip>
                           </div>
-                        </template>
-                        <template v-else>
-                          <div v-for="(group, gIdx) in modelGroups" :key="gIdx"
-                            class="pa-3 rounded-xl mb-3 border-subtle">
-                            <div class="d-flex align-center justify-space-between mb-2">
-                              <span class="font-weight-bold">مجموعة {{ gIdx + 1 }} ({{ group.count }} نماذج)</span>
-                              <v-chip size="x-small" :color="difficultyColor(group.difficulty_profile)" variant="tonal" class="font-weight-bold">
-                                {{ difficultyLabel(group.difficulty_profile) }}
-                              </v-chip>
-                            </div>
-                            <div class="d-flex gap-2 flex-wrap">
-                              <v-chip size="x-small" color="success" variant="tonal">سهل {{ group.difficulty_distribution.easy }}%</v-chip>
-                              <v-chip size="x-small" color="warning" variant="tonal">متوسط {{ group.difficulty_distribution.medium }}%</v-chip>
-                              <v-chip size="x-small" color="error" variant="tonal">صعب {{ group.difficulty_distribution.hard }}%</v-chip>
+                          <span class="text-caption text-medium-emphasis d-block">
+                            النسب والدرجات المحددة بالأسفل تنطبق حصرياً على نماذج هذه المجموعة
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="d-flex align-center gap-3 flex-wrap">
+                        <div class="hero-total-badge d-flex align-center gap-2 px-3 py-2 rounded-xl"
+                          :class="currentGroupTypesTotal === 100 ? 'badge-success' : 'badge-warning'">
+                          <div>
+                            <div class="text-caption font-weight-bold opacity-80">نسبة الأسئلة</div>
+                            <div class="font-weight-black text-h6 font-mono leading-none">
+                              {{ currentGroupTypesTotal }}%
                             </div>
                           </div>
-                        </template>
+                          <v-icon size="24">{{ currentGroupTypesTotal === 100 ? 'mdi-check-decagram' : 'mdi-alert-circle-outline' }}</v-icon>
+                        </div>
+
+                        <v-btn
+                          variant="tonal"
+                          color="primary"
+                          size="small"
+                          class="font-weight-bold rounded-xl px-4"
+                          prepend-icon="mdi-scale-balance"
+                          @click="autoDistributeCurrentGroupTypes"
+                        >
+                          توزيع متساوٍ للأسئلة
+                        </v-btn>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Question Types Cards Grid (Modern with Marks & Counts) -->
+                  <v-row dense>
+                    <v-col
+                      v-for="qType in currentActiveTypesList"
+                      :key="'type-' + (qType.id || qType.value)"
+                      cols="12"
+                      md="6"
+                    >
+                      <div class="modern-type-card mb-3" :class="`border-accent-${qType.color || 'primary'}`">
+                        <div class="d-flex justify-space-between align-start mb-3 gap-2">
+                          <div class="d-flex align-center gap-3 flex-grow-1">
+                            <v-avatar size="44" :color="qType.color || 'primary'" variant="tonal" class="rounded-xl flex-shrink-0">
+                              <v-icon size="24" :color="qType.color || 'primary'">{{ qType.icon || 'mdi-help-circle-outline' }}</v-icon>
+                            </v-avatar>
+                            <div>
+                              <div class="d-flex align-center gap-2 flex-wrap mb-0.5">
+                                <span class="font-weight-black text-subtitle-2 text-high-emphasis">{{ qType.name }}</span>
+                              </div>
+                              <span class="text-caption text-medium-emphasis d-block">
+                                {{ qType.subtitle || '' }}
+                              </span>
+                            </div>
+                          </div>
+
+                          <!-- Question Count % Stepper -->
+                          <div class="d-flex align-center gap-1 unit-stepper-box flex-shrink-0">
+                            <v-btn
+                              icon="mdi-minus"
+                              size="x-small"
+                              variant="tonal"
+                              :color="qType.color || 'primary'"
+                              class="rounded-lg"
+                              :disabled="(qType.percentage || 0) <= 0"
+                              @click="adjustTypePercentage(qType.id || qType.value, -5)"
+                            />
+                            <div class="unit-percentage-display font-mono" :class="{ 'is-zero': !qType.percentage }">
+                              {{ qType.percentage || 0 }}%
+                            </div>
+                            <v-btn
+                              icon="mdi-plus"
+                              size="x-small"
+                              variant="tonal"
+                              :color="qType.color || 'primary'"
+                              class="rounded-lg"
+                              :disabled="currentGroupTypesTotal >= 100"
+                              @click="adjustTypePercentage(qType.id || qType.value, 5)"
+                            />
+                          </div>
+                        </div>
+
+                        <!-- 📊 Three Metrics Grid: Questions Count × Mark = Total Marks -->
+                        <div class="type-metrics-bar d-flex align-center justify-space-between p-2 mb-2 rounded-xl">
+                          <!-- Metric 1: Count of Questions -->
+                          <div class="type-metric-item text-center flex-1">
+                            <div class="text-caption text-medium-emphasis mb-0.5">عدد الأسئلة</div>
+                            <div class="font-weight-black text-subtitle-2 font-mono text-high-emphasis">
+                              {{ getTypeQuestionsCount(qType) }} سؤال
+                            </div>
+                          </div>
+
+                          <div class="text-medium-emphasis font-weight-black px-1">×</div>
+
+                          <!-- Metric 2: Mark per Question with Stepper -->
+                          <div class="type-metric-item text-center flex-1">
+                            <div class="text-caption text-medium-emphasis mb-0.5">درجة السؤال</div>
+                            <div class="d-flex align-center justify-center gap-1">
+                              <v-btn
+                                icon="mdi-minus"
+                                size="x-small"
+                                variant="text"
+                                color="medium-emphasis"
+                                :disabled="(qType.mark || 1) <= 0.25"
+                                @click="adjustTypeMark(qType.id || qType.value, -0.5)"
+                              />
+                              <span class="font-weight-black text-subtitle-2 font-mono text-primary px-1">
+                                {{ qType.mark !== undefined ? qType.mark : 1 }} د
+                              </span>
+                              <v-btn
+                                icon="mdi-plus"
+                                size="x-small"
+                                variant="text"
+                                color="medium-emphasis"
+                                @click="adjustTypeMark(qType.id || qType.value, 0.5)"
+                              />
+                            </div>
+                          </div>
+
+                          <div class="text-medium-emphasis font-weight-black px-1">=</div>
+
+                          <!-- Metric 3: Total Marks for this Type -->
+                          <div class="type-metric-item text-center flex-1">
+                            <div class="text-caption text-medium-emphasis mb-0.5">إجمالي الدرجات</div>
+                            <div class="font-weight-black text-subtitle-2 font-mono text-success">
+                              {{ getTypeTotalMarks(qType) }} درجة
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Custom Slider for percentage -->
+                        <v-slider
+                          :model-value="qType.percentage"
+                          @update:model-value="(val) => updateTypePercentage(qType.id || qType.value, val)"
+                          :min="0"
+                          :max="100"
+                          :step="5"
+                          :color="qType.color || 'primary'"
+                          track-color="rgba(var(--v-theme-primary), 0.12)"
+                          hide-details
+                          thumb-size="16"
+                          track-size="6"
+                          class="mt-1"
+                        />
                       </div>
                     </v-col>
                   </v-row>
+
+                  <!-- Bottom Combined Status Card (Questions % & Marks Balance) -->
+                  <div
+                    class="unit-balance-alert-card mt-4"
+                    :class="(currentGroupTypesTotal === 100 && currentGroupDistributedMarks === exam.totalMarks) ? 'is-success' : 'is-warning'"
+                  >
+                    <div class="d-flex align-center justify-space-between flex-wrap gap-3">
+                      <div class="d-flex align-center gap-3">
+                        <v-icon size="26" :color="(currentGroupTypesTotal === 100 && currentGroupDistributedMarks === exam.totalMarks) ? 'success' : 'warning'">
+                          {{ (currentGroupTypesTotal === 100 && currentGroupDistributedMarks === exam.totalMarks) ? 'mdi-check-decagram' : 'mdi-alert-circle' }}
+                        </v-icon>
+                        <div>
+                          <div class="font-weight-black text-subtitle-2 mb-0.5">
+                            <template v-if="currentGroupTypesTotal === 100 && currentGroupDistributedMarks === exam.totalMarks">
+                              توزيع الأسئلة والدرجات مكتمل تماماً ومطابق للمواصفات
+                            </template>
+                            <template v-else>
+                              توزيع الأسئلة أو الدرجات يحتاج إلى موازنة
+                            </template>
+                          </div>
+                          <span class="text-caption text-medium-emphasis">
+                            <template v-if="currentGroupTypesTotal !== 100">
+                              نسبة الأسئلة الحالية: <strong>{{ currentGroupTypesTotal }}%</strong> (يجب أن تعادل 100%).
+                            </template>
+                            <template v-if="currentGroupDistributedMarks !== exam.totalMarks">
+                              مجموع الدرجات الموزعة: <strong>{{ currentGroupDistributedMarks }}</strong> من أصل <strong>{{ exam.totalMarks }}</strong> درجة
+                              (الفارق: {{ Math.abs(exam.totalMarks - currentGroupDistributedMarks) }} درجة).
+                            </template>
+                            <template v-if="currentGroupTypesTotal === 100 && currentGroupDistributedMarks === exam.totalMarks">
+                              تم توزيع 100% من الأسئلة و{{ exam.totalMarks }} درجة بنجاح ومطابقة للمواصفات الوزارية.
+                            </template>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="d-flex align-center gap-2 flex-wrap">
+                        <v-btn
+                          v-if="currentGroupTypesTotal !== 100"
+                          variant="tonal"
+                          color="warning"
+                          size="small"
+                          class="font-weight-bold rounded-xl text-none px-4"
+                          prepend-icon="mdi-scale-balance"
+                          @click="autoDistributeCurrentGroupTypes"
+                        >
+                          موازنة نسبة الأسئلة
+                        </v-btn>
+                        <v-btn
+                          v-if="currentGroupDistributedMarks !== exam.totalMarks"
+                          variant="tonal"
+                          color="primary"
+                          size="small"
+                          class="font-weight-bold rounded-xl text-none px-4"
+                          prepend-icon="mdi-calculator-variant"
+                          @click="autoBalanceMarks"
+                        >
+                          موازنة الدرجات تلقائياً
+                        </v-btn>
+                      </div>
+                    </div>
+                  </div>
                 </v-window-item>
+
               </v-window>
             </div>
           </v-window-item>
@@ -1332,10 +1799,7 @@
                 </h3>
                 <span class="text-body-2 text-medium-emphasis">مراجعة تفاصيل ورقة الاختبار ومطابقة المواصفات قبل بدء التوليد</span>
               </div>
-              <div class="d-flex align-center gap-2">
-                <custom-btn type="add" label="حفظ كقالب معتمد" icon="mdi-content-save" variant="tonal"
-                  color="secondary" class="font-weight-bold" :click="openSaveTemplateDialog" />
-              </div>
+
             </div>
 
             <!-- 4 Executive KPI Certification Cards -->
@@ -1416,15 +1880,15 @@
                     </v-avatar>
                   </div>
                   <div class="kpi-metric font-weight-black text-deep-purple mb-1">
-                    <span v-if="exam.target_scope_level === 'all'">كافة المناطق</span>
-                    <span v-else>{{ selectedTargetIds?.length || 0 }} <span class="text-caption font-weight-bold text-medium-emphasis">هدف</span></span>
+                    <span v-if="modelsMode === 'uniform' || isAllGroupsAllRegions">كافة المناطق</span>
+                    <span v-else>{{ totalUniqueAssignedTargetsCount }} <span class="text-caption font-weight-bold text-medium-emphasis">منطقة مخصصة</span></span>
                   </div>
                   <div class="d-flex align-center gap-1 mb-2">
                     <v-chip size="x-small" color="deep-purple" variant="tonal" class="font-weight-bold">
-                      {{ scopeLevelOptions.find(o => o.value === exam.target_scope_level)?.label }}
+                      {{ modelsMode === 'advanced' ? 'توزيع مناطقي بالمجموعات' : 'شامل عام' }}
                     </v-chip>
                   </div>
-                  <span class="text-caption text-medium-emphasis d-block">تغطية النماذج حسب التوزيع</span>
+                  <span class="text-caption text-medium-emphasis d-block">تغطية النماذج حسب المجموعات</span>
                 </div>
               </v-col>
             </v-row>
@@ -1442,12 +1906,12 @@
                     <th class="font-weight-bold">النماذج الفرعية</th>
                     <th class="font-weight-bold">ملف الصعوبة</th>
                     <th class="font-weight-bold">أوزان الصعوبة (سهل / متوسط / صعب)</th>
-                    <th v-if="exam.target_scope_level !== 'all'" class="font-weight-bold">المناطق المخصصة</th>
+                    <th class="font-weight-bold">المناطق المخصصة</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="(group, gIdx) in modelGroups" :key="gIdx">
-                    <td class="font-weight-bold">مجموعة {{ gIdx + 1 }}</td>
+                    <td class="font-weight-bold">{{ group.name || ('المجموعة ' + (gIdx + 1)) }}</td>
                     <td>
                       <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold font-mono">
                         {{ getGroupVersionCodes(gIdx) }} ({{ group.count }} نماذج)
@@ -1463,11 +1927,14 @@
                       <span class="text-warning font-weight-bold">{{ group.difficulty_distribution.medium }}%</span> /
                       <span class="text-error font-weight-bold">{{ group.difficulty_distribution.hard }}%</span>
                     </td>
-                    <td v-if="exam.target_scope_level !== 'all'" class="text-caption">
-                      <span v-if="group.assigned_target_ids && group.assigned_target_ids.length > 0" class="font-weight-bold text-primary">
-                        {{ getAssignedTargetNames(group.assigned_target_ids) }}
+                    <td class="text-caption">
+                      <span v-if="group.target_ids && group.target_ids.length > 0" class="font-weight-bold text-primary">
+                        {{ getGroupTargetNames(group) }}
                       </span>
-                      <span v-else class="text-medium-emphasis">غير مخصص (تسري على جميع المناطق المستهدفة)</span>
+                      <span v-else-if="(group.scope_level || 'all') === 'all'" class="text-success font-weight-bold">
+                        كافة المناطق (عام)
+                      </span>
+                      <span v-else class="text-medium-emphasis">غير مخصص</span>
                     </td>
                   </tr>
                 </tbody>
@@ -1478,15 +1945,38 @@
             <v-row dense>
               <v-col cols="12" md="4">
                 <div class="section-group-card pa-4 rounded-2xl h-100">
-                  <h4 class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center gap-2">
-                    <v-icon size="18" color="primary">mdi-book-open-page-variant</v-icon>
-                    توزيع الوحدات المعتمدة
-                  </h4>
-                  <div v-for="unit in blueprint.units.filter(u => u.percentage > 0)" :key="unit.id"
-                    class="d-flex align-center justify-space-between py-1 border-b-subtle">
-                    <span class="text-caption font-weight-bold text-truncate" style="max-width: 70%;">{{ unit.name }}</span>
-                    <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">{{ unit.percentage }}%</v-chip>
+                  <div class="d-flex align-center justify-space-between mb-3">
+                    <h4 class="text-subtitle-2 font-weight-bold mb-0 d-flex align-center gap-2">
+                      <v-icon size="18" color="primary">mdi-book-open-page-variant</v-icon>
+                      توزيع الوحدات المعتمدة
+                    </h4>
+                    <v-chip size="x-small" :color="modelsMode === 'advanced' ? 'warning' : 'primary'" variant="tonal" class="font-weight-bold">
+                      {{ modelsMode === 'advanced' ? 'حسب المجموعات' : 'موحد' }}
+                    </v-chip>
                   </div>
+
+                  <template v-if="modelsMode === 'uniform'">
+                    <div v-for="unit in blueprint.units.filter(u => u.percentage > 0)" :key="unit.id"
+                      class="d-flex align-center justify-space-between py-1 border-b-subtle">
+                      <span class="text-caption font-weight-bold text-truncate" style="max-width: 70%;">{{ unit.name }}</span>
+                      <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">{{ unit.percentage }}%</v-chip>
+                    </div>
+                  </template>
+                  <template v-else>
+                    <div v-for="(group, gIdx) in modelGroups" :key="gIdx" class="py-2 border-b-subtle">
+                      <div class="d-flex justify-space-between text-caption font-weight-bold mb-1">
+                        <span class="text-primary">{{ group.name || ('المجموعة ' + (gIdx + 1)) }} ({{ group.count }} نماذج)</span>
+                        <v-chip size="x-small" :color="getGroupUnitsTotal(group) === 100 ? 'success' : 'warning'" variant="tonal">
+                          {{ getGroupUnitsTotal(group) }}%
+                        </v-chip>
+                      </div>
+                      <div v-for="unit in (group.units && group.units.length > 0 ? group.units : blueprint.units).filter(u => u.percentage > 0)" :key="unit.id"
+                        class="d-flex align-center justify-space-between py-0-5 text-caption">
+                        <span class="text-truncate text-medium-emphasis" style="max-width: 70%;">{{ unit.name }}</span>
+                        <span class="font-weight-bold">{{ unit.percentage }}%</span>
+                      </div>
+                    </div>
+                  </template>
                 </div>
               </v-col>
 
@@ -1513,7 +2003,7 @@
                   <template v-else>
                     <div v-for="(group, gIdx) in modelGroups" :key="gIdx" class="py-2 border-b-subtle">
                       <div class="d-flex justify-space-between text-caption font-weight-bold mb-1">
-                        <span>مجموعة {{ gIdx + 1 }} ({{ difficultyLabel(group.difficulty_profile) }})</span>
+                        <span>{{ group.name || ('المجموعة ' + (gIdx + 1)) }} ({{ difficultyLabel(group.difficulty_profile) }})</span>
                         <v-chip size="x-small" color="primary" variant="tonal">{{ group.count }} نماذج</v-chip>
                       </div>
                       <div class="d-flex gap-1">
@@ -1532,12 +2022,26 @@
                     <v-icon size="18" color="info">mdi-shape</v-icon>
                     توزيع أنواع الأسئلة
                   </h4>
-                  <div v-for="type in blueprint.types" :key="type.name"
-                    class="d-flex align-center justify-space-between py-1 border-b-subtle">
-                    <span class="text-caption font-weight-bold">{{ type.name }}</span>
-                    <v-chip size="x-small" :color="type.color" variant="tonal" class="font-weight-bold">
-                      {{ Math.round(exam.questionsCount * type.percentage / 100) }} ({{ type.percentage }}%)
-                    </v-chip>
+                  <div v-if="modelsMode === 'advanced'">
+                    <div v-for="(group, gIdx) in modelGroups" :key="gIdx" class="mb-2 pb-1 border-b-subtle">
+                      <span class="text-caption font-weight-black text-primary d-block mb-1">{{ group.name || ('المجموعة ' + (gIdx + 1)) }}</span>
+                      <div v-for="type in (group.types || []).filter(t => (t.percentage || 0) > 0)" :key="type.name"
+                        class="d-flex align-center justify-space-between py-0.5 text-caption">
+                        <span class="text-caption">{{ type.shortName || type.name }}</span>
+                        <v-chip size="x-small" :color="type.color" variant="tonal" class="font-weight-bold">
+                          {{ Math.round(exam.questionsCount * type.percentage / 100) }} ({{ type.percentage }}%)
+                        </v-chip>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else>
+                    <div v-for="type in (blueprint.types || []).filter(t => (t.percentage || 0) > 0)" :key="type.name"
+                      class="d-flex align-center justify-space-between py-1 border-b-subtle">
+                      <span class="text-caption font-weight-bold">{{ type.shortName || type.name }}</span>
+                      <v-chip size="x-small" :color="type.color" variant="tonal" class="font-weight-bold">
+                        {{ Math.round(exam.questionsCount * type.percentage / 100) }} ({{ type.percentage }}%)
+                      </v-chip>
+                    </div>
                   </div>
                 </div>
               </v-col>
@@ -1653,19 +2157,7 @@
       </div>
     </CustomDialog>
 
-    <!-- Save Template Dialog -->
-    <CustomDialog v-model="saveTemplateDialog" width="500" title="حفظ كقالب">
-      <v-text-field v-model="templateName" label="اسم القالب" variant="outlined" density="compact" rounded="lg"
-        prepend-inner-icon="mdi-file-document-edit" class="mb-4" />
-      <v-textarea v-model="templateDescription" label="وصف القالب (اختياري)" variant="outlined" density="compact" rounded="lg"
-        rows="2" prepend-inner-icon="mdi-text" />
-      <template #actions>
-        <custom-btn label="إلغاء" variant="text" class="font-weight-bold"
-          :click="() => saveTemplateDialog = false" />
-        <custom-btn type="add" label="حفظ القالب" color="primary" class="font-weight-bold"
-          :click="saveAsTemplate" />
-      </template>
-    </CustomDialog>
+
   </div>
 </template>
 
@@ -1698,21 +2190,13 @@ const wizardSteps = [
 ]
 
 // State declarations
-const settingsMode = ref('new')
-const scheduleMode = ref('manual')
 const modelsMode = ref('uniform')
-const bloomEnabled = ref(true)
-const savedTemplates = ref([])
-const selectedTemplate = ref(null)
-const saveTemplateDialog = ref(false)
-const templateName = ref('')
-const templateDescription = ref('')
+const bloomEnabled = ref(false)
 
 // Exam Settings
 const exam = ref({
   title: '',
   institution_type: 'school',
-  examScheduleId: null,
   subjectId: null,
   classTrackId: null,
   stageId: null,
@@ -1734,6 +2218,7 @@ const exam = ref({
   regionId: null,
   questionsCount: 20,
   modelsCount: 2,
+  totalMarks: 100,
   target_scope_level: 'all',
   exclude_previously_used: false,
 })
@@ -1748,11 +2233,10 @@ const instituteSpecParam = computed(() => {
 })
 
 const matrixTabItems = computed(() => [
-  { label: 'توزيع الوحدات', icon: 'mdi-book-open-page-variant' },
+  { label: modelsMode.value === 'advanced' ? 'توزيع الوحدات (حسب المجموعات)' : 'توزيع الوحدات', icon: 'mdi-book-open-page-variant' },
   { label: modelsMode.value === 'advanced' ? 'مستويات الصعوبة (متقدم)' : 'مستويات الصعوبة', icon: 'mdi-speedometer' },
-  { label: 'مستويات بلوم', icon: 'mdi-brain' },
-  { label: 'أنواع الأسئلة', icon: 'mdi-shape' },
-  { label: 'الملخص النهائي', icon: 'mdi-clipboard-check-outline' },
+  { label: bloomEnabled.value ? 'مستويات بلوم' : 'مستويات بلوم (معطّل)', icon: 'mdi-brain' },
+  { label: modelsMode.value === 'advanced' ? 'أنواع الأسئلة (حسب المجموعات)' : 'أنواع الأسئلة', icon: 'mdi-shape' },
 ])
 
 // Shortage Dialog State
@@ -1767,9 +2251,7 @@ const shortageReport = ref({
 })
 
 // Quick Selection Helpers
-const setQuestionsCount = (num) => {
-  exam.value.questionsCount = num
-}
+
 const setModelsCount = (num) => {
   exam.value.modelsCount = num
 }
@@ -1779,20 +2261,41 @@ const setTargetScopeLevel = (lvl) => {
     selectedTargetIds.value = []
   }
 }
-const setSettingsMode = (mode) => {
-  settingsMode.value = mode
-}
-const setScheduleMode = (mode) => {
-  scheduleMode.value = mode
-}
+
 const setModelsMode = (mode) => {
   modelsMode.value = mode
 }
 
 // ⭐ Advanced Model Groups
 const modelGroups = ref([
-  { count: 2, difficulty_profile: 'hard', difficulty_distribution: { easy: 10, medium: 30, hard: 60 }, assigned_target_ids: [] },
-  { count: 2, difficulty_profile: 'easy', difficulty_distribution: { easy: 60, medium: 30, hard: 10 }, assigned_target_ids: [] },
+  {
+    name: 'المجموعة 1',
+    count: 2,
+    difficulty_profile: 'hard',
+    difficulty_distribution: { easy: 10, medium: 30, hard: 60 },
+    scope_level: 'governorate',
+    target_ids: [],
+    units: [],
+    types: [],
+    filter_governorate_id: null,
+    filter_directorate_id: null,
+    availableSchools: [],
+    loadingSchools: false,
+  },
+  {
+    name: 'المجموعة 2',
+    count: 2,
+    difficulty_profile: 'easy',
+    difficulty_distribution: { easy: 60, medium: 30, hard: 10 },
+    scope_level: 'governorate',
+    target_ids: [],
+    units: [],
+    types: [],
+    filter_governorate_id: null,
+    filter_directorate_id: null,
+    availableSchools: [],
+    loadingSchools: false,
+  },
 ])
 
 // ⭐ Geographic Targeting & Organizations (Loaded from dedicated APIs)
@@ -1987,6 +2490,116 @@ const getAssignedTargetNames = (ids) => {
   return names.join('، ')
 }
 
+const onGroupScopeLevelChange = (group) => {
+  group.target_ids = []
+  group.filter_governorate_id = null
+  group.filter_directorate_id = null
+  group.availableSchools = []
+}
+
+const getDirectoratesForGroup = (group) => {
+  if (!group || !group.filter_governorate_id) return allDirectoratesList.value
+  return allDirectoratesList.value.filter(d => d.fk_parent_organization === group.filter_governorate_id)
+}
+
+const getDirectoratesForFilterGov = (govId) => {
+  if (!govId) return []
+  return allDirectoratesList.value.filter(d => d.fk_parent_organization === govId)
+}
+
+const isGroupSchoolDisabled = (group) => {
+  const instType = exam.value.institution_type || 'school'
+  if (instType === 'school') {
+    return !group.filter_governorate_id || !group.filter_directorate_id
+  }
+  return !group.filter_governorate_id
+}
+
+const onGroupFilterGovForSchool = (group) => {
+  group.filter_directorate_id = null
+  group.target_ids = []
+  group.availableSchools = []
+  const instType = exam.value.institution_type || 'school'
+  if (group.filter_governorate_id && instType !== 'school') {
+    loadSchoolsForGroup(group)
+  }
+}
+
+const onGroupFilterDirForSchool = (group) => {
+  group.target_ids = []
+  if (group.filter_directorate_id && group.filter_governorate_id) {
+    loadSchoolsForGroup(group)
+  } else {
+    group.availableSchools = []
+  }
+}
+
+const loadSchoolsForGroup = async (group) => {
+  const instType = exam.value.institution_type || 'school'
+  group.loadingSchools = true
+  try {
+    const queryParts = [`institution_type=${instType}`]
+    if (group.filter_governorate_id) queryParts.push(`governorate=${group.filter_governorate_id}`)
+    if (group.filter_directorate_id) queryParts.push(`directorate=${group.filter_directorate_id}`)
+    const res = await api.get(`api/academic/organizations/all/?${queryParts.join('&')}`)
+    const data = res.data?.data || res.data?.results || res.data || []
+    group.availableSchools = Array.isArray(data) ? data : []
+  } catch (e) {
+    console.error('Error loading schools for group:', e)
+    group.availableSchools = []
+  } finally {
+    group.loadingSchools = false
+  }
+}
+
+const getGroupTargetNames = (group) => {
+  if (!group) return '—'
+  if ((group.scope_level || 'all') === 'all') return 'كافة المناطق (عام)'
+  if (!group.target_ids || !group.target_ids.length) return 'غير محدد'
+
+  if (group.scope_level === 'governorate') {
+    const names = group.target_ids
+      .map(id => governoratesList.value.find(g => g.id === id)?.name_ar)
+      .filter(Boolean)
+    return names.length ? names.join('، ') : `${group.target_ids.length} محافظة`
+  }
+
+  if (group.scope_level === 'directorate') {
+    const names = group.target_ids
+      .map(id => allDirectoratesList.value.find(d => d.id === id)?.name_ar)
+      .filter(Boolean)
+    return names.length ? names.join('، ') : `${group.target_ids.length} مديرية`
+  }
+
+  if (group.scope_level === 'school') {
+    if (group.availableSchools && group.availableSchools.length) {
+      const names = group.target_ids
+        .map(id => group.availableSchools.find(s => s.id === id)?.name_ar)
+        .filter(Boolean)
+      if (names.length) return names.join('، ')
+    }
+    return `${group.target_ids.length} مؤسسة / مدرسة`
+  }
+
+  return `${group.target_ids.length} جهة`
+}
+
+const isAllGroupsAllRegions = computed(() => {
+  if (!modelGroups.value || !modelGroups.value.length) return true
+  return modelGroups.value.every(g => (g.scope_level || 'all') === 'all')
+})
+
+const totalUniqueAssignedTargetsCount = computed(() => {
+  if (!modelGroups.value) return 0
+  const allIds = new Set()
+  modelGroups.value.forEach(g => {
+    if ((g.scope_level || 'all') !== 'all' && Array.isArray(g.target_ids)) {
+      g.target_ids.forEach(id => allIds.add(id))
+    }
+  })
+  return allIds.size
+})
+
 const scopeLevelOptions = [
   { value: 'all', label: 'الكل (بدون تحديد)' },
   { value: 'governorate', label: 'محافظات محددة' },
@@ -1999,6 +2612,7 @@ const difficultyProfiles = [
   { value: 'medium', label: 'متوسط' },
   { value: 'hard', label: 'صعب' },
   { value: 'mixed', label: 'مختلط' },
+  { value: 'custom', label: 'مخصص' },
 ]
 
 const difficultyItems = [
@@ -2008,16 +2622,17 @@ const difficultyItems = [
 ]
 
 const difficultyColor = (profile) => {
-  const map = { easy: 'success', medium: 'warning', hard: 'error', mixed: 'info' }
+  const map = { easy: 'success', medium: 'warning', hard: 'error', mixed: 'info', custom: 'deep-purple' }
   return map[profile] || 'info'
 }
 
 const difficultyLabel = (profile) => {
-  const map = { easy: 'سهل', medium: 'متوسط', hard: 'صعب', mixed: 'مختلط' }
+  const map = { easy: 'سهل', medium: 'متوسط', hard: 'صعب', mixed: 'مختلط', custom: 'مخصص' }
   return map[profile] || profile
 }
 
 const applyDifficultyPreset = (group) => {
+  if (group.difficulty_profile === 'custom') return
   const presets = {
     easy: { easy: 60, medium: 30, hard: 10 },
     medium: { easy: 20, medium: 60, hard: 20 },
@@ -2028,21 +2643,97 @@ const applyDifficultyPreset = (group) => {
 }
 
 const groupDiffTotal = (group) => {
-  const d = group.difficulty_distribution
-  return (d.easy || 0) + (d.medium || 0) + (d.hard || 0)
+  const d = group.difficulty_distribution || {}
+  return (Number(d.easy) || 0) + (Number(d.medium) || 0) + (Number(d.hard) || 0)
+}
+
+const getGroupDiffMax = (group, key) => {
+  const dist = group.difficulty_distribution || {}
+  const currentVal = Number(dist[key]) || 0
+  const othersSum = (Number(dist.easy) || 0) + (Number(dist.medium) || 0) + (Number(dist.hard) || 0) - currentVal
+  return Math.max(0, 100 - othersSum)
+}
+
+const updateGroupDiff = (group, key, newVal) => {
+  const dist = group.difficulty_distribution
+  if (!dist) return
+  const currentVal = Number(dist[key]) || 0
+  const othersSum = (Number(dist.easy) || 0) + (Number(dist.medium) || 0) + (Number(dist.hard) || 0) - currentVal
+  const maxAllowed = Math.max(0, 100 - othersSum)
+
+  if (newVal > maxAllowed) {
+    if (dist[key] !== maxAllowed) {
+      dist[key] = maxAllowed
+    } else {
+      // Force Vue reactivity tick so slider resets internal thumb position
+      dist[key] = maxAllowed - 0.001
+      nextTick(() => {
+        dist[key] = maxAllowed
+      })
+    }
+  } else {
+    dist[key] = Math.max(0, newVal)
+  }
+  syncDifficultyProfile(group)
+}
+
+const stepGroupDiff = (group, key, delta) => {
+  const dist = group.difficulty_distribution
+  if (!dist) return
+  const currentVal = Number(dist[key]) || 0
+  const othersSum = (Number(dist.easy) || 0) + (Number(dist.medium) || 0) + (Number(dist.hard) || 0) - currentVal
+  const maxAllowed = Math.max(0, 100 - othersSum)
+
+  if (delta > 0) {
+    dist[key] = Math.min(currentVal + delta, maxAllowed)
+  } else {
+    dist[key] = Math.max(0, currentVal + delta)
+  }
+  syncDifficultyProfile(group)
+}
+
+const syncDifficultyProfile = (group) => {
+  const dist = group.difficulty_distribution || {}
+  const presets = {
+    easy: { easy: 60, medium: 30, hard: 10 },
+    medium: { easy: 20, medium: 60, hard: 20 },
+    hard: { easy: 10, medium: 30, hard: 60 },
+    mixed: { easy: 30, medium: 40, hard: 30 },
+  }
+  for (const [profileKey, p] of Object.entries(presets)) {
+    if (dist.easy === p.easy && dist.medium === p.medium && dist.hard === p.hard) {
+      group.difficulty_profile = profileKey
+      return
+    }
+  }
+  group.difficulty_profile = 'custom'
 }
 
 const addModelGroup = () => {
+  const nextNum = modelGroups.value.length + 1
+  const initialUnits = blueprint.value.units ? JSON.parse(JSON.stringify(blueprint.value.units)) : []
+  const initialTypes = blueprint.value.types ? JSON.parse(JSON.stringify(blueprint.value.types)) : []
   modelGroups.value.push({
+    name: `المجموعة ${nextNum}`,
     count: 2,
     difficulty_profile: 'medium',
     difficulty_distribution: { easy: 20, medium: 60, hard: 20 },
-    assigned_target_ids: []
+    scope_level: 'all',
+    target_ids: [],
+    units: initialUnits,
+    types: initialTypes,
+    filter_governorate_id: null,
+    filter_directorate_id: null,
+    availableSchools: [],
+    loadingSchools: false,
   })
 }
 
 const removeModelGroup = (idx) => {
   modelGroups.value.splice(idx, 1)
+  if (activeUnitGroupIndex.value >= modelGroups.value.length) {
+    activeUnitGroupIndex.value = Math.max(0, modelGroups.value.length - 1)
+  }
 }
 
 const totalModelsCount = computed(() => {
@@ -2081,22 +2772,6 @@ const validatedOnce = ref(false)
 
 const isSectionValid = (sectionId) => {
   if (sectionId === 1) {
-    if (settingsMode.value === 'template') {
-      return !!selectedTemplate.value
-    }
-    if (scheduleMode.value === 'schedule') {
-      return !!exam.value.examScheduleId
-    }
-    return true
-  }
-
-  if (sectionId === 2) {
-    if (settingsMode.value === 'template') {
-      return !!selectedTemplate.value
-    }
-    if (scheduleMode.value === 'schedule') {
-      return !!exam.value.examScheduleId
-    }
     const hasBase = !!exam.value.yearId && !!exam.value.examPeriodId
     if (!hasBase) return false
 
@@ -2123,18 +2798,13 @@ const isSectionValid = (sectionId) => {
     return false
   }
 
-  if (sectionId === 3) {
+  if (sectionId === 2) {
     const hasTitle = !!exam.value.title && String(exam.value.title).trim().length > 0
     const qCount = Number(exam.value.questionsCount)
     return hasTitle && !isNaN(qCount) && qCount >= 5 && qCount <= 100
   }
 
-  if (sectionId === 4) {
-    if (exam.value.target_scope_level === 'all') return true
-    return Array.isArray(selectedTargetIds.value) && selectedTargetIds.value.length > 0
-  }
-
-  if (sectionId === 5) {
+  if (sectionId === 3) {
     if (modelsMode.value === 'uniform') {
       const mCount = Number(exam.value.modelsCount)
       return !isNaN(mCount) && mCount >= 1 && mCount <= 10
@@ -2142,7 +2812,9 @@ const isSectionValid = (sectionId) => {
     if (!modelGroups.value || modelGroups.value.length === 0) return false
     return modelGroups.value.every(g => {
       const cnt = Number(g.count)
-      return !isNaN(cnt) && cnt >= 1 && cnt <= 10 && groupDiffTotal(g) === 100
+      const diffValid = !isNaN(cnt) && cnt >= 1 && cnt <= 10 && groupDiffTotal(g) === 100
+      const geoValid = (g.scope_level || 'all') === 'all' || (Array.isArray(g.target_ids) && g.target_ids.length > 0)
+      return diffValid && geoValid
     })
   }
 
@@ -2151,7 +2823,7 @@ const isSectionValid = (sectionId) => {
 
 const invalidSections = computed(() => {
   const list = []
-  for (let s = 1; s <= 5; s++) {
+  for (let s = 1; s <= 3; s++) {
     if (!isSectionValid(s)) {
       list.push(s)
     }
@@ -2162,44 +2834,25 @@ const invalidSections = computed(() => {
 const invalidSectionsCount = computed(() => invalidSections.value.length)
 
 const step1NavItems = computed(() => {
-  const isAcademicManual = settingsMode.value === 'new' && scheduleMode.value === 'manual'
   return [
     {
       id: 1,
-      title: '1. نمط الإعداد والربط الهيكلي',
-      desc: settingsMode.value === 'new' ? 'إعداد مخصص جديد' : 'قالب معتمد',
-      icon: 'mdi-tune-variant',
+      title: '1. النطاق والتصنيف الأكاديمي',
+      desc: exam.value.institution_type === 'school' ? 'تعليم عام ومدرسي' : exam.value.institution_type === 'university' ? 'تعليم جامعي' : 'تعليم مهني',
+      icon: 'mdi-school-outline',
       color: 'primary',
     },
     {
       id: 2,
-      title: '2. النطاق والتصنيف الأكاديمي',
-      desc: isAcademicManual 
-        ? (exam.value.institution_type === 'school' ? 'تعليم عام ومدرسي' : exam.value.institution_type === 'university' ? 'تعليم جامعي' : 'تعليم مهني')
-        : (scheduleMode.value === 'schedule' ? 'مستورد من جدول الاختبارات' : 'مستورد من قالب المواصفات'),
-      icon: 'mdi-school-outline',
-      color: 'secondary',
-    },
-    {
-      id: 3,
-      title: '3. تفاصيل وسعة ورقة الاختبار',
+      title: '2. تفاصيل وسعة ورقة الاختبار',
       desc: `${exam.value.questionsCount} سؤال`,
       icon: 'mdi-card-account-details-outline',
       color: 'info',
     },
     {
-      id: 4,
-      title: '4. النطاق الجغرافي للاختبار',
-      desc: exam.value.target_scope_level === 'all' 
-        ? 'كافة المناطق (شامل)' 
-        : (selectedTargetIds.value?.length ? `${selectedTargetIds.value.length} جهة محددة` : 'تحديد مخصص'),
-      icon: 'mdi-map-marker-radius',
-      color: 'deep-purple',
-    },
-    {
-      id: 5,
-      title: '5. إعدادات النماذج التوليدية',
-      desc: modelsMode.value === 'uniform' ? `${exam.value.modelsCount} نماذج موحدة` : `${totalModelsCount.value} نماذج متقدمة`,
+      id: 3,
+      title: '3. إعدادات النماذج والتوزيع المناطقي',
+      desc: modelsMode.value === 'uniform' ? `${exam.value.modelsCount} نماذج موحدة` : `${totalModelsCount.value} نماذج (${modelGroups.value.length} مجموعات)`,
       icon: 'mdi-file-multiple-outline',
       color: 'warning',
     }
@@ -2207,7 +2860,7 @@ const step1NavItems = computed(() => {
 })
 
 const goToStep1Section = (sectionId) => {
-  if (sectionId >= 1 && sectionId <= 5) {
+  if (sectionId >= 1 && sectionId <= 3) {
     activeStep1Section.value = sectionId
   }
 }
@@ -2233,6 +2886,18 @@ const onInstitutionTypeToggle = () => {
   allSchoolsList.value = []
   if (exam.value.target_scope_level === 'directorate' && exam.value.institution_type !== 'school') {
     exam.value.target_scope_level = 'all'
+  }
+  if (modelGroups.value && modelGroups.value.length) {
+    modelGroups.value.forEach(g => {
+      if (g.scope_level === 'directorate' && exam.value.institution_type !== 'school') {
+        g.scope_level = 'all'
+      }
+      g.target_ids = []
+      g.filter_governorate_id = null
+      g.filter_directorate_id = null
+      g.availableSchools = []
+      g.units = []
+    })
   }
 }
 
@@ -2338,68 +3003,7 @@ const filteredSubjects = computed(() => {
   return res.filter(s => validSubjectIds.has(s.id))
 })
 
-const enrichedSchedules = computed(() => {
-  return examSchedules.value.map(schedule => {
-    const period = examPeriods.value.find(p => p.id === schedule.examPeriodId)
-    const lsb = levelSubjectBranches.value.find(l => l.id === schedule.levelSubjectBranchId)
-    const subject = lsb ? subjects.value.find(s => s.id === lsb.subjectId) : null
-    const level = lsb ? levels.value.find(l => l.id === lsb.levelId) : null
-    const branch = lsb ? branches.value.find(b => b.id === lsb.branchId) : null
 
-    const periodName = period?.name || ''
-    const subjectName = subject?.name || ''
-    const levelName = level?.name || ''
-    const branchName = branch?.name || ''
-
-    return {
-      ...schedule,
-      periodName,
-      subjectName,
-      levelName,
-      branchName,
-      displayLabel: `${periodName} - ${subjectName} - ${levelName} (${branchName}) - ${schedule.date}`,
-      subtitle: `التاريخ: ${schedule.date} | ${branchName}`,
-      resolvedSubjectId: lsb?.subjectId,
-      resolvedLevelId: lsb?.levelId,
-      resolvedBranchId: lsb?.branchId,
-      resolvedPeriodId: schedule.examPeriodId,
-      resolvedYearId: period?.yearId || schedule.yearId || schedule.academic_year || schedule.year,
-    }
-  })
-})
-
-const selectedScheduleInfo = computed(() => {
-  if (!exam.value.examScheduleId) return null
-  return enrichedSchedules.value.find(s => s.id === exam.value.examScheduleId) || null
-})
-
-const onScheduleChange = (scheduleId) => {
-  if (!scheduleId) {
-    exam.value.subjectId = null
-    exam.value.levelId = null
-    exam.value.branchId = null
-    exam.value.examPeriodId = null
-    return
-  }
-
-  const schedule = enrichedSchedules.value.find(s => s.id === scheduleId)
-  if (!schedule) return
-
-  exam.value.subjectId = schedule.resolvedSubjectId
-  exam.value.levelId = schedule.resolvedLevelId
-  exam.value.branchId = schedule.resolvedBranchId
-  exam.value.examPeriodId = schedule.resolvedPeriodId
-  if (schedule.resolvedYearId) {
-    exam.value.yearId = schedule.resolvedYearId
-  } else if (!exam.value.yearId) {
-    const currentYear = years.value.find(y => y.is_current || y.isCurrent)
-    exam.value.yearId = currentYear ? currentYear.id : (years.value[0]?.id || null)
-  }
-
-  if (!exam.value.title) {
-    exam.value.title = `${schedule.subjectName} - ${schedule.periodName} - ${schedule.date}`
-  }
-}
 
 watch(years, (newYears) => {
   if (!exam.value.yearId && newYears && newYears.length > 0) {
@@ -2423,12 +3027,7 @@ onMounted(async () => {
     }
   }
 
-  // Load saved templates
-  try {
-    savedTemplates.value = await examsService.getExamTemplates()
-  } catch (e) {
-    console.warn('Could not load templates:', e)
-  }
+
 
   // Load geographic organizations
   await loadGeographicOrgs()
@@ -2451,8 +3050,83 @@ const blueprint = ref({
     { name: 'إبداع', percentage: 5, color: 'error' },
   ],
   types: [
-    { name: 'اختيار من متعدد (MCQ)', value: 'mcq', percentage: 60, color: 'primary' },
-    { name: 'صح/خطأ (True/False)', value: 'tf', percentage: 40, color: 'success' },
+    {
+      id: 'single_choice',
+      value: 'single_choice',
+      name: 'اختيار من متعدد (إجابة واحدة)',
+      shortName: 'MCQ فردي',
+      subtitle: 'سؤال اختيار من متعدد بإجابة صحيحة واحدة فقط',
+      percentage: 50,
+      mark: 2.0,
+      color: 'primary',
+      icon: 'mdi-radiobox-marked'
+    },
+    {
+      id: 'true_false',
+      value: 'true_false',
+      name: 'صواب / خطأ',
+      shortName: 'صح/خطأ',
+      subtitle: 'سؤال تحديد مدى صحة أو خطأ العبارة المعروضة',
+      percentage: 50,
+      mark: 1.0,
+      color: 'success',
+      icon: 'mdi-check-circle-outline'
+    },
+    {
+      id: 'multiple_choice',
+      value: 'multiple_choice',
+      name: 'اختيار متعدد (أكثر من إجابة)',
+      shortName: 'اختيار متعدد',
+      subtitle: 'سؤال اختيار من متعدد يتضمن أكثر من إجابة صحيحة',
+      percentage: 0,
+      mark: 2.0,
+      color: 'info',
+      icon: 'mdi-checkbox-multiple-marked-outline'
+    },
+    {
+      id: 'essay',
+      value: 'essay',
+      name: 'أسئلة مقالية (إنشائية)',
+      shortName: 'مقالي',
+      subtitle: 'أسئلة شرح وحلول تفصيلية تتطلب كتابة مقالية',
+      percentage: 0,
+      mark: 5.0,
+      color: 'warning',
+      icon: 'mdi-text-box-edit-outline'
+    },
+    {
+      id: 'fill_blanks',
+      value: 'fill_blanks',
+      name: 'إكمال الفراغات',
+      shortName: 'إكمال فراغ',
+      subtitle: 'سؤال كتابة أو إدراج الكلمات الناقصة في الجمل',
+      percentage: 0,
+      mark: 2.0,
+      color: 'deep-purple',
+      icon: 'mdi-form-textbox'
+    },
+    {
+      id: 'matching',
+      value: 'matching',
+      name: 'مطابقة وتوصيل (مزاوجة)',
+      shortName: 'توصيل ومقابلة',
+      subtitle: 'المقابلة والتوصيل بين مفردات القائمتين (أ) و (ب)',
+      percentage: 0,
+      mark: 2.0,
+      color: 'teal',
+      icon: 'mdi-swap-horizontal-bold'
+    },
+    {
+      id: 'ordering',
+      value: 'ordering',
+      name: 'إعادة ترتيب',
+      shortName: 'ترتيب تسلسلي',
+      subtitle: 'إعادة ترتيب العناصر والخطوات بالترتيب الصحيح',
+      percentage: 0,
+      mark: 2.0,
+      color: 'blue-grey',
+      icon: 'mdi-sort-ascending'
+    },
   ]
 })
 
@@ -2507,17 +3181,7 @@ const goToAddQuestion = (unitId, lessonId) => {
   router.push({ path: '/author/questions/new', query: { unitId, lessonId } })
 }
 
-watch([
-  () => exam.value.subjectId, 
-  () => exam.value.classTrackId,
-  () => exam.value.stageId,
-  () => exam.value.levelId, 
-  () => exam.value.branchId, 
-  () => exam.value.examPeriodId, 
-  () => exam.value.semesterSubjectId,
-  () => exam.value.instituteSubjectId,
-  () => exam.value.institution_type
-], async () => {
+const loadBlueprintUnits = async () => {
   if (exam.value.institution_type === 'university' && exam.value.semesterSubjectId) {
     try {
       const res = await academicService.getUnits({ semester_subject_id: exam.value.semesterSubjectId })
@@ -2527,6 +3191,7 @@ watch([
         blueprint.value.units = uList.map((u, idx) => ({
           id: u.id,
           name: u.name_ar || u.name_en || u.name || `مفردة #${u.id}`,
+          term: u.term || u.semester || 3,
           percentage: idx === uList.length - 1 ? 100 - (perUnit * (uList.length - 1)) : perUnit
         }))
       } else {
@@ -2545,6 +3210,7 @@ watch([
         blueprint.value.units = uList.map((u, idx) => ({
           id: u.id,
           name: u.name_ar || u.name_en || u.name || `الوحدة #${u.id}`,
+          term: u.term || u.semester || 3,
           percentage: idx === uList.length - 1 ? 100 - (perUnit * (uList.length - 1)) : perUnit
         }))
       } else {
@@ -2556,12 +3222,27 @@ watch([
     }
   } else if (exam.value.subjectId && (exam.value.classTrackId || exam.value.levelId || exam.value.stageId)) {
     try {
-      const params = { subject_id: exam.value.subjectId }
-      if (exam.value.classTrackId) params.class_track_id = exam.value.classTrackId
+      const params = {
+        subject_id: exam.value.subjectId,
+        school_subject: exam.value.subjectId,
+        subject: exam.value.subjectId,
+        institution_type: 'school'
+      }
+      if (exam.value.classTrackId) {
+        params.class_track_id = exam.value.classTrackId
+        params.class_track = exam.value.classTrackId
+      }
       if (exam.value.levelId) params.level_id = exam.value.levelId
-      if (exam.value.stageId) params.stage_id = exam.value.stageId
-      const res = await academicService.getUnits(params)
-      let dbUnits = res.results || res || []
+      if (exam.value.stageId) {
+        params.stage_id = exam.value.stageId
+        params.stage = exam.value.stageId
+      }
+      const res = await academicService.getSchoolUnits(params)
+      let dbUnits = Array.isArray(res) ? res : (res?.results || [])
+      if (!dbUnits || dbUnits.length === 0) {
+        const fallbackRes = await academicService.getUnits(params)
+        dbUnits = Array.isArray(fallbackRes) ? fallbackRes : (fallbackRes?.results || [])
+      }
       if (!Array.isArray(dbUnits) || dbUnits.length === 0) {
         dbUnits = getUnitsForSubject()
       }
@@ -2583,7 +3264,7 @@ watch([
           else if (periodId === 4) targetTerms = [1, 2]
         }
 
-        let activeUnits = dbUnits.filter(u => targetTerms.includes(u.term || 3))
+        let activeUnits = dbUnits.filter(u => targetTerms.includes(u.term || u.semester || 3))
         if (activeUnits.length === 0) activeUnits = dbUnits
 
         const perUnit = Math.floor(100 / activeUnits.length)
@@ -2598,7 +3279,7 @@ watch([
           return {
             id: u.id,
             name: u.name_ar || u.name_en || u.name || `وحدة #${u.id}`,
-            term: u.term || 3,
+            term: u.term || u.semester || 3,
             percentage: percentage
           }
         })
@@ -2611,7 +3292,7 @@ watch([
       blueprint.value.units = fallback.map((u, idx) => ({
         id: u.id,
         name: u.name_ar || u.name_en || u.name || `وحدة #${u.id}`,
-        term: u.term || 3,
+        term: u.term || u.semester || 3,
         percentage: idx === fallback.length - 1 ? 100 - (Math.floor(100 / fallback.length) * (fallback.length - 1)) : Math.floor(100 / fallback.length)
       }))
     }
@@ -2647,6 +3328,22 @@ watch([
       console.error("Error loading curriculum exclusions for exam blueprint:", exclErr)
     }
   }
+
+  syncModelGroupsUnits()
+}
+
+watch([
+  () => exam.value.subjectId, 
+  () => exam.value.classTrackId,
+  () => exam.value.stageId,
+  () => exam.value.levelId, 
+  () => exam.value.branchId, 
+  () => exam.value.examPeriodId, 
+  () => exam.value.semesterSubjectId,
+  () => exam.value.instituteSubjectId,
+  () => exam.value.institution_type
+], async () => {
+  await loadBlueprintUnits()
 })
 
 const totalUnitsPercentage = computed(() =>
@@ -2655,12 +3352,496 @@ const totalUnitsPercentage = computed(() =>
 const totalDifficultyPercentage = computed(() =>
   blueprint.value.difficulty.reduce((sum, d) => sum + d.percentage, 0)
 )
-const totalBloomPercentage = computed(() =>
-  blueprint.value.bloom.reduce((sum, b) => sum + b.percentage, 0)
-)
+const totalBloomPercentage = computed(() => {
+  if (!bloomEnabled.value) return 100
+  return blueprint.value.bloom.reduce((sum, b) => sum + b.percentage, 0)
+})
 const totalTypesPercentage = computed(() =>
   blueprint.value.types.reduce((sum, t) => sum + t.percentage, 0)
 )
+
+// ═══════════════════════════════════════════════════════════
+// Advanced Model Groups Units Distribution Helpers
+// ═══════════════════════════════════════════════════════════
+const activeUnitGroupIndex = ref(0)
+
+const currentUnitGroup = computed(() => {
+  if (modelsMode.value !== 'advanced') return null
+  if (!modelGroups.value || modelGroups.value.length === 0) return null
+  const idx = Math.min(Math.max(0, activeUnitGroupIndex.value), modelGroups.value.length - 1)
+  return modelGroups.value[idx]
+})
+
+const selectUnitGroup = (gIdx) => {
+  activeUnitGroupIndex.value = gIdx
+  const grp = modelGroups.value[gIdx]
+  if (grp && (!grp.units || grp.units.length === 0) && blueprint.value.units && blueprint.value.units.length > 0) {
+    grp.units = JSON.parse(JSON.stringify(blueprint.value.units))
+  }
+}
+
+const syncModelGroupsUnits = () => {
+  const baseUnits = blueprint.value.units
+  if (!baseUnits || baseUnits.length === 0) return
+  modelGroups.value.forEach(group => {
+    const isGrpEmpty = !group.units || group.units.length === 0 || group.units.every(u => (u.percentage || 0) === 0)
+    if (isGrpEmpty || group.units.length !== baseUnits.length) {
+      group.units = JSON.parse(JSON.stringify(baseUnits))
+    } else {
+      const existingMap = new Map(group.units.map(u => [u.id, u.percentage]))
+      group.units = baseUnits.map(baseU => ({
+        ...baseU,
+        percentage: existingMap.has(baseU.id) ? existingMap.get(baseU.id) : baseU.percentage,
+        isExcluded: baseU.isExcluded
+      }))
+    }
+  })
+}
+
+// Pure computed property: NO side-effects, NO mutations
+const currentActiveUnitsList = computed(() => {
+  if (modelsMode.value === 'advanced') {
+    const grp = currentUnitGroup.value
+    if (grp && Array.isArray(grp.units) && grp.units.length > 0) {
+      return grp.units
+    }
+  }
+  return blueprint.value.units || []
+})
+
+const isUnitInTerm = (u, termId) => {
+  const t = Number(u.term || u.semester || 3)
+  if (termId === 1) return t === 1
+  if (termId === 2) return t === 2
+  return t !== 1 && t !== 2
+}
+
+const hasTermSeparation = computed(() => {
+  const list = currentActiveUnitsList.value
+  if (!list || list.length === 0) return false
+  if (exam.value.institution_type === 'university' || exam.value.institution_type === 'institute') return false
+  const hasTerm1 = list.some(u => Number(u.term || u.semester) === 1)
+  const hasTerm2 = list.some(u => Number(u.term || u.semester) === 2)
+  return hasTerm1 && hasTerm2
+})
+
+const updateUnitPercentage = (unitId, val) => {
+  let targetList = blueprint.value.units
+  if (modelsMode.value === 'advanced') {
+    const grp = currentUnitGroup.value
+    if (grp) {
+      if (!grp.units || grp.units.length === 0) {
+        if (blueprint.value.units && blueprint.value.units.length > 0) {
+          grp.units = JSON.parse(JSON.stringify(blueprint.value.units))
+        }
+      }
+      targetList = grp.units
+    }
+  }
+  if (!targetList || targetList.length === 0) return
+  const realIndex = targetList.findIndex(u => u.id === unitId)
+  if (realIndex !== -1) {
+    updateDistribution(targetList, realIndex, val)
+  }
+}
+
+const adjustUnitPercentage = (unitId, delta) => {
+  let targetList = blueprint.value.units
+  if (modelsMode.value === 'advanced') {
+    const grp = currentUnitGroup.value
+    if (grp) {
+      if (!grp.units || grp.units.length === 0) {
+        if (blueprint.value.units && blueprint.value.units.length > 0) {
+          grp.units = JSON.parse(JSON.stringify(blueprint.value.units))
+        }
+      }
+      targetList = grp.units
+    }
+  }
+  if (!targetList || targetList.length === 0) return
+  const realIndex = targetList.findIndex(u => u.id === unitId)
+  if (realIndex !== -1) {
+    const currentVal = Number(targetList[realIndex].percentage) || 0
+    const newVal = Math.max(0, Math.min(100, currentVal + delta))
+    updateDistribution(targetList, realIndex, newVal)
+  }
+}
+
+const getGroupUnitsTotal = (group) => {
+  if (!group || !Array.isArray(group.units) || group.units.length === 0) {
+    return totalUnitsPercentage.value
+  }
+  return group.units.reduce((sum, u) => sum + (Number(u.percentage) || 0), 0)
+}
+
+const currentGroupUnitsTotal = computed(() => {
+  if (modelsMode.value === 'advanced') {
+    return getGroupUnitsTotal(currentUnitGroup.value)
+  }
+  return totalUnitsPercentage.value
+})
+
+const distributeUnitsListEqually = (unitsList) => {
+  if (!unitsList || unitsList.length === 0) return
+  const activeItems = unitsList.filter(u => !u.isExcluded)
+  if (activeItems.length === 0) return
+  const perItem = Math.floor(100 / activeItems.length)
+  let idx = 0
+  unitsList.forEach(item => {
+    if (item.isExcluded) {
+      item.percentage = 0
+    } else {
+      item.percentage = idx === activeItems.length - 1 ? 100 - (perItem * (activeItems.length - 1)) : perItem
+      idx++
+    }
+  })
+}
+
+const autoDistributeCurrentGroupUnits = async () => {
+  if (!blueprint.value.units || blueprint.value.units.length === 0) {
+    await loadBlueprintUnits()
+  }
+  if (modelsMode.value === 'advanced') {
+    const grp = currentUnitGroup.value
+    if (!grp) return
+    if (!grp.units || grp.units.length === 0) {
+      if (blueprint.value.units && blueprint.value.units.length > 0) {
+        grp.units = JSON.parse(JSON.stringify(blueprint.value.units))
+      }
+    }
+    if (grp.units && grp.units.length > 0) {
+      distributeUnitsListEqually(grp.units)
+    }
+  } else {
+    autoDistribute('units')
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// Advanced Model Groups Question Types Distribution Helpers
+// ═══════════════════════════════════════════════════════════
+const activeTypeGroupIndex = ref(0)
+
+const currentTypeGroup = computed(() => {
+  if (modelsMode.value !== 'advanced') return null
+  if (!modelGroups.value || modelGroups.value.length === 0) return null
+  const idx = Math.min(Math.max(0, activeTypeGroupIndex.value), modelGroups.value.length - 1)
+  return modelGroups.value[idx]
+})
+
+const selectTypeGroup = (gIdx) => {
+  activeTypeGroupIndex.value = gIdx
+  activeUnitGroupIndex.value = gIdx
+  const grp = modelGroups.value[gIdx]
+  if (grp && (!grp.types || grp.types.length === 0) && blueprint.value.types && blueprint.value.types.length > 0) {
+    grp.types = JSON.parse(JSON.stringify(blueprint.value.types))
+  }
+}
+
+const syncModelGroupsQuestionTypes = () => {
+  const baseTypes = blueprint.value.types
+  if (!baseTypes || baseTypes.length === 0) return
+  modelGroups.value.forEach(group => {
+    const isGrpEmpty = !group.types || group.types.length === 0 || group.types.every(t => (t.percentage || 0) === 0)
+    if (isGrpEmpty || group.types.length !== baseTypes.length) {
+      group.types = JSON.parse(JSON.stringify(baseTypes))
+    } else {
+      const existingMap = new Map(group.types.map(t => [t.id || t.value, { pct: t.percentage, mark: t.mark }]))
+      group.types = baseTypes.map(baseT => {
+        const key = baseT.id || baseT.value
+        const existing = existingMap.get(key)
+        return {
+          ...baseT,
+          percentage: existing ? existing.pct : baseT.percentage,
+          mark: (existing && existing.mark !== undefined) ? existing.mark : (baseT.mark || 1.0)
+        }
+      })
+    }
+  })
+}
+
+const currentActiveTypesList = computed(() => {
+  if (modelsMode.value === 'advanced') {
+    const grp = currentTypeGroup.value
+    if (grp && Array.isArray(grp.types) && grp.types.length > 0) {
+      return grp.types
+    }
+  }
+  return blueprint.value.types || []
+})
+
+const getGroupTypesTotal = (group) => {
+  if (!group || !Array.isArray(group.types) || group.types.length === 0) {
+    return totalTypesPercentage.value
+  }
+  return group.types.reduce((sum, t) => sum + (Number(t.percentage) || 0), 0)
+}
+
+const currentGroupTypesTotal = computed(() => {
+  if (modelsMode.value === 'advanced') {
+    return getGroupTypesTotal(currentTypeGroup.value)
+  }
+  return totalTypesPercentage.value
+})
+
+const getTypeQuestionsCount = (qType) => {
+  const pct = Number(qType.percentage) || 0
+  const totalQ = Number(exam.value.questionsCount) || 40
+  return Math.round(totalQ * pct / 100)
+}
+
+const getTypeTotalMarks = (qType) => {
+  const count = getTypeQuestionsCount(qType)
+  const mark = Number(qType.mark !== undefined ? qType.mark : 1.0)
+  return Math.round(count * mark * 100) / 100
+}
+
+const currentGroupDistributedMarks = computed(() => {
+  const list = currentActiveTypesList.value
+  if (!list || list.length === 0) return 0
+  const total = list.reduce((sum, t) => sum + getTypeTotalMarks(t), 0)
+  return Math.round(total * 100) / 100
+})
+
+const updateTypeMark = (typeId, markVal) => {
+  let targetList = blueprint.value.types
+  if (modelsMode.value === 'advanced') {
+    const grp = currentTypeGroup.value
+    if (grp) {
+      if (!grp.types || grp.types.length === 0) {
+        if (blueprint.value.types && blueprint.value.types.length > 0) {
+          grp.types = JSON.parse(JSON.stringify(blueprint.value.types))
+        }
+      }
+      targetList = grp.types
+    }
+  }
+  if (!targetList || targetList.length === 0) return
+  const realIndex = targetList.findIndex(t => (t.id === typeId || t.value === typeId))
+  if (realIndex !== -1) {
+    targetList[realIndex].mark = Math.max(0, Math.round(Number(markVal) * 100) / 100)
+  }
+}
+
+const adjustTypeMark = (typeId, delta) => {
+  let targetList = blueprint.value.types
+  if (modelsMode.value === 'advanced') {
+    const grp = currentTypeGroup.value
+    if (grp) {
+      if (!grp.types || grp.types.length === 0) {
+        if (blueprint.value.types && blueprint.value.types.length > 0) {
+          grp.types = JSON.parse(JSON.stringify(blueprint.value.types))
+        }
+      }
+      targetList = grp.types
+    }
+  }
+  if (!targetList || targetList.length === 0) return
+  const realIndex = targetList.findIndex(t => (t.id === typeId || t.value === typeId))
+  if (realIndex !== -1) {
+    const curMark = Number(targetList[realIndex].mark !== undefined ? targetList[realIndex].mark : 1.0)
+    const newMark = Math.max(0.25, Math.round((curMark + delta) * 100) / 100)
+    targetList[realIndex].mark = newMark
+  }
+}
+
+const autoBalanceMarks = () => {
+  let list = currentActiveTypesList.value
+  if (!list || list.length === 0) return
+  const activeTypes = list.filter(t => (t.percentage || 0) > 0)
+  if (activeTypes.length === 0) return
+  const totalTarget = Number(exam.value.totalMarks) || 100
+
+  const hasTf = activeTypes.find(t => (t.id || t.value) === 'true_false' || (t.id || t.value) === 'tf')
+  const hasMcq = activeTypes.find(t => (t.id || t.value) === 'single_choice' || (t.id || t.value) === 'mcq')
+
+  if (activeTypes.length === 2 && hasTf && hasMcq) {
+    const tfCount = getTypeQuestionsCount(hasTf)
+    const mcqCount = getTypeQuestionsCount(hasMcq)
+    if (totalTarget === 100 && tfCount === 20 && mcqCount === 40) {
+      hasTf.mark = 1.0
+      hasMcq.mark = 2.0
+      return
+    } else if (mcqCount > 0) {
+      let tfM = 1.0
+      let rem = totalTarget - (tfCount * tfM)
+      if (rem > 0) {
+        hasTf.mark = tfM
+        hasMcq.mark = Math.round((rem / mcqCount) * 100) / 100
+        return
+      }
+    }
+  }
+
+  const totalQuestionsInActive = activeTypes.reduce((sum, t) => sum + getTypeQuestionsCount(t), 0)
+  if (totalQuestionsInActive > 0) {
+    const markPerQ = totalTarget / totalQuestionsInActive
+    activeTypes.forEach(t => {
+      t.mark = Math.round(markPerQ * 100) / 100
+    })
+  }
+}
+
+const setTotalMarks = (val) => {
+  exam.value.totalMarks = val
+  autoBalanceMarks()
+}
+
+const updateTypePercentage = (typeId, val) => {
+  let targetList = blueprint.value.types
+  if (modelsMode.value === 'advanced') {
+    const grp = currentTypeGroup.value
+    if (grp) {
+      if (!grp.types || grp.types.length === 0) {
+        if (blueprint.value.types && blueprint.value.types.length > 0) {
+          grp.types = JSON.parse(JSON.stringify(blueprint.value.types))
+        }
+      }
+      targetList = grp.types
+    }
+  }
+  if (!targetList || targetList.length === 0) return
+  const realIndex = targetList.findIndex(t => (t.id === typeId || t.value === typeId))
+  if (realIndex !== -1) {
+    const newVal = Math.max(0, Math.min(100, Math.round(Number(val) || 0)))
+    updateDistribution(targetList, realIndex, newVal)
+  }
+}
+
+const adjustTypePercentage = (typeId, delta) => {
+  let targetList = blueprint.value.types
+  if (modelsMode.value === 'advanced') {
+    const grp = currentTypeGroup.value
+    if (grp) {
+      if (!grp.types || grp.types.length === 0) {
+        if (blueprint.value.types && blueprint.value.types.length > 0) {
+          grp.types = JSON.parse(JSON.stringify(blueprint.value.types))
+        }
+      }
+      targetList = grp.types
+    }
+  }
+  if (!targetList || targetList.length === 0) return
+  const realIndex = targetList.findIndex(t => (t.id === typeId || t.value === typeId))
+  if (realIndex !== -1) {
+    const curVal = Number(targetList[realIndex].percentage) || 0
+    const newVal = Math.max(0, Math.min(100, curVal + delta))
+    updateDistribution(targetList, realIndex, newVal)
+  }
+}
+
+const autoDistributeTypesList = (typesList) => {
+  if (!typesList || typesList.length === 0) return
+  let activeTypes = typesList.filter(t => (t.percentage || 0) > 0)
+  if (activeTypes.length < 2) {
+    activeTypes = typesList.slice(0, 2)
+  }
+  const perType = Math.floor(100 / activeTypes.length)
+  let idx = 0
+  typesList.forEach(t => {
+    const isAct = activeTypes.some(at => (at.id || at.value) === (t.id || t.value))
+    if (!isAct) {
+      t.percentage = 0
+    } else {
+      t.percentage = idx === activeTypes.length - 1 ? 100 - (perType * (activeTypes.length - 1)) : perType
+      idx++
+    }
+  })
+}
+
+const autoDistributeCurrentGroupTypes = () => {
+  if (modelsMode.value === 'advanced') {
+    const grp = currentTypeGroup.value
+    if (!grp) return
+    if (!grp.types || grp.types.length === 0) {
+      if (blueprint.value.types && blueprint.value.types.length > 0) {
+        grp.types = JSON.parse(JSON.stringify(blueprint.value.types))
+      }
+    }
+    if (grp.types && grp.types.length > 0) {
+      autoDistributeTypesList(grp.types)
+    }
+  } else {
+    autoDistributeTypesList(blueprint.value.types)
+  }
+}
+
+const autoDistributeAllGroupsTypes = () => {
+  if (modelsMode.value === 'advanced' && modelGroups.value.length > 0) {
+    modelGroups.value.forEach(group => {
+      if (!group.types || group.types.length === 0) {
+        if (blueprint.value.types && blueprint.value.types.length > 0) {
+          group.types = JSON.parse(JSON.stringify(blueprint.value.types))
+        }
+      }
+      if (group.types && group.types.length > 0) {
+        autoDistributeTypesList(group.types)
+      }
+    })
+  } else {
+    autoDistributeTypesList(blueprint.value.types)
+  }
+}
+
+const copyCurrentGroupTypesToAll = () => {
+  if (modelsMode.value !== 'advanced') return
+  const currentList = currentActiveTypesList.value
+  if (!currentList || currentList.length === 0) return
+  modelGroups.value.forEach((grp, idx) => {
+    if (idx !== activeTypeGroupIndex.value) {
+      grp.types = JSON.parse(JSON.stringify(currentList))
+    }
+  })
+  if (proxy && proxy.$alert) {
+    proxy.$alert("successData", {
+      message: `تم نسخ توزيع أنواع الأسئلة لـ (${currentTypeGroup.value?.name || 'المجموعة الحالية'}) إلى جميع المجموعات بنجاح.`,
+      title: "نسخ توزيع أنواع الأسئلة"
+    })
+  }
+}
+
+const autoDistributeAllGroupsUnits = async () => {
+  if (!blueprint.value.units || blueprint.value.units.length === 0) {
+    await loadBlueprintUnits()
+  }
+  if (modelsMode.value === 'advanced') {
+    modelGroups.value.forEach(g => {
+      if (!g.units || g.units.length === 0) {
+        if (blueprint.value.units && blueprint.value.units.length > 0) {
+          g.units = JSON.parse(JSON.stringify(blueprint.value.units))
+        }
+      }
+      if (g.units && g.units.length > 0) {
+        distributeUnitsListEqually(g.units)
+      }
+    })
+  } else {
+    autoDistribute('units')
+  }
+}
+
+const copyCurrentGroupUnitsToAll = () => {
+  if (modelsMode.value !== 'advanced') return
+  const currentUnits = currentActiveUnitsList.value
+  if (!currentUnits || currentUnits.length === 0) return
+  modelGroups.value.forEach((g, idx) => {
+    if (idx !== activeUnitGroupIndex.value) {
+      g.units = JSON.parse(JSON.stringify(currentUnits))
+    }
+  })
+  if (proxy && proxy.$alert) {
+    proxy.$alert("success", { message: "تم نسخ توزيع الوحدات بنجاح إلى جميع المجموعات الأخرى", title: "تم النسخ" })
+  }
+}
+
+watch(step, async (newStep) => {
+  if (newStep === 2) {
+    if (!blueprint.value.units || blueprint.value.units.length === 0) {
+      await loadBlueprintUnits()
+    }
+    syncModelGroupsUnits()
+  }
+})
 
 // ═══════════════════════════════════════════════════════════
 // Standard Criteria & Auto Distribution
@@ -2680,6 +3861,9 @@ const applyStandardCriteria = () => {
     { name: 'إبداع', percentage: 5, color: 'error' },
   ]
   autoDistribute('units')
+  if (modelsMode.value === 'advanced') {
+    autoDistributeAllGroupsUnits()
+  }
 }
 
 const autoDistribute = (category) => {
@@ -2704,75 +3888,6 @@ const autoDistribute = (category) => {
     list.forEach((item, idx) => {
       item.percentage = idx === list.length - 1 ? 100 - (perItem * (list.length - 1)) : perItem
     })
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// Template Management
-// ═══════════════════════════════════════════════════════════
-const applyTemplate = (template) => {
-  if (!template || !template.config_json) return
-  const config = template.config_json
-
-  if (config.exam) {
-    Object.keys(config.exam).forEach(key => {
-      if (exam.value.hasOwnProperty(key)) {
-        exam.value[key] = config.exam[key]
-      }
-    })
-  }
-  if (config.blueprint) {
-    if (config.blueprint.difficulty) blueprint.value.difficulty = config.blueprint.difficulty
-    if (config.blueprint.bloom) blueprint.value.bloom = config.blueprint.bloom
-    if (config.blueprint.types) blueprint.value.types = config.blueprint.types
-  }
-  if (config.modelsMode) modelsMode.value = config.modelsMode
-  if (config.modelGroups) modelGroups.value = config.modelGroups
-  if (config.bloomEnabled !== undefined) bloomEnabled.value = config.bloomEnabled
-}
-
-const openSaveTemplateDialog = () => {
-  templateName.value = exam.value.title ? `قالب - ${exam.value.title}` : 'قالب جديد'
-  templateDescription.value = ''
-  saveTemplateDialog.value = true
-}
-
-const saveAsTemplate = async () => {
-  try {
-    const config = {
-      exam: { ...exam.value },
-      blueprint: {
-        difficulty: blueprint.value.difficulty,
-        bloom: blueprint.value.bloom,
-        types: blueprint.value.types,
-      },
-      modelsMode: modelsMode.value,
-      modelGroups: modelsMode.value === 'advanced' ? modelGroups.value : [],
-      bloomEnabled: bloomEnabled.value,
-    }
-    await examsService.saveExamTemplate({
-      name: templateName.value,
-      description: templateDescription.value,
-      institution_type: exam.value.institution_type,
-      config: config,
-    })
-    saveTemplateDialog.value = false
-    savedTemplates.value = await examsService.getExamTemplates()
-    if (proxy && proxy.$alert) {
-      proxy.$alert("success", { message: "تم حفظ القالب بنجاح", title: "نجاح" })
-    }
-  } catch (e) {
-    console.error("Error saving template:", e)
-  }
-}
-
-const deleteTemplate = async (templateId) => {
-  try {
-    await examsService.deleteExamTemplate(templateId)
-    savedTemplates.value = await examsService.getExamTemplates()
-    selectedTemplate.value = null
-  } catch (e) {
-    console.error("Error deleting template:", e)
   }
 }
 
@@ -2821,11 +3936,57 @@ const nextStep = async () => {
       return
     }
 
+    if (!blueprint.value.units || blueprint.value.units.length === 0) {
+      await loadBlueprintUnits()
+    }
+    syncModelGroupsUnits()
+    syncModelGroupsQuestionTypes()
     step.value = 2
     return
   }
 
   if (step.value === 2) {
+    if (modelsMode.value === 'advanced') {
+      const invalidGrp = modelGroups.value.find(g => getGroupUnitsTotal(g) !== 100)
+      if (invalidGrp) {
+        if (proxy && proxy.$alert) {
+          proxy.$alert("errorData", {
+            message: `مجموع نسب توزيع الوحدات في (${invalidGrp.name || 'إحدى المجموعات'}) هو ${getGroupUnitsTotal(invalidGrp)}% ويجب أن يعادل 100% تماماً قبل المتابعة.`,
+            title: "تنبيه توزيع الوحدات"
+          })
+        }
+        return
+      }
+      const invalidTypeGrp = modelGroups.value.find(g => getGroupTypesTotal(g) !== 100)
+      if (invalidTypeGrp) {
+        if (proxy && proxy.$alert) {
+          proxy.$alert("errorData", {
+            message: `مجموع نسب توزيع أنواع الأسئلة في (${invalidTypeGrp.name || 'إحدى المجموعات'}) هو ${getGroupTypesTotal(invalidTypeGrp)}% ويجب أن يعادل 100% تماماً قبل المتابعة.`,
+            title: "تنبيه أنواع الأسئلة"
+          })
+        }
+        return
+      }
+    } else {
+      if (totalUnitsPercentage.value !== 100) {
+        if (proxy && proxy.$alert) {
+          proxy.$alert("errorData", {
+            message: `مجموع نسب توزيع الوحدات الحالي هو ${totalUnitsPercentage.value}% ويجب أن يعادل 100% تماماً قبل المتابعة.`,
+            title: "تنبيه توزيع الوحدات"
+          })
+        }
+        return
+      }
+      if (totalTypesPercentage.value !== 100) {
+        if (proxy && proxy.$alert) {
+          proxy.$alert("errorData", {
+            message: `مجموع نسب توزيع أنواع الأسئلة الحالي هو ${totalTypesPercentage.value}% ويجب أن يعادل 100% تماماً قبل المتابعة.`,
+            title: "تنبيه أنواع الأسئلة"
+          })
+        }
+        return
+      }
+    }
     step.value = 3
     return
   }
@@ -2872,30 +4033,39 @@ const generateAndSaveExam = async () => {
 
   const effectiveSubjectId = exam.value.subjectId || exam.value.semesterSubjectId || exam.value.instituteSubjectId || null
 
-  // Build target scopes from selectedTargetIds
-  const target_scopes = selectedTargetIds.value.map(id => {
-    const scope = { scope_level: exam.value.target_scope_level }
-    if (exam.value.target_scope_level === 'governorate') scope.governorate_id = id
-    else if (exam.value.target_scope_level === 'directorate') scope.directorate_id = id
-    else if (exam.value.target_scope_level === 'school') scope.organization_id = id
-    return scope
-  })
-
-  // Build model-region assignments from model groups
+  // Build model-region assignments and target scopes from per-group configuration
   const model_region_assignments = []
-  if (modelsMode.value === 'advanced' && exam.value.target_scope_level !== 'all') {
+  const target_scopes = []
+  let overall_target_scope_level = 'all'
+
+  if (modelsMode.value === 'advanced') {
     modelGroups.value.forEach((group, gIdx) => {
-      if (group.assigned_target_ids && group.assigned_target_ids.length > 0) {
-        group.assigned_target_ids.forEach(targetId => {
+      const scopeLvl = group.scope_level || 'all'
+      if (scopeLvl !== 'all' && Array.isArray(group.target_ids) && group.target_ids.length > 0) {
+        if (overall_target_scope_level === 'all') {
+          overall_target_scope_level = scopeLvl
+        }
+        group.target_ids.forEach(targetId => {
           const assignment = {
             model_group_index: gIdx,
             difficulty_profile: group.difficulty_profile,
-            scope_level: exam.value.target_scope_level,
+            scope_level: scopeLvl,
           }
-          if (exam.value.target_scope_level === 'governorate') assignment.governorate_id = targetId
-          else if (exam.value.target_scope_level === 'directorate') assignment.directorate_id = targetId
-          else if (exam.value.target_scope_level === 'school') assignment.organization_id = targetId
+          const scope = { scope_level: scopeLvl }
+
+          if (scopeLvl === 'governorate') {
+            assignment.governorate_id = targetId
+            scope.governorate_id = targetId
+          } else if (scopeLvl === 'directorate') {
+            assignment.directorate_id = targetId
+            scope.directorate_id = targetId
+          } else if (scopeLvl === 'school') {
+            assignment.organization_id = targetId
+            scope.organization_id = targetId
+          }
+
           model_region_assignments.push(assignment)
+          target_scopes.push(scope)
         })
       }
     })
@@ -2919,19 +4089,23 @@ const generateAndSaveExam = async () => {
     instituteCurriculumId: exam.value.instituteCurriculumId || null,
     instituteSubjectId: exam.value.instituteSubjectId || null,
     yearId: resolvedYearId,
-    examScheduleId: exam.value.examScheduleId || null,
     countryId: exam.value.countryId || null,
     governorateId: exam.value.governorateId || null,
     directorateId: exam.value.directorateId || null,
     regionId: exam.value.regionId || null,
     questionsCount: exam.value.questionsCount,
     modelsCount: modelsMode.value === 'uniform' ? exam.value.modelsCount : totalModelsCount.value,
-    blueprint: blueprint.value,
+    total_marks: exam.value.totalMarks || 100,
+    totalMarks: exam.value.totalMarks || 100,
+    blueprint: {
+      ...blueprint.value,
+      total_marks: exam.value.totalMarks || 100
+    },
     // Advanced Options
     bloom_enabled: bloomEnabled.value,
     models_mode: modelsMode.value,
     model_groups: modelsMode.value === 'advanced' ? modelGroups.value : [],
-    target_scope_level: exam.value.target_scope_level,
+    target_scope_level: overall_target_scope_level,
     target_scopes: target_scopes,
     model_region_assignments: model_region_assignments,
     exclude_previously_used: exam.value.exclude_previously_used,
@@ -3388,4 +4562,324 @@ const generateAndSaveExam = async () => {
     width: 30%;
   }
 }
+
+/* ==========================================================================
+   Units Distribution Tab Modern Executive Styles (Zero Gray)
+   ========================================================================== */
+.units-tab-header {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.05) 0%, rgba(var(--v-theme-surface), 0.98) 100%);
+  border: 1px solid rgba(var(--v-theme-primary), 0.14);
+  border-radius: 18px;
+  padding: 18px 24px;
+}
+
+.units-header-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(var(--v-theme-primary), 0.1);
+  border: 1px solid rgba(var(--v-theme-primary), 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.model-groups-selector-hub {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.04) 0%, rgba(var(--v-theme-surface), 0.98) 100%);
+  border: 1px solid rgba(var(--v-theme-primary), 0.16);
+  border-radius: 18px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 20px rgba(var(--v-theme-primary), 0.04);
+}
+
+.hub-bullet-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgb(var(--v-theme-primary));
+  box-shadow: 0 0 8px rgba(var(--v-theme-primary), 0.6);
+}
+
+.group-pills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.group-switch-pill {
+  background: rgb(var(--v-theme-surface));
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.14);
+  border-radius: 14px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  user-select: none;
+}
+
+.group-switch-pill:hover {
+  border-color: rgba(var(--v-theme-primary), 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(var(--v-theme-primary), 0.1);
+}
+
+.group-switch-pill.is-active {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.14) 0%, rgba(var(--v-theme-primary), 0.04) 100%);
+  border-color: rgb(var(--v-theme-primary));
+  box-shadow: 0 4px 18px rgba(var(--v-theme-primary), 0.22);
+}
+
+.group-pill-title {
+  font-size: 0.92rem;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.pill-percentage-badge {
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pill-percentage-badge.is-complete {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.pill-percentage-badge.is-pending {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.active-group-hero-banner {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.12) 0%, rgba(var(--v-theme-primary), 0.03) 60%, rgb(var(--v-theme-surface)) 100%);
+  border: 1px solid rgba(var(--v-theme-primary), 0.2);
+  border-right: 5px solid rgb(var(--v-theme-primary));
+  border-radius: 18px;
+  padding: 18px 24px;
+  box-shadow: 0 6px 24px rgba(var(--v-theme-primary), 0.08);
+}
+
+.active-group-hero-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, #2563eb 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(var(--v-theme-primary), 0.35);
+  flex-shrink: 0;
+}
+
+.hero-total-badge {
+  border: 1px solid transparent;
+}
+
+.hero-total-badge.badge-success {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #10b981;
+}
+
+.hero-total-badge.badge-warning {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+}
+
+.modern-empty-state {
+  border: 2px dashed rgba(var(--v-theme-primary), 0.25);
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.03) 0%, rgba(var(--v-theme-surface), 0.98) 100%);
+  border-radius: 20px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.empty-state-icon-box {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: rgba(var(--v-theme-primary), 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modern-unit-card {
+  background: rgb(var(--v-theme-surface));
+  border: 1px solid rgba(var(--v-theme-primary), 0.14);
+  border-radius: 16px;
+  padding: 16px 20px;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.modern-unit-card:hover {
+  border-color: rgba(var(--v-theme-primary), 0.35);
+  box-shadow: 0 6px 20px rgba(var(--v-theme-primary), 0.08);
+  transform: translateY(-2px);
+}
+
+.modern-unit-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 4px;
+  background: rgb(var(--v-theme-primary));
+  opacity: 0.8;
+  border-top-right-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+.modern-unit-card.is-excluded {
+  background: rgba(var(--v-theme-error), 0.04);
+  border-color: rgba(var(--v-theme-error), 0.25);
+  opacity: 0.75;
+}
+
+.modern-unit-card.is-excluded::before {
+  background: rgb(var(--v-theme-error));
+}
+
+.unit-stepper-box {
+  background: rgba(var(--v-theme-primary), 0.04);
+  border: 1px solid rgba(var(--v-theme-primary), 0.12);
+  border-radius: 12px;
+  padding: 4px 6px;
+}
+
+.unit-percentage-display {
+  min-width: 62px;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: rgb(var(--v-theme-primary));
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: rgba(var(--v-theme-primary), 0.08);
+}
+
+.unit-percentage-display.is-zero {
+  color: rgba(var(--v-theme-on-surface), 0.5);
+  background: transparent;
+}
+
+.unit-percentage-display.is-excluded {
+  color: rgb(var(--v-theme-error));
+}
+
+.unit-balance-alert-card {
+  border-radius: 16px;
+  padding: 16px 20px;
+  border: 1px solid transparent;
+}
+
+.unit-balance-alert-card.is-warning {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(var(--v-theme-surface), 0.95) 100%);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.unit-balance-alert-card.is-success {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(var(--v-theme-surface), 0.95) 100%);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.term-header-banner {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.08) 0%, rgba(var(--v-theme-surface), 0.95) 100%);
+  border: 1px solid rgba(var(--v-theme-primary), 0.15);
+  border-right: 3px solid rgb(var(--v-theme-primary));
+  padding: 8px 16px;
+  border-radius: 12px;
+}
+
+
+.modern-type-card {
+  background: rgb(var(--v-theme-surface));
+  border: 1px solid rgba(var(--v-theme-primary), 0.14);
+  border-radius: 16px;
+  padding: 16px 20px;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.modern-type-card:hover {
+  border-color: rgba(var(--v-theme-primary), 0.35);
+  box-shadow: 0 6px 20px rgba(var(--v-theme-primary), 0.08);
+  transform: translateY(-2px);
+}
+
+.modern-type-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 4px;
+  background: rgb(var(--v-theme-primary));
+  opacity: 0.8;
+  border-top-right-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+
+/* ==========================================================================
+   Exam Total Marks & Question Types Metrics Styles (Zero Gray)
+   ========================================================================== */
+.exam-total-marks-card {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.08) 0%, rgba(var(--v-theme-surface), 0.98) 100%);
+  border: 1px solid rgba(var(--v-theme-primary), 0.2);
+  border-right: 5px solid rgb(var(--v-theme-primary));
+  border-radius: 18px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 18px rgba(var(--v-theme-primary), 0.05);
+}
+
+.total-marks-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.score-input-wrapper {
+  background: rgb(var(--v-theme-surface));
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.25);
+}
+
+.score-number-input {
+  width: 60px;
+  text-align: center;
+  font-size: 1.15rem;
+  color: rgb(var(--v-theme-primary));
+  outline: none;
+  border: none;
+  background: transparent;
+}
+
+.type-metrics-bar {
+  background: rgba(var(--v-theme-primary), 0.04);
+  border: 1px solid rgba(var(--v-theme-primary), 0.1);
+  padding: 8px 12px;
+}
+
+.type-metric-item {
+  flex: 1;
+}
+
 </style>
