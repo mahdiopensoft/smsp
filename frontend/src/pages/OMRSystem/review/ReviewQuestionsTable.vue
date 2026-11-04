@@ -9,213 +9,208 @@
         selected-class="text-primary font-weight-black elevation-1"
         density="compact"
       >
-        <v-chip value="all" size="small" variant="tonal" filter>
+        <v-chip value="all" size="small" variant="tonal" filter style="border-radius: 6px !important;">
           الكل ({{ questions.length }})
         </v-chip>
-        <v-chip value="ambiguous" size="small" color="warning" variant="tonal" filter>
+        <v-chip value="ambiguous" size="small" color="warning" variant="tonal" filter style="border-radius: 6px !important;">
           ملتبسة ({{ ambiguousCount }})
         </v-chip>
-        <v-chip value="wrong" size="small" color="error" variant="tonal" filter>
+        <v-chip value="wrong" size="small" color="error" variant="tonal" filter style="border-radius: 6px !important;">
           خاطئة ({{ wrongCount }})
         </v-chip>
-        <v-chip value="correct" size="small" color="success" variant="tonal" filter>
+        <v-chip value="correct" size="small" color="success" variant="tonal" filter style="border-radius: 6px !important;">
           صحيحة ({{ correctCount }})
         </v-chip>
-        <v-chip value="empty" size="small" color="grey" variant="tonal" filter>
+        <v-chip value="empty" size="small" color="grey" variant="tonal" filter style="border-radius: 6px !important;">
           فارغة ({{ emptyCount }})
         </v-chip>
       </v-chip-group>
 
-      <!-- حقل البحث السريع برقم السؤال -->
-      <v-text-field
-        v-model="searchQuery"
-        placeholder="ابحث برقم السؤال..."
-        prepend-inner-icon="mdi-magnify"
-        density="compact"
-        variant="outlined"
-        hide-details
-        clearable
-        rounded="lg"
-        style="max-width: 180px;"
-      />
+      <!-- حقل البحث السريع برقم السؤال عبر custom-text-field الموحد -->
+      <div style="min-width: 170px; max-width: 210px;">
+        <custom-text-field
+          v-model="searchQuery"
+          placeholder="ابحث برقم السؤال..."
+          icon="magnify"
+          cols="12"
+          :hideDetails="true"
+        />
+      </div>
     </div>
 
-    <!-- ── جدول تفاصيل الأسئلة (Scrollable Body) ── -->
-    <div class="table-wrapper border rounded-xl overflow-hidden flex-grow-1 bg-white position-relative">
-      <v-table density="compact" fixed-header class="unified-review-table h-100">
-        <thead>
-          <tr class="bg-surface-variant-subtle text-caption font-weight-bold">
-            <th class="text-center" style="width: 75px;">رقم السؤال</th>
-            <th class="text-center" style="width: 105px;">نوع السؤال</th>
-            <th class="text-center" style="width: 110px;">الإجابة النموذجية</th>
-            <th class="text-center" style="width: 110px;">تظليل الطالب</th>
-            <th class="text-center" style="min-width: 180px;">تعديل سريع للإجابة</th>
-            <th class="text-center" style="width: 95px;">الحالة</th>
-            <th class="text-center" style="width: 70px;">الدرجة</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="item in pagedQuestions"
-            :key="item.question_number"
-            class="question-row cursor-pointer"
-            :class="{ 'selected-row': selectedQuestion?.question_number === item.question_number }"
-            @click="$emit('select-question', item)"
-          >
-            <!-- رقم السؤال -->
-            <td class="text-center py-1">
+    <!-- ── جدول تفاصيل الأسئلة الموحد (custom-data-table) ── -->
+    <div class="main-card rounded-2xl overflow-hidden flex-grow-1 border">
+      <custom-data-table
+        :items="reviewTableItems"
+        :getData="getReviewData"
+        :headers="reviewHeaders"
+        :hasFilter="false"
+        :log="false"
+        :restore="false"
+        :numbering="false"
+        :showSelect="false"
+        :actions="false"
+        :search="false"
+        :showTop="false"
+        :rowClass="getRowClass"
+        itemValue="question_number"
+        class="bg-transparent"
+      >
+        <template v-slot:item-slot="{ item, key }">
+          <!-- رقم السؤال -->
+          <template v-if="key === 'question_number'">
+            <div class="d-flex justify-center cursor-pointer py-1" @click="$emit('select-question', item)">
               <span
                 class="font-weight-black text-caption px-2.5 py-0.5 rounded-pill border"
                 :class="selectedQuestion?.question_number === item.question_number ? 'bg-primary text-white elevation-1' : 'text-primary bg-blue-lighten-5'"
               >
                 #{{ item.question_number }}
               </span>
-            </td>
+            </div>
+          </template>
 
-            <!-- نوع السؤال (صح وخطأ vs اختيارات) -->
-            <td class="text-center py-1">
+          <!-- نوع السؤال (صح وخطأ vs اختيارات) -->
+          <template v-else-if="key === 'question_type'">
+            <div class="d-flex justify-center cursor-pointer py-1" @click="$emit('select-question', item)">
               <v-chip
                 size="x-small"
                 variant="tonal"
                 :color="item.is_true_false ? 'teal' : 'indigo'"
                 class="font-weight-bold px-2"
+                style="border-radius: 6px !important;"
               >
                 <v-icon start size="12">{{ item.is_true_false ? 'mdi-check-all' : 'mdi-format-list-bulleted' }}</v-icon>
                 {{ item.is_true_false ? 'صح وخطأ' : 'اختيارات' }}
               </v-chip>
-            </td>
+            </div>
+          </template>
 
-            <!-- الإجابة النموذجية -->
-            <td class="text-center py-1">
+          <!-- الإجابة النموذجية -->
+          <template v-else-if="key === 'correct_choice'">
+            <div class="d-flex justify-center cursor-pointer py-1" @click="$emit('select-question', item)">
               <v-chip
                 v-if="item.correct_choice_display && item.correct_choice_display !== 'لم تُحدد'"
                 size="x-small"
                 color="success"
                 variant="tonal"
                 class="font-weight-black px-2 border"
+                style="border-radius: 6px !important;"
               >
                 <v-icon start size="12" color="success">mdi-check-circle-outline</v-icon>
                 {{ item.correct_choice_display }}
               </v-chip>
               <span v-else class="text-caption text-medium-emphasis">لم تُحدد</span>
-            </td>
+            </div>
+          </template>
 
-            <!-- تظليل الطالب -->
-            <td class="text-center py-1">
+          <!-- تظليل الطالب -->
+          <template v-else-if="key === 'marked_choice'">
+            <div class="d-flex justify-center cursor-pointer py-1" @click="$emit('select-question', item)">
               <v-chip
                 v-if="item.marked_choice && item.marked_choice !== 'لم يُجب (فارغ)'"
                 size="x-small"
                 :color="item.is_correct ? 'success' : 'error'"
                 variant="tonal"
                 class="font-weight-black px-2"
+                style="border-radius: 6px !important;"
               >
                 <v-icon start size="12">{{ item.is_correct ? 'mdi-check' : 'mdi-close' }}</v-icon>
                 {{ item.marked_choice_display || item.marked_choice }}
               </v-chip>
               <span v-else class="text-caption text-medium-emphasis">فارغ</span>
-            </td>
+            </div>
+          </template>
 
-            <!-- أزرار التعديل السريع -->
-            <td class="text-center py-1" @click.stop>
-              <div class="d-inline-flex align-center gap-1">
-                <v-btn
-                  v-for="opt in item.options"
-                  :key="opt"
-                  size="x-small"
-                  density="compact"
-                  variant="flat"
-                  :color="getOptionBtnColor(item, opt)"
-                  :loading="overridingLoading === `${item.question_number}-${opt}`"
-                  class="font-weight-black px-2 min-width-0"
-                  style="min-width: 34px; height: 26px;"
-                  @click="onOverrideClick(item, opt)"
-                >
-                  {{ opt }}
-                </v-btn>
-              </div>
-            </td>
+          <!-- أزرار التعديل السريع -->
+          <template v-else-if="key === 'quick_override'">
+            <div class="d-inline-flex align-center justify-center gap-1 py-1" @click.stop>
+              <v-btn
+                v-for="opt in item.options"
+                :key="opt"
+                size="x-small"
+                density="compact"
+                variant="flat"
+                :color="getOptionBtnColor(item, opt)"
+                :loading="overridingLoading === `${item.question_number}-${opt}`"
+                class="font-weight-black px-2 min-width-0"
+                style="min-width: 34px; height: 26px; border-radius: 6px !important;"
+                @click="onOverrideClick(item, opt)"
+              >
+                {{ opt }}
+              </v-btn>
+            </div>
+          </template>
 
-            <!-- حالة السؤال -->
-            <td class="text-center py-1">
+          <!-- حالة السؤال -->
+          <template v-else-if="key === 'status'">
+            <div class="d-flex justify-center cursor-pointer py-1" @click="$emit('select-question', item)">
               <v-chip
                 size="x-small"
                 :color="getStatusChipColor(item)"
                 variant="tonal"
                 class="font-weight-medium px-1.5"
+                style="border-radius: 6px !important;"
               >
                 {{ item.status }}
               </v-chip>
-            </td>
+            </div>
+          </template>
 
-            <!-- الدرجة المستحقة -->
-            <td class="text-center py-1 font-weight-black text-caption">
+          <!-- الدرجة المستحقة -->
+          <template v-else-if="key === 'score'">
+            <div class="d-flex justify-center font-weight-black text-caption py-1 cursor-pointer" @click="$emit('select-question', item)">
               <span :class="item.is_correct ? 'text-success' : 'text-medium-emphasis'">
                 {{ item.score }}
               </span>
-            </td>
-          </tr>
+            </div>
+          </template>
+        </template>
 
-          <!-- ── شاشة الحالة الفارغة التفاعلية (Empty States) ── -->
-          <tr v-if="pagedQuestions.length === 0">
-            <td colspan="7" class="text-center py-10">
-              <div class="d-flex flex-column align-center justify-center gap-3">
-                <div
-                  class="visual-circle rounded-xl d-flex align-center justify-center"
-                  :style="{
-                    width: '68px',
-                    height: '68px',
-                    backgroundColor: `rgba(var(--v-theme-${emptyStateConfig.color}), 0.08)`,
-                    border: `1px solid rgba(var(--v-theme-${emptyStateConfig.color}), 0.18)`
-                  }"
-                >
-                  <v-icon size="36" :color="emptyStateConfig.color">{{ emptyStateConfig.icon }}</v-icon>
-                </div>
-                <div>
-                  <h4 class="text-subtitle-1 font-weight-bold mb-1" style="color: rgb(var(--v-theme-on-surface));">
-                    {{ emptyStateConfig.title }}
-                  </h4>
-                  <p class="text-caption text-medium-emphasis mb-0" style="max-width: 340px; margin: 0 auto; line-height: 1.5;">
-                    {{ emptyStateConfig.desc }}
-                  </p>
-                </div>
-                <v-btn
-                  v-if="searchQuery || activeFilter !== 'all'"
-                  size="small"
-                  variant="tonal"
-                  color="primary"
-                  rounded="lg"
-                  prepend-icon="mdi-filter-remove-outline"
-                  class="mt-1 font-weight-bold"
-                  @click="activeFilter = 'all'; searchQuery = ''"
-                >
-                  إعادة ضبط الفلترة
-                </v-btn>
+        <!-- حالة عدم وجود بيانات أو نتائج مطابقة -->
+        <template #no-data>
+          <div class="text-center py-10">
+            <div class="d-flex flex-column align-center justify-center gap-3">
+              <div
+                class="visual-circle rounded-xl d-flex align-center justify-center"
+                :style="{
+                  width: '64px',
+                  height: '64px',
+                  backgroundColor: `rgba(var(--v-theme-${emptyStateConfig.color}), 0.08)`,
+                  border: `1px solid rgba(var(--v-theme-${emptyStateConfig.color}), 0.18)`
+                }"
+              >
+                <v-icon size="32" :color="emptyStateConfig.color">{{ emptyStateConfig.icon }}</v-icon>
               </div>
-            </td>
-          </tr>
-        </tbody>
-      </v-table>
-    </div>
-
-    <!-- ── شريط التنقل في صفحات الجدول ── -->
-    <div class="d-flex align-center justify-space-between px-3 py-1 bg-surface-variant-subtle rounded-xl border mt-2">
-      <div class="text-caption text-medium-emphasis">
-        عرض {{ pagedQuestions.length }} من إجمالي {{ filteredQuestions.length }} سؤال
-      </div>
-      <v-pagination
-        v-if="pageCount > 1"
-        v-model="currentPage"
-        :length="pageCount"
-        density="compact"
-        total-visible="5"
-        size="small"
-      />
+              <div>
+                <h4 class="text-subtitle-1 font-weight-bold mb-1" style="color: rgb(var(--v-theme-on-surface));">
+                  {{ emptyStateConfig.title }}
+                </h4>
+                <p class="text-caption text-medium-emphasis mb-0" style="max-width: 320px; margin: 0 auto; line-height: 1.5;">
+                  {{ emptyStateConfig.desc }}
+                </p>
+              </div>
+              <v-btn
+                v-if="searchQuery || activeFilter !== 'all'"
+                size="small"
+                variant="tonal"
+                color="primary"
+                rounded="lg"
+                prepend-icon="mdi-filter-remove-outline"
+                class="mt-1 font-weight-bold"
+                @click="activeFilter = 'all'; searchQuery = ''"
+              >
+                إعادة ضبط الفلترة
+              </v-btn>
+            </div>
+          </div>
+        </template>
+      </custom-data-table>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { normalizeChoice, getStatusChip } from './reviewUtils'
 
 const props = defineProps<{
@@ -233,6 +228,16 @@ const activeFilter = ref<'all' | 'ambiguous' | 'wrong' | 'correct' | 'empty'>('a
 const searchQuery = ref('')
 const currentPage = ref(1)
 const pageSize = ref(15)
+
+const reviewHeaders = [
+  { title: "رقم السؤال", key: "question_number", sortable: true, align: "center", width: "95px" },
+  { title: "نوع السؤال", key: "question_type", sortable: false, align: "center", width: "115px" },
+  { title: "الإجابة النموذجية", key: "correct_choice", sortable: false, align: "center", width: "125px" },
+  { title: "تظليل الطالب", key: "marked_choice", sortable: false, align: "center", width: "125px" },
+  { title: "تعديل سريع للإجابة", key: "quick_override", sortable: false, align: "center", minWidth: "190px" },
+  { title: "الحالة", key: "status", sortable: false, align: "center", width: "105px" },
+  { title: "الدرجة", key: "score", sortable: true, align: "center", width: "85px" },
+]
 
 const ambiguousCount = computed(() => {
   return props.questions.filter(q => q.bubble_state === 'ambiguous' || (q.final_confidence && q.final_confidence < 0.7)).length
@@ -273,14 +278,51 @@ const filteredQuestions = computed(() => {
   return list
 })
 
-const pageCount = computed(() => {
-  return Math.ceil(filteredQuestions.value.length / pageSize.value) || 1
+const reviewTableItems = ref({
+  results: [] as any[],
+  count: 0,
+  pagination: {
+    count: 0,
+    total: 0,
+    num_pages: 1,
+    current_page: 1,
+  },
 })
 
-const pagedQuestions = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  return filteredQuestions.value.slice(start, start + pageSize.value)
+const getReviewData = (params: any = {}) => {
+  const p = params?.params || params || {}
+  const page = p.page || currentPage.value || 1
+  const size = p.page_size || pageSize.value || 15
+  currentPage.value = page
+  pageSize.value = size
+  const all = filteredQuestions.value || []
+  const start = (page - 1) * size
+  reviewTableItems.value = {
+    results: all.slice(start, start + size),
+    count: all.length,
+    pagination: {
+      count: all.length,
+      total: all.length,
+      num_pages: Math.ceil(all.length / size) || 1,
+      current_page: page,
+    },
+  }
+  return reviewTableItems.value
+}
+
+watch([() => props.questions, filteredQuestions], () => {
+  getReviewData({ params: { page: currentPage.value, page_size: pageSize.value } })
+}, { immediate: true, deep: true })
+
+watch([activeFilter, searchQuery], () => {
+  currentPage.value = 1
+  getReviewData({ params: { page: 1, page_size: pageSize.value } })
 })
+
+const getRowClass = (item: any) => {
+  const isSelected = props.selectedQuestion?.question_number === item.question_number
+  return isSelected ? 'selected-question-row cursor-pointer' : 'cursor-pointer'
+}
 
 const emptyStateConfig = computed(() => {
   if (!props.questions || props.questions.length === 0) {
@@ -359,13 +401,13 @@ function onOverrideClick(item: any, opt: string) {
 </script>
 
 <style scoped>
-.unified-review-table {
-  border-collapse: separate;
+:deep(.selected-question-row td) {
+  background-color: rgba(var(--v-theme-primary), 0.12) !important;
 }
-.question-row:hover {
-  background-color: rgba(var(--v-theme-primary), 0.04);
+:deep(tr.cursor-pointer:hover td) {
+  background-color: rgba(var(--v-theme-primary), 0.05);
 }
-.selected-row {
-  background-color: rgba(var(--v-theme-primary), 0.08) !important;
+:deep(.custom-data-table-toolbar) {
+  display: none !important;
 }
 </style>
