@@ -11,39 +11,81 @@
     <v-card class="rounded-2xl overflow-hidden main-card d-flex flex-column" style="height: 94vh; max-height: 96vh;" v-if="activeReviewSheet">
       <!-- ── رأس نافذة المراجعة والتدقيق ── -->
       <v-card-title class="d-flex align-center justify-space-between bg-surface px-5 py-3 border-b flex-wrap gap-2">
-        <!-- بيانات الطالب والورقة -->
+        <!-- بيانات الطالب والورقة المحدثة -->
         <div class="d-flex align-center gap-3 flex-wrap">
-          <v-avatar color="primary" variant="tonal" size="44" rounded="xl">
-            <v-icon size="26" color="primary">mdi-account-check-outline</v-icon>
+          <v-avatar
+            color="primary"
+            variant="tonal"
+            size="46"
+            rounded="lg"
+            class="border"
+          >
+            <v-icon size="26" color="primary">
+              {{ isStudentIdentified ? 'mdi-account-check-outline' : 'mdi-barcode-scan' }}
+            </v-icon>
           </v-avatar>
 
           <div>
-            <div class="d-flex align-center gap-2">
-              <span class="font-weight-black text-h6 text-primary">
-                {{ activeReviewSheet.student_name || 'طالب اختبار' }}
+            <div class="d-flex align-center gap-2 flex-wrap">
+              <span class="font-weight-black text-h6 text-high-emphasis">
+                {{ activeReviewSheet.student_name || 'طالب غير محدد (تعذر قراءة الباركود)' }}
               </span>
-              <v-chip size="small" variant="tonal" color="indigo" class="font-weight-bold">
-                جلوس: {{ activeReviewSheet.seat_number || 'غير مسجل' }}
-              </v-chip>
-              <v-chip size="small" variant="flat" color="primary" class="font-weight-bold">
-                نموذج {{ activeReviewSheet.version_code || 'A' }}
-              </v-chip>
+
+              <!-- جلوس الطالب بتصميم الشارة الموحدة المستطيلة الزرقاء -->
+              <div class="center-count-badge unified-badge-primary px-2.5 py-0.5 text-caption font-weight-bold d-inline-flex align-center gap-1">
+                <v-icon size="14">mdi-numeric</v-icon>
+                <span>جلوس:</span>
+                <span class="font-mono">{{ activeReviewSheet.seat_number || 'غير مسجل' }}</span>
+              </div>
+
+              <!-- نموذج الاختبار بتصميم الشارة الموحدة المستطيلة الزرقاء -->
+              <div class="center-count-badge unified-badge-primary px-2.5 py-0.5 text-caption font-weight-bold d-inline-flex align-center gap-1">
+                <v-icon size="14">mdi-layers-outline</v-icon>
+                <span>نموذج</span>
+                <span class="font-mono">{{ activeReviewSheet.version_code || 'A' }}</span>
+              </div>
             </div>
-            <div class="text-caption text-medium-emphasis d-flex align-center gap-2 mt-0.5">
-              <span>{{ activeReviewSheet.exam_title || 'الاختبار الأكاديمي الموحد' }}</span>
-              <span v-if="activeReviewSheet.school_name">• {{ activeReviewSheet.school_name }}</span>
-              <span>• معرف التسليم: #{{ activeReviewSheet.submission || activeReviewSheet.id }}</span>
+
+            <!-- السطر الفرعي للبيانات الأكاديمية بالأيقونات المؤسسية -->
+            <div class="text-caption text-medium-emphasis d-flex align-center gap-2 mt-1 flex-wrap">
+              <div class="d-flex align-center gap-1">
+                <v-icon size="14" color="primary">mdi-book-education-outline</v-icon>
+                <span class="font-weight-medium text-high-emphasis">{{ activeReviewSheet.exam_title || 'الاختبار الأكاديمي الموحد' }}</span>
+              </div>
+              <span v-if="activeReviewSheet.school_name" class="d-flex align-center gap-1">
+                <span class="opacity-50">•</span>
+                <v-icon size="14" color="medium-emphasis">mdi-school-outline</v-icon>
+                <span>{{ activeReviewSheet.school_name }}</span>
+              </span>
+              <span class="d-flex align-center gap-1">
+                <span class="opacity-50">•</span>
+                <v-icon size="14" color="medium-emphasis">mdi-barcode-scan</v-icon>
+                <span>معرف التسليم: <strong class="font-mono text-high-emphasis">#{{ activeReviewSheet.submission || activeReviewSheet.id }}</strong></span>
+              </span>
             </div>
           </div>
         </div>
 
         <!-- أزرار التنقل والحفظ والتحكم بالشاشة -->
         <div class="d-flex align-center gap-2">
-          <!-- الدرجة الحالية والمراجعة -->
-          <div class="text-end me-3 d-none d-md-block">
-            <div class="text-caption text-medium-emphasis">الدرجة المحتسبة</div>
-            <div class="font-weight-black text-body-1 text-primary">
-              {{ activeReviewSheet.mcq_score ?? 0 }} / {{ activeReviewSheet.mcq_max_score ?? activeReviewSheet.total_questions ?? 0 }}
+          <!-- بطاقة الدرجة المحتسبة بنمط مؤشرات KPI الموحد الأنيق -->
+          <div class="px-3 py-1.5 rounded-lg border bg-surface-variant-subtle d-flex align-center gap-3 me-2">
+            <div>
+              <div class="text-caption text-medium-emphasis font-weight-medium" style="font-size: 11px !important;">الدرجة المحتسبة</div>
+              <div class="d-flex align-baseline gap-1">
+                <span class="font-weight-black text-h6 text-primary font-mono leading-none">
+                  {{ Number(activeReviewSheet.mcq_score ?? 0).toFixed(2) }}
+                </span>
+                <span class="text-caption text-medium-emphasis font-mono">
+                  / {{ Number(activeReviewSheet.mcq_max_score ?? activeReviewSheet.total_questions ?? 0).toFixed(2) }}
+                </span>
+              </div>
+            </div>
+            <div
+              class="center-count-badge unified-badge-primary px-2 py-0.5 text-caption font-mono font-weight-bold"
+              style="font-size: 11px !important;"
+            >
+              {{ Math.round(((activeReviewSheet.mcq_score ?? 0) / (activeReviewSheet.mcq_max_score || activeReviewSheet.total_questions || 1)) * 100) }}%
             </div>
           </div>
 
@@ -124,7 +166,7 @@
         <div class="d-flex align-center gap-2 text-caption text-medium-emphasis">
           <v-icon size="16" color="primary">mdi-shield-check-outline</v-icon>
           <span>التدقيق الجنائي والرقابي موثق بنظام OMR Audit Log</span>
-          <span v-if="activeReviewSheet.ambiguous_count > 0" class="text-warning font-weight-bold">
+          <span v-if="activeReviewSheet.ambiguous_count > 0" class="text-primary font-weight-bold">
             • توجد {{ activeReviewSheet.ambiguous_count }} إجابات بحاجة لمراجعة
           </span>
         </div>
@@ -182,6 +224,16 @@ const emit = defineEmits<{
 const isFullScreen = ref(false)
 const selectedQuestion = ref<any>(null)
 
+const isStudentIdentified = computed(() => {
+  const name = props.activeReviewSheet?.student_name || ''
+  return Boolean(name && !name.includes('غير محدد') && !name.includes('تعذر'))
+})
+
+const hasValidSeat = computed(() => {
+  const seat = props.activeReviewSheet?.seat_number
+  return Boolean(seat && seat !== 'غير مسجل' && seat !== '—')
+})
+
 const enrichedQuestions = computed(() => {
   const rawQs = props.activeReviewSheet?.questions || []
   const total = props.activeReviewSheet?.total_questions || rawQs.length || 50
@@ -219,5 +271,40 @@ function onOverrideChoice(payload: { question: any; choice: string }) {
   .review-split-layout {
     overflow-y: auto;
   }
+}
+
+.center-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--v-theme-surface-variant), 0.35);
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 6px !important;
+  font-size: 0.74rem;
+  line-height: 1.2;
+}
+
+.unified-badge-primary {
+  background: rgba(var(--v-theme-primary), 0.1) !important;
+  color: rgb(var(--v-theme-primary)) !important;
+  border: 1px solid rgba(var(--v-theme-primary), 0.25) !important;
+}
+
+.unified-badge-warning {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #b45309 !important;
+  border: 1px solid rgba(245, 158, 11, 0.25) !important;
+}
+
+.unified-badge-error {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #dc2626 !important;
+  border: 1px solid rgba(239, 68, 68, 0.25) !important;
+}
+
+.unified-badge-secondary {
+  background: rgba(var(--v-theme-secondary), 0.12) !important;
+  color: rgb(var(--v-theme-secondary)) !important;
+  border: 1px solid rgba(var(--v-theme-secondary), 0.25) !important;
 }
 </style>

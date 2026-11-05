@@ -4,7 +4,10 @@
     <div class="image-controls-bar d-flex align-center justify-space-between flex-wrap gap-2 mb-2 px-3 py-1.5 bg-surface-variant-subtle rounded-xl border">
       <!-- تبديل نوع الصورة الممسوحة الحقيقية (المحاذاة vs الأصلية) -->
       <div class="d-flex align-center gap-2">
-        <span class="text-caption font-weight-bold text-medium-emphasis">صورة المسح:</span>
+        <div class="d-flex align-center gap-1.5 text-caption font-weight-bold text-medium-emphasis">
+          <v-icon size="16" color="primary">mdi-camera-metering-spot</v-icon>
+          <span>صورة المسح:</span>
+        </div>
         <v-btn-toggle
           v-model="imageMode"
           mandatory
@@ -13,34 +16,36 @@
           rounded="lg"
           variant="flat"
         >
-          <v-btn value="aligned" size="x-small" prepend-icon="mdi-image-filter-center-focus">
+          <v-btn value="aligned" size="x-small" prepend-icon="mdi-image-filter-center-focus" class="font-weight-bold">
             المُحاذاة (Aligned)
           </v-btn>
-          <v-btn value="original" size="x-small" prepend-icon="mdi-image-outline">
+          <v-btn value="original" size="x-small" prepend-icon="mdi-image-outline" class="font-weight-bold">
             الأصلية (Raw)
           </v-btn>
         </v-btn-toggle>
       </div>
 
       <!-- أدوات التكبير والتدوير والتباين للصورة الحقيقية -->
-      <div class="d-flex align-center gap-1">
+      <div class="d-flex align-center gap-1.5">
         <v-btn
           icon="mdi-magnify-minus-outline"
           size="x-small"
           variant="tonal"
           density="comfortable"
+          rounded="lg"
           title="تصغير (-15%)"
           :disabled="imageZoom <= 0.4"
           @click="zoomImage(-0.15)"
         />
-        <span class="text-caption font-weight-black text-center" style="min-width: 42px;">
+        <div class="center-count-badge unified-badge-primary px-2.5 py-0.5 text-caption font-mono font-weight-black" style="min-width: 48px;">
           {{ Math.round(imageZoom * 100) }}%
-        </span>
+        </div>
         <v-btn
           icon="mdi-magnify-plus-outline"
           size="x-small"
           variant="tonal"
           density="comfortable"
+          rounded="lg"
           title="تكبير (+15%)"
           :disabled="imageZoom >= 3.0"
           @click="zoomImage(0.15)"
@@ -50,6 +55,7 @@
           size="x-small"
           variant="tonal"
           density="comfortable"
+          rounded="lg"
           title="إعادة ضبط الحجم والتدوير"
           @click="resetImageControls"
         />
@@ -59,15 +65,17 @@
           size="x-small"
           variant="tonal"
           density="comfortable"
+          rounded="lg"
           title="تدوير 90 درجة مع عقارب الساعة"
           @click="rotateImage(90)"
         />
         <v-btn
           :icon="isHighContrast ? 'mdi-contrast-circle' : 'mdi-contrast'"
           size="x-small"
-          :color="isHighContrast ? 'amber-darken-3' : undefined"
+          :color="isHighContrast ? 'primary' : undefined"
           variant="tonal"
           density="comfortable"
+          rounded="lg"
           title="تعزيز تباين الرصاص الخافت (High Contrast)"
           @click="isHighContrast = !isHighContrast"
         />
@@ -77,6 +85,7 @@
           size="x-small"
           variant="tonal"
           density="comfortable"
+          rounded="lg"
           title="فتح الصورة الحقيقية بحجمها الكامل في نافذة جديدة"
           :href="sheetImageUrl"
           target="_blank"
@@ -101,8 +110,8 @@
 
       <!-- حالة تنبيه حقيقية وصادقة عند تعذر وجود أو تحميل ملف الصورة الحقيقي (بدون أي رسم وهمي) -->
       <div v-else class="text-center pa-8 text-medium-emphasis">
-        <v-avatar color="warning" variant="tonal" size="64" rounded="xl" class="mb-3">
-          <v-icon size="32" color="warning">mdi-image-off-outline</v-icon>
+        <v-avatar color="primary" variant="tonal" size="64" rounded="xl" class="mb-3">
+          <v-icon size="32" color="primary">mdi-image-off-outline</v-icon>
         </v-avatar>
         <div class="font-weight-black text-body-1 mb-1 text-on-surface">
           تعذر تحميل الصورة الممسوحة الحقيقية لهذه الورقة
@@ -130,53 +139,62 @@
       </div>
     </div>
 
-    <!-- ── بطاقة فحص السؤال المحدد وكثافة التظليل (Spotlight Card) ── -->
+    <!-- ── بطاقة فحص السؤال المحدد وكثافة التظليل (Spotlight Card) بتصميم موحد أنيق ── -->
     <div class="question-spotlight-bar mt-2 pa-2.5 rounded-xl border bg-surface" v-if="selectedQuestion">
       <div class="d-flex align-center justify-space-between flex-wrap gap-2">
-        <!-- شارة رقم السؤال ونوعه -->
-        <div class="spotlight-badge question-badge d-flex align-center gap-1 px-2.5 py-1 rounded-lg bg-blue-lighten-5 text-primary font-weight-black">
-          <v-icon size="14" color="primary">mdi-crosshairs-gps</v-icon>
-          <span>السؤال #{{ selectedQuestion.question_number }}</span>
-          <v-chip size="x-small" :color="selectedQuestion.is_true_false ? 'teal' : 'indigo'" variant="tonal" class="ms-1 font-weight-bold">
-            {{ selectedQuestion.is_true_false ? 'صح وخطأ' : 'اختيارات' }}
-          </v-chip>
-        </div>
+        <!-- شارة رقم السؤال ونوعه وحالته -->
+        <div class="d-flex align-center gap-2 flex-wrap">
+          <!-- رقم السؤال عادي بدون إفراط -->
+          <div class="center-count-badge unified-badge-primary px-3 py-1 text-caption font-weight-black d-inline-flex align-center gap-1.5">
+            <v-icon size="15" color="primary">mdi-crosshairs-gps</v-icon>
+            <span>السؤال</span>
+            <span class="font-mono text-body-2 font-weight-black">{{ selectedQuestion.question_number }}</span>
+          </div>
 
-        <!-- حالة النتيجة -->
-        <div class="d-flex align-center gap-1">
-          <v-chip
-            size="small"
-            :color="statusChipColor"
-            variant="tonal"
-            class="font-weight-black"
+          <!-- نوع السؤال -->
+          <div class="center-count-badge unified-badge-secondary px-2.5 py-1 text-caption font-weight-bold d-inline-flex align-center gap-1">
+            <v-icon size="14">{{ selectedQuestion.is_true_false ? 'mdi-check-all' : 'mdi-format-list-bulleted' }}</v-icon>
+            <span>{{ selectedQuestion.is_true_false ? 'صح وخطأ' : 'اختيارات' }}</span>
+          </div>
+
+          <!-- حالة السؤال -->
+          <div
+            class="center-count-badge px-2.5 py-1 text-caption font-weight-bold d-inline-flex align-center gap-1"
+            :class="selectedQuestion.is_correct ? 'unified-badge-primary' : (selectedQuestion.marked_choice && selectedQuestion.marked_choice !== 'لم يُجب (فارغ)' ? 'unified-badge-error' : 'unified-badge-primary')"
           >
-            <v-icon start size="14">{{ statusChipIcon }}</v-icon>
-            {{ selectedQuestion.status || (selectedQuestion.is_correct ? 'صحيحة' : 'خاطئة') }}
-          </v-chip>
+            <v-icon size="14">{{ statusChipIcon }}</v-icon>
+            <span>{{ selectedQuestion.status || (selectedQuestion.is_correct ? 'صحيحة' : 'خاطئة') }}</span>
+          </div>
         </div>
 
-        <!-- تظليل الطالب -->
-        <div class="spotlight-badge value-badge text-body-2">
-          <span class="text-medium-emphasis me-1">تظليل الطالب:</span>
-          <strong :class="selectedQuestion.is_correct ? 'text-success font-weight-black' : (selectedQuestion.marked_choice ? 'text-error font-weight-black' : 'text-medium-emphasis')">
-            {{ selectedQuestion.marked_choice_display || selectedQuestion.marked_choice || 'فارغ' }}
-          </strong>
-        </div>
+        <!-- تفاصيل تظليل الطالب والنموذجية والدرجة -->
+        <div class="d-flex align-center gap-2 flex-wrap">
+          <!-- تظليل الطالب -->
+          <div class="d-flex align-center gap-1.5 px-2.5 py-1 rounded-lg border bg-surface-variant-subtle text-caption">
+            <span class="text-medium-emphasis font-weight-medium">تظليل الطالب:</span>
+            <div
+              class="center-count-badge px-2 py-0.5 font-weight-black text-caption"
+              :class="selectedQuestion.is_correct ? 'unified-badge-primary' : (selectedQuestion.marked_choice && selectedQuestion.marked_choice !== 'لم يُجب (فارغ)' ? 'unified-badge-error' : 'unified-badge-grey')"
+            >
+              {{ selectedQuestion.marked_choice_display || selectedQuestion.marked_choice || 'فارغ' }}
+            </div>
+          </div>
 
-        <!-- الإجابة النموذجية -->
-        <div class="spotlight-badge value-badge text-body-2">
-          <span class="text-medium-emphasis me-1">النموذجية:</span>
-          <strong class="text-success font-weight-black">
-            {{ selectedQuestion.correct_choice_display || selectedQuestion.correct_choice || 'لم تُحدد' }}
-          </strong>
-        </div>
+          <!-- الإجابة النموذجية -->
+          <div class="d-flex align-center gap-1.5 px-2.5 py-1 rounded-lg border bg-surface-variant-subtle text-caption">
+            <span class="text-medium-emphasis font-weight-medium">النموذجية:</span>
+            <div class="center-count-badge unified-badge-primary px-2 py-0.5 font-weight-black text-caption">
+              {{ selectedQuestion.correct_choice_display || selectedQuestion.correct_choice || 'لم تُحدد' }}
+            </div>
+          </div>
 
-        <!-- الدرجة المستحقة -->
-        <div class="spotlight-badge value-badge text-body-2">
-          <span class="text-medium-emphasis me-1">الدرجة:</span>
-          <strong class="text-primary font-weight-black">
-            {{ selectedQuestion.score || (selectedQuestion.is_correct ? '1.0' : '0.0') }}
-          </strong>
+          <!-- الدرجة -->
+          <div class="d-flex align-center gap-1.5 px-2.5 py-1 rounded-lg border bg-surface-variant-subtle text-caption">
+            <span class="text-medium-emphasis font-weight-medium">الدرجة:</span>
+            <span class="font-mono font-weight-black text-body-2" :class="selectedQuestion.is_correct ? 'text-primary' : 'text-medium-emphasis'">
+              {{ selectedQuestion.score || (selectedQuestion.is_correct ? '1.0' : '0.0') }}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -284,5 +302,46 @@ const statusChipIcon = computed(() => {
 }
 .question-spotlight-bar {
   border-color: rgba(var(--v-border-color), 0.12) !important;
+}
+
+.center-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--v-theme-surface-variant), 0.35);
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 6px !important;
+  font-size: 0.74rem;
+  line-height: 1.2;
+}
+
+.unified-badge-primary {
+  background: rgba(var(--v-theme-primary), 0.1) !important;
+  color: rgb(var(--v-theme-primary)) !important;
+  border: 1px solid rgba(var(--v-theme-primary), 0.25) !important;
+}
+
+.unified-badge-warning {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #b45309 !important;
+  border: 1px solid rgba(245, 158, 11, 0.25) !important;
+}
+
+.unified-badge-error {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #dc2626 !important;
+  border: 1px solid rgba(239, 68, 68, 0.25) !important;
+}
+
+.unified-badge-secondary {
+  background: rgba(var(--v-theme-secondary), 0.12) !important;
+  color: rgb(var(--v-theme-secondary)) !important;
+  border: 1px solid rgba(var(--v-theme-secondary), 0.25) !important;
+}
+
+.unified-badge-grey {
+  background: rgba(148, 163, 184, 0.14) !important;
+  color: #64748b !important;
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
 }
 </style>

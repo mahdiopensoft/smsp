@@ -12,7 +12,7 @@
         <v-chip value="all" size="small" variant="tonal" filter style="border-radius: 6px !important;">
           الكل ({{ questions.length }})
         </v-chip>
-        <v-chip value="ambiguous" size="small" color="warning" variant="tonal" filter style="border-radius: 6px !important;">
+        <v-chip value="ambiguous" size="small" color="primary" variant="tonal" filter style="border-radius: 6px !important;">
           ملتبسة ({{ ambiguousCount }})
         </v-chip>
         <v-chip value="wrong" size="small" color="error" variant="tonal" filter style="border-radius: 6px !important;">
@@ -357,7 +357,7 @@ const emptyStateConfig = computed(() => {
   if (activeFilter.value === 'correct') {
     return {
       icon: 'mdi-alert-circle-outline',
-      color: 'warning',
+      color: 'primary',
       title: 'لا توجد أسئلة صحيحة في هذا النطاق',
       desc: 'لم يتم تسجيل درجات كاملة للأسئلة المحددة حالياً.'
     }

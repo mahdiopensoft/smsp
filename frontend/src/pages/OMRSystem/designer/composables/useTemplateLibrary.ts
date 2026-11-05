@@ -5,33 +5,34 @@ export function useTemplateLibrary(props: { templates: any[] }) {
   const searchQuery = ref('')
   const filterCategory = ref('all')
   const filterQuestions = ref('all')
-  const filterActive = ref<boolean | null>(null)
+  const filterActive = ref<any>('all')
 
   const showDeleteDialog = ref(false)
   const templateToDelete = ref<any>(null)
   const isDeleting = ref(false)
 
   const categoryOptions = [
-    { text: 'كافة الأنواع (الكل)', value: 'all' },
-    { text: 'وزارة التربية والتعليم (المدارس)', value: 'ministry' },
-    { text: 'الجامعات والتعليم العالي', value: 'university' },
-    { text: 'المعاهد والتدريب المهني', value: 'institute' },
-    { text: 'قوالب مخصصة', value: 'custom' },
+    { id: 'all', name: 'كافة الأنواع (الكل)', text: 'كافة الأنواع (الكل)', value: 'all', title: 'كافة الأنواع (الكل)' },
+    { id: 'ministry', name: 'وزارة التربية والتعليم (المدارس)', text: 'وزارة التربية والتعليم (المدارس)', value: 'ministry', title: 'وزارة التربية والتعليم (المدارس)' },
+    { id: 'university', name: 'الجامعات والتعليم العالي', text: 'الجامعات والتعليم العالي', value: 'university', title: 'الجامعات والتعليم العالي' },
+    { id: 'institute', name: 'المعاهد والتدريب المهني', text: 'المعاهد والتدريب المهني', value: 'institute', title: 'المعاهد والتدريب المهني' },
+    { id: 'custom', name: 'قوالب مخصصة', text: 'قوالب مخصصة', value: 'custom', title: 'قوالب مخصصة' },
   ]
 
   const questionCountOptions = [
-    { text: 'كافة السعات', value: 'all' },
-    { text: '20 سؤال (سريع)', value: 20 },
-    { text: '40 سؤال (معياري)', value: 40 },
-    { text: '50 سؤال (وزاري رسمي)', value: 50 },
-    { text: '60 سؤال (فصلي)', value: 60 },
-    { text: '100 سؤال (نصف سنوي)', value: 100 },
-    { text: '180 سؤال (جامعي شامل)', value: 180 },
+    { id: 'all', name: 'كافة السعات', text: 'كافة السعات', value: 'all', title: 'كافة السعات' },
+    { id: 20, name: '20 سؤال (سريع)', text: '20 سؤال (سريع)', value: 20, title: '20 سؤال (سريع)' },
+    { id: 40, name: '40 سؤال (معياري)', text: '40 سؤال (معياري)', value: 40, title: '40 سؤال (معياري)' },
+    { id: 50, name: '50 سؤال (وزاري رسمي)', text: '50 سؤال (وزاري رسمي)', value: 50, title: '50 سؤال (وزاري رسمي)' },
+    { id: 60, name: '60 سؤال (فصلي)', text: '60 سؤال (فصلي)', value: 60, title: '60 سؤال (فصلي)' },
+    { id: 100, name: '100 سؤال (نصف سنوي)', text: '100 سؤال (نصف سنوي)', value: 100, title: '100 سؤال (نصف سنوي)' },
+    { id: 180, name: '180 سؤال (جامعي شامل)', text: '180 سؤال (جامعي شامل)', value: 180, title: '180 سؤال (جامعي شامل)' },
   ]
 
   const activeOptions = [
-    { text: 'مفعل', value: true },
-    { text: 'غير مفعل', value: false },
+    { id: 'all', name: 'كافة الحالات (الكل)', text: 'كافة الحالات (الكل)', value: 'all', title: 'كافة الحالات (الكل)' },
+    { id: true, name: 'مفعل', text: 'مفعل', value: true, title: 'مفعل' },
+    { id: false, name: 'غير مفعل', text: 'غير مفعل', value: false, title: 'غير مفعل' },
   ]
 
   const headers = computed(() => [
@@ -168,10 +169,11 @@ export function useTemplateLibrary(props: { templates: any[] }) {
       list = list.filter((t) => getQuestionsCount(t) === targetQ)
     }
 
-    if (filterActive.value !== null && filterActive.value !== undefined) {
+    if (filterActive.value !== null && filterActive.value !== undefined && filterActive.value !== 'all') {
+      const targetActive = filterActive.value === true || filterActive.value === 'true'
       list = list.filter((t) => {
         const active = t.is_active !== false
-        return active === filterActive.value
+        return active === targetActive
       })
     }
 
@@ -240,7 +242,7 @@ export function useTemplateLibrary(props: { templates: any[] }) {
     searchQuery.value = ''
     filterCategory.value = 'all'
     filterQuestions.value = 'all'
-    filterActive.value = null
+    filterActive.value = 'all'
   }
 
   function confirmDeleteTemplate(t: any) {

@@ -84,41 +84,33 @@
       <v-row dense class="align-center">
         <!-- Search Query Input -->
         <v-col cols="12" sm="6" md="5">
-          <v-text-field
+          <custom-text-field
             v-model="searchQuery"
             label="اسم الطالب أو الاختبار"
             placeholder="بحث باسم الطالب أو الاختبار..."
-            prepend-inner-icon="mdi-magnify"
+            icon="magnify"
+            cols="12"
+            :hideDetails="true"
             clearable
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            class="mb-3"
-            hide-details
           />
         </v-col>
 
         <!-- Status Filter -->
         <v-col cols="12" sm="6" md="4">
-          <v-select
+          <auto-list
             v-model="selectedStatus"
-            :items="statusOptions"
-            item-title="label"
-            item-value="value"
+            name="ScreenTypeChoices"
+            :objects="statusObjects"
             label="حالة التصحيح"
-            placeholder="حالة التصحيح"
-            prepend-inner-icon="mdi-check-decagram-outline"
-            clearable
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            class="mb-3"
-            hide-details
+            placeholder="تصفية بحالة الورقة..."
+            cols="12"
+            :add="false"
+            :hideDetails="true"
           />
         </v-col>
 
         <!-- Actions -->
-        <v-col cols="12" sm="12" md="3" class="d-flex align-center justify-end gap-2 mb-3">
+        <v-col cols="12" sm="12" md="3" class="d-flex align-center justify-end gap-2">
           <custom-btn
             type="show"
             label="تصفية النتائج"
@@ -246,12 +238,14 @@ const searchQuery = ref('')
 const selectedStatus = ref('all')
 
 const statusOptions = [
-  { label: 'كافة الحالات', value: 'all' },
-  { label: 'مكتمل بنجاح', value: 'completed' },
-  { label: 'بانتظار المراجعة', value: 'needs_review' },
-  { label: 'فشل المعالجة', value: 'failed' },
-  { label: 'قيد المعالجة', value: 'processing' },
+  { id: 'all', name: 'كافة الحالات (الكل)', value: 'all', title: 'كافة الحالات (الكل)', label: 'كافة الحالات (الكل)' },
+  { id: 'completed', name: 'مكتمل بنجاح', value: 'completed', title: 'مكتمل بنجاح', label: 'مكتمل بنجاح' },
+  { id: 'needs_review', name: 'بانتظار المراجعة', value: 'needs_review', title: 'بانتظار المراجعة', label: 'بانتظار المراجعة' },
+  { id: 'failed', name: 'فشل المعالجة', value: 'failed', title: 'فشل المعالجة', label: 'فشل المعالجة' },
+  { id: 'processing', name: 'قيد المعالجة', value: 'processing', title: 'قيد المعالجة', label: 'قيد المعالجة' },
 ]
+
+const statusObjects = computed(() => statusOptions)
 
 const stats = ref({
   total_exams: 0,

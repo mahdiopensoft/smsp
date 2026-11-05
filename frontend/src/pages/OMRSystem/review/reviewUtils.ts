@@ -143,7 +143,7 @@ export function resolveSheetImageUrl(sheet: any, imageMode: 'aligned' | 'origina
 export function getStatusChip(q: any): { text: string; color: string; icon: string } {
   if (!q) return { text: 'لم يُجب (فارغ)', color: 'grey', icon: 'mdi-circle-outline' }
   if (q.bubble_state === 'ambiguous') {
-    return { text: 'ملتبس', color: 'warning', icon: 'mdi-alert-outline' }
+    return { text: 'ملتبس', color: 'primary', icon: 'mdi-help-circle-outline' }
   }
   if (q.is_correct === true) {
     return { text: 'صحيحة', color: 'success', icon: 'mdi-check-circle-outline' }
