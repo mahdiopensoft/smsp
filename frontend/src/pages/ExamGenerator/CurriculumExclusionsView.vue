@@ -799,7 +799,6 @@ const exclusionsTableHeaders = [
   { title: 'المحتوى المستبعد', key: 'target_name', sortable: true },
   { title: 'قرار / مبرر الحذف', key: 'reason', sortable: false },
   { title: 'الحالة', key: 'is_active', align: 'center', sortable: true },
-  { title: 'الإجراءات', key: 'actions', align: 'center', sortable: false },
 ]
 
 

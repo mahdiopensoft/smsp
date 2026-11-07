@@ -326,250 +326,299 @@
                     <tr>
                       <th style="width: 45px;" class="text-center">#</th>
                       <th style="width: 140px;">نوع السؤال</th>
-                      <th style="min-width: 220px;">نص السؤال</th>
+                      <th style="min-width: 200px;">نص السؤال</th>
                       <th style="width: 110px;">الخيار 1</th>
                       <th style="width: 110px;">الخيار 2</th>
                       <th style="width: 110px;">الخيار 3</th>
                       <th style="width: 110px;">الخيار 4</th>
-                      <th style="width: 130px;">الإجابة الصحيحة</th>
+                      <th style="width: 150px;">الإجابة الصحيحة</th>
                       <th style="width: 65px;" class="text-center">الدرجة</th>
                       <th style="width: 80px;" class="text-center">الحالة</th>
                       <th style="width: 90px;" class="text-center">إجراءات</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr
-                      v-for="(row, idx) in filteredPreviewRows"
-                      :key="row.uid"
-                      :class="{ 'editing-row': editingUid === row.uid, 'has-error': row.errors.length > 0 }"
-                    >
-                      <!-- # -->
-                      <td class="text-center text-caption font-weight-bold">{{ row.rowNum }}</td>
+                    <template v-for="(row, idx) in filteredPreviewRows" :key="row.uid">
+                      <tr
+                        :class="{ 'editing-row': editingUid === row.uid, 'has-error': row.errors.length > 0 }"
+                      >
+                        <!-- # -->
+                        <td class="text-center text-caption font-weight-bold">{{ row.rowNum }}</td>
 
-                      <!-- Question Type -->
-                      <td>
-                        <template v-if="editingUid === row.uid">
-                          <v-select
-                            v-model="editForm.type"
-                            :items="questionTypes"
-                            item-title="title"
-                            item-value="value"
-                            density="compact"
-                            variant="outlined"
-                            hide-details
-                            class="table-inline-input"
-                            @update:model-value="onInlineTypeChange"
-                          />
-                        </template>
-                        <template v-else>
-                          <span class="text-caption font-weight-medium">{{ getTypeText(row.type) }}</span>
-                        </template>
-                      </td>
-
-                      <!-- Question Content Text -->
-                      <td>
-                        <template v-if="editingUid === row.uid">
-                          <v-text-field
-                            v-model="editForm.text"
-                            placeholder="اكتب نص السؤال هنا..."
-                            density="compact"
-                            variant="outlined"
-                            hide-details
-                            class="table-inline-input"
-                          />
-                        </template>
-                        <template v-else>
-                          <div class="text-truncate text-caption" style="max-width: 250px;" :title="row.text">
-                            <span v-if="!row.text" class="text-error font-weight-bold">
-                              • نص السؤال فارغ
-                            </span>
-                            <span v-else>{{ row.text }}</span>
-                          </div>
-                        </template>
-                      </td>
-
-                      <!-- Option 1 -->
-                      <td>
-                        <template v-if="editingUid === row.uid">
-                          <v-text-field
-                            v-model="editForm.opt1"
-                            :disabled="!needsOptions(editForm.type)"
-                            placeholder="الخيار 1"
-                            density="compact"
-                            variant="outlined"
-                            hide-details
-                            class="table-inline-input"
-                          />
-                        </template>
-                        <template v-else>
-                          <div class="text-truncate text-caption" style="max-width: 110px;" :title="row.opt1">
-                            <span v-if="needsOptions(row.type) && !row.opt1" class="text-error">
-                              • فارغ
-                            </span>
-                            <span v-else>{{ row.opt1 || (needsOptions(row.type) ? '-' : '') }}</span>
-                          </div>
-                        </template>
-                      </td>
-
-                      <!-- Option 2 -->
-                      <td>
-                        <template v-if="editingUid === row.uid">
-                          <v-text-field
-                            v-model="editForm.opt2"
-                            :disabled="!needsOptions(editForm.type)"
-                            placeholder="الخيار 2"
-                            density="compact"
-                            variant="outlined"
-                            hide-details
-                            class="table-inline-input"
-                          />
-                        </template>
-                        <template v-else>
-                          <div class="text-truncate text-caption" style="max-width: 110px;" :title="row.opt2">
-                            <span v-if="needsOptions(row.type) && !row.opt2" class="text-error">
-                              • فارغ
-                            </span>
-                            <span v-else>{{ row.opt2 || (needsOptions(row.type) ? '-' : '') }}</span>
-                          </div>
-                        </template>
-                      </td>
-
-                      <!-- Option 3 -->
-                      <td>
-                        <template v-if="editingUid === row.uid">
-                          <v-text-field
-                            v-model="editForm.opt3"
-                            :disabled="!needsOptions(editForm.type)"
-                            placeholder="الخيار 3"
-                            density="compact"
-                            variant="outlined"
-                            hide-details
-                            class="table-inline-input"
-                          />
-                        </template>
-                        <template v-else>
-                          <div class="text-truncate text-caption" style="max-width: 110px;" :title="row.opt3">
-                            {{ row.opt3 || '' }}
-                          </div>
-                        </template>
-                      </td>
-
-                      <!-- Option 4 -->
-                      <td>
-                        <template v-if="editingUid === row.uid">
-                          <v-text-field
-                            v-model="editForm.opt4"
-                            :disabled="!needsOptions(editForm.type)"
-                            placeholder="الخيار 4"
-                            density="compact"
-                            variant="outlined"
-                            hide-details
-                            class="table-inline-input"
-                          />
-                        </template>
-                        <template v-else>
-                          <div class="text-truncate text-caption" style="max-width: 110px;" :title="row.opt4">
-                            {{ row.opt4 || '' }}
-                          </div>
-                        </template>
-                      </td>
-
-                      <!-- Correct Answer -->
-                      <td>
-                        <template v-if="editingUid === row.uid">
-                          <!-- Single Choice dropdown -->
-                          <v-select
-                            v-if="editForm.type === 'Single Choice'"
-                            v-model="editForm.answer"
-                            :items="inlineChoiceItems"
-                            density="compact"
-                            variant="outlined"
-                            hide-details
-                            class="table-inline-input"
-                          />
-                          <!-- True/False dropdown -->
-                          <v-select
-                            v-else-if="editForm.type === 'True/False'"
-                            v-model="editForm.answer"
-                            :items="['صح', 'خطأ']"
-                            density="compact"
-                            variant="outlined"
-                            hide-details
-                            class="table-inline-input"
-                          />
-                          <!-- Text input for Multiple Choice or Essay -->
-                          <v-text-field
-                            v-else
-                            v-model="editForm.answer"
-                            :placeholder="editForm.type === 'Multiple Choice' ? 'أرقام الإجابات: 1, 3' : 'الإجابة النموذجية'"
-                            density="compact"
-                            variant="outlined"
-                            hide-details
-                            class="table-inline-input"
-                          />
-                        </template>
-                        <template v-else>
-                          <div class="text-truncate text-caption" style="max-width: 130px;" :title="row.answer">
-                            <span v-if="!row.answer" class="text-error font-weight-bold">
-                              • غير محددة
-                            </span>
-                            <span v-else class="font-weight-medium">{{ row.answer }}</span>
-                          </div>
-                        </template>
-                      </td>
-
-                      <!-- Mark -->
-                      <td class="text-center">
-                        <template v-if="editingUid === row.uid">
-                          <v-text-field
-                            v-model.number="editForm.mark"
-                            type="number"
-                            min="0.5"
-                            step="0.5"
-                            density="compact"
-                            variant="outlined"
-                            hide-details
-                            class="table-inline-input text-center"
-                            style="width: 55px; margin: 0 auto;"
-                          />
-                        </template>
-                        <template v-else>
-                          <span class="text-caption font-weight-medium">{{ row.mark || 1 }}</span>
-                        </template>
-                      </td>
-
-                      <!-- Status -->
-                      <td class="text-center">
-                        <span v-if="row.errors.length === 0" class="status-badge status-valid">
-                          سليم
-                        </span>
-                        <span v-else class="status-badge status-invalid" :title="row.errors.map(e => errorLabel(e)).join(', ')">
-                          ناقص
-                        </span>
-                      </td>
-
-                      <!-- Actions -->
-                      <td class="text-center">
-                        <div class="d-flex align-center justify-center gap-1">
+                        <!-- Question Type -->
+                        <td>
                           <template v-if="editingUid === row.uid">
-                            <v-btn icon size="x-small" variant="flat" color="success" title="حفظ التعديل" @click="saveInlineEdit(row)">
-                              <v-icon size="16">mdi-check</v-icon>
-                            </v-btn>
-                            <v-btn icon size="x-small" variant="text" color="grey" title="إلغاء" @click="cancelInlineEdit">
-                              <v-icon size="16">mdi-close</v-icon>
-                            </v-btn>
+                            <v-select
+                              v-model="editForm.type"
+                              :items="questionTypes"
+                              item-title="title"
+                              item-value="value"
+                              density="compact"
+                              variant="outlined"
+                              hide-details
+                              class="table-inline-input"
+                              @update:model-value="onInlineTypeChange"
+                            />
                           </template>
                           <template v-else>
-                            <v-btn icon size="x-small" variant="text" color="primary" title="تعديل هذا السطر مباشرة" @click="startInlineEdit(row)">
-                              <v-icon size="16">mdi-pencil-outline</v-icon>
-                            </v-btn>
-                            <v-btn icon size="x-small" variant="text" color="error" title="حذف هذا السؤال" @click="deleteRow(row)">
-                              <v-icon size="16">mdi-delete-outline</v-icon>
-                            </v-btn>
+                            <span class="text-caption font-weight-medium">{{ getTypeText(row.type) }}</span>
                           </template>
-                        </div>
-                      </td>
-                    </tr>
+                        </td>
+
+                        <!-- Question Content Text -->
+                        <td>
+                          <template v-if="editingUid === row.uid">
+                            <v-text-field
+                              v-model="editForm.text"
+                              placeholder="اكتب نص السؤال هنا..."
+                              density="compact"
+                              variant="outlined"
+                              hide-details
+                              class="table-inline-input"
+                            />
+                          </template>
+                          <template v-else>
+                            <div class="text-truncate text-caption" style="max-width: 240px;" :title="row.text">
+                              <span v-if="!row.text" class="text-error font-weight-bold">
+                                • نص السؤال فارغ
+                              </span>
+                              <span v-else>{{ row.text }}</span>
+                            </div>
+                          </template>
+                        </td>
+
+                        <!-- Option 1 -->
+                        <td>
+                          <!-- If True/False or Essay, hide options completely -->
+                          <template v-if="!needsOptions(editingUid === row.uid ? editForm.type : row.type)">
+                            <div class="text-center text-medium-emphasis text-caption">—</div>
+                          </template>
+                          <template v-else-if="editingUid === row.uid">
+                            <v-text-field
+                              v-model="editForm.opt1"
+                              placeholder="الخيار 1"
+                              density="compact"
+                              variant="outlined"
+                              hide-details
+                              class="table-inline-input"
+                            />
+                          </template>
+                          <template v-else>
+                            <div class="text-truncate text-caption" style="max-width: 110px;" :title="row.opt1">
+                              <span v-if="!row.opt1" class="text-error">
+                                • فارغ
+                              </span>
+                              <span v-else>{{ row.opt1 }}</span>
+                            </div>
+                          </template>
+                        </td>
+
+                        <!-- Option 2 -->
+                        <td>
+                          <template v-if="!needsOptions(editingUid === row.uid ? editForm.type : row.type)">
+                            <div class="text-center text-medium-emphasis text-caption">—</div>
+                          </template>
+                          <template v-else-if="editingUid === row.uid">
+                            <v-text-field
+                              v-model="editForm.opt2"
+                              placeholder="الخيار 2"
+                              density="compact"
+                              variant="outlined"
+                              hide-details
+                              class="table-inline-input"
+                            />
+                          </template>
+                          <template v-else>
+                            <div class="text-truncate text-caption" style="max-width: 110px;" :title="row.opt2">
+                              <span v-if="!row.opt2" class="text-error">
+                                • فارغ
+                              </span>
+                              <span v-else>{{ row.opt2 }}</span>
+                            </div>
+                          </template>
+                        </td>
+
+                        <!-- Option 3 -->
+                        <td>
+                          <template v-if="!needsOptions(editingUid === row.uid ? editForm.type : row.type)">
+                            <div class="text-center text-medium-emphasis text-caption">—</div>
+                          </template>
+                          <template v-else-if="editingUid === row.uid">
+                            <v-text-field
+                              v-model="editForm.opt3"
+                              placeholder="الخيار 3"
+                              density="compact"
+                              variant="outlined"
+                              hide-details
+                              class="table-inline-input"
+                            />
+                          </template>
+                          <template v-else>
+                            <div class="text-truncate text-caption" style="max-width: 110px;" :title="row.opt3">
+                              {{ row.opt3 || '' }}
+                            </div>
+                          </template>
+                        </td>
+
+                        <!-- Option 4 -->
+                        <td>
+                          <template v-if="!needsOptions(editingUid === row.uid ? editForm.type : row.type)">
+                            <div class="text-center text-medium-emphasis text-caption">—</div>
+                          </template>
+                          <template v-else-if="editingUid === row.uid">
+                            <v-text-field
+                              v-model="editForm.opt4"
+                              placeholder="الخيار 4"
+                              density="compact"
+                              variant="outlined"
+                              hide-details
+                              class="table-inline-input"
+                            />
+                          </template>
+                          <template v-else>
+                            <div class="text-truncate text-caption" style="max-width: 110px;" :title="row.opt4">
+                              {{ row.opt4 || '' }}
+                            </div>
+                          </template>
+                        </td>
+
+                        <!-- Correct Answer -->
+                        <td>
+                          <template v-if="editingUid === row.uid">
+                            <!-- 1. Single Choice dropdown -->
+                            <v-select
+                              v-if="editForm.type === 'Single Choice'"
+                              v-model="editForm.answer"
+                              :items="inlineChoiceItems"
+                              item-title="title"
+                              item-value="value"
+                              density="compact"
+                              variant="outlined"
+                              hide-details
+                              class="table-inline-input"
+                            />
+
+                            <!-- 2. Multiple Choice multi-select with chips -->
+                            <v-select
+                              v-else-if="editForm.type === 'Multiple Choice'"
+                              v-model="editForm.multipleAnswers"
+                              :items="inlineChoiceItems"
+                              item-title="title"
+                              item-value="value"
+                              multiple
+                              chips
+                              closable-chips
+                              density="compact"
+                              variant="outlined"
+                              hide-details
+                              class="table-inline-input"
+                              placeholder="حدد الإجابات الصحيحة..."
+                            />
+
+                            <!-- 3. True/False dropdown (NO options shown) -->
+                            <v-select
+                              v-else-if="editForm.type === 'True/False'"
+                              v-model="editForm.answer"
+                              :items="['صح', 'خطأ']"
+                              density="compact"
+                              variant="outlined"
+                              hide-details
+                              class="table-inline-input"
+                            />
+
+                            <!-- 4. Essay note pointing to large textarea below -->
+                            <div v-else class="text-caption text-primary font-weight-bold d-flex align-center gap-1">
+                              <v-icon size="14">mdi-arrow-down</v-icon>
+                              <span>اكتب الإجابة أدناه</span>
+                            </div>
+                          </template>
+
+                          <!-- Display Mode for Answer -->
+                          <template v-else>
+                            <div class="text-truncate text-caption" style="max-width: 150px;" :title="row.answer">
+                              <span v-if="!row.answer" class="text-error font-weight-bold">
+                                • غير محددة
+                              </span>
+                              <span v-else class="font-weight-medium">{{ formatDisplayAnswer(row) }}</span>
+                            </div>
+                          </template>
+                        </td>
+
+                        <!-- Mark -->
+                        <td class="text-center">
+                          <template v-if="editingUid === row.uid">
+                            <v-text-field
+                              v-model.number="editForm.mark"
+                              type="number"
+                              min="0.5"
+                              step="0.5"
+                              density="compact"
+                              variant="outlined"
+                              hide-details
+                              class="table-inline-input text-center"
+                              style="width: 55px; margin: 0 auto;"
+                            />
+                          </template>
+                          <template v-else>
+                            <span class="text-caption font-weight-medium">{{ row.mark || 1 }}</span>
+                          </template>
+                        </td>
+
+                        <!-- Status -->
+                        <td class="text-center">
+                          <span v-if="row.errors.length === 0" class="status-badge status-valid">
+                            سليم
+                          </span>
+                          <span v-else class="status-badge status-invalid" :title="row.errors.map(e => errorLabel(e)).join(', ')">
+                            ناقص
+                          </span>
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="text-center">
+                          <div class="d-flex align-center justify-center gap-1">
+                            <template v-if="editingUid === row.uid">
+                              <v-btn icon size="x-small" variant="flat" color="success" title="حفظ التعديل" @click="saveInlineEdit(row)">
+                                <v-icon size="16">mdi-check</v-icon>
+                              </v-btn>
+                              <v-btn icon size="x-small" variant="text" color="grey" title="إلغاء" @click="cancelInlineEdit">
+                                <v-icon size="16">mdi-close</v-icon>
+                              </v-btn>
+                            </template>
+                            <template v-else>
+                              <v-btn icon size="x-small" variant="text" color="primary" title="تعديل هذا السطر مباشرة" @click="startInlineEdit(row)">
+                                <v-icon size="16">mdi-pencil-outline</v-icon>
+                              </v-btn>
+                              <v-btn icon size="x-small" variant="text" color="error" title="حذف هذا السؤال" @click="deleteRow(row)">
+                                <v-icon size="16">mdi-delete-outline</v-icon>
+                              </v-btn>
+                            </template>
+                          </div>
+                        </td>
+                      </tr>
+
+                      <!-- Large Textarea Sub-Row for Essay Questions when Editing -->
+                      <tr v-if="editingUid === row.uid && editForm.type === 'Essay'" class="editing-subrow">
+                        <td colspan="11" class="pa-3 bg-grey-lighten-5 border-b">
+                          <div class="d-flex flex-column gap-2">
+                            <div class="d-flex align-center gap-1 text-caption font-weight-bold text-primary">
+                              <v-icon size="16" color="primary">mdi-text-box-edit-outline</v-icon>
+                              <span>الإجابة النموذجية المرجعية للسؤال المقالي (حقل نص موسع):</span>
+                            </div>
+                            <v-textarea
+                              v-model="editForm.answer"
+                              placeholder="اكتب أو الصق نص الإجابة النموذجية بالتفصيل هنا..."
+                              rows="3"
+                              auto-grow
+                              density="compact"
+                              variant="outlined"
+                              hide-details
+                              class="bg-white rounded-lg"
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    </template>
 
                     <tr v-if="filteredPreviewRows.length === 0">
                       <td colspan="11" class="text-center text-medium-emphasis py-6">
@@ -673,6 +722,7 @@ export default {
         opt3: "",
         opt4: "",
         answer: "1",
+        multipleAnswers: ["1"],
         mark: 1,
       },
 
@@ -872,6 +922,13 @@ export default {
       return (bytes / Math.pow(k, i)).toFixed(1) + " " + sizes[i];
     },
 
+    formatDisplayAnswer(row) {
+      if (row.type === "Multiple Choice") {
+        return row.answer || "-";
+      }
+      return row.answer || "-";
+    },
+
     // === TEMPLATE DOWNLOAD ===
     downloadTemplate() {
       const wb = XLSX.utils.book_new();
@@ -998,6 +1055,7 @@ export default {
           else if (h.includes("درجة") || h.includes("mark") || h.includes("score")) markIdx = idx;
         });
 
+        // Fallback for options
         if (opt1Idx === -1 && optIndices.length >= 1) opt1Idx = optIndices[0];
         if (opt2Idx === -1 && optIndices.length >= 2) opt2Idx = optIndices[1];
         if (opt3Idx === -1 && optIndices.length >= 3) opt3Idx = optIndices[2];
@@ -1064,15 +1122,21 @@ export default {
             }
           }
 
+          // If True/False or Essay, options are cleared
+          const finalOpt1 = (determinedType === "True/False" || determinedType === "Essay") ? "" : opt1;
+          const finalOpt2 = (determinedType === "True/False" || determinedType === "Essay") ? "" : opt2;
+          const finalOpt3 = (determinedType === "True/False" || determinedType === "Essay") ? "" : opt3;
+          const finalOpt4 = (determinedType === "True/False" || determinedType === "Essay") ? "" : opt4;
+
           const rowObj = {
             uid: `row_${Date.now()}_${counter}_${Math.random().toString(36).substring(2, 6)}`,
             rowNum: counter++,
             text: rawText,
             type: determinedType,
-            opt1: opt1,
-            opt2: opt2,
-            opt3: opt3,
-            opt4: opt4,
+            opt1: finalOpt1,
+            opt2: finalOpt2,
+            opt3: finalOpt3,
+            opt4: finalOpt4,
             answer: rawAns,
             mark: rawMark,
             errors: [],
@@ -1150,6 +1214,16 @@ export default {
     // === INLINE EDITING ===
     startInlineEdit(row) {
       this.editingUid = row.uid;
+
+      // Parse multiple answers if Multiple Choice
+      let multipleAnswers = [];
+      if (row.type === "Multiple Choice" && row.answer) {
+        const parts = String(row.answer).replace(/،/g, ",").split(",");
+        multipleAnswers = parts.map((p) => p.trim()).filter(Boolean);
+      } else if (row.type === "Multiple Choice") {
+        multipleAnswers = ["1"];
+      }
+
       this.editForm = {
         type: row.type || "Single Choice",
         text: row.text || "",
@@ -1158,6 +1232,7 @@ export default {
         opt3: row.opt3 || "",
         opt4: row.opt4 || "",
         answer: row.answer || (row.type === "True/False" ? "صح" : "1"),
+        multipleAnswers: multipleAnswers,
         mark: row.mark || 1,
       };
     },
@@ -1169,11 +1244,26 @@ export default {
     saveInlineEdit(row) {
       row.type = this.editForm.type;
       row.text = (this.editForm.text || "").trim();
-      row.opt1 = (this.editForm.opt1 || "").trim();
-      row.opt2 = (this.editForm.opt2 || "").trim();
-      row.opt3 = (this.editForm.opt3 || "").trim();
-      row.opt4 = (this.editForm.opt4 || "").trim();
-      row.answer = String(this.editForm.answer || "").trim();
+
+      if (row.type === "True/False" || row.type === "Essay") {
+        row.opt1 = "";
+        row.opt2 = "";
+        row.opt3 = "";
+        row.opt4 = "";
+      } else {
+        row.opt1 = (this.editForm.opt1 || "").trim();
+        row.opt2 = (this.editForm.opt2 || "").trim();
+        row.opt3 = (this.editForm.opt3 || "").trim();
+        row.opt4 = (this.editForm.opt4 || "").trim();
+      }
+
+      if (row.type === "Multiple Choice") {
+        const sorted = (this.editForm.multipleAnswers || []).slice().sort();
+        row.answer = sorted.join(", ");
+      } else {
+        row.answer = String(this.editForm.answer || "").trim();
+      }
+
       row.mark = Number(this.editForm.mark) || 1;
 
       this.syncParsedPreview(this.parsedPreview.rows);
@@ -1186,8 +1276,14 @@ export default {
           this.editForm.answer = "صح";
         }
       } else if (newType === "Single Choice") {
-        if (!["1", "2", "3", "4"].includes(this.editForm.answer)) {
+        if (this.editForm.multipleAnswers && this.editForm.multipleAnswers.length > 0) {
+          this.editForm.answer = this.editForm.multipleAnswers[0];
+        } else if (!["1", "2", "3", "4"].includes(this.editForm.answer)) {
           this.editForm.answer = "1";
+        }
+      } else if (newType === "Multiple Choice") {
+        if (!this.editForm.multipleAnswers || this.editForm.multipleAnswers.length === 0) {
+          this.editForm.multipleAnswers = [this.editForm.answer || "1"];
         }
       }
     },
@@ -1287,7 +1383,7 @@ export default {
   background: #f8fafc;
   border: 2px dashed #cbd5e1;
   cursor: pointer;
-  min-height: 200px;
+  min-height: 180px;
   transition: all 0.2s ease;
 }
 
@@ -1334,6 +1430,10 @@ export default {
 /* Editing Row Highlight */
 .preview-data-table tbody tr.editing-row {
   background: #f0f7ff !important;
+}
+
+.editing-subrow td {
+  background: #f8fafc !important;
 }
 
 /* Table Inline Input Styling */

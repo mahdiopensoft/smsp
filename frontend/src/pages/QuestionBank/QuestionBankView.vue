@@ -145,8 +145,7 @@
 
           <template v-else-if="key === 'subject'">
             <div>
-              <div class="text-body-2 font-weight-bold text-primary">{{ item.subject_name || getSubjectName(item) }}
-              </div>
+              <div class="text-body-2">{{ item.subject_name || getSubjectName(item) }}</div>
               <div class="text-caption text-medium-emphasis" v-if="item.lesson_name">{{ item.lesson_name }}</div>
             </div>
           </template>
@@ -168,15 +167,11 @@
           </template>
 
           <template v-else-if="key === 'questionType'">
-            <v-chip size="small" color="secondary" variant="tonal" class="font-weight-bold">
-              {{ getTypeText(item.questionType) }}
-            </v-chip>
+            <span class="text-body-2">{{ getTypeText(item.questionType) }}</span>
           </template>
 
           <template v-else-if="key === 'defaultMark'">
-            <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
-              <v-icon start size="14">mdi-star</v-icon> {{ item.defaultMark || 1 }}
-            </v-chip>
+            <span class="text-body-2">{{ item.defaultMark || 1 }}</span>
           </template>
 
           <template v-else-if="key === 'audit'">

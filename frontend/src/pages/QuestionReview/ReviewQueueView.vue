@@ -266,22 +266,16 @@
           </div>
 
           <!-- Subject -->
-          <div v-else-if="key === 'subject'" class="d-flex flex-column align-start gap-1">
-            <v-chip size="small" color="surface-variant" class="font-weight-medium px-3 justify-start">
-              <v-icon start size="14" color="secondary">mdi-book-open-variant</v-icon>
-              {{ getSubjectName(item) }}
-            </v-chip>
-            <v-chip v-if="filterInstitutionType === 'all' && item.institution_type" size="x-small"
-              :color="item.institution_type === 'university' ? 'purple' : 'primary'" variant="tonal" class="font-weight-bold">
-              {{ item.institution_type === 'university' ? '🎓 جامعي' : '🏫 مدرسي' }}
-            </v-chip>
+          <div v-else-if="key === 'subject'" class="d-flex flex-column align-start">
+            <span>{{ getSubjectName(item) }}</span>
+            <span v-if="filterInstitutionType === 'all' && item.institution_type" class="text-caption text-medium-emphasis">
+              {{ item.institution_type === 'university' ? 'جامعي' : 'مدرسي' }}
+            </span>
           </div>
 
           <!-- Question Type -->
           <div v-else-if="key === 'questionType'">
-            <v-chip size="small" color="info" variant="tonal" class="font-weight-bold">
-              {{ item.questionType === 'True/False' ? 'صح وخطأ' : item.questionType }}
-            </v-chip>
+            <span>{{ item.questionType === 'True/False' ? 'صح وخطأ' : item.questionType }}</span>
           </div>
 
           <!-- Difficulty -->
