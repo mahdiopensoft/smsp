@@ -26,7 +26,8 @@ class ExamArchiveMVS(AllMVS):
         'country',
         'class_track',
         'class_track__level',
-        'class_track__level__stage'
+        'class_track__level__stage',
+        'approved_by',
     ).prefetch_related(
         'versions__question_orders',
         'target_scopes__governorate',
@@ -186,9 +187,100 @@ class ExamArchiveMVS(AllMVS):
             "versionsList": versions_list,
             "questionsCount": questions_count,
             "studentsCount": students_count,
+            "isApproved": exam.is_approved,
+            "approvedAt": exam.approved_at.isoformat() if exam.approved_at else None,
+            "approvedByName": (f"{getattr(exam.approved_by, 'first_name', '') or ''} {getattr(exam.approved_by, 'last_name', '') or ''}".strip() or getattr(exam.approved_by, 'username', str(exam.approved_by))) if exam.approved_by else None,
             "classTrack": class_track_info,
             "scope": scope_info,
             "setting": setting_info,
+        })
+
+    @action(detail=True, methods=['post'], url_path='approve')
+    def approve(self, request, pk=None):
+        """
+        Officially approve the exam and register / distribute students to exam versions.
+        Also freezes the cryptographic answer keys.
+        """
+        try:
+            exam = Exam.objects.get(pk=pk, is_deleted=False)
+        except Exam.DoesNotExist:
+            return Response({"success": False, "message": "الاختبار غير موجود"}, status=status.HTTP_404_NOT_FOUND)
+
+        if exam.is_approved:
+            students_count = StudentExamRegistration.objects.filter(examVersion__exam=exam, is_deleted=False).count()
+            return Response({
+                "success": True,
+                "message": "الاختبار معتمد مسبقاً",
+                "is_approved": True,
+                "studentsCount": students_count,
+            })
+
+        from django.utils import timezone
+        from exams.services.exam_registration_service import register_students_for_exam
+
+        user = request.user if request.user and request.user.is_authenticated else None
+        exam.is_approved = True
+        exam.approved_at = timezone.now()
+        exam.approved_by = user
+        exam.save(update_fields=['is_approved', 'approved_at', 'approved_by'])
+
+        # Register and distribute students across models
+        registered_count = register_students_for_exam(exam, user=user)
+
+        user_name = (f"{getattr(user, 'first_name', '') or ''} {getattr(user, 'last_name', '') or ''}".strip() or getattr(user, 'username', str(user))) if user else None
+        return Response({
+            "success": True,
+            "message": f"تم اعتماد الاختبار بنجاح وتسكين {registered_count} طالب على النماذج وتجميد مفاتيح الإجابة.",
+            "is_approved": True,
+            "approved_at": exam.approved_at.isoformat() if exam.approved_at else None,
+            "approved_by_name": user_name,
+            "studentsCount": registered_count,
+        })
+
+    @action(detail=True, methods=['get'], url_path='load-for-edit')
+    def load_for_edit(self, request, pk=None):
+        """Proxy to ExamCreateMVS.load_for_edit to provide unified access."""
+        from exams.apis.ExamCreateMVS import ExamCreateMVS
+        view = ExamCreateMVS()
+        view.request = request
+        return view.load_for_edit(request, pk=pk)
+
+    @action(detail=True, methods=['post'], url_path='unapprove')
+    def unapprove(self, request, pk=None):
+        """
+        Revert exam approval back to draft state.
+        Deletes student registrations and unfreezes answer keys.
+        """
+        try:
+            exam = Exam.objects.get(pk=pk, is_deleted=False)
+        except Exam.DoesNotExist:
+            return Response({"success": False, "message": "الاختبار غير موجود"}, status=status.HTTP_404_NOT_FOUND)
+
+        exam.is_approved = False
+        exam.approved_at = None
+        exam.approved_by = None
+        exam.save(update_fields=['is_approved', 'approved_at', 'approved_by'])
+
+        # Delete registrations
+        StudentExamRegistration.objects.filter(examVersion__exam=exam).delete()
+
+        # Unfreeze keys
+        for v in exam.versions.filter(is_deleted=False):
+            if hasattr(v, 'unfreeze_key'):
+                v.unfreeze_key()
+            elif v.key_status == v.KeyStatus.FROZEN:
+                v.key_status = v.KeyStatus.DRAFT
+                v.answer_key_snapshot = None
+                v.answer_key_hash = None
+                v.key_frozen_at = None
+                v.key_frozen_by = None
+                v.save(update_fields=['key_status', 'answer_key_snapshot', 'answer_key_hash', 'key_frozen_at', 'key_frozen_by'])
+
+        return Response({
+            "success": True,
+            "message": "تم إلغاء اعتماد الاختبار وإعادته لمسودة بنجاح.",
+            "is_approved": False,
+            "studentsCount": 0,
         })
 
     @action(detail=True, methods=['get'], url_path='registered-students')

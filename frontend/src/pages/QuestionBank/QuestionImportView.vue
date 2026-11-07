@@ -1,49 +1,47 @@
 <template>
-  <div class="qb-import-page-v4">
-    <!-- Action Buttons -->
-    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-8">
-
+  <div class="qb-import-container">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-5">
+      <div>
+        <h2 class="text-h5 font-weight-bold mb-1">استيراد بنك الأسئلة</h2>
+        <p class="text-body-2 text-medium-emphasis mb-0">رفع ملفات الأسئلة (Excel/CSV)، معاينتها وتجهيزها، ثم استيرادها إلى بنك الأسئلة</p>
+      </div>
       <div class="d-flex align-center gap-3">
         <custom-btn
           type="add"
           icon="mdi-download"
-          label="تحميل القالب الشامل المعتمد (Excel)"
+          label="تحميل نموذج الإكسل المعتمد"
           color="primary"
-          class="font-weight-bold px-6"
+          class="font-weight-bold px-5"
           :click="downloadTemplate"
         />
         <custom-btn
-          label="استكمال بيانات الأسئلة المستوردة"
+          label="استكمال بيانات الأسئلة"
           icon="mdi-playlist-edit"
           color="indigo"
           variant="tonal"
-          class="font-weight-bold px-6"
+          class="font-weight-bold px-5"
           :click="() => $router.push('/question-bulk-complete')"
         />
       </div>
     </div>
 
     <v-row class="align-stretch">
-      <!-- Academic Context Selection Sidebar -->
-      <v-col cols="12" md="4">
-        <div class="main-card pa-6 rounded-2xl h-100 d-flex flex-column justify-space-between">
+      <!-- Academic Classification Sidebar -->
+      <v-col cols="12" md="4" lg="3">
+        <v-card rounded="xl" variant="outlined" class="pa-5 h-100 d-flex flex-column justify-space-between bg-surface border">
           <div>
-            <div class="d-flex align-center gap-3 mb-4">
-              <v-avatar size="42" color="primary" variant="tonal" class="rounded-xl">
-                <v-icon size="22">mdi-sitemap</v-icon>
-              </v-avatar>
-              <div>
-                <h3 class="text-h6 font-weight-black mb-0">التصنيف الأكاديمي المشترك</h3>
-                <span class="text-caption text-medium-emphasis">ربط الأسئلة المستوردة بالشجرة الأكاديمية</span>
-              </div>
+            <div class="d-flex align-center gap-2 mb-4 pb-3 border-b">
+              <v-icon color="primary" size="22">mdi-sitemap</v-icon>
+              <h3 class="text-subtitle-1 font-weight-bold mb-0">التصنيف الأكاديمي</h3>
             </div>
 
-            <p class="text-body-2 text-medium-emphasis mb-6">
-              يجب تحديد المادة والوحدة والدرس لجميع الأسئلة الواردة في هذا الملف قبل البدء بالاستيراد.
+            <p class="text-caption text-medium-emphasis mb-4">
+              حدد المادة والوحدة والدرس لربط الأسئلة المستوردة بها في الشجرة الأكاديمية:
             </p>
 
             <v-form ref="formRef">
-              <!-- Institution Type Selector (مدارس / جامعات) -->
+              <!-- Institution Type Selector -->
               <div class="mb-4">
                 <v-btn-toggle
                   v-model="form.institution_type"
@@ -55,24 +53,14 @@
                   class="w-100 d-flex"
                   @update:model-value="onInstitutionTypeToggle"
                 >
-                  <v-btn value="school" class="flex-grow-1 font-weight-bold">
-                    <v-icon start size="16">mdi-school</v-icon>
-                    مدرسي
-                  </v-btn>
-                  <v-btn value="university" class="flex-grow-1 font-weight-bold">
-                    <v-icon start size="16">mdi-domain</v-icon>
-                    جامعي
-                  </v-btn>
-                  <v-btn value="institute" class="flex-grow-1 font-weight-bold">
-                    <v-icon start size="16">mdi-domain</v-icon>
-                    معاهد
-                  </v-btn>
+                  <v-btn value="school" class="flex-grow-1 font-weight-bold text-caption">مدرسي</v-btn>
+                  <v-btn value="university" class="flex-grow-1 font-weight-bold text-caption">جامعي</v-btn>
+                  <v-btn value="institute" class="flex-grow-1 font-weight-bold text-caption">معاهد</v-btn>
                 </v-btn-toggle>
               </div>
 
-              <!-- 🏫 School Academic Classification Fields -->
+              <!-- School Fields -->
               <template v-if="form.institution_type === 'school'">
-                <!-- Stage -->
                 <auto-list
                   v-model="form.stageId"
                   name="Stage"
@@ -82,7 +70,6 @@
                   @update:model-value="onStageChange"
                 />
 
-                <!-- ClassTrack (الصف والمسار) -->
                 <auto-list
                   v-model="form.classTrackId"
                   name="ClassTrackByStage"
@@ -93,17 +80,15 @@
                   :disabled="!form.stageId"
                 />
 
-                <!-- Subject -->
                 <auto-list
                   v-model="form.subjectId"
                   name="Subject"
-                  label="اختر المادة الدراسية"
+                  label="المادة الدراسية"
                   cols="12"
                   :add="false"
                   @update:model-value="onSubjectChange"
                 />
 
-                <!-- Semester -->
                 <auto-list
                   v-model="form.semesterId"
                   name="Semester"
@@ -113,9 +98,8 @@
                 />
               </template>
 
-              <!-- 🎓 University Academic Classification Fields -->
+              <!-- University Fields -->
               <template v-if="form.institution_type === 'university'">
-                <!-- College -->
                 <auto-list
                   v-model="form.collegeId"
                   name="College"
@@ -125,7 +109,6 @@
                   @update:model-value="onCollegeChange"
                 />
 
-                <!-- Department -->
                 <auto-list
                   v-model="form.departmentId"
                   name="DepartmentByCollege"
@@ -137,33 +120,30 @@
                   @update:model-value="form.specializationId = null"
                 />
 
-                <!-- Specialization -->
                 <auto-list
                   v-model="form.specializationId"
                   name="Specialization"
                   :param="form.departmentId"
-                  label="التخصص والبرنامج"
+                  label="التخصص"
                   cols="12"
                   :add="false"
                   :disabled="!form.departmentId"
                   @update:model-value="form.semesterSubjectId = null"
                 />
 
-                <!-- SemesterSubject (مقرر الفصل الجامعي) -->
                 <auto-list
                   v-model="form.semesterSubjectId"
                   name="SemesterSubject"
                   :param="form.specializationId"
-                  label="مقرر الفصل الجامعي"
+                  label="المقرر الدراسي"
                   cols="12"
                   :add="false"
                   @update:model-value="onSemesterSubjectChange"
                 />
               </template>
 
-              <!-- 🏢 Institute Academic Classification Fields -->
+              <!-- Institute Fields -->
               <template v-if="form.institution_type === 'institute'">
-                <!-- Field -->
                 <auto-list
                   v-model="form.instituteFieldId"
                   name="InstituteField"
@@ -173,7 +153,6 @@
                   @update:model-value="onInstituteFieldChange"
                 />
 
-                <!-- Education System -->
                 <auto-list
                   v-model="form.instituteEducationSystemId"
                   name="InstituteEducationSystem"
@@ -183,7 +162,6 @@
                   @update:model-value="onInstituteEducationSystemChange"
                 />
 
-                <!-- Specialization -->
                 <auto-list
                   v-model="form.instituteSpecializationId"
                   name="InstituteSpecialization"
@@ -195,7 +173,6 @@
                   @update:model-value="onInstituteSpecializationChange"
                 />
 
-                <!-- Curriculum -->
                 <auto-list
                   v-model="form.instituteCurriculumId"
                   name="InstituteCurriculum"
@@ -207,7 +184,6 @@
                   @update:model-value="onInstituteCurriculumChange"
                 />
 
-                <!-- Subject -->
                 <auto-list
                   v-model="form.instituteSubjectId"
                   name="InstituteSubject"
@@ -220,103 +196,47 @@
                 />
               </template>
 
-              <!-- Common: Unit, Lesson -->
-              <!-- Unit -->
+              <!-- Common Unit and Lesson -->
               <auto-list
                 v-model="form.unitId"
                 name="UnitBySubject"
                 :param="formUnitParam"
-                :label="form.institution_type === 'university' ? 'مفردة / موضوع المقرر' : (form.institution_type === 'institute' ? 'الوحدة التدريبية' : 'الوحدة الدراسية')"
+                :label="form.institution_type === 'university' ? 'موضوع المقرر' : (form.institution_type === 'institute' ? 'الوحدة التدريبية' : 'الوحدة الدراسية')"
                 cols="12"
                 :add="false"
                 :disabled="form.institution_type === 'university' ? !form.semesterSubjectId : (form.institution_type === 'institute' ? !form.instituteSubjectId : !form.subjectId)"
                 @update:model-value="onUnitChange"
               />
 
-              <!-- Lesson -->
               <auto-list
                 v-model="form.lessonId"
                 name="LessonByUnit"
                 :param="form.unitId"
-                :label="form.institution_type === 'university' ? 'المحاضرة / الدرس الأكاديمي' : (form.institution_type === 'institute' ? 'الدرس / التمرين العملي' : 'الدرس المدرسي')"
+                :label="form.institution_type === 'university' ? 'المحاضرة' : (form.institution_type === 'institute' ? 'الدرس العملي' : 'الدرس')"
                 cols="12"
                 :add="false"
                 :disabled="!form.unitId"
               />
-
             </v-form>
           </div>
 
-          <!-- Instructions & Types Guide Card -->
-          <div class="mt-4 pa-4 rounded-2xl border" style="background: rgba(var(--v-theme-surface), 0.7);">
-            <div class="d-flex align-center gap-2 mb-3">
-              <v-icon color="primary" size="20">mdi-lightbulb-on-outline</v-icon>
-              <span class="text-subtitle-2 font-weight-black">إرشادات تعبئة أنواع الأسئلة في القالب الموحد:</span>
-            </div>
-
-            <div class="d-flex flex-column gap-2 text-caption">
-              <!-- Single Choice -->
-              <div class="pa-2 rounded-lg border bg-surface d-flex align-start gap-2">
-                <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold flex-shrink-0">
-                  اختيار واحد
-                </v-chip>
-                <span class="text-medium-emphasis">
-                  الخيارات (1-4)، والإجابة رقم الخيار الصحيح (مثال: <strong class="text-primary">1</strong>).
-                </span>
-              </div>
-
-              <!-- Multiple Choice -->
-              <div class="pa-2 rounded-lg border bg-surface d-flex align-start gap-2">
-                <v-chip size="x-small" color="indigo" variant="flat" class="font-weight-bold flex-shrink-0">
-                  خيارات متعددة
-                </v-chip>
-                <span class="text-medium-emphasis">
-                  الخيارات، وأرقام الإجابات مفصولة بفواصل (مثال: <strong class="text-indigo">1, 3</strong>).
-                </span>
-              </div>
-
-              <!-- True / False -->
-              <div class="pa-2 rounded-lg border bg-surface d-flex align-start gap-2">
-                <v-chip size="x-small" color="teal" variant="flat" class="font-weight-bold flex-shrink-0">
-                  صح وخطأ
-                </v-chip>
-                <span class="text-medium-emphasis">
-                  الخيارات فارغة، والإجابة كلمة <strong class="text-teal">صح</strong> أو <strong class="text-teal">خطأ</strong> (أو 1 / 2).
-                </span>
-              </div>
-
-              <!-- Essay -->
-              <div class="pa-2 rounded-lg border bg-surface d-flex align-start gap-2">
-                <v-chip size="x-small" color="amber-darken-3" variant="flat" class="font-weight-bold flex-shrink-0">
-                  مقالي
-                </v-chip>
-                <span class="text-medium-emphasis">
-                  الخيارات فارغة، والإجابة تحتوي على <strong class="text-amber-darken-3">الإجابة النموذجية المرجعية</strong>.
-                </span>
-              </div>
-            </div>
+          <!-- Subtle instructions footer -->
+          <div class="mt-4 pt-3 border-t text-caption text-medium-emphasis">
+            <div class="font-weight-bold mb-1 text-high-emphasis">ملاحظة:</div>
+            يدعم الاستيراد الأسئلة الموضوعية (اختيار واحد، خيارات متعددة، صح وخطأ) والأسئلة المقالية.
           </div>
-        </div>
+        </v-card>
       </v-col>
 
-      <!-- Dropzone Upload Panel -->
-      <v-col cols="12" md="8">
-        <div class="main-card pa-6 rounded-2xl h-100 d-flex flex-column justify-space-between">
+      <!-- Main Area: File Dropzone & Table Preview -->
+      <v-col cols="12" md="8" lg="9">
+        <v-card rounded="xl" variant="outlined" class="pa-5 h-100 d-flex flex-column justify-space-between bg-surface border">
           <div>
-            <div class="d-flex align-center gap-3 mb-6">
-              <v-avatar size="42" color="emerald" variant="tonal" class="rounded-xl">
-                <v-icon size="22" color="emerald">mdi-file-upload-outline</v-icon>
-              </v-avatar>
-              <div>
-                <h3 class="text-h6 font-weight-black mb-0">منطقة رفع وتفريغ الملف</h3>
-                <span class="text-caption text-medium-emphasis">قم بسحب وإسقاط ملف الإكسل هنا</span>
-              </div>
-            </div>
-
-            <!-- Upload Dropzone Container -->
+            <!-- Dropzone (if no file loaded) -->
             <div
-              class="upload-dropzone pa-8 rounded-2xl text-center d-flex flex-column align-center justify-center transition-all"
-              :class="{ 'is-dragover': isDragover, 'has-file': !!selectedFile }"
+              v-if="!parsedPreview || parsedPreview.total === 0"
+              class="upload-dropzone pa-8 rounded-xl text-center d-flex flex-column align-center justify-center mb-4"
+              :class="{ 'is-dragover': isDragover }"
               @dragover.prevent="isDragover = true"
               @dragleave.prevent="isDragover = false"
               @drop.prevent="onDrop"
@@ -329,115 +249,378 @@
                 class="d-none"
                 @change="onFileChange"
               />
-              
-              <template v-if="!selectedFile">
-                <v-avatar size="72" color="primary" variant="tonal" class="mb-4">
-                  <v-icon size="36">mdi-cloud-upload-outline</v-icon>
-                </v-avatar>
-                <h4 class="text-h6 font-weight-black mb-2">اسحب وأفلت ملف الإكسل هنا</h4>
-                <p class="text-body-2 text-medium-emphasis mb-4">أو انقر في أي مكان داخل المنطقة لتصفح جهازك</p>
-                <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
-                  الصيغ المدعومة: XLSX, XLS, CSV
-                </v-chip>
-              </template>
-              
-              <template v-else>
-                <v-avatar size="72" color="emerald" variant="tonal" class="mb-4">
-                  <v-icon size="36" color="emerald">mdi-file-excel-box</v-icon>
-                </v-avatar>
-                <h4 class="text-h6 font-weight-black text-emerald-darken-3 mb-1">{{ selectedFile.name }}</h4>
-                <p class="text-caption text-medium-emphasis font-weight-bold mb-4">{{ formatBytes(selectedFile.size) }}</p>
-                
-                <custom-btn
-                  type="del"
-                  label="إزالة هذا الملف"
-                  class="font-weight-bold"
-                  :click="(e) => { if(e) e.stopPropagation(); removeFile(); }"
-                />
-              </template>
+              <v-icon size="48" color="primary" class="mb-3">mdi-file-excel-outline</v-icon>
+              <h4 class="text-subtitle-1 font-weight-bold mb-1">انقر لاختيار ملف الإكسل أو اسحبه هنا</h4>
+              <p class="text-caption text-medium-emphasis mb-3">الملفات المدعومة: XLSX, XLS, CSV</p>
+              <v-btn variant="outlined" size="small" color="primary" class="font-weight-bold">
+                تصفح الملفات
+              </v-btn>
             </div>
 
-            <!-- File Preview & Breakdown Card -->
-            <div v-if="parsedPreview && parsedPreview.total > 0" class="mt-4 pa-4 rounded-2xl border" style="background: rgba(var(--v-theme-surface), 0.7);">
-              <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3">
-                <div class="d-flex align-center gap-2">
-                  <v-icon color="emerald" size="20">mdi-eye-check-outline</v-icon>
-                  <span class="text-subtitle-2 font-weight-black">معاينة الأسئلة المقروءة من الملف</span>
-                  <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold">
-                    {{ parsedPreview.total }} سؤال
-                  </v-chip>
+            <!-- Loaded File Header Info Bar -->
+            <div v-if="selectedFile" class="d-flex align-center justify-space-between pa-3 rounded-lg bg-grey-lighten-4 mb-4 border">
+              <div class="d-flex align-center gap-3">
+                <v-icon color="success" size="24">mdi-file-excel</v-icon>
+                <div>
+                  <span class="font-weight-bold text-body-2">{{ selectedFile.name }}</span>
+                  <span class="text-caption text-medium-emphasis ms-2">({{ formatBytes(selectedFile.size) }})</span>
                 </div>
-                <!-- Breakdown Chips -->
-                <div class="d-flex align-center gap-1 flex-wrap">
-                  <v-chip v-if="parsedPreview.types['Single Choice']" size="x-small" color="primary" variant="tonal" class="font-weight-bold">
-                    {{ parsedPreview.types['Single Choice'] }} اختيار واحد
-                  </v-chip>
-                  <v-chip v-if="parsedPreview.types['Multiple Choice']" size="x-small" color="indigo" variant="tonal" class="font-weight-bold">
-                    {{ parsedPreview.types['Multiple Choice'] }} خيارات متعددة
-                  </v-chip>
-                  <v-chip v-if="parsedPreview.types['True/False']" size="x-small" color="teal" variant="tonal" class="font-weight-bold">
-                    {{ parsedPreview.types['True/False'] }} صح وخطأ
-                  </v-chip>
-                  <v-chip v-if="parsedPreview.types['Essay']" size="x-small" color="amber-darken-3" variant="tonal" class="font-weight-bold">
-                    {{ parsedPreview.types['Essay'] }} مقالي
-                  </v-chip>
+              </div>
+              <div class="d-flex align-center gap-2">
+                <v-btn size="small" variant="text" prepend-icon="mdi-refresh" @click="reparseFile">
+                  إعادة قراءة الملف
+                </v-btn>
+                <v-btn size="small" variant="text" color="error" prepend-icon="mdi-close" @click="removeFile">
+                  تغيير الملف
+                </v-btn>
+              </div>
+            </div>
+
+            <!-- Table & Summary Section -->
+            <div v-if="parsedPreview && parsedPreview.total > 0">
+              <!-- Summary Bar (Official, Clean Style) -->
+              <div class="d-flex align-center justify-space-between flex-wrap gap-3 pb-3 mb-3 border-b">
+                <div class="d-flex align-center gap-3">
+                  <span class="text-subtitle-2 font-weight-bold">معاينة وتجهيز الأسئلة</span>
+                  <span class="text-caption text-medium-emphasis">
+                    (إجمالي: {{ parsedPreview.total }} | جاهزة: <span class="text-success font-weight-bold">{{ parsedPreview.validCount }}</span> | تحتاج إكمال: <span :class="parsedPreview.errorCount > 0 ? 'text-error font-weight-bold' : 'text-medium-emphasis'">{{ parsedPreview.errorCount }}</span>)
+                  </span>
+                </div>
+
+                <!-- Filters & Quick Actions -->
+                <div class="d-flex align-center gap-2 flex-wrap">
+                  <v-btn-toggle v-model="previewFilter" mandatory density="compact" variant="outlined" rounded="lg">
+                    <v-btn value="all" size="small" class="text-caption">الكل ({{ parsedPreview.total }})</v-btn>
+                    <v-btn value="valid" size="small" class="text-caption" color="success">السليمة ({{ parsedPreview.validCount }})</v-btn>
+                    <v-btn value="error" size="small" class="text-caption" color="error">تحتاج إكمال ({{ parsedPreview.errorCount }})</v-btn>
+                  </v-btn-toggle>
+
+                  <v-btn
+                    v-if="parsedPreview.errorCount > 0"
+                    size="small"
+                    variant="tonal"
+                    color="warning"
+                    prepend-icon="mdi-filter-minus-outline"
+                    class="text-caption font-weight-bold"
+                    @click="excludeInvalidRows"
+                  >
+                    استبعاد الأسئلة غير المكتملة
+                  </v-btn>
+
+                  <v-btn
+                    size="small"
+                    variant="outlined"
+                    prepend-icon="mdi-plus"
+                    class="text-caption"
+                    @click="addNewRow"
+                  >
+                    إضافة سؤال
+                  </v-btn>
                 </div>
               </div>
 
-              <!-- Preview Table (first 5 questions) -->
-              <v-table density="compact" class="bg-transparent rounded-lg border text-caption">
-                <thead>
-                  <tr style="background: rgba(var(--v-theme-surface-variant), 0.3);">
-                    <th style="width: 40px;">#</th>
-                    <th style="width: 120px;">النوع</th>
-                    <th>نص السؤال</th>
-                    <th style="width: 160px;">الإجابة المكتشفة</th>
-                    <th style="width: 60px;">الدرجة</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(row, idx) in parsedPreview.rows.slice(0, 5)" :key="idx">
-                    <td class="font-weight-bold">{{ idx + 1 }}</td>
-                    <td>
-                      <v-chip size="x-small" :color="getTypeColor(row.type)" variant="tonal" class="font-weight-bold">
-                        {{ getTypeText(row.type) }}
-                      </v-chip>
-                    </td>
-                    <td class="text-truncate" style="max-width: 250px;">{{ row.text }}</td>
-                    <td class="text-truncate font-weight-bold" style="max-width: 160px; color: rgb(var(--v-theme-primary));">
-                      {{ row.answer || '-' }}
-                    </td>
-                    <td>{{ row.mark || 1 }}</td>
-                  </tr>
-                </tbody>
-              </v-table>
-              <div v-if="parsedPreview.total > 5" class="text-caption text-medium-emphasis text-center mt-2">
-                ... بالإضافة إلى {{ parsedPreview.total - 5 }} أسئلة أخرى سيتم استيرادها
+              <!-- Inline Editable Table -->
+              <div class="table-wrapper rounded-lg border overflow-hidden">
+                <v-table density="compact" class="preview-data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 45px;" class="text-center">#</th>
+                      <th style="width: 140px;">نوع السؤال</th>
+                      <th style="min-width: 220px;">نص السؤال</th>
+                      <th style="width: 110px;">الخيار 1</th>
+                      <th style="width: 110px;">الخيار 2</th>
+                      <th style="width: 110px;">الخيار 3</th>
+                      <th style="width: 110px;">الخيار 4</th>
+                      <th style="width: 130px;">الإجابة الصحيحة</th>
+                      <th style="width: 65px;" class="text-center">الدرجة</th>
+                      <th style="width: 80px;" class="text-center">الحالة</th>
+                      <th style="width: 90px;" class="text-center">إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="(row, idx) in filteredPreviewRows"
+                      :key="row.uid"
+                      :class="{ 'editing-row': editingUid === row.uid, 'has-error': row.errors.length > 0 }"
+                    >
+                      <!-- # -->
+                      <td class="text-center text-caption font-weight-bold">{{ row.rowNum }}</td>
+
+                      <!-- Question Type -->
+                      <td>
+                        <template v-if="editingUid === row.uid">
+                          <v-select
+                            v-model="editForm.type"
+                            :items="questionTypes"
+                            item-title="title"
+                            item-value="value"
+                            density="compact"
+                            variant="outlined"
+                            hide-details
+                            class="table-inline-input"
+                            @update:model-value="onInlineTypeChange"
+                          />
+                        </template>
+                        <template v-else>
+                          <span class="text-caption font-weight-medium">{{ getTypeText(row.type) }}</span>
+                        </template>
+                      </td>
+
+                      <!-- Question Content Text -->
+                      <td>
+                        <template v-if="editingUid === row.uid">
+                          <v-text-field
+                            v-model="editForm.text"
+                            placeholder="اكتب نص السؤال هنا..."
+                            density="compact"
+                            variant="outlined"
+                            hide-details
+                            class="table-inline-input"
+                          />
+                        </template>
+                        <template v-else>
+                          <div class="text-truncate text-caption" style="max-width: 250px;" :title="row.text">
+                            <span v-if="!row.text" class="text-error font-weight-bold">
+                              • نص السؤال فارغ
+                            </span>
+                            <span v-else>{{ row.text }}</span>
+                          </div>
+                        </template>
+                      </td>
+
+                      <!-- Option 1 -->
+                      <td>
+                        <template v-if="editingUid === row.uid">
+                          <v-text-field
+                            v-model="editForm.opt1"
+                            :disabled="!needsOptions(editForm.type)"
+                            placeholder="الخيار 1"
+                            density="compact"
+                            variant="outlined"
+                            hide-details
+                            class="table-inline-input"
+                          />
+                        </template>
+                        <template v-else>
+                          <div class="text-truncate text-caption" style="max-width: 110px;" :title="row.opt1">
+                            <span v-if="needsOptions(row.type) && !row.opt1" class="text-error">
+                              • فارغ
+                            </span>
+                            <span v-else>{{ row.opt1 || (needsOptions(row.type) ? '-' : '') }}</span>
+                          </div>
+                        </template>
+                      </td>
+
+                      <!-- Option 2 -->
+                      <td>
+                        <template v-if="editingUid === row.uid">
+                          <v-text-field
+                            v-model="editForm.opt2"
+                            :disabled="!needsOptions(editForm.type)"
+                            placeholder="الخيار 2"
+                            density="compact"
+                            variant="outlined"
+                            hide-details
+                            class="table-inline-input"
+                          />
+                        </template>
+                        <template v-else>
+                          <div class="text-truncate text-caption" style="max-width: 110px;" :title="row.opt2">
+                            <span v-if="needsOptions(row.type) && !row.opt2" class="text-error">
+                              • فارغ
+                            </span>
+                            <span v-else>{{ row.opt2 || (needsOptions(row.type) ? '-' : '') }}</span>
+                          </div>
+                        </template>
+                      </td>
+
+                      <!-- Option 3 -->
+                      <td>
+                        <template v-if="editingUid === row.uid">
+                          <v-text-field
+                            v-model="editForm.opt3"
+                            :disabled="!needsOptions(editForm.type)"
+                            placeholder="الخيار 3"
+                            density="compact"
+                            variant="outlined"
+                            hide-details
+                            class="table-inline-input"
+                          />
+                        </template>
+                        <template v-else>
+                          <div class="text-truncate text-caption" style="max-width: 110px;" :title="row.opt3">
+                            {{ row.opt3 || '' }}
+                          </div>
+                        </template>
+                      </td>
+
+                      <!-- Option 4 -->
+                      <td>
+                        <template v-if="editingUid === row.uid">
+                          <v-text-field
+                            v-model="editForm.opt4"
+                            :disabled="!needsOptions(editForm.type)"
+                            placeholder="الخيار 4"
+                            density="compact"
+                            variant="outlined"
+                            hide-details
+                            class="table-inline-input"
+                          />
+                        </template>
+                        <template v-else>
+                          <div class="text-truncate text-caption" style="max-width: 110px;" :title="row.opt4">
+                            {{ row.opt4 || '' }}
+                          </div>
+                        </template>
+                      </td>
+
+                      <!-- Correct Answer -->
+                      <td>
+                        <template v-if="editingUid === row.uid">
+                          <!-- Single Choice dropdown -->
+                          <v-select
+                            v-if="editForm.type === 'Single Choice'"
+                            v-model="editForm.answer"
+                            :items="inlineChoiceItems"
+                            density="compact"
+                            variant="outlined"
+                            hide-details
+                            class="table-inline-input"
+                          />
+                          <!-- True/False dropdown -->
+                          <v-select
+                            v-else-if="editForm.type === 'True/False'"
+                            v-model="editForm.answer"
+                            :items="['صح', 'خطأ']"
+                            density="compact"
+                            variant="outlined"
+                            hide-details
+                            class="table-inline-input"
+                          />
+                          <!-- Text input for Multiple Choice or Essay -->
+                          <v-text-field
+                            v-else
+                            v-model="editForm.answer"
+                            :placeholder="editForm.type === 'Multiple Choice' ? 'أرقام الإجابات: 1, 3' : 'الإجابة النموذجية'"
+                            density="compact"
+                            variant="outlined"
+                            hide-details
+                            class="table-inline-input"
+                          />
+                        </template>
+                        <template v-else>
+                          <div class="text-truncate text-caption" style="max-width: 130px;" :title="row.answer">
+                            <span v-if="!row.answer" class="text-error font-weight-bold">
+                              • غير محددة
+                            </span>
+                            <span v-else class="font-weight-medium">{{ row.answer }}</span>
+                          </div>
+                        </template>
+                      </td>
+
+                      <!-- Mark -->
+                      <td class="text-center">
+                        <template v-if="editingUid === row.uid">
+                          <v-text-field
+                            v-model.number="editForm.mark"
+                            type="number"
+                            min="0.5"
+                            step="0.5"
+                            density="compact"
+                            variant="outlined"
+                            hide-details
+                            class="table-inline-input text-center"
+                            style="width: 55px; margin: 0 auto;"
+                          />
+                        </template>
+                        <template v-else>
+                          <span class="text-caption font-weight-medium">{{ row.mark || 1 }}</span>
+                        </template>
+                      </td>
+
+                      <!-- Status -->
+                      <td class="text-center">
+                        <span v-if="row.errors.length === 0" class="status-badge status-valid">
+                          سليم
+                        </span>
+                        <span v-else class="status-badge status-invalid" :title="row.errors.map(e => errorLabel(e)).join(', ')">
+                          ناقص
+                        </span>
+                      </td>
+
+                      <!-- Actions -->
+                      <td class="text-center">
+                        <div class="d-flex align-center justify-center gap-1">
+                          <template v-if="editingUid === row.uid">
+                            <v-btn icon size="x-small" variant="flat" color="success" title="حفظ التعديل" @click="saveInlineEdit(row)">
+                              <v-icon size="16">mdi-check</v-icon>
+                            </v-btn>
+                            <v-btn icon size="x-small" variant="text" color="grey" title="إلغاء" @click="cancelInlineEdit">
+                              <v-icon size="16">mdi-close</v-icon>
+                            </v-btn>
+                          </template>
+                          <template v-else>
+                            <v-btn icon size="x-small" variant="text" color="primary" title="تعديل هذا السطر مباشرة" @click="startInlineEdit(row)">
+                              <v-icon size="16">mdi-pencil-outline</v-icon>
+                            </v-btn>
+                            <v-btn icon size="x-small" variant="text" color="error" title="حذف هذا السؤال" @click="deleteRow(row)">
+                              <v-icon size="16">mdi-delete-outline</v-icon>
+                            </v-btn>
+                          </template>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr v-if="filteredPreviewRows.length === 0">
+                      <td colspan="11" class="text-center text-medium-emphasis py-6">
+                        لا توجد أسئلة في هذا القسم
+                      </td>
+                    </tr>
+                  </tbody>
+                </v-table>
               </div>
             </div>
           </div>
 
-          <!-- Submit Import Actions Bar -->
-          <div class="mt-6 pt-4 border-t border-slate-100 d-flex align-center justify-space-between flex-wrap gap-3">
-            <div class="d-flex align-center gap-2">
-              <v-icon color="emerald" size="18">mdi-check-circle-outline</v-icon>
-              <span class="text-caption text-medium-emphasis font-weight-bold">
-                {{ isValidToSubmit ? 'جاهز للاستيراد الآن' : 'يرجى تحديد التصنيف الأكاديمي واختيار الملف' }}
+          <!-- Bottom Actions Bar -->
+          <div class="mt-5 pt-4 border-t d-flex align-center justify-space-between flex-wrap gap-3">
+            <div class="text-caption text-medium-emphasis">
+              <span v-if="!isHierarchyValid">يرجى تحديد المادة والوحدة والدرس للمتابعة</span>
+              <span v-else-if="!parsedPreview || parsedPreview.total === 0">يرجى رفع ملف الأسئلة لمعاينته</span>
+              <span v-else-if="parsedPreview.errorCount > 0" class="text-error font-weight-medium">
+                توجد أسئلة غير مكتملة، يرجى تعديلها مباشرة في الجدول بالضغط على أيقونة التعديل (✏️) أو النقر على "استبعاد الأسئلة غير المكتملة".
+              </span>
+              <span v-else class="text-success font-weight-medium">
+                جميع الأسئلة جاهزة للاستيراد ({{ parsedPreview.validCount }} سؤال)
               </span>
             </div>
 
-            <custom-btn
-              type="add"
-              label="بدء استيراد الأسئلة"
-              icon="mdi-upload"
-              color="primary"
-              class="btn-glow-primary font-weight-bold px-8"
-              :disabled="!isValidToSubmit"
-              :loading="isSubmitting"
-              :click="submitImport"
-            />
+            <div class="d-flex align-center gap-2">
+              <custom-btn
+                v-if="parsedPreview && parsedPreview.errorCount > 0 && parsedPreview.validCount > 0"
+                label="استيراد الأسئلة السليمة فقط"
+                icon="mdi-upload-outline"
+                color="indigo"
+                variant="tonal"
+                class="font-weight-bold px-4"
+                :disabled="!isHierarchyValid"
+                :loading="isSubmitting"
+                :click="() => submitImport(true)"
+              />
+
+              <custom-btn
+                type="add"
+                :label="`بدء استيراد الأسئلة (${parsedPreview ? parsedPreview.validCount : 0})`"
+                icon="mdi-upload"
+                color="primary"
+                class="font-weight-bold px-7"
+                :disabled="!isValidToSubmit"
+                :loading="isSubmitting"
+                :click="() => submitImport(false)"
+              />
+            </div>
           </div>
-        </div>
+        </v-card>
       </v-col>
     </v-row>
   </div>
@@ -445,8 +628,6 @@
 
 <script>
 import * as XLSX from "xlsx";
-import api from "@/services/api";
-import { academicService } from "@/services/academicService";
 import { bankService } from "@/services/bankService";
 
 export default {
@@ -454,49 +635,53 @@ export default {
 
   data() {
     return {
-      loadingSubjects: false,
-      loadingUnits: false,
-      loadingLessons: false,
       isSubmitting: false,
 
-      // Arrays for v-selects
-      subjects: [],
-      units: [],
-      lessons: [],
-
-      // Context
+      // Context Form
       form: {
         institution_type: "school",
-        // School
         stageId: null,
         classTrackId: null,
         subjectId: null,
         semesterId: null,
-        // University
         collegeId: null,
         departmentId: null,
         specializationId: null,
         semesterSubjectId: null,
-        // Institute
         instituteFieldId: null,
         instituteEducationSystemId: null,
         instituteSpecializationId: null,
         instituteCurriculumId: null,
         instituteSubjectId: null,
-        // Common
         unitId: null,
         lessonId: null,
-        learningOutcomeId: null,
       },
 
-      // File
+      // File & Preview
       isDragover: false,
       selectedFile: null,
       parsedPreview: null,
+      previewFilter: "all", // 'all' | 'valid' | 'error'
 
-      rules: {
-        required: (v) => !!v || "مطلوب",
+      // Inline Editing State
+      editingUid: null,
+      editForm: {
+        type: "Single Choice",
+        text: "",
+        opt1: "",
+        opt2: "",
+        opt3: "",
+        opt4: "",
+        answer: "1",
+        mark: 1,
       },
+
+      questionTypes: [
+        { title: "اختيار واحد", value: "Single Choice" },
+        { title: "خيارات متعددة", value: "Multiple Choice" },
+        { title: "صح وخطأ", value: "True/False" },
+        { title: "مقالي", value: "Essay" },
+      ],
     };
   },
 
@@ -518,16 +703,41 @@ export default {
       return this.form.subjectId ? { subject: this.form.subjectId } : null;
     },
 
-    isValidToSubmit() {
-      let isHierarchyValid = false;
+    isHierarchyValid() {
       if (this.form.institution_type === "university") {
-        isHierarchyValid = !!(this.form.semesterSubjectId && this.form.unitId && this.form.lessonId);
+        return !!(this.form.semesterSubjectId && this.form.unitId && this.form.lessonId);
       } else if (this.form.institution_type === "institute") {
-        isHierarchyValid = !!(this.form.instituteSubjectId && this.form.unitId && this.form.lessonId);
+        return !!(this.form.instituteSubjectId && this.form.unitId && this.form.lessonId);
       } else {
-        isHierarchyValid = !!(this.form.subjectId && this.form.unitId && this.form.lessonId);
+        return !!(this.form.subjectId && this.form.unitId && this.form.lessonId);
       }
-      return !!(isHierarchyValid && this.selectedFile);
+    },
+
+    isValidToSubmit() {
+      const hasValid = this.parsedPreview && this.parsedPreview.validCount > 0;
+      const noErrors = this.parsedPreview ? this.parsedPreview.errorCount === 0 : false;
+      return !!(this.isHierarchyValid && hasValid && noErrors && !this.editingUid);
+    },
+
+    filteredPreviewRows() {
+      if (!this.parsedPreview || !this.parsedPreview.rows) return [];
+      const rows = this.parsedPreview.rows;
+      if (this.previewFilter === "valid") return rows.filter((r) => r.errors.length === 0);
+      if (this.previewFilter === "error") return rows.filter((r) => r.errors.length > 0);
+      return rows;
+    },
+
+    inlineChoiceItems() {
+      const items = [];
+      const opt1 = this.editForm.opt1 ? `1: ${this.editForm.opt1}` : "الخيار 1";
+      const opt2 = this.editForm.opt2 ? `2: ${this.editForm.opt2}` : "الخيار 2";
+      items.push({ title: opt1, value: "1" });
+      items.push({ title: opt2, value: "2" });
+      if (this.editForm.opt3) items.push({ title: `3: ${this.editForm.opt3}`, value: "3" });
+      else items.push({ title: "الخيار 3", value: "3" });
+      if (this.editForm.opt4) items.push({ title: `4: ${this.editForm.opt4}`, value: "4" });
+      else items.push({ title: "الخيار 4", value: "4" });
+      return items;
     },
   },
 
@@ -549,7 +759,6 @@ export default {
       this.form.instituteSubjectId = null;
       this.form.unitId = null;
       this.form.lessonId = null;
-      this.form.learningOutcomeId = null;
     },
 
     onStageChange() {
@@ -559,7 +768,6 @@ export default {
     onSubjectChange() {
       this.form.unitId = null;
       this.form.lessonId = null;
-      this.form.learningOutcomeId = null;
     },
 
     onCollegeChange() {
@@ -568,13 +776,11 @@ export default {
       this.form.semesterSubjectId = null;
       this.form.unitId = null;
       this.form.lessonId = null;
-      this.form.learningOutcomeId = null;
     },
 
     onSemesterSubjectChange() {
       this.form.unitId = null;
       this.form.lessonId = null;
-      this.form.learningOutcomeId = null;
     },
 
     onInstituteFieldChange() {
@@ -583,7 +789,6 @@ export default {
       this.form.instituteSubjectId = null;
       this.form.unitId = null;
       this.form.lessonId = null;
-      this.form.learningOutcomeId = null;
     },
 
     onInstituteEducationSystemChange() {
@@ -592,7 +797,6 @@ export default {
       this.form.instituteSubjectId = null;
       this.form.unitId = null;
       this.form.lessonId = null;
-      this.form.learningOutcomeId = null;
     },
 
     onInstituteSpecializationChange() {
@@ -600,33 +804,30 @@ export default {
       this.form.instituteSubjectId = null;
       this.form.unitId = null;
       this.form.lessonId = null;
-      this.form.learningOutcomeId = null;
     },
 
     onInstituteCurriculumChange() {
       this.form.instituteSubjectId = null;
       this.form.unitId = null;
       this.form.lessonId = null;
-      this.form.learningOutcomeId = null;
     },
 
     onInstituteSubjectChange() {
       this.form.unitId = null;
       this.form.lessonId = null;
-      this.form.learningOutcomeId = null;
     },
 
     onUnitChange() {
       this.form.lessonId = null;
-      this.form.learningOutcomeId = null;
     },
 
     // === FILE HANDLING ===
     triggerFileInput() {
-      if (!this.selectedFile) {
+      if (this.$refs.fileInput) {
         this.$refs.fileInput.click();
       }
     },
+
     onFileChange(event) {
       const files = event.target.files;
       if (files && files.length > 0) {
@@ -634,6 +835,7 @@ export default {
         this.parsePreviewFile(this.selectedFile);
       }
     },
+
     onDrop(event) {
       this.isDragover = false;
       const files = event.dataTransfer.files;
@@ -644,23 +846,30 @@ export default {
           this.selectedFile = file;
           this.parsePreviewFile(this.selectedFile);
         } else {
-          this.$alert("errorData", { message: "نوع الملف غير مدعوم. يدعم Excel و CSV فقط" });
+          this.$alert("errorData", { message: "نوع الملف غير مدعوم. يرجى اختيار ملف إكسل أو CSV." });
         }
       }
     },
-    removeFile(event) {
-      if (event) event.stopPropagation();
+
+    removeFile() {
       this.selectedFile = null;
       this.parsedPreview = null;
+      this.editingUid = null;
       if (this.$refs.fileInput) this.$refs.fileInput.value = "";
     },
-    formatBytes(bytes, decimals = 2) {
-      if (bytes === 0) return "0 Bytes";
+
+    reparseFile() {
+      if (this.selectedFile) {
+        this.parsePreviewFile(this.selectedFile);
+      }
+    },
+
+    formatBytes(bytes) {
+      if (!bytes) return "0 B";
       const k = 1024;
-      const dm = decimals < 0 ? 0 : decimals;
-      const sizes = ["Bytes", "KB", "MB"];
+      const sizes = ["B", "KB", "MB"];
       const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+      return (bytes / Math.pow(k, i)).toFixed(1) + " " + sizes[i];
     },
 
     // === TEMPLATE DOWNLOAD ===
@@ -674,7 +883,7 @@ export default {
           "الخيار 2",
           "الخيار 3",
           "الخيار 4",
-          "الإجابة الصحيحة / المرجعية",
+          "الإجابة الصحيحة",
           "الدرجة",
           "مستوى الصعوبة",
           "مستوى بلوم"
@@ -716,55 +925,38 @@ export default {
           "تذكر"
         ],
         [
-          "صح وخطأ",
-          "يمر نهر النيل في أراضي الجمهورية اليمنية.",
-          "",
-          "",
-          "",
-          "",
-          "خطأ",
-          1,
-          "سهل",
-          "تذكر"
-        ],
-        [
           "مقالي",
           "اشرح الأهمية الاستراتيجية لموقع مضيق باب المندب للتجارة الدولية.",
           "",
           "",
           "",
           "",
-          "ممر مائي استراتيجي يربط البحر الأحمر بالمحيط الهندي ويوفر أقصر طريق بحري بين آسيا وأوروبا...",
+          "ممر مائي استراتيجي يربط البحر الأحمر بالمحيط الهندي...",
           3,
           "صعب",
           "تحليل"
         ]
       ];
       const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-      const wscols = [
+      ws["!cols"] = [
         { wch: 16 },
         { wch: 45 },
         { wch: 18 },
         { wch: 18 },
         { wch: 18 },
         { wch: 18 },
-        { wch: 30 },
+        { wch: 20 },
         { wch: 10 },
         { wch: 14 },
         { wch: 14 }
       ];
-      ws["!cols"] = wscols;
-
       XLSX.utils.book_append_sheet(wb, ws, "الأسئلة");
       XLSX.writeFile(wb, "Universal_Questions_Template.xlsx");
     },
 
+    // === PARSE EXCEL ===
     async parsePreviewFile(file) {
-      if (!file) {
-        this.parsedPreview = null;
-        return;
-      }
+      if (!file) return;
       try {
         const data = await file.arrayBuffer();
         const workbook = XLSX.read(data, { type: "array" });
@@ -774,60 +966,81 @@ export default {
 
         if (!rawJson || rawJson.length < 2) {
           this.parsedPreview = null;
+          this.$alert("errorData", { message: "الملف فارغ أو لا يحتوي على صفوف صالحة." });
           return;
         }
 
-        const headers = (rawJson[0] || []).map((h) => String(h || "").trim());
+        const headers = (rawJson[0] || []).map((h) => String(h || "").trim().toLowerCase());
         let typeIdx = -1;
         let qIdx = -1;
+        let opt1Idx = -1;
+        let opt2Idx = -1;
+        let opt3Idx = -1;
+        let opt4Idx = -1;
         let ansIdx = -1;
         let markIdx = -1;
-        const optIndices = [];
 
+        const optIndices = [];
         headers.forEach((h, idx) => {
-          const hl = h.toLowerCase();
-          if (hl.includes("نوع") || hl.includes("type")) typeIdx = idx;
-          else if (hl.includes("نص") || hl.includes("سؤال") || hl.includes("content") || hl.includes("question")) qIdx = idx;
-          else if (hl.includes("خيار") || hl.includes("بديل") || hl.includes("option")) optIndices.push(idx);
-          else if (hl.includes("صحيحة") || hl.includes("إجابة") || hl.includes("مرجعية") || hl.includes("answer") || hl.includes("correct")) ansIdx = idx;
-          else if (hl.includes("درجة") || hl.includes("mark")) markIdx = idx;
+          if (h.includes("نوع") || h.includes("type")) typeIdx = idx;
+          else if (h.includes("نص") || h.includes("سؤال") || h.includes("content") || h.includes("question")) qIdx = idx;
+
+          const isOpt = h.includes("خيار") || h.includes("بديل") || h.includes("option") || h.includes("opt");
+          if (isOpt) {
+            optIndices.push(idx);
+            if (h.includes("1") || h.includes("اول") || h.includes("أول") || h.includes("first") || h.includes("a")) opt1Idx = idx;
+            else if (h.includes("2") || h.includes("ثاني") || h.includes("ثان") || h.includes("second") || h.includes("b")) opt2Idx = idx;
+            else if (h.includes("3") || h.includes("ثالث") || h.includes("third") || h.includes("c")) opt3Idx = idx;
+            else if (h.includes("4") || h.includes("رابع") || h.includes("fourth") || h.includes("d")) opt4Idx = idx;
+          }
+
+          if (h.includes("صحيحة") || h.includes("إجابة") || h.includes("مرجعية") || h.includes("answer") || h.includes("correct")) ansIdx = idx;
+          else if (h.includes("درجة") || h.includes("mark") || h.includes("score")) markIdx = idx;
         });
 
-        const totalCols = (rawJson[0] || []).length;
-        if (qIdx === -1) {
-          const col0Header = (headers[0] || "").toLowerCase();
-          const col0FirstVal = String(rawJson[1]?.[0] || "").toLowerCase();
-          const isTypeCol = col0Header.includes("نوع") || ["اختيار واحد", "صح وخطأ", "خيارات متعددة", "مقالي"].some((k) => col0FirstVal.includes(k));
-          if (isTypeCol) {
-            typeIdx = 0;
-            qIdx = 1;
-            ansIdx = totalCols > 6 ? 6 : (totalCols === 6 ? 5 : -1);
-            markIdx = totalCols > 7 ? 7 : -1;
-          } else {
-            typeIdx = -1;
-            qIdx = 0;
-            ansIdx = totalCols > 5 ? 5 : (totalCols === 5 ? 4 : -1);
-            markIdx = totalCols > 6 ? 6 : -1;
-          }
+        if (opt1Idx === -1 && optIndices.length >= 1) opt1Idx = optIndices[0];
+        if (opt2Idx === -1 && optIndices.length >= 2) opt2Idx = optIndices[1];
+        if (opt3Idx === -1 && optIndices.length >= 3) opt3Idx = optIndices[2];
+        if (opt4Idx === -1 && optIndices.length >= 4) opt4Idx = optIndices[3];
+
+        // Positional fallbacks for standard template
+        if (typeIdx === -1 && qIdx === -1) {
+          typeIdx = 0;
+          qIdx = 1;
+        } else if (qIdx === -1 && typeIdx === 0) {
+          qIdx = 1;
+        } else if (qIdx === -1) {
+          qIdx = 0;
         }
 
+        if (opt1Idx === -1) opt1Idx = qIdx + 1;
+        if (opt2Idx === -1) opt2Idx = qIdx + 2;
+        if (opt3Idx === -1) opt3Idx = qIdx + 3;
+        if (opt4Idx === -1) opt4Idx = qIdx + 4;
+        if (ansIdx === -1) ansIdx = opt4Idx + 1;
+        if (markIdx === -1) markIdx = ansIdx + 1;
+
         const previewRows = [];
-        const typeCounts = {
-          "Single Choice": 0,
-          "Multiple Choice": 0,
-          "True/False": 0,
-          "Essay": 0,
-        };
+        let counter = 1;
 
         for (let i = 1; i < rawJson.length; i++) {
           const row = rawJson[i];
           if (!row || row.length === 0) continue;
-          const qText = String(row[qIdx] || "").trim();
-          if (!qText || qText.startsWith("نص السؤال") || qText.startsWith("نوع السؤال")) continue;
 
-          const rawType = typeIdx >= 0 ? String(row[typeIdx] || "").trim().toLowerCase() : "";
-          const rawAns = ansIdx >= 0 ? String(row[ansIdx] || "").trim() : "";
-          const mark = markIdx >= 0 ? parseFloat(row[markIdx]) || 1 : 1;
+          // Skip header repetition or empty lines
+          const isAllEmpty = row.every((c) => c === undefined || c === null || String(c).trim() === "");
+          if (isAllEmpty) continue;
+
+          const rawText = qIdx >= 0 && qIdx < row.length ? String(row[qIdx] || "").trim() : "";
+          if (rawText.startsWith("نص السؤال") || rawText.startsWith("نوع السؤال")) continue;
+
+          const rawType = typeIdx >= 0 && typeIdx < row.length ? String(row[typeIdx] || "").trim().toLowerCase() : "";
+          const opt1 = opt1Idx >= 0 && opt1Idx < row.length ? String(row[opt1Idx] || "").trim() : "";
+          const opt2 = opt2Idx >= 0 && opt2Idx < row.length ? String(row[opt2Idx] || "").trim() : "";
+          const opt3 = opt3Idx >= 0 && opt3Idx < row.length ? String(row[opt3Idx] || "").trim() : "";
+          const opt4 = opt4Idx >= 0 && opt4Idx < row.length ? String(row[opt4Idx] || "").trim() : "";
+          const rawAns = ansIdx >= 0 && ansIdx < row.length ? String(row[ansIdx] || "").trim() : "";
+          const rawMark = markIdx >= 0 && markIdx < row.length ? parseFloat(row[markIdx]) || 1 : 1;
 
           let determinedType = "Single Choice";
           if (rawType.includes("صح") || rawType.includes("true") || rawType.includes("صواب")) {
@@ -844,31 +1057,75 @@ export default {
               determinedType = "True/False";
             } else if (ansLower.includes(",") || ansLower.includes("،") || ansLower.includes(";")) {
               determinedType = "Multiple Choice";
-            } else if (ansLower.length > 3 && isNaN(Number(ansLower)) && optIndices.every((oi) => !String(row[oi] || "").trim())) {
+            } else if (ansLower.length > 3 && isNaN(Number(ansLower)) && !opt1 && !opt2) {
               determinedType = "Essay";
             } else {
               determinedType = "Single Choice";
             }
           }
 
-          typeCounts[determinedType] = (typeCounts[determinedType] || 0) + 1;
-          previewRows.push({
-            text: qText,
+          const rowObj = {
+            uid: `row_${Date.now()}_${counter}_${Math.random().toString(36).substring(2, 6)}`,
+            rowNum: counter++,
+            text: rawText,
             type: determinedType,
+            opt1: opt1,
+            opt2: opt2,
+            opt3: opt3,
+            opt4: opt4,
             answer: rawAns,
-            mark: mark,
-          });
+            mark: rawMark,
+            errors: [],
+          };
+
+          this.validateRow(rowObj);
+          previewRows.push(rowObj);
         }
 
-        this.parsedPreview = {
-          total: previewRows.length,
-          types: typeCounts,
-          rows: previewRows,
-        };
+        this.syncParsedPreview(previewRows);
       } catch (err) {
-        console.warn("Could not parse excel preview:", err);
-        this.parsedPreview = null;
+        console.error("Parse excel error:", err);
+        this.$alert("errorData", { message: "حدث خطأ أثناء قراءة ملف الإكسل. يرجى مراجعة محتوى الملف." });
       }
+    },
+
+    validateRow(rowObj) {
+      const errors = [];
+      if (!rowObj.text || !rowObj.text.trim()) {
+        errors.push("no_text");
+      }
+      if (this.needsOptions(rowObj.type)) {
+        if (!rowObj.opt1 || !rowObj.opt2) {
+          errors.push("missing_options");
+        }
+      }
+      if (!rowObj.answer || !String(rowObj.answer).trim()) {
+        errors.push("no_answer");
+      }
+      rowObj.errors = errors;
+      return errors.length === 0;
+    },
+
+    syncParsedPreview(rows) {
+      let validCount = 0;
+      let errorCount = 0;
+      rows.forEach((r, idx) => {
+        r.rowNum = idx + 1;
+        this.validateRow(r);
+        if (r.errors.length === 0) validCount++;
+        else errorCount++;
+      });
+
+      this.parsedPreview = {
+        total: rows.length,
+        validCount: validCount,
+        errorCount: errorCount,
+        rows: rows,
+      };
+    },
+
+    needsOptions(type) {
+      return type === "Single Choice" || type === "Multiple Choice";
     },
 
     getTypeText(type) {
@@ -881,37 +1138,132 @@ export default {
       return map[type] || type || "-";
     },
 
-    getTypeColor(type) {
+    errorLabel(code) {
       const map = {
-        "Single Choice": "primary",
-        "Multiple Choice": "indigo",
-        "True/False": "teal",
-        Essay: "amber-darken-3",
+        no_text: "نص السؤال غير مكتوب",
+        missing_options: "الخيارات 1 و 2 مطلوبة",
+        no_answer: "الإجابة الصحيحة غير محددة",
       };
-      return map[type] || "grey";
+      return map[code] || "بيانات ناقصة";
     },
 
-    // === SUBMIT ===
-    async submitImport() {
-      const { valid } = await this.$refs.formRef.validate();
-      if (!valid) {
-        this.$alert("errorData", { message: "يرجى اختيار المادة والوحدة والدرس أولاً" });
+    // === INLINE EDITING ===
+    startInlineEdit(row) {
+      this.editingUid = row.uid;
+      this.editForm = {
+        type: row.type || "Single Choice",
+        text: row.text || "",
+        opt1: row.opt1 || "",
+        opt2: row.opt2 || "",
+        opt3: row.opt3 || "",
+        opt4: row.opt4 || "",
+        answer: row.answer || (row.type === "True/False" ? "صح" : "1"),
+        mark: row.mark || 1,
+      };
+    },
+
+    cancelInlineEdit() {
+      this.editingUid = null;
+    },
+
+    saveInlineEdit(row) {
+      row.type = this.editForm.type;
+      row.text = (this.editForm.text || "").trim();
+      row.opt1 = (this.editForm.opt1 || "").trim();
+      row.opt2 = (this.editForm.opt2 || "").trim();
+      row.opt3 = (this.editForm.opt3 || "").trim();
+      row.opt4 = (this.editForm.opt4 || "").trim();
+      row.answer = String(this.editForm.answer || "").trim();
+      row.mark = Number(this.editForm.mark) || 1;
+
+      this.syncParsedPreview(this.parsedPreview.rows);
+      this.editingUid = null;
+    },
+
+    onInlineTypeChange(newType) {
+      if (newType === "True/False") {
+        if (!["صح", "خطأ"].includes(this.editForm.answer)) {
+          this.editForm.answer = "صح";
+        }
+      } else if (newType === "Single Choice") {
+        if (!["1", "2", "3", "4"].includes(this.editForm.answer)) {
+          this.editForm.answer = "1";
+        }
+      }
+    },
+
+    deleteRow(row) {
+      if (!this.parsedPreview || !this.parsedPreview.rows) return;
+      const filtered = this.parsedPreview.rows.filter((r) => r.uid !== row.uid);
+      if (this.editingUid === row.uid) this.editingUid = null;
+      this.syncParsedPreview(filtered);
+    },
+
+    addNewRow() {
+      const nextNum = (this.parsedPreview?.rows?.length || 0) + 1;
+      const newRow = {
+        uid: `row_${Date.now()}_new_${Math.random().toString(36).substring(2, 6)}`,
+        rowNum: nextNum,
+        text: "",
+        type: "Single Choice",
+        opt1: "",
+        opt2: "",
+        opt3: "",
+        opt4: "",
+        answer: "1",
+        mark: 1,
+        errors: [],
+      };
+      const rows = this.parsedPreview?.rows || [];
+      rows.push(newRow);
+      this.syncParsedPreview(rows);
+      this.startInlineEdit(newRow);
+    },
+
+    excludeInvalidRows() {
+      if (!this.parsedPreview || !this.parsedPreview.rows) return;
+      const validOnly = this.parsedPreview.rows.filter((r) => r.errors.length === 0);
+      const removed = this.parsedPreview.rows.length - validOnly.length;
+      this.syncParsedPreview(validOnly);
+      this.previewFilter = "all";
+      if (this.editingUid) this.editingUid = null;
+      this.$alert("success", { message: `تم استبعاد ${removed} أسئلة غير مكتملة.` });
+    },
+
+    // === SUBMIT IMPORT ===
+    async submitImport(onlyValid = false) {
+      if (!this.isHierarchyValid) {
+        this.$alert("errorData", { message: "يرجى تحديد المادة والوحدة والدرس أولاً." });
         return;
       }
-      if (!this.selectedFile) return;
+      if (!this.parsedPreview || this.parsedPreview.rows.length === 0) {
+        this.$alert("errorData", { message: "لا توجد أسئلة للاستيراد." });
+        return;
+      }
+
+      let questionsToImport = this.parsedPreview.rows;
+      if (onlyValid || this.parsedPreview.errorCount > 0) {
+        questionsToImport = questionsToImport.filter((r) => r.errors.length === 0);
+      }
+
+      if (questionsToImport.length === 0) {
+        this.$alert("errorData", { message: "لا توجد أسئلة سليمة جاهزة للاستيراد. يرجى إكمال الأسئلة الناقصة أولاً." });
+        return;
+      }
 
       const formData = new FormData();
-      formData.append("file", this.selectedFile);
+      if (this.selectedFile) {
+        formData.append("file", this.selectedFile);
+      }
       formData.append("institution_type", this.form.institution_type || "school");
       formData.append("fk_lesson", this.form.lessonId);
+      formData.append("questions", JSON.stringify(questionsToImport));
 
       this.isSubmitting = true;
       try {
         const res = await bankService.importExcelQuestions(formData);
-
-        const count = res?.data?.data?.count || res?.data?.count || res?.count || 0;
-        this.$alert("success", { message: `تم استيراد ${count} أسئلة بنجاح!` });
-
+        const count = res?.data?.data?.count || res?.data?.count || res?.count || questionsToImport.length;
+        this.$alert("success", { message: `تم استيراد ${count} سؤالاً بنجاح إلى بنك الأسئلة!` });
         this.$navigateTo({ name: "question-bank", blank: false });
       } catch (err) {
         console.error("Import error", err);
@@ -926,60 +1278,99 @@ export default {
 </script>
 
 <style scoped>
-.qb-import-page-v4 {
+.qb-import-container {
   color: rgb(var(--v-theme-on-surface));
 }
 
-/* ===== Primary Glow Button ===== */
-.btn-glow-primary {
-  background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, color-mix(in srgb, rgb(var(--v-theme-primary)) 85%, #000) 100%) !important;
-  box-shadow: 0 8px 24px -4px rgba(var(--v-theme-primary), 0.45) !important;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-.btn-glow-primary:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 14px 32px -4px rgba(var(--v-theme-primary), 0.55) !important;
-}
-
-/* ===== Main Cards (Theme Compatible) ===== */
-.main-card {
-  background: rgb(var(--v-theme-surface)) !important;
-  border: 1px solid rgba(var(--v-border-color), 0.08);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.main-card:hover {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05), 0 8px 24px rgba(0, 0, 0, 0.03);
-}
-
-/* ===== Dropzone Area ===== */
+/* Official Upload Dropzone */
 .upload-dropzone {
-  background: rgb(var(--v-theme-background));
-  border: 2px dashed rgba(var(--v-border-color), 0.18);
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
   cursor: pointer;
-  min-height: 280px;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
+  min-height: 200px;
+  transition: all 0.2s ease;
 }
 
 .upload-dropzone:hover, .upload-dropzone.is-dragover {
-  border-color: rgba(var(--v-theme-primary), 0.5);
-  background: rgba(var(--v-theme-primary), 0.03);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(var(--v-theme-primary), 0.08);
+  border-color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.04);
 }
 
-.upload-dropzone.has-file {
-  border-style: solid;
-  border-color: rgba(var(--v-theme-success), 0.5);
-  background: rgba(var(--v-theme-success), 0.03);
-  box-shadow: 0 8px 28px rgba(var(--v-theme-success), 0.08);
-  cursor: default;
+/* Official Data Table */
+.table-wrapper {
+  background: rgb(var(--v-theme-surface));
+  max-height: 480px;
+  overflow-y: auto;
 }
 
-/* ===== Gap Utilities ===== */
+.preview-data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.preview-data-table thead tr th {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  font-weight: 600 !important;
+  font-size: 0.8125rem !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 8px 10px !important;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.preview-data-table tbody tr td {
+  border-bottom: 1px solid #f1f5f9;
+  padding: 6px 10px !important;
+  font-size: 0.8125rem;
+}
+
+.preview-data-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+/* Editing Row Highlight */
+.preview-data-table tbody tr.editing-row {
+  background: #f0f7ff !important;
+}
+
+/* Table Inline Input Styling */
+.table-inline-input :deep(.v-field__input) {
+  padding: 4px 8px !important;
+  font-size: 0.8125rem !important;
+  min-height: 32px !important;
+}
+
+.table-inline-input :deep(.v-field) {
+  border-radius: 6px !important;
+  background: #ffffff !important;
+}
+
+/* Official Clean Status Badges */
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.status-valid {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.status-invalid {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+/* Gap Utilities */
 .gap-1 { gap: 4px; }
 .gap-2 { gap: 8px; }
 .gap-3 { gap: 12px; }

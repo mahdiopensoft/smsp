@@ -221,7 +221,19 @@
           <span v-else class="text-caption text-medium-emphasis">-</span>
         </template>
 
-        <!-- 8. إجراءات السجل (حذف وإعادة تضمين) -->
+        <!-- 8. حالة التفعيل -->
+        <template v-else-if="key === 'is_active'">
+          <v-chip
+            size="x-small"
+            :color="item.is_active ? 'success' : 'error'"
+            variant="tonal"
+            class="font-weight-medium"
+          >
+            {{ item.is_active ? 'نشط' : 'معطل' }}
+          </v-chip>
+        </template>
+
+        <!-- 9. إجراءات السجل (حذف وإعادة تضمين) -->
         <template v-else-if="key === 'actions'">
           <custom-btn
             type="delete"
@@ -786,6 +798,8 @@ const exclusionsTableHeaders = [
   { title: 'نطاق الحذف', key: 'exclusion_type', sortable: true },
   { title: 'المحتوى المستبعد', key: 'target_name', sortable: true },
   { title: 'قرار / مبرر الحذف', key: 'reason', sortable: false },
+  { title: 'الحالة', key: 'is_active', align: 'center', sortable: true },
+  { title: 'الإجراءات', key: 'actions', align: 'center', sortable: false },
 ]
 
 

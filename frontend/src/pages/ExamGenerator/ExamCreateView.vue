@@ -1,8 +1,77 @@
 <template>
-  <div class="qb-exam-create-v4">
+  <div class="qb-exam-create-v4 position-relative">
+
+    <!-- Top Subtle Linear Progress during Edit Loading -->
+    <v-progress-linear
+      v-if="isLoadingForEdit"
+      indeterminate
+      color="primary"
+      height="3"
+      rounded
+      class="mb-3"
+    />
+
+    <!-- Lightweight Formal Transparent Overlay -->
+    <v-fade-transition>
+      <div v-if="isLoadingForEdit" class="formal-loading-overlay">
+        <div class="formal-loading-pill d-flex align-center gap-3 pa-3 px-5 rounded-pill elevation-3">
+          <v-progress-circular
+            indeterminate
+            color="primary"
+            size="22"
+            width="2.5"
+          />
+          <span class="text-caption font-weight-bold text-high-emphasis">
+            جاري استرجاع بيانات الاختبار...
+          </span>
+        </div>
+      </div>
+    </v-fade-transition>
+
+    <!-- Active Editing Draft Mode Banner (Zero Gray executive design) -->
+    <div
+      v-if="isEditing && !isLoadingForEdit"
+      class="editing-mode-banner mb-6 pa-4 rounded-2xl d-flex align-center justify-space-between flex-wrap gap-3"
+    >
+      <div class="d-flex align-center gap-3">
+        <v-avatar color="warning" size="44" class="font-weight-black text-white shadow-sm">
+          <v-icon color="white" size="24">mdi-pencil-box-multiple</v-icon>
+        </v-avatar>
+        <div>
+          <div class="d-flex align-center gap-2 flex-wrap">
+            <h3 class="text-subtitle-1 font-weight-black mb-0 text-warning">
+              تعديل مسودة الاختبار: {{ exam.title || editingExamCode }}
+            </h3>
+            <v-chip size="x-small" color="warning" variant="flat" class="font-weight-black text-white">
+              مسودة غير معتمدة
+            </v-chip>
+            <span class="text-caption font-mono font-weight-bold opacity-80">({{ editingExamCode }})</span>
+          </div>
+          <p class="text-caption font-weight-medium text-medium-emphasis mb-0">
+            أنت الآن تقوم بتعديل معايير وتوزيعات الاختبار الحالية. يمكنك تعديل أي خطوة وإعادة توليد وتحديث الاختبار.
+          </p>
+        </div>
+      </div>
+
+      <div class="d-flex align-center gap-2">
+        <v-btn
+          variant="tonal"
+          color="warning"
+          size="small"
+          class="font-weight-bold rounded-xl text-none"
+          prepend-icon="mdi-plus"
+          @click="exitEditMode"
+        >
+          إنشاء اختبار جديد بدلاً من التعديل
+        </v-btn>
+      </div>
+    </div>
 
     <!-- Main Stepper Wizard Window Content -->
-    <div class="main-card rounded-2xl mb-8">
+    <div
+      class="main-card rounded-2xl mb-8"
+      :class="{ 'content-loading-blur': isLoadingForEdit }"
+    >
 
       <!-- Premium Connected Wizard Stepper -->
       <div class="premium-wizard-wrapper">
@@ -19,7 +88,7 @@
             'is-active': step === s.value,
             'is-completed': step > s.value,
             'is-pending': step < s.value
-          }" @click="s.value < step ? step = s.value : null">
+          }" @click="handleStepClick(s.value)">
 
             <div class="node-icon-wrapper">
               <span class="node-step-number">{{ s.value }}</span>
@@ -191,9 +260,9 @@
                       <!-- 🏫 School Classification Fields -->
                       <template v-if="exam.institution_type === 'school'">
                         <auto-list v-model="exam.stageId" name="Stage" placeholder="اختر المرحلة الدراسية" cols="3" :add="false"
-                          :rules="requiredRule" @update:model-value="() => { exam.classTrackId = null; exam.subjectId = null; }" />
+                          :rules="requiredRule" @update:model-value="() => { if (!isLoadingForEdit) { exam.classTrackId = null; exam.subjectId = null; } }" />
                         <auto-list v-model="exam.classTrackId" name="ClassTrackByStage" :param="exam.stageId" placeholder="اختر الصف والمسار"
-                          cols="3" :add="false" :rules="requiredRule" :disabled="!exam.stageId" @update:model-value="exam.subjectId = null" />
+                          cols="3" :add="false" :rules="requiredRule" :disabled="!exam.stageId" @update:model-value="() => { if (!isLoadingForEdit) { exam.subjectId = null; } }" />
                         <auto-list v-model="exam.subjectId" name="Subject" :param="exam.classTrackId || exam.stageId" placeholder="اختر المادة الدراسية" cols="3" :add="false"
                           :rules="requiredRule" :disabled="!exam.classTrackId && !exam.stageId" />
                       </template>
@@ -201,13 +270,13 @@
                       <!-- 🎓 University Classification Fields -->
                       <template v-else-if="exam.institution_type === 'university'">
                         <auto-list v-model="exam.collegeId" name="College" placeholder="اختر الكلية" cols="3" :add="false"
-                          :rules="requiredRule" @update:model-value="() => { exam.departmentId = null; exam.specializationId = null; exam.semesterSubjectId = null; }" />
+                          :rules="requiredRule" @update:model-value="() => { if (!isLoadingForEdit) { exam.departmentId = null; exam.specializationId = null; exam.semesterSubjectId = null; } }" />
                         <auto-list v-model="exam.departmentId" name="UniversitySection" :param="exam.collegeId" placeholder="اختر القسم الأكاديمي"
                           cols="3" :add="false" :rules="requiredRule" :disabled="!exam.collegeId"
-                          @update:model-value="() => { exam.specializationId = null; exam.semesterSubjectId = null; }" />
+                          @update:model-value="() => { if (!isLoadingForEdit) { exam.specializationId = null; exam.semesterSubjectId = null; } }" />
                         <auto-list v-model="exam.specializationId" name="Specialization" :param="exam.departmentId" placeholder="اختر التخصص الدراسي"
                           cols="3" :add="false" :rules="requiredRule" :disabled="!exam.departmentId"
-                          @update:model-value="exam.semesterSubjectId = null" />
+                          @update:model-value="() => { if (!isLoadingForEdit) { exam.semesterSubjectId = null; } }" />
                         <auto-list v-model="exam.semesterSubjectId" name="SemesterSubjectBySpec" :param="exam.specializationId"
                           placeholder="اختر المقرر الدراسي" cols="3" :add="false" :rules="requiredRule"
                           :disabled="!exam.specializationId" />
@@ -217,10 +286,10 @@
                       <template v-else-if="exam.institution_type === 'institute'">
                         <auto-list v-model="exam.instituteFieldId" name="InstituteField" placeholder="اختر المجال المهني" cols="3" :add="false"
                           :rules="requiredRule"
-                          @update:model-value="() => { exam.instituteSpecializationId = null; exam.instituteCurriculumId = null; exam.instituteSubjectId = null; }" />
+                          @update:model-value="() => { if (!isLoadingForEdit) { exam.instituteSpecializationId = null; exam.instituteCurriculumId = null; exam.instituteSubjectId = null; } }" />
                         <auto-list v-model="exam.instituteEducationSystemId" name="InstituteEducationSystem" placeholder="اختر النظام التعليمي"
                           cols="3" :add="false" :rules="requiredRule"
-                          @update:model-value="() => { exam.instituteSpecializationId = null; exam.instituteCurriculumId = null; exam.instituteSubjectId = null; }" />
+                          @update:model-value="() => { if (!isLoadingForEdit) { exam.instituteSpecializationId = null; exam.instituteCurriculumId = null; exam.instituteSubjectId = null; } }" />
                         <auto-list
                           v-model="exam.instituteSpecializationId"
                           name="InstituteSpecialization"
@@ -230,7 +299,7 @@
                           :add="false"
                           :rules="requiredRule"
                           :disabled="!exam.instituteFieldId || !exam.instituteEducationSystemId"
-                          @update:model-value="() => { exam.instituteCurriculumId = null; exam.instituteSubjectId = null; }"
+                          @update:model-value="() => { if (!isLoadingForEdit) { exam.instituteCurriculumId = null; exam.instituteSubjectId = null; } }"
                         />
                         <auto-list
                           v-model="exam.instituteCurriculumId"
@@ -241,7 +310,7 @@
                           :add="false"
                           :rules="requiredRule"
                           :disabled="!exam.instituteSpecializationId"
-                          @update:model-value="exam.instituteSubjectId = null"
+                          @update:model-value="() => { if (!isLoadingForEdit) { exam.instituteSubjectId = null; } }"
                         />
                         <auto-list
                           v-model="exam.instituteSubjectId"
@@ -423,25 +492,62 @@
 
                     <v-expand-transition>
                       <div v-if="modelsMode === 'advanced'">
-                        <!-- Model Groups Cards -->
-                        <div v-for="(group, gIdx) in modelGroups" :key="gIdx" class="pa-5 rounded-2xl border-subtle mb-4 model-group-card">
-                          <div class="d-flex align-center justify-space-between mb-4 flex-wrap gap-2">
-                            <div class="d-flex align-center gap-3">
-                              <v-avatar size="34" :color="difficultyColor(group.difficulty_profile)" variant="tonal" class="rounded-xl">
-                                <span class="text-subtitle-2 font-weight-black text-white">{{ gIdx + 1 }}</span>
-                              </v-avatar>
-                              <div>
-                                <span class="font-weight-black text-subtitle-2">{{ group.name || ('المجموعة ' + (gIdx + 1)) }}</span>
-                                <span class="text-caption text-medium-emphasis ms-2">({{ group.count }} نماذج)</span>
+                        <!-- Model Groups Cards with Distinct Borders & Visual Separation -->
+                        <template v-for="(group, gIdx) in modelGroups" :key="gIdx">
+                          <div class="pa-5 pa-md-6 rounded-2xl model-group-card">
+                            <!-- Distinctive Group Header Banner -->
+                            <div class="model-group-header-banner d-flex align-center justify-space-between mb-5 pa-3.5 px-4 rounded-xl flex-wrap gap-3">
+                              <div class="d-flex align-center gap-3 flex-wrap">
+                                <div class="d-flex align-center gap-2.5">
+                                  <v-avatar
+                                    size="38"
+                                    color="primary"
+                                    variant="flat"
+                                    class="rounded-xl font-weight-black text-subtitle-2 text-white shadow-sm"
+                                  >
+                                    {{ gIdx + 1 }}
+                                  </v-avatar>
+                                  <div>
+                                    <div class="d-flex align-center gap-2">
+                                      <span class="font-weight-black text-subtitle-1 text-high-emphasis">{{ group.name || ('المجموعة ' + (gIdx + 1)) }}</span>
+                                      <v-chip size="small" color="primary" variant="flat" class="font-weight-black">
+                                        {{ group.count }} {{ group.count === 1 ? 'نموذج' : group.count === 2 ? 'نموذجان' : 'نماذج' }}
+                                      </v-chip>
+                                    </div>
+                                    <span class="text-caption text-medium-emphasis">إعدادات النماذج والخصائص المخصصة لهذه المجموعة</span>
+                                  </div>
+                                </div>
                               </div>
-                              <v-chip size="small" :color="difficultyColor(group.difficulty_profile)" variant="tonal" class="font-weight-bold">
-                                {{ difficultyLabel(group.difficulty_profile) }}
-                              </v-chip>
+
+                              <div class="d-flex align-center gap-2 flex-wrap">
+                                <v-chip size="small" :color="difficultyColor(group.difficulty_profile)" variant="tonal" class="font-weight-bold">
+                                  <v-icon start size="14">mdi-speedometer</v-icon>
+                                  {{ difficultyLabel(group.difficulty_profile) }}
+                                </v-chip>
+                                <v-chip
+                                  size="small"
+                                  :color="(group.questions_variation || 'same_scrambled') === 'different_questions' ? 'secondary' : 'primary'"
+                                  variant="tonal"
+                                  class="font-weight-bold"
+                                >
+                                  <v-icon start size="14">
+                                    {{ (group.questions_variation || 'same_scrambled') === 'different_questions' ? 'mdi-layers-triple' : 'mdi-shuffle-variant' }}
+                                  </v-icon>
+                                  {{ (group.questions_variation || 'same_scrambled') === 'different_questions' ? 'أسئلة مستقلة' : 'خلط وترتيب' }}
+                                </v-chip>
+                                <v-btn
+                                  v-if="modelGroups.length > 1"
+                                  variant="tonal"
+                                  size="small"
+                                  color="error"
+                                  class="rounded-lg font-weight-bold px-3 ms-md-2"
+                                  prepend-icon="mdi-trash-can-outline"
+                                  @click="removeModelGroup(gIdx)"
+                                >
+                                  حذف المجموعة
+                                </v-btn>
+                              </div>
                             </div>
-                            <v-btn v-if="modelGroups.length > 1" icon variant="text" size="small" color="error" @click="removeModelGroup(gIdx)">
-                              <v-icon size="20">mdi-trash-can-outline</v-icon>
-                            </v-btn>
-                          </div>
 
                           <v-row dense class="mb-4">
                             <v-col cols="12" md="4">
@@ -487,8 +593,98 @@
                             </v-col>
                           </v-row>
 
+                          <!-- Question Variation Mode for this Group -->
+                          <div class="pa-4 rounded-xl mb-4 group-inner-section group-variation-container">
+                            <div class="d-flex align-center justify-space-between mb-3 flex-wrap gap-2">
+                              <span class="text-caption font-weight-black text-primary d-flex align-center">
+                                <v-icon size="16" color="primary" class="me-1">mdi-swap-horizontal-bold</v-icon>
+                                تنوع الأسئلة داخل نماذج {{ group.name || ('المجموعة ' + (gIdx + 1)) }}:
+                              </span>
+                              <v-chip
+                                size="x-small"
+                                :color="(group.questions_variation || 'same_scrambled') === 'different_questions' ? 'secondary' : 'primary'"
+                                variant="tonal"
+                                class="font-weight-bold"
+                              >
+                                {{ (group.questions_variation || 'same_scrambled') === 'different_questions' ? 'أسئلة مستقلة لكل نموذج' : 'نفس الأسئلة (خلط وترتيب)' }}
+                              </v-chip>
+                            </div>
+
+                            <v-row dense>
+                              <v-col cols="12" sm="6">
+                                <div
+                                  class="selection-card h-100 pa-3 rounded-lg cursor-pointer transition-swing"
+                                  :class="{ 'is-active': (group.questions_variation || 'same_scrambled') === 'same_scrambled' }"
+                                  @click="group.questions_variation = 'same_scrambled'"
+                                >
+                                  <div class="d-flex align-start gap-2.5">
+                                    <v-avatar
+                                      size="32"
+                                      :color="(group.questions_variation || 'same_scrambled') === 'same_scrambled' ? 'primary' : 'surface-variant'"
+                                      :variant="(group.questions_variation || 'same_scrambled') === 'same_scrambled' ? 'flat' : 'tonal'"
+                                      class="rounded-lg flex-shrink-0"
+                                    >
+                                      <v-icon size="18" :color="(group.questions_variation || 'same_scrambled') === 'same_scrambled' ? 'white' : 'medium-emphasis'">
+                                        mdi-shuffle-variant
+                                      </v-icon>
+                                    </v-avatar>
+                                    <div class="flex-grow-1">
+                                      <div class="d-flex align-center justify-space-between mb-1">
+                                        <span class="font-weight-bold text-caption text-high-emphasis">نفس الأسئلة والخيارات بترتيب مختلف</span>
+                                        <v-icon
+                                          :color="(group.questions_variation || 'same_scrambled') === 'same_scrambled' ? 'primary' : 'medium-emphasis'"
+                                          size="16"
+                                        >
+                                          {{ (group.questions_variation || 'same_scrambled') === 'same_scrambled' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank' }}
+                                        </v-icon>
+                                      </div>
+                                      <p class="text-caption text-medium-emphasis mb-0" style="font-size: 11px !important; line-height: 1.4;">
+                                        نماذج المجموعة تتشارك نفس حزمة الأسئلة مع إعادة ترتيب مواقع الأسئلة وخيارات الإجابة منعاً للغش.
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </v-col>
+
+                              <v-col cols="12" sm="6">
+                                <div
+                                  class="selection-card h-100 pa-3 rounded-lg cursor-pointer transition-swing"
+                                  :class="{ 'is-active': group.questions_variation === 'different_questions' }"
+                                  @click="group.questions_variation = 'different_questions'"
+                                >
+                                  <div class="d-flex align-start gap-2.5">
+                                    <v-avatar
+                                      size="32"
+                                      :color="group.questions_variation === 'different_questions' ? 'secondary' : 'surface-variant'"
+                                      :variant="group.questions_variation === 'different_questions' ? 'flat' : 'tonal'"
+                                      class="rounded-lg flex-shrink-0"
+                                    >
+                                      <v-icon size="18" :color="group.questions_variation === 'different_questions' ? 'white' : 'medium-emphasis'">
+                                        mdi-layers-triple
+                                      </v-icon>
+                                    </v-avatar>
+                                    <div class="flex-grow-1">
+                                      <div class="d-flex align-center justify-space-between mb-1">
+                                        <span class="font-weight-bold text-caption text-high-emphasis">أسئلة مختلفة ومستقلة في كل نموذج</span>
+                                        <v-icon
+                                          :color="group.questions_variation === 'different_questions' ? 'secondary' : 'medium-emphasis'"
+                                          size="16"
+                                        >
+                                          {{ group.questions_variation === 'different_questions' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank' }}
+                                        </v-icon>
+                                      </div>
+                                      <p class="text-caption text-medium-emphasis mb-0" style="font-size: 11px !important; line-height: 1.4;">
+                                        توليد حزمة أسئلة مختلفة ومستقلة تماماً لكل نموذج من بنك الأسئلة وفق معايير المجموعة.
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </v-col>
+                            </v-row>
+                          </div>
+
                           <!-- Difficulty Distribution Sliders -->
-                          <div class="pa-4 rounded-xl border-subtle mb-3">
+                          <div class="pa-4 rounded-xl mb-4 group-inner-section group-difficulty-container">
                             <div class="d-flex align-center justify-space-between mb-3 flex-wrap gap-2">
                               <span class="text-caption font-weight-bold text-medium-emphasis d-flex align-center">
                                 <v-icon size="16" class="me-1">mdi-speedometer</v-icon>
@@ -562,7 +758,7 @@
                           </div>
 
                           <!-- Geographic Target Scope for this Model Group -->
-                          <div class="pa-4 rounded-xl border-subtle mb-3">
+                          <div class="pa-4 rounded-xl mb-2 group-inner-section group-geo-container">
                             <div class="d-flex align-center justify-space-between mb-3 flex-wrap gap-2">
                               <span class="text-caption font-weight-bold text-medium-emphasis d-flex align-center">
                                 <v-icon size="16" class="me-1" color="deep-purple">mdi-map-marker-radius</v-icon>
@@ -732,6 +928,17 @@
                             </div>
                           </div>
                         </div>
+
+                        <!-- Distinctive Visual Divider between consecutive groups -->
+                        <div v-if="gIdx < modelGroups.length - 1" class="d-flex align-center justify-center my-6">
+                          <div class="group-divider-line flex-grow-1"></div>
+                          <div class="group-divider-badge d-flex align-center gap-1.5 px-4 py-1.5 rounded-pill mx-3 text-caption font-weight-bold">
+                            <v-icon size="16" color="primary">mdi-arrow-down-bold-circle-outline</v-icon>
+                            <span>المجموعة التالية ({{ gIdx + 2 }})</span>
+                          </div>
+                          <div class="group-divider-line flex-grow-1"></div>
+                        </div>
+                      </template>
 
                         <div class="d-flex align-center justify-space-between mt-4 flex-wrap gap-2">
                           <custom-btn type="add" label="إضافة مجموعة نماذج جديدة" icon="mdi-plus" variant="tonal" color="primary"
@@ -1906,6 +2113,7 @@
                   <tr class="table-header-row">
                     <th class="font-weight-bold">المجموعة</th>
                     <th class="font-weight-bold">النماذج الفرعية</th>
+                    <th class="font-weight-bold">تنوع الأسئلة</th>
                     <th class="font-weight-bold">ملف الصعوبة</th>
                     <th class="font-weight-bold">أوزان الصعوبة (سهل / متوسط / صعب)</th>
                     <th class="font-weight-bold">المناطق المخصصة</th>
@@ -1917,6 +2125,19 @@
                     <td>
                       <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold font-mono">
                         {{ getGroupVersionCodes(gIdx) }} ({{ group.count }} نماذج)
+                      </v-chip>
+                    </td>
+                    <td>
+                      <v-chip
+                        size="x-small"
+                        :color="(group.questions_variation || 'same_scrambled') === 'different_questions' ? 'secondary' : 'primary'"
+                        variant="tonal"
+                        class="font-weight-bold"
+                      >
+                        <v-icon start size="14">
+                          {{ (group.questions_variation || 'same_scrambled') === 'different_questions' ? 'mdi-layers-triple' : 'mdi-shuffle-variant' }}
+                        </v-icon>
+                        {{ (group.questions_variation || 'same_scrambled') === 'different_questions' ? 'أسئلة مستقلة' : 'نفس الأسئلة (خلط)' }}
                       </v-chip>
                     </td>
                     <td>
@@ -2048,6 +2269,34 @@
                 </div>
               </v-col>
             </v-row>
+
+            <!-- Call to Action Banner to Step 4 (مسودة استعراض النماذج) -->
+            <div class="mt-6 pa-5 rounded-2xl border-subtle d-flex align-center justify-space-between flex-wrap gap-4"
+              style="background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.08) 0%, rgba(var(--v-theme-surface), 0.98) 100%); border: 1.5px solid rgba(var(--v-theme-primary), 0.2);">
+              <div class="d-flex align-center gap-3">
+                <v-avatar size="48" color="primary" variant="tonal" class="rounded-xl">
+                  <v-icon size="26" color="primary">mdi-file-document-edit-outline</v-icon>
+                </v-avatar>
+                <div>
+                  <h4 class="text-subtitle-1 font-weight-black mb-0 text-high-emphasis">
+                    المرحلة الرابعة: مسودة استعراض وضبط نماذج الاختبار
+                  </h4>
+                  <p class="text-caption text-medium-emphasis mb-0 mt-0.5">
+                    سيتم سحب الأسئلة من البنك وعرض كافة النماذج في بيئة تفاعلية تتيح لك مراجعة الأسئلة واستبدالها أو إنشاء أسئلة جديدة قبل الاعتماد النهائي.
+                  </p>
+                </div>
+              </div>
+              <v-btn
+                color="primary"
+                size="large"
+                class="font-weight-black rounded-xl px-6 elevation-2"
+                prepend-icon="mdi-arrow-left"
+                :loading="stagingLoading"
+                @click="nextStep"
+              >
+                الانتقال لمسودة واستعراض النماذج
+              </v-btn>
+            </div>
           </v-window-item>
 
           <!-- ═════════════════════════════════════════════════════════════════════ -->
@@ -2159,7 +2408,7 @@
                         النموذج ({{ model.versionCode }})
                       </span>
                       <span class="text-caption text-medium-emphasis" style="font-size: 0.72rem;">
-                        {{ model.group_name || ('المجموعة ' + (Number(model.model_group_index || 0) + 1)) }} &bull; {{ model.questions?.length || 0 }} سؤال
+                        {{ model.group_name || ('المجموعة ' + (Number(model.model_group_index || 0) + 1)) }} &bull; {{ model.questions_variation === 'different_questions' ? 'أسئلة مستقلة' : 'خلط' }} &bull; {{ model.questions?.length || 0 }} سؤال
                       </span>
                     </div>
                   </div>
@@ -2176,10 +2425,21 @@
                     {{ currentStagedModel.questions?.length || 0 }} / {{ exam.questionsCount }} سؤال
                   </v-chip>
                   <v-chip size="small" color="secondary" variant="tonal" class="font-weight-bold">
-                    إجمالي الدرجات: {{ calculateStagedTotalMarks(currentStagedModel) }} / {{ examTotalScore }} درجة
+                    إجمالي الدرجات: {{ calculateStagedTotalMarks(currentStagedModel) }} / {{ exam.totalMarks || 100 }} درجة
                   </v-chip>
                   <v-chip size="small" :color="difficultyColor(currentStagedModel.difficulty_profile)" variant="tonal" class="font-weight-bold">
                     صعوبة النموذج: {{ difficultyLabel(currentStagedModel.difficulty_profile) }}
+                  </v-chip>
+                  <v-chip
+                    size="small"
+                    :color="currentStagedModel.questions_variation === 'different_questions' ? 'secondary' : 'primary'"
+                    variant="tonal"
+                    class="font-weight-bold"
+                  >
+                    <v-icon start size="14">
+                      {{ currentStagedModel.questions_variation === 'different_questions' ? 'mdi-layers-triple' : 'mdi-shuffle-variant' }}
+                    </v-icon>
+                    {{ currentStagedModel.questions_variation === 'different_questions' ? 'أسئلة مستقلة' : 'نفس الأسئلة (خلط وترتيب)' }}
                   </v-chip>
                 </div>
                 <div class="text-caption text-medium-emphasis">
@@ -2690,7 +2950,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted, getCurrentInstance } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useDataStore } from '@/stores/dataStore'
 import { useTheme } from 'vuetify'
 import { rules } from '@/utils/validations'
@@ -2700,6 +2960,13 @@ import api from '@/services/api'
 
 const { proxy } = getCurrentInstance()
 const router = useRouter()
+const route = useRoute()
+
+// Edit Exam Mode States
+const isEditing = ref(false)
+const editingExamId = ref(null)
+const editingExamCode = ref('')
+const isLoadingForEdit = ref(Boolean(route.query.edit_exam_id))
 const store = useDataStore()
 const theme = useTheme()
 
@@ -2711,10 +2978,21 @@ const step1Form = ref(null)
 const generating = ref(false)
 
 const wizardSteps = [
-  { value: 1, title: 'إعدادات الاختبار', icon: 'mdi-tune-variant' },
-  { value: 2, title: 'مصفوفة المعايير', icon: 'mdi-chart-pie' },
-  { value: 3, title: 'المعاينة والتأكيد', icon: 'mdi-clipboard-check-outline' },
+  { value: 1, title: 'إعدادات الاختبار', subtitle: 'البيانات والنطاق والنماذج', icon: 'mdi-tune-variant' },
+  { value: 2, title: 'مصفوفة المعايير', subtitle: 'الوحدات والصعوبة والدرجات', icon: 'mdi-chart-pie' },
+  { value: 3, title: 'المعاينة والتأكيد', subtitle: 'مطابقة ملخص المواصفات', icon: 'mdi-clipboard-check-outline' },
+  { value: 4, title: 'استعراض وضبط النماذج', subtitle: 'المسودة التفاعلية والتحكيم', icon: 'mdi-file-document-edit-outline' },
 ]
+
+const handleStepClick = (stepVal) => {
+  if (stepVal < step.value) {
+    step.value = stepVal
+  } else if (stepVal === step.value + 1) {
+    nextStep()
+  } else if (isEditing.value) {
+    step.value = stepVal
+  }
+}
 
 // State declarations
 const modelsMode = ref('uniform')
@@ -2749,6 +3027,8 @@ const exam = ref({
   target_scope_level: 'all',
   exclude_previously_used: false,
 })
+
+const examTotalScore = computed(() => Number(exam.value?.totalMarks) || 100)
 
 // Matrix Inner Tabs Items
 const activeTab = ref(0)
@@ -2800,6 +3080,7 @@ const modelGroups = ref([
     count: 2,
     difficulty_profile: 'hard',
     difficulty_distribution: { easy: 10, medium: 30, hard: 60 },
+    questions_variation: 'same_scrambled',
     scope_level: 'governorate',
     target_ids: [],
     units: [],
@@ -2814,6 +3095,7 @@ const modelGroups = ref([
     count: 2,
     difficulty_profile: 'easy',
     difficulty_distribution: { easy: 60, medium: 30, hard: 10 },
+    questions_variation: 'same_scrambled',
     scope_level: 'governorate',
     target_ids: [],
     units: [],
@@ -2996,6 +3278,7 @@ const targetOptionsForGroups = computed(() => {
 
 // Clean up group assignments if target scope or selection changes
 watch(selectedTargetIds, (newIds) => {
+  if (isLoadingForEdit.value) return
   const validIds = new Set(newIds || [])
   modelGroups.value.forEach(group => {
     if (group.assigned_target_ids && group.assigned_target_ids.length > 0) {
@@ -3245,6 +3528,7 @@ const addModelGroup = () => {
     count: 2,
     difficulty_profile: 'medium',
     difficulty_distribution: { easy: 20, medium: 60, hard: 20 },
+    questions_variation: 'same_scrambled',
     scope_level: 'all',
     target_ids: [],
     units: initialUnits,
@@ -3429,12 +3713,14 @@ const onInstitutionTypeToggle = () => {
 }
 
 watch(() => exam.value.stageId, (newVal, oldVal) => {
+  if (isLoadingForEdit.value) return
   if (newVal !== oldVal) {
     exam.value.classTrackId = null
   }
 })
 
 watch(() => exam.value.countryId, (newVal, oldVal) => {
+  if (isLoadingForEdit.value) return
   if (newVal !== oldVal) {
     exam.value.governorateId = null
     exam.value.directorateId = null
@@ -3445,6 +3731,7 @@ watch(() => exam.value.countryId, (newVal, oldVal) => {
 })
 
 watch(() => exam.value.governorateId, (newVal, oldVal) => {
+  if (isLoadingForEdit.value) return
   if (newVal !== oldVal) {
     exam.value.directorateId = null
     exam.value.regionId = null
@@ -3452,12 +3739,14 @@ watch(() => exam.value.governorateId, (newVal, oldVal) => {
 })
 
 watch(() => exam.value.directorateId, (newVal, oldVal) => {
+  if (isLoadingForEdit.value) return
   if (newVal !== oldVal) {
     exam.value.regionId = null
   }
 })
 
 watch(() => exam.value.target_scope_level, () => {
+  if (isLoadingForEdit.value) return
   selectedTargetIds.value = []
   selectedGovernorateForFilter.value = null
   selectedDirectorateForFilter.value = null
@@ -3539,25 +3828,141 @@ watch(years, (newYears) => {
   }
 }, { immediate: true })
 
-onMounted(async () => {
-  if (store.getAll('questions').length === 0) await store.fetchQuestions()
-  if (store.getAll('lessons').length === 0) await store.fetchLessons()
-  if (store.getAll('units').length === 0) await store.fetchUnits()
-  if (store.getAll('years').length === 0) await store.fetchYears()
+const loadExamForEditing = async (id) => {
+  isLoadingForEdit.value = true
+  try {
+    const res = await examsService.getExamForEdit(id)
+    if (res && res.success && res.data) {
+      const d = res.data
+      isEditing.value = true
+      editingExamId.value = d.id
+      editingExamCode.value = d.uniqueCode || `EXAM-#${d.id}`
 
-  if (!exam.value.yearId) {
-    const currentYear = years.value.find(y => y.is_current || y.isCurrent)
-    if (currentYear) {
-      exam.value.yearId = currentYear.id
-    } else if (years.value.length > 0) {
-      exam.value.yearId = years.value[0].id
+      exam.value.title = d.title || ''
+      exam.value.institution_type = d.institution_type || 'school'
+      exam.value.yearId = d.yearId
+      exam.value.subjectId = d.subjectId
+      exam.value.examScheduleId = d.examScheduleId
+      exam.value.examPeriodId = d.examPeriodId
+      exam.value.stageId = d.stageId
+      exam.value.levelId = d.levelId
+      exam.value.classTrackId = d.classTrackId
+      exam.value.collegeId = d.collegeId
+      exam.value.departmentId = d.departmentId
+      exam.value.specializationId = d.specializationId
+      exam.value.semesterSubjectId = d.semesterSubjectId
+      exam.value.countryId = d.countryId
+      exam.value.governorateId = d.governorateId
+      exam.value.directorateId = d.directorateId
+      exam.value.regionId = d.regionId
+      exam.value.questionsCount = d.questionsCount || 20
+      exam.value.modelsCount = d.modelsCount || 2
+      exam.value.totalMarks = d.totalMarks || 100
+      exam.value.target_scope_level = d.target_scope_level || 'all'
+      exam.value.exclude_previously_used = d.exclude_previously_used || false
+
+      modelsMode.value = d.modelsMode || 'uniform'
+      bloomEnabled.value = d.bloomEnabled || false
+
+      if (Array.isArray(d.selectedTargetIds) && d.selectedTargetIds.length > 0) {
+        selectedTargetIds.value = d.selectedTargetIds
+      }
+
+      if (Array.isArray(d.model_groups) && d.model_groups.length > 0) {
+        modelGroups.value = d.model_groups
+      }
+
+      if (d.blueprint) {
+        if (Array.isArray(d.blueprint.units) && d.blueprint.units.length > 0) {
+          blueprint.value.units = d.blueprint.units
+        }
+        if (Array.isArray(d.blueprint.difficulty) && d.blueprint.difficulty.length > 0) {
+          blueprint.value.difficulty = d.blueprint.difficulty
+        }
+        if (Array.isArray(d.blueprint.bloom) && d.blueprint.bloom.length > 0) {
+          blueprint.value.bloom = d.blueprint.bloom
+        }
+        if (Array.isArray(d.blueprint.types) && d.blueprint.types.length > 0) {
+          blueprint.value.types = d.blueprint.types
+        }
+      }
+
+      if (Array.isArray(d.models) && d.models.length > 0) {
+        stagedModels.value = d.models
+        activeStagedModelIndex.value = 0
+      }
+
+
+    } else {
+      throw new Error(res?.message || 'فشل في استرجاع بيانات الاختبار للتعديل')
+    }
+  } catch (err) {
+    console.error('Error loading exam for edit:', err)
+    const errMsg = err?.response?.data?.message || err?.message || 'تعذر استرجاع بيانات الاختبار للتعديل'
+    if (proxy && proxy.$alert) {
+      proxy.$alert('errorData', {
+        message: errMsg,
+        title: 'خطأ في تحميل الاختبار'
+      })
+    }
+  } finally {
+    setTimeout(() => {
+      isLoadingForEdit.value = false
+    }, 500)
+  }
+}
+
+const exitEditMode = () => {
+  isEditing.value = false
+  editingExamId.value = null
+  editingExamCode.value = ''
+  router.replace({ path: '/exams-create' }).catch(() => {
+    router.replace({ path: '/ExamGenerator/ExamCreateView' })
+  })
+  exam.value.title = ''
+  exam.value.questionsCount = 20
+  exam.value.modelsCount = 2
+  stagedModels.value = []
+  step.value = 1
+}
+
+onMounted(async () => {
+  const editId = route.query.edit_exam_id
+
+  // If editing an exam, start loading it IMMEDIATELY without waiting for background store caches
+  const editTask = editId ? loadExamForEditing(editId) : Promise.resolve()
+
+  // Background fetch store items in parallel without blocking the UI
+  const bgFetches = Promise.allSettled([
+    store.getAll('questions').length === 0 ? store.fetchQuestions() : Promise.resolve(),
+    store.getAll('lessons').length === 0 ? store.fetchLessons() : Promise.resolve(),
+    store.getAll('units').length === 0 ? store.fetchUnits() : Promise.resolve(),
+    store.getAll('years').length === 0 ? store.fetchYears() : Promise.resolve(),
+    loadGeographicOrgs()
+  ])
+
+  if (editId) {
+    await editTask
+  } else {
+    await bgFetches
+    if (!exam.value.yearId) {
+      const currentYear = years.value.find(y => y.is_current || y.isCurrent)
+      if (currentYear) {
+        exam.value.yearId = currentYear.id
+      } else if (years.value.length > 0) {
+        exam.value.yearId = years.value[0].id
+      }
     }
   }
+})
 
 
-
-  // Load geographic organizations
-  await loadGeographicOrgs()
+watch(() => route.query.edit_exam_id, async (newId) => {
+  if (newId && Number(newId) !== Number(editingExamId.value)) {
+    await loadExamForEditing(newId)
+  } else if (!newId && isEditing.value) {
+    exitEditMode()
+  }
 })
 
 // Blueprint
@@ -3870,6 +4275,7 @@ watch([
   () => exam.value.instituteSubjectId,
   () => exam.value.institution_type
 ], async () => {
+  if (isLoadingForEdit.value) return
   await loadBlueprintUnits()
 })
 
@@ -4559,7 +4965,7 @@ const prepareStagingAndProceed = async () => {
       classTrackId: exam.value.classTrackId || null,
       questionsCount: exam.value.questionsCount,
       modelsCount: exam.value.modelsCount,
-      total_marks: examTotalScore.value,
+      total_marks: Number(exam.value.totalMarks) || 100,
       blueprint: blueprint.value,
       models_mode: modelsMode.value,
       model_groups: modelsMode.value === 'advanced' ? modelGroups.value : [],
@@ -4568,13 +4974,14 @@ const prepareStagingAndProceed = async () => {
     }
 
     const res = await examsService.previewStaging(payload)
-    if (res && res.success && res.models && res.models.length > 0) {
-      stagedModels.value = res.models
+    const modelsList = res?.models || res?.versions || []
+    if (res && res.success && modelsList.length > 0) {
+      stagedModels.value = modelsList
       activeStagedModelIndex.value = 0
       step.value = 4
       if (proxy && proxy.$alert) {
         proxy.$alert("successData", {
-          message: "تم تجهيز المسودة التفاعلية للنماذج بنجاح! يمكنك الآن مراجعة وضبط الأسئلة.",
+          message: res.message || "تم تجهيز المسودة التفاعلية للنماذج بنجاح! يمكنك الآن مراجعة وضبط الأسئلة.",
           title: "المسودة التفاعلية جاهزة"
         })
       }
@@ -4926,8 +5333,8 @@ const commitFinalExam = async () => {
       questionsCount: exam.value.questionsCount,
       modelsCount: exam.value.modelsCount,
       durationMinutes: exam.value.durationMinutes,
-      totalMarks: examTotalScore.value,
-      passingMarks: exam.value.passingMarks || Math.round(examTotalScore.value * 0.5),
+      totalMarks: Number(exam.value.totalMarks) || 100,
+      passingMarks: exam.value.passingMarks || Math.round((Number(exam.value.totalMarks) || 100) * 0.5),
       blueprint: blueprint.value,
       models_mode: modelsMode.value,
       model_groups: modelsMode.value === 'advanced' ? modelGroups.value : [],
@@ -4938,16 +5345,24 @@ const commitFinalExam = async () => {
       final_versions: stagedModels.value,
     }
 
+    if (isEditing.value && editingExamId.value) {
+      examPayload.exam_id = editingExamId.value
+    }
+
     const res = await examsService.generateExam(examPayload)
     if (res && res.success) {
       if (proxy && proxy.$alert) {
         proxy.$alert("successData", {
-          message: "تم اعتماد وتوليد الاختبار النهائي ونماذجه بنجاح وتجميد مفاتيح الإجابة!",
-          title: "مبروك! تم إنشاء الاختبار"
+          message: isEditing.value ? "تم تحديث الاختبار ونماذجه بنجاح!" : "تم إنشاء الاختبار ونماذجه بنجاح كمسودة بانتظار الاعتماد!",
+          title: isEditing.value ? "تم تحديث الاختبار بنجاح" : "مبروك! تم حفظ الاختبار"
         })
       }
       setTimeout(() => {
-        router.push({ name: 'exams-list' })
+        router.push('/exams-archive').catch(() => {
+          router.push({ path: '/ExamGenerator/ExamArchiveView' }).catch(() => {
+            router.push({ name: 'exams-archive' })
+          })
+        })
       }, 1200)
     } else {
       if (proxy && proxy.$alert) {
@@ -5164,6 +5579,10 @@ const generateAndSaveExam = async () => {
     exclude_previously_used: exam.value.exclude_previously_used,
   }
 
+  if (isEditing.value && editingExamId.value) {
+    payload.exam_id = editingExamId.value
+  }
+
   const res = await examsService.generateExam(payload)
   if (res && (res.success || res.id || res.examId)) {
     if (res.data) {
@@ -5182,6 +5601,12 @@ const generateAndSaveExam = async () => {
    Standards: Modern Ministerial / Academic Portal Design
    Principles: Zero dull gray, high visual hierarchy, clean geometry, 4/8px grid
    ========================================================================== */
+
+.editing-mode-banner {
+  background: rgba(var(--v-theme-warning), 0.08) !important;
+  border: 1.5px solid rgba(var(--v-theme-warning), 0.3) !important;
+  box-shadow: 0 4px 20px rgba(var(--v-theme-warning), 0.06) !important;
+}
 
 .qb-exam-create-v4 {
   color: rgb(var(--v-theme-on-surface));
@@ -5438,6 +5863,58 @@ const generateAndSaveExam = async () => {
   background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, #1d4ed8 100%) !important;
   color: #ffffff !important;
   box-shadow: 0 4px 14px rgba(var(--v-theme-primary), 0.3) !important;
+}
+
+/* ==========================================================================
+   4.1 Model Group Executive Cards & Unified Soft Neutral Borders
+   ========================================================================== */
+.model-group-card {
+  position: relative;
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 2px solid #cbd5e1 !important; /* Unified soft light gray / slate border */
+  border-inline-start: 6px solid #94a3b8 !important; /* Unified clean neutral slate side accent */
+  border-radius: 20px !important;
+  margin-bottom: 24px !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.model-group-card:hover {
+  border-color: #94a3b8 !important;
+  border-inline-start-color: #64748b !important;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Header Banner inside each Group Card (Unified Soft Light Gray / Neutral) */
+.model-group-header-banner {
+  background: rgba(var(--v-theme-surface), 0.96) !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+}
+
+/* Inner Subsections inside Group Card */
+.model-group-card .group-inner-section {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  transition: all 0.2s ease !important;
+}
+
+.model-group-card .group-inner-section:hover {
+  border-color: #cbd5e1 !important;
+}
+
+/* Elegant Group Divider between consecutive cards */
+.group-divider-line {
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, #cbd5e1, transparent);
+}
+
+.group-divider-badge {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px dashed #cbd5e1 !important;
+  color: #64748b !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
 }
 
 /* ==========================================================================
@@ -5989,4 +6466,41 @@ const generateAndSaveExam = async () => {
     width: 48%;
   }
 }
+
+/* ==========================================================================
+   Lightweight Formal Transparent Loading Overlay
+   ========================================================================== */
+.formal-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  min-height: 420px;
+  background: rgba(var(--v-theme-surface), 0.72) !important;
+  backdrop-filter: blur(4px) !important;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  pointer-events: all;
+  transition: opacity 0.25s ease;
+}
+
+.formal-loading-pill {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-border-color), 0.2) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+  position: sticky;
+  top: 40%;
+}
+
+.content-loading-blur {
+  opacity: 0.4 !important;
+  pointer-events: none !important;
+  user-select: none !important;
+  transition: opacity 0.25s ease !important;
+}
+
 </style>

@@ -5,7 +5,7 @@ from django.db.models import Q
 
 class StudentMVS(AllMVS):
     queryset = Student.objects.select_related(
-        'country', 'directorate', 'directorate__fk_governorate', 'organization', 'user',
+        'country', 'nationality', 'registration_date', 'directorate', 'directorate__fk_governorate', 'organization', 'user',
         'class_track', 'class_track__level', 'class_track__track',
         'university_college', 'university_department', 'university_specialization', 'university_level',
         'institute_field', 'institute_education_system', 'institute_specialization', 'institute_level'
@@ -133,6 +133,8 @@ class StudentMVS(AllMVS):
                 Q(name_ar__icontains=search) |
                 Q(name_en__icontains=search) |
                 Q(academic_number__icontains=search) |
+                Q(student_id__icontains=search) |
+                Q(parent_name__icontains=search) |
                 Q(phone_number__icontains=search) |
                 Q(organization__name_ar__icontains=search) |
                 Q(university_specialization__name_ar__icontains=search) |

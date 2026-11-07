@@ -27,6 +27,11 @@ export const examsService = {
         return data
     },
 
+    async getExamForEdit(id) {
+        const { data } = await api.get(`${BASE}exam-create/${id}/load-for-edit/`)
+        return data
+    },
+
     async generateExam(payload) {
         const { data } = await api.post(`${BASE}exam-create/generate/`, payload)
         return data
@@ -77,6 +82,16 @@ export const examsService = {
 
     async getExamRegisteredStudents(id, params = {}) {
         const { data } = await api.get(`${BASE}exam-archive/${id}/registered-students/`, { params })
+        return data
+    },
+
+    async approveExam(id) {
+        const { data } = await api.post(`${BASE}exam-archive/${id}/approve/`)
+        return data
+    },
+
+    async unapproveExam(id) {
+        const { data } = await api.post(`${BASE}exam-archive/${id}/unapprove/`)
         return data
     },
 

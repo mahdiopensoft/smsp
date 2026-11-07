@@ -167,6 +167,15 @@ class ExamVersion(SoftDeleteModel):
         self.save(update_fields=['key_status', 'answer_key_snapshot', 'answer_key_hash', 'key_frozen_at', 'key_frozen_by'])
         return payload
 
+    def unfreeze_key(self):
+        """Reverts the frozen answer key back to DRAFT state."""
+        self.key_status = self.KeyStatus.DRAFT
+        self.answer_key_snapshot = None
+        self.answer_key_hash = None
+        self.key_frozen_at = None
+        self.key_frozen_by = None
+        self.save(update_fields=['key_status', 'answer_key_snapshot', 'answer_key_hash', 'key_frozen_at', 'key_frozen_by'])
+
     def get_answer_key_and_weights(self) -> tuple:
         """
         Returns (answer_key, marks_map) strictly from the frozen snapshot.

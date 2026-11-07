@@ -2,8 +2,10 @@ from OpenSoftCoreV41.utils.model_view_set.__all__ import AllMVS
 from exams.models.CurriculumExclusion import CurriculumExclusion
 from exams.serializers.CurriculumExclusion import CurriculumExclusionSerializer
 from academic.models.common.AcademicYear import AcademicYear
-from academic.models.universities.UniversityUnit import UniversityUnit as Unit
-from academic.models.universities.UniversityLesson import UniversityLesson as Lesson
+from academic.models.universities.UniversityUnit import UniversityUnit
+from academic.models.universities.UniversityLesson import UniversityLesson
+from academic.models.schools.SchoolUnit import SchoolUnit
+from academic.models.schools.SchoolLesson import SchoolLesson
 from bank.models.AuditLog import AuditLog
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -22,6 +24,8 @@ class CurriculumExclusionMVS(AllMVS):
         'stage',
         'class_track',
         'subject',
+        'class_subject',
+        'class_subject__school_subject',
         'college',
         'department',
         'specialization',
@@ -48,11 +52,15 @@ class CurriculumExclusionMVS(AllMVS):
         'stage': ['exact'],
         'class_track': ['exact'],
         'subject': ['exact'],
+        'class_subject': ['exact'],
         'college': ['exact'],
         'department': ['exact'],
         'specialization': ['exact'],
         'semester_subject': ['exact'],
         'institute_field': ['exact'],
+        'institute_education_system': ['exact'],
+        'institute_specialization': ['exact'],
+        'institute_curriculum': ['exact'],
         'institute_subject': ['exact'],
         'exclusion_type': ['exact'],
         'unit': ['exact'],
@@ -62,14 +70,50 @@ class CurriculumExclusionMVS(AllMVS):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        academic_year_id = self.request.query_params.get('academic_year') or self.request.query_params.get('academic_year_id')
+        if academic_year_id:
+            qs = qs.filter(academic_year_id=academic_year_id)
 
         inst_type = self.request.query_params.get('institution_type')
         if inst_type and inst_type != 'all':
             qs = qs.filter(institution_type=inst_type)
 
-        year_id = self.request.query_params.get('academic_year') or self.request.query_params.get('year_id')
-        if year_id:
-            qs = qs.filter(academic_year_id=year_id)
+        exclusion_type = self.request.query_params.get('exclusion_type')
+        if exclusion_type and exclusion_type != 'all':
+            qs = qs.filter(exclusion_type=exclusion_type)
+
+        subject_id = self.request.query_params.get('subject_id') or self.request.query_params.get('subject')
+        if subject_id:
+            qs = qs.filter(
+                Q(subject_id=subject_id) |
+                Q(class_subject__school_subject_id=subject_id) |
+                Q(semester_subject__fk_subject_id=subject_id) |
+                Q(institute_subject_id=subject_id)
+            )
+
+        stage_id = self.request.query_params.get('stage_id') or self.request.query_params.get('stage')
+        if stage_id:
+            qs = qs.filter(stage_id=stage_id)
+
+        class_track_id = self.request.query_params.get('class_track_id') or self.request.query_params.get('class_track')
+        if class_track_id:
+            qs = qs.filter(class_track_id=class_track_id)
+
+        college_id = self.request.query_params.get('college_id') or self.request.query_params.get('college')
+        if college_id:
+            qs = qs.filter(college_id=college_id)
+
+        department_id = self.request.query_params.get('department_id') or self.request.query_params.get('department')
+        if department_id:
+            qs = qs.filter(department_id=department_id)
+
+        specialization_id = self.request.query_params.get('specialization_id') or self.request.query_params.get('specialization')
+        if specialization_id:
+            qs = qs.filter(specialization_id=specialization_id)
+
+        semester_subject_id = self.request.query_params.get('semester_subject_id') or self.request.query_params.get('semester_subject')
+        if semester_subject_id:
+            qs = qs.filter(semester_subject_id=semester_subject_id)
 
         search = self.request.query_params.get('search')
         if search:
@@ -78,46 +122,10 @@ class CurriculumExclusionMVS(AllMVS):
                 Q(unit__name_ar__icontains=search) |
                 Q(lesson__name_ar__icontains=search) |
                 Q(subject__name_ar__icontains=search) |
-                Q(semester_subject__name_ar__icontains=search) |
-                Q(institute_subject__name_ar__icontains=search)
+                Q(class_subject__school_subject__name_ar__icontains=search)
             )
 
         return qs
-
-    def perform_create(self, serializer):
-        user = self.request.user if self.request.user.is_authenticated else None
-        instance = serializer.save(createdBy=user)
-        try:
-            AuditLog.objects.create(
-                action='CREATE_EXCLUSION',
-                user=user,
-                notes=f"إضافة محذوف: {instance}"
-            )
-        except Exception:
-            pass
-
-    def destroy(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            instance.is_deleted = True
-            instance.save()
-            try:
-                user = request.user if request.user.is_authenticated else None
-                AuditLog.objects.create(
-                    action='DELETE_EXCLUSION',
-                    user=user,
-                    notes=f"إلغاء حذف واستعادة موضوع: {instance}"
-                )
-            except Exception:
-                pass
-            return Response({"success": True, "message": "تم إلغاء الاستبعاد وإعادة تضمين المحتوى بنجاح"}, status=status.HTTP_200_OK)
-        except Exception as e:
-            try:
-                instance = self.get_object()
-                instance.delete()
-                return Response({"success": True, "message": "تم حذف الاستبعاد بنجاح"}, status=status.HTTP_200_OK)
-            except Exception as e2:
-                return Response({"success": False, "message": str(e2)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['get'], url_path='tree-for-subject')
     def tree_for_subject(self, request):
@@ -140,8 +148,9 @@ class CurriculumExclusionMVS(AllMVS):
         if not year_id:
             return Response({"success": False, "message": "يرجى تحديد العام الدراسي"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 2. Query Units based on institution type
-        units_qs = Unit.objects.none()
+        # 2. Query Units & Lessons based on institution type
+        units = []
+        lessons_by_unit = {}
 
         subject_id = request.query_params.get('subject_id') or request.query_params.get('subject')
         stage_id = request.query_params.get('stage_id') or request.query_params.get('stage')
@@ -149,45 +158,71 @@ class CurriculumExclusionMVS(AllMVS):
         semester_subject_id = request.query_params.get('semester_subject_id') or request.query_params.get('semester_subject')
         institute_subject_id = request.query_params.get('institute_subject_id') or request.query_params.get('institute_subject')
 
-        if inst_type == 'university' and semester_subject_id:
-            units_qs = Unit.objects.filter(semester_subject_id=semester_subject_id, is_deleted=False)
-        elif inst_type == 'institute' and institute_subject_id:
-            from academic.models.institutes.InstituteSubject import InstituteSubject
-            try:
-                isub = InstituteSubject.objects.get(id=institute_subject_id)
-                units_qs = Unit.objects.filter(
-                    Q(subject_id=institute_subject_id) |
-                    Q(class_subject__subject__name_ar=isub.name_ar) |
-                    Q(semester_subject__fk_subject__name_ar=isub.name_ar),
-                    is_deleted=False
+        if inst_type == 'school':
+            school_units_qs = SchoolUnit.objects.filter(is_deleted=False)
+            if class_track_id:
+                school_units_qs = school_units_qs.filter(
+                    Q(class_subject__class_track_id=class_track_id) |
+                    Q(class_subject__isnull=True, school_subject__class_subjects__class_track_id=class_track_id)
                 )
-            except Exception:
-                units_qs = Unit.objects.filter(subject_id=institute_subject_id, is_deleted=False)
-        elif inst_type == 'school':
-            if class_track_id and subject_id:
-                units_qs = Unit.objects.filter(
-                    class_subject__class_track_id=class_track_id,
-                    class_subject__subject_id=subject_id,
-                    is_deleted=False
+            if subject_id:
+                school_units_qs = school_units_qs.filter(
+                    Q(school_subject_id=subject_id) |
+                    Q(class_subject__school_subject_id=subject_id)
                 )
+
+            units = list(school_units_qs.distinct().order_by('order', 'id'))
+            unit_ids = [u.id for u in units]
+
+            if unit_ids:
+                lessons_qs = SchoolLesson.objects.filter(unit_id__in=unit_ids, is_deleted=False).order_by('order', 'id')
+                for les in lessons_qs:
+                    lessons_by_unit.setdefault(les.unit_id, []).append(les)
+
+        elif inst_type == 'university':
+            univ_units_qs = UniversityUnit.objects.filter(is_deleted=False)
+            if semester_subject_id:
+                univ_units_qs = univ_units_qs.filter(semester_subject_id=semester_subject_id)
             elif subject_id:
-                units_qs = Unit.objects.filter(class_subject__subject_id=subject_id, is_deleted=False)
-            elif class_track_id:
-                units_qs = Unit.objects.filter(class_subject__class_track_id=class_track_id, is_deleted=False)
+                univ_units_qs = univ_units_qs.filter(semester_subject__fk_subject_id=subject_id)
 
-        units = list(units_qs.order_by('order', 'id'))
-        unit_ids = [u.id for u in units]
+            units = list(univ_units_qs.distinct().order_by('order', 'id'))
+            unit_ids = [u.id for u in units]
 
-        # 3. Query Lessons
-        lessons_by_unit = {}
-        if unit_ids:
-            lessons_qs = Lesson.objects.filter(unit_id__in=unit_ids, is_deleted=False).order_by('order', 'id')
-            for les in lessons_qs:
-                if les.unit_id not in lessons_by_unit:
-                    lessons_by_unit[les.unit_id] = []
-                lessons_by_unit[les.unit_id].append(les)
+            if unit_ids:
+                lessons_qs = UniversityLesson.objects.filter(unit_id__in=unit_ids, is_deleted=False).order_by('order', 'id')
+                for les in lessons_qs:
+                    lessons_by_unit.setdefault(les.unit_id, []).append(les)
 
-        # 4. Query Existing Exclusions for this Year
+        elif inst_type == 'institute':
+            units_list = []
+            if institute_subject_id:
+                from academic.models.institutes.InstituteSubject import InstituteSubject
+                try:
+                    isub = InstituteSubject.objects.get(id=institute_subject_id)
+                    u_qs = UniversityUnit.objects.filter(
+                        semester_subject__name_ar=isub.name_ar, is_deleted=False
+                    )
+                    if u_qs.exists():
+                        units_list = list(u_qs.distinct().order_by('order', 'id'))
+                    else:
+                        s_qs = SchoolUnit.objects.filter(name_ar=isub.name_ar, is_deleted=False)
+                        if s_qs.exists():
+                            units_list = list(s_qs.distinct().order_by('order', 'id'))
+                except Exception:
+                    pass
+
+            units = units_list
+            unit_ids = [u.id for u in units]
+
+            if unit_ids:
+                u_lessons = list(UniversityLesson.objects.filter(unit_id__in=unit_ids, is_deleted=False).order_by('order', 'id'))
+                if not u_lessons:
+                    u_lessons = list(SchoolLesson.objects.filter(unit_id__in=unit_ids, is_deleted=False).order_by('order', 'id'))
+                for les in u_lessons:
+                    lessons_by_unit.setdefault(les.unit_id, []).append(les)
+
+        # 3. Query Existing Exclusions for this Year
         exclusions_qs = CurriculumExclusion.objects.filter(
             academic_year_id=year_id,
             is_active=True,
@@ -213,7 +248,7 @@ class CurriculumExclusionMVS(AllMVS):
                     'reason': ex.reason or '',
                 }
 
-        # 5. Build Tree Response
+        # 4. Build Tree Response
         tree = []
         total_lessons_count = 0
         excluded_lessons_count = 0
@@ -237,8 +272,8 @@ class CurriculumExclusionMVS(AllMVS):
 
                 serialized_lessons.append({
                     'id': l.id,
-                    'name': l.name_ar or l.name_en or f"درس #{l.id}",
-                    'order': l.order,
+                    'name': getattr(l, 'name_ar', '') or getattr(l, 'name_en', '') or f"درس #{l.id}",
+                    'order': getattr(l, 'order', 1),
                     'is_excluded': is_lesson_excluded,
                     'is_directly_excluded': bool(l_ex),
                     'exclusion_id': l_ex['exclusion_id'] if l_ex else (u_ex['exclusion_id'] if u_ex else None),
@@ -247,8 +282,8 @@ class CurriculumExclusionMVS(AllMVS):
 
             tree.append({
                 'id': u.id,
-                'name': u.name_ar or u.name_en or f"وحدة #{u.id}",
-                'order': u.order,
+                'name': getattr(u, 'name_ar', '') or getattr(u, 'name_en', '') or f"وحدة #{u.id}",
+                'order': getattr(u, 'order', 1),
                 'is_excluded': is_unit_excluded,
                 'exclusion_id': u_ex['exclusion_id'] if u_ex else None,
                 'reason': u_ex['reason'] if u_ex else '',
@@ -298,12 +333,25 @@ class CurriculumExclusionMVS(AllMVS):
         institute_curriculum_id = data.get('institute_curriculum_id')
         institute_subject_id = data.get('institute_subject_id')
 
+        # Model resolution based on inst_type
+        if inst_type == 'school':
+            LessonModel = SchoolLesson
+            if not class_subject_id and class_track_id and subject_id:
+                from academic.models.schools.SchoolClassSubject import SchoolClassSubject
+                cs = SchoolClassSubject.objects.filter(class_track_id=class_track_id).filter(
+                    Q(school_subject_id=subject_id) | Q(subject_id=subject_id)
+                ).first()
+                if cs:
+                    class_subject_id = cs.id
+        else:
+            LessonModel = UniversityLesson
+
         # Scope Unit IDs for targeted cleanup
         scope_unit_ids = data.get('scope_unit_ids', [])
         if not scope_unit_ids and (excluded_unit_ids or excluded_lesson_ids):
             scope_unit_ids = list(excluded_unit_ids)
             if excluded_lesson_ids:
-                l_units = Lesson.objects.filter(id__in=excluded_lesson_ids).values_list('unit_id', flat=True)
+                l_units = LessonModel.objects.filter(id__in=excluded_lesson_ids).values_list('unit_id', flat=True)
                 scope_unit_ids.extend(list(l_units))
 
         user = request.user if request.user.is_authenticated else None
@@ -312,7 +360,7 @@ class CurriculumExclusionMVS(AllMVS):
             with transaction.atomic():
                 # 1. Clean up existing exclusions within this scope & year
                 if scope_unit_ids:
-                    scope_lessons = Lesson.objects.filter(unit_id__in=scope_unit_ids).values_list('id', flat=True)
+                    scope_lessons = LessonModel.objects.filter(unit_id__in=scope_unit_ids).values_list('id', flat=True)
                     CurriculumExclusion.objects.filter(
                         academic_year_id=year_id,
                         is_deleted=False
@@ -348,12 +396,12 @@ class CurriculumExclusionMVS(AllMVS):
                     ))
 
                 # 3. Create Lesson Exclusions (only for lessons whose parent unit isn't already fully excluded)
-                lessons_in_excluded_units = set(Lesson.objects.filter(unit_id__in=excluded_unit_ids).values_list('id', flat=True)) if excluded_unit_ids else set()
+                lessons_in_excluded_units = set(LessonModel.objects.filter(unit_id__in=excluded_unit_ids).values_list('id', flat=True)) if excluded_unit_ids else set()
 
                 for lid in excluded_lesson_ids:
                     if lid not in lessons_in_excluded_units:
                         # Find lesson's unit
-                        l_obj = Lesson.objects.filter(id=lid).first()
+                        l_obj = LessonModel.objects.filter(id=lid).first()
                         created_records.append(CurriculumExclusion(
                             academic_year_id=year_id,
                             institution_type=inst_type,
@@ -419,6 +467,7 @@ class CurriculumExclusionMVS(AllMVS):
         if subject_id:
             qs = qs.filter(
                 Q(subject_id=subject_id) |
+                Q(class_subject__school_subject_id=subject_id) |
                 Q(semester_subject__fk_subject_id=subject_id) |
                 Q(institute_subject_id=subject_id)
             )
@@ -428,7 +477,10 @@ class CurriculumExclusionMVS(AllMVS):
 
         # Also get all lessons under excluded units
         if excluded_unit_ids:
-            unit_lesson_ids = list(Lesson.objects.filter(unit_id__in=excluded_unit_ids).values_list('id', flat=True).distinct())
+            if inst_type == 'school':
+                unit_lesson_ids = list(SchoolLesson.objects.filter(unit_id__in=excluded_unit_ids).values_list('id', flat=True).distinct())
+            else:
+                unit_lesson_ids = list(UniversityLesson.objects.filter(unit_id__in=excluded_unit_ids).values_list('id', flat=True).distinct())
             excluded_lesson_ids = list(set(excluded_lesson_ids + unit_lesson_ids))
 
         return Response({

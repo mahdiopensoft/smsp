@@ -63,11 +63,24 @@ class ExamCreateMVS(AllMVS):
             )
         elif subject_id:
             from django.db.models import Q
-            candidate_qs = candidate_qs.filter(
-                Q(lesson__unit__class_subject__subject_id=subject_id) |
-                Q(lesson__unit__semester_subject__fk_subject_id=subject_id) |
-                Q(lesson__subject_id=subject_id)
-            )
+            if inst_type == 'university':
+                try:
+                    candidate_qs = candidate_qs.filter(
+                        Q(lesson__unit__semester_subject__fk_subject_id=subject_id) |
+                        Q(lesson__subject_id=subject_id)
+                    )
+                except Exception:
+                    candidate_qs = candidate_qs.filter(lesson__subject_id=subject_id)
+            elif inst_type == 'institute':
+                candidate_qs = candidate_qs.filter(lesson__subject_id=subject_id)
+            else:
+                try:
+                    candidate_qs = candidate_qs.filter(
+                        Q(lesson__unit__class_subject__subject_id=subject_id) |
+                        Q(lesson__subject_id=subject_id)
+                    )
+                except Exception:
+                    candidate_qs = candidate_qs.filter(lesson__subject_id=subject_id)
 
         # Exclude questions from omitted/dropped curriculum units and lessons
         year_id = data.get('year') or data.get('yearId')
@@ -476,12 +489,22 @@ class ExamCreateMVS(AllMVS):
     # ═══════════════════════════════════════════════════════════
     # Helper: Serialize Question for Interactive Staging
     # ═══════════════════════════════════════════════════════════
-    def _serialize_question_for_staging(self, q, order_index=1, mark=1.0):
+    def _serialize_question_for_staging(self, q, order_index=1, mark=1.0, shuffle_options=False):
         """Serialize a Question model instance into a rich dictionary for interactive staging."""
         options_data = []
         try:
             raw_options = [opt for opt in q.options.all() if not getattr(opt, 'is_deleted', False)]
-            raw_options.sort(key=lambda o: getattr(o, 'order_index', 0) if getattr(o, 'order_index', None) is not None else 0)
+            if shuffle_options and len(raw_options) > 1:
+                q_type = (q.questionType or '').lower()
+                # Do not shuffle True/False options so standard ordering is preserved
+                if 'true' not in q_type and 'صح' not in q_type:
+                    raw_options = list(raw_options)
+                    random.shuffle(raw_options)
+                else:
+                    raw_options.sort(key=lambda o: getattr(o, 'order_index', 0) if getattr(o, 'order_index', None) is not None else 0)
+            else:
+                raw_options.sort(key=lambda o: getattr(o, 'order_index', 0) if getattr(o, 'order_index', None) is not None else 0)
+
             for idx, opt in enumerate(raw_options):
                 opt_img = None
                 try:
@@ -496,7 +519,7 @@ class ExamCreateMVS(AllMVS):
                     "isTrue": bool(opt.isTrue),
                     "image": opt_img,
                     "latex": getattr(opt, 'latex', None),
-                    "order_index": getattr(opt, 'order_index', idx)
+                    "order_index": idx
                 })
         except Exception:
             options_data = []
@@ -859,35 +882,89 @@ class ExamCreateMVS(AllMVS):
                 difficulty_profile = group.get('difficulty_profile', 'mixed')
                 difficulty_dist = group.get('difficulty_distribution', {'easy': 30, 'medium': 50, 'hard': 20})
                 group_name = group.get('name') or f"المجموعة {group_idx + 1}"
+                group_variation = group.get('questions_variation', 'same_scrambled')
 
                 effective_types = group.get('types') or blueprint.get('types')
-                group_questions = self._select_questions_by_units_and_difficulty(
-                    candidate_questions, questions_count, difficulty_dist,
-                    group_units=group.get('units'),
-                    group_types=effective_types
-                )
 
-                for m in range(group_count):
-                    version_code = chr(65 + version_letter_idx)
-                    version_letter_idx += 1
+                if group_variation == 'different_questions':
+                    # Select independent question sets for each model in this group
+                    used_in_group_ids = set()
+                    for m in range(group_count):
+                        version_code = chr(65 + version_letter_idx)
+                        version_letter_idx += 1
 
-                    shuffled_questions = self._order_questions_by_section(group_questions)
-                    serialized_questions = []
+                        available_pool = [q for q in candidate_questions if q.id not in used_in_group_ids]
+                        if len(available_pool) >= questions_count:
+                            model_questions = self._select_questions_by_units_and_difficulty(
+                                available_pool, questions_count, difficulty_dist,
+                                group_units=group.get('units'),
+                                group_types=effective_types
+                            )
+                        else:
+                            model_questions = self._select_questions_by_units_and_difficulty(
+                                available_pool, len(available_pool), difficulty_dist,
+                                group_units=group.get('units'),
+                                group_types=effective_types
+                            )
+                            shortage = questions_count - len(model_questions)
+                            if shortage > 0:
+                                fallback_pool = [q for q in candidate_questions if q.id not in [x.id for x in model_questions]]
+                                fallback_selected = self._select_questions_by_difficulty(fallback_pool, shortage, difficulty_dist)
+                                model_questions.extend(fallback_selected)
 
-                    for idx, q in enumerate(shuffled_questions):
-                        q_mark = self._resolve_question_mark(q, effective_types)
-                        serialized_questions.append(
-                            self._serialize_question_for_staging(q, order_index=idx + 1, mark=q_mark)
-                        )
+                        used_in_group_ids.update(q.id for q in model_questions)
 
-                    staged_versions.append({
-                        "versionCode": version_code,
-                        "model_group_index": group_idx,
-                        "group_name": group_name,
-                        "difficulty_profile": difficulty_profile,
-                        "difficulty_distribution": difficulty_dist,
-                        "questions": serialized_questions
-                    })
+                        shuffled_questions = self._order_questions_by_section(model_questions)
+                        serialized_questions = []
+
+                        for idx, q in enumerate(shuffled_questions):
+                            q_mark = self._resolve_question_mark(q, effective_types)
+                            serialized_questions.append(
+                                self._serialize_question_for_staging(q, order_index=idx + 1, mark=q_mark, shuffle_options=False)
+                            )
+
+                        staged_versions.append({
+                            "versionCode": version_code,
+                            "model_group_index": group_idx,
+                            "group_name": group_name,
+                            "difficulty_profile": difficulty_profile,
+                            "difficulty_distribution": difficulty_dist,
+                            "questions_variation": group_variation,
+                            "questions": serialized_questions
+                        })
+                else:
+                    # same_scrambled: All models share same question pool, shuffled questions + scrambled options
+                    group_questions = self._select_questions_by_units_and_difficulty(
+                        candidate_questions, questions_count, difficulty_dist,
+                        group_units=group.get('units'),
+                        group_types=effective_types
+                    )
+
+                    for m in range(group_count):
+                        version_code = chr(65 + version_letter_idx)
+                        version_letter_idx += 1
+
+                        shuffled_questions = self._order_questions_by_section(group_questions)
+                        serialized_questions = []
+
+                        should_shuffle_options = (m > 0 or group_count > 1)
+                        for idx, q in enumerate(shuffled_questions):
+                            q_mark = self._resolve_question_mark(q, effective_types)
+                            serialized_questions.append(
+                                self._serialize_question_for_staging(
+                                    q, order_index=idx + 1, mark=q_mark, shuffle_options=should_shuffle_options
+                                )
+                            )
+
+                        staged_versions.append({
+                            "versionCode": version_code,
+                            "model_group_index": group_idx,
+                            "group_name": group_name,
+                            "difficulty_profile": difficulty_profile,
+                            "difficulty_distribution": difficulty_dist,
+                            "questions_variation": group_variation,
+                            "questions": serialized_questions
+                        })
         else:
             diff_dist = {
                 'easy': next((d.get('percentage', 0) for d in blueprint.get('difficulty', []) if d.get('name') == 'سهل'), 30),
@@ -895,37 +972,87 @@ class ExamCreateMVS(AllMVS):
                 'hard': next((d.get('percentage', 0) for d in blueprint.get('difficulty', []) if d.get('name') == 'صعب'), 20),
             }
             effective_types = blueprint.get('types')
-            selected_questions = self._select_questions_by_units_and_difficulty(
-                candidate_questions, questions_count, diff_dist,
-                group_units=blueprint.get('units'),
-                group_types=effective_types
-            )
+            uniform_variation = data.get('questions_variation', 'same_scrambled')
 
-            for m in range(models_count):
-                version_code = chr(65 + m)
-                shuffled_questions = self._order_questions_by_section(selected_questions)
-                serialized_questions = []
+            if uniform_variation == 'different_questions':
+                used_ids = set()
+                for m in range(models_count):
+                    version_code = chr(65 + m)
+                    available_pool = [q for q in candidate_questions if q.id not in used_ids]
+                    if len(available_pool) >= questions_count:
+                        model_questions = self._select_questions_by_units_and_difficulty(
+                            available_pool, questions_count, diff_dist,
+                            group_units=blueprint.get('units'),
+                            group_types=effective_types
+                        )
+                    else:
+                        model_questions = self._select_questions_by_units_and_difficulty(
+                            available_pool, len(available_pool), diff_dist,
+                            group_units=blueprint.get('units'),
+                            group_types=effective_types
+                        )
+                        shortage = questions_count - len(model_questions)
+                        if shortage > 0:
+                            fallback_pool = [q for q in candidate_questions if q.id not in [x.id for x in model_questions]]
+                            fallback_selected = self._select_questions_by_difficulty(fallback_pool, shortage, diff_dist)
+                            model_questions.extend(fallback_selected)
 
-                for idx, q in enumerate(shuffled_questions):
-                    q_mark = self._resolve_question_mark(q, effective_types)
-                    serialized_questions.append(
-                        self._serialize_question_for_staging(q, order_index=idx + 1, mark=q_mark)
-                    )
+                    used_ids.update(q.id for q in model_questions)
 
-                staged_versions.append({
-                    "versionCode": version_code,
-                    "model_group_index": 0,
-                    "group_name": "المجموعة 1",
-                    "difficulty_profile": 'mixed',
-                    "difficulty_distribution": diff_dist,
-                    "questions": serialized_questions
-                })
+                    shuffled_questions = self._order_questions_by_section(model_questions)
+                    serialized_questions = []
+
+                    for idx, q in enumerate(shuffled_questions):
+                        q_mark = self._resolve_question_mark(q, effective_types)
+                        serialized_questions.append(
+                            self._serialize_question_for_staging(q, order_index=idx + 1, mark=q_mark, shuffle_options=False)
+                        )
+
+                    staged_versions.append({
+                        "versionCode": version_code,
+                        "model_group_index": 0,
+                        "group_name": "المجموعة 1",
+                        "difficulty_profile": 'mixed',
+                        "difficulty_distribution": diff_dist,
+                        "questions_variation": uniform_variation,
+                        "questions": serialized_questions
+                    })
+            else:
+                selected_questions = self._select_questions_by_units_and_difficulty(
+                    candidate_questions, questions_count, diff_dist,
+                    group_units=blueprint.get('units'),
+                    group_types=effective_types
+                )
+
+                for m in range(models_count):
+                    version_code = chr(65 + m)
+                    shuffled_questions = self._order_questions_by_section(selected_questions)
+                    serialized_questions = []
+
+                    should_shuffle_options = (m > 0 or models_count > 1)
+                    for idx, q in enumerate(shuffled_questions):
+                        q_mark = self._resolve_question_mark(q, effective_types)
+                        serialized_questions.append(
+                            self._serialize_question_for_staging(q, order_index=idx + 1, mark=q_mark, shuffle_options=should_shuffle_options)
+                        )
+
+                    staged_versions.append({
+                        "versionCode": version_code,
+                        "model_group_index": 0,
+                        "group_name": "المجموعة 1",
+                        "difficulty_profile": 'mixed',
+                        "difficulty_distribution": diff_dist,
+                        "questions_variation": uniform_variation,
+                        "questions": serialized_questions
+                    })
 
         return Response({
             "success": True,
+            "message": "تم إعداد المسودة التفاعلية للنماذج بنجاح",
             "title": title,
             "total_marks": total_marks,
             "models_mode": models_mode,
+            "models": staged_versions,
             "versions": staged_versions
         })
 
@@ -1117,6 +1244,300 @@ class ExamCreateMVS(AllMVS):
     # ═══════════════════════════════════════════════════════════
     # GENERATE EXAM (Supports Final Staged Versions Commit)
     # ═══════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
+    # LOAD EXAM CONFIGURATION FOR EDITING (Unapproved Exams Only)
+    # ═══════════════════════════════════════════════════════════
+    @action(detail=True, methods=['get'], url_path='load-for-edit')
+    def load_for_edit(self, request, pk=None):
+        """
+        Loads the complete configuration payload of an unapproved exam
+        so the Exam Generator Wizard (ExamCreateView.vue) can preload
+        and let the user edit and re-generate the draft exam.
+        """
+        try:
+            exam = Exam.objects.select_related(
+                'subject',
+                'year',
+                'examSchedule',
+                'class_track',
+                'class_track__level',
+                'class_track__level__stage',
+                'examGenerationSetting',
+                'country',
+                'governorate',
+                'directorate',
+                'region'
+            ).prefetch_related(
+                'versions__question_orders__question__lesson__unit',
+                'target_scopes__country',
+                'target_scopes__governorate',
+                'target_scopes__directorate',
+                'target_scopes__region',
+                'target_scopes__organization',
+                'model_region_assignments'
+            ).get(pk=pk, is_deleted=False)
+        except Exam.DoesNotExist:
+            return Response({"success": False, "message": "الاختبار غير موجود"}, status=status.HTTP_404_NOT_FOUND)
+
+        if exam.is_approved:
+            return Response({
+                "success": False,
+                "message": "لا يمكن تعديل اختبار معتمد بالفعل. يرجى إلغاء اعتماده أولاً من شاشة الأرشيف."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Versions info
+        versions = list(exam.versions.filter(is_deleted=False).order_by('versionCode'))
+        models_count = len(versions) if versions else 2
+        first_version = versions[0] if versions else None
+        questions_count = first_version.question_orders.filter(is_deleted=False).count() if first_version else 20
+
+        # Academic IDs (School)
+        class_track_id = exam.class_track_id
+        level_id = exam.class_track.level_id if exam.class_track else None
+        stage_id = exam.class_track.level.stage_id if (exam.class_track and exam.class_track.level) else None
+
+        # Academic IDs (University / Higher Education)
+        semester_subject_id = None
+        specialization_id = None
+        department_id = None
+        college_id = None
+
+        if exam.institution_type == 'university':
+            if first_version:
+                first_qo = first_version.question_orders.filter(is_deleted=False).select_related(
+                    'question__lesson__unit'
+                ).first()
+                if first_qo and first_qo.question and first_qo.question.lesson and first_qo.question.lesson.unit:
+                    u = first_qo.question.lesson.unit
+                    if hasattr(u, 'semester_subject_id') and u.semester_subject_id:
+                        semester_subject_id = u.semester_subject_id
+
+            if not semester_subject_id and exam.subject_id:
+                try:
+                    from academic.models.universities.UniversitySemesterSubject import UniversitySemesterSubject
+                    sem = UniversitySemesterSubject.objects.filter(
+                        fk_subject_id=exam.subject_id,
+                        is_deleted=False
+                    ).first()
+                    if sem:
+                        semester_subject_id = sem.id
+                except Exception:
+                    pass
+
+            if semester_subject_id:
+                try:
+                    from academic.models.universities.UniversitySemesterSubject import UniversitySemesterSubject
+                    sem = UniversitySemesterSubject.objects.filter(
+                        id=semester_subject_id,
+                        is_deleted=False
+                    ).select_related('fk_specialization').first()
+                    if sem and sem.fk_specialization:
+                        specialization_id = sem.fk_specialization_id
+                        department_id = getattr(sem.fk_specialization, 'fk_section_id', None)
+                        college_id = getattr(sem.fk_specialization, 'fk_college_id', None)
+                except Exception:
+                    pass
+
+        # Setting & Distributions
+        difficulty_distribution = [
+            {"name": "سهل", "percentage": 30, "color": "success"},
+            {"name": "متوسط", "percentage": 50, "color": "warning"},
+            {"name": "صعب", "percentage": 20, "color": "error"}
+        ]
+        bloom_distribution = [
+            {"name": "تذكر", "percentage": 20, "color": "info"},
+            {"name": "فهم", "percentage": 25, "color": "success"},
+            {"name": "تطبيق", "percentage": 25, "color": "primary"},
+            {"name": "تحليل", "percentage": 15, "color": "warning"},
+            {"name": "تقييم", "percentage": 10, "color": "deep-orange"},
+            {"name": "ابتكار", "percentage": 5, "color": "error"}
+        ]
+
+        if exam.examGenerationSetting:
+            s = exam.examGenerationSetting
+            difficulty_distribution = [
+                {"name": "سهل", "percentage": s.easyPercentage, "color": "success"},
+                {"name": "متوسط", "percentage": s.mediumPercentage, "color": "warning"},
+                {"name": "صعب", "percentage": s.hardPercentage, "color": "error"}
+            ]
+            bloom_distribution = [
+                {"name": "تذكر", "percentage": s.rememberPercentage, "color": "info"},
+                {"name": "فهم", "percentage": s.understandPercentage, "color": "success"},
+                {"name": "تطبيق", "percentage": s.applyPercentage, "color": "primary"},
+                {"name": "تحليل", "percentage": s.analyzePercentage, "color": "warning"},
+                {"name": "تقييم", "percentage": s.evaluatePercentage, "color": "deep-orange"},
+                {"name": "ابتكار", "percentage": s.createPercentage, "color": "error"}
+            ]
+
+        # Extract units distribution and types from existing question appearances
+        units_dict = {}
+        types_count = {}
+        total_questions_in_v = 0
+
+        if first_version:
+            orders = first_version.question_orders.filter(is_deleted=False).select_related('question__lesson__unit')
+            total_questions_in_v = orders.count()
+            for o in orders:
+                q = o.question
+                q_type = str(getattr(q, 'questionType', '') or 'single_choice').lower()
+                if 'true' in q_type or 'صح' in q_type or 'صواب' in q_type:
+                    resolved_type = 'true_false'
+                elif 'multiple' in q_type or 'متعدد' in q_type:
+                    resolved_type = 'multiple_choice'
+                elif 'essay' in q_type or 'مقالي' in q_type:
+                    resolved_type = 'essay'
+                else:
+                    resolved_type = 'single_choice'
+                types_count[resolved_type] = types_count.get(resolved_type, 0) + 1
+
+                if q.lesson and q.lesson.unit:
+                    u = q.lesson.unit
+                    u_name = getattr(u, 'name_ar', None) or getattr(u, 'name_en', None) or getattr(u, 'name', str(u))
+                    u_term = getattr(u, 'term', None) or getattr(u, 'semester', 3)
+                    if u.id not in units_dict:
+                        units_dict[u.id] = {
+                            "id": u.id,
+                            "name": u_name,
+                            "term": u_term,
+                            "count": 0
+                        }
+                    units_dict[u.id]["count"] += 1
+
+        units_list = []
+        if units_dict and total_questions_in_v > 0:
+            for uid, udata in units_dict.items():
+                pct = round((udata["count"] / total_questions_in_v) * 100)
+                units_list.append({
+                    "id": uid,
+                    "name": udata["name"],
+                    "term": udata["term"],
+                    "percentage": pct
+                })
+            diff = 100 - sum(u["percentage"] for u in units_list)
+            if diff != 0 and units_list:
+                units_list[0]["percentage"] += diff
+
+        mcq_pct = round((types_count.get('single_choice', 0) / total_questions_in_v) * 100) if total_questions_in_v else 50
+        tf_pct = round((types_count.get('true_false', 0) / total_questions_in_v) * 100) if total_questions_in_v else 50
+        mult_pct = round((types_count.get('multiple_choice', 0) / total_questions_in_v) * 100) if total_questions_in_v else 0
+
+        types_list = [
+            {
+                "id": "single_choice",
+                "value": "single_choice",
+                "name": "اختيار من متعدد (إجابة واحدة)",
+                "shortName": "MCQ مفرد",
+                "subtitle": "سؤال تقليدي له إجابة صحيحة واحدة فقط",
+                "percentage": mcq_pct,
+                "mark": 2.0,
+                "color": "primary",
+                "icon": "mdi-radiobox-marked"
+            },
+            {
+                "id": "true_false",
+                "value": "true_false",
+                "name": "صح / خطأ",
+                "shortName": "ص/خ",
+                "subtitle": "سؤال مباشر يحتمل فقط إما صح أو خطأ دون تعقيدات",
+                "percentage": tf_pct,
+                "mark": 1.0,
+                "color": "success",
+                "icon": "mdi-check-circle-outline"
+            },
+            {
+                "id": "multiple_choice",
+                "value": "multiple_choice",
+                "name": "متعدد الاختيارات (عدة إجابات)",
+                "shortName": "MCQ متعدد",
+                "subtitle": "سؤال متقدم يقبل أكثر من إجابة صحيحة في نفس الوقت",
+                "percentage": mult_pct,
+                "mark": 3.0,
+                "color": "deep-purple",
+                "icon": "mdi-checkbox-multiple-marked-outline"
+            }
+        ]
+
+        # Target scopes & IDs
+        selected_target_ids = []
+        target_scopes = []
+        for ts in exam.target_scopes.filter(is_deleted=False):
+            tid = ts.organization_id or ts.region_id or ts.directorate_id or ts.governorate_id or ts.country_id
+            if tid and tid not in selected_target_ids:
+                selected_target_ids.append(tid)
+            target_scopes.append({
+                "id": ts.id,
+                "scope_level": ts.scope_level,
+                "country_id": ts.country_id,
+                "governorate_id": ts.governorate_id,
+                "directorate_id": ts.directorate_id,
+                "region_id": ts.region_id,
+                "organization_id": ts.organization_id,
+            })
+
+        # Model groups
+        model_groups = exam.model_groups_config or []
+
+        # Staged versions from existing question orders
+        staged_versions = []
+        for v in versions:
+            v_orders = list(v.question_orders.filter(is_deleted=False).select_related('question__lesson__unit').prefetch_related('question__options').order_by('orderIndex'))
+            v_questions = []
+            for o in v_orders:
+                q = o.question
+                q_mark = float(o.assigned_mark if o.assigned_mark is not None else (q.defaultMark or 1.0))
+                v_questions.append(
+                    self._serialize_question_for_staging(q, order_index=o.orderIndex, mark=q_mark, shuffle_options=False)
+                )
+            staged_versions.append({
+                "versionCode": v.versionCode,
+                "groupIndex": 0,
+                "questions": v_questions
+            })
+
+        return Response({
+            "success": True,
+            "data": {
+                "id": exam.id,
+                "title": exam.title,
+                "uniqueCode": exam.uniqueCode,
+                "institution_type": exam.institution_type,
+                "yearId": exam.year_id,
+                "subjectId": exam.subject_id,
+                "examScheduleId": exam.examSchedule_id,
+                "examPeriodId": exam.examSchedule.exam_period_id if exam.examSchedule else None,
+                "stageId": stage_id,
+                "levelId": level_id,
+                "classTrackId": class_track_id,
+                "collegeId": college_id,
+                "departmentId": department_id,
+                "specializationId": specialization_id,
+                "semesterSubjectId": semester_subject_id,
+                "countryId": exam.country_id,
+                "governorateId": exam.governorate_id,
+                "directorateId": exam.directorate_id,
+                "regionId": exam.region_id,
+                "questionsCount": questions_count,
+                "modelsCount": models_count,
+                "totalMarks": exam.total_marks,
+                "modelsMode": exam.models_mode,
+                "bloomEnabled": exam.bloom_enabled,
+                "exclude_previously_used": exam.exclude_previously_used,
+                "target_scope_level": exam.target_scope_level,
+                "selectedTargetIds": selected_target_ids,
+                "target_scopes": target_scopes,
+                "model_groups": model_groups,
+                "models": staged_versions,
+                "versions": staged_versions,
+                "blueprint": {
+                    "units": units_list,
+                    "difficulty": difficulty_distribution,
+                    "bloom": bloom_distribution,
+                    "types": types_list,
+                    "total_marks": exam.total_marks,
+                }
+            }
+        })
+
     @action(detail=False, methods=['post'], url_path='generate')
     def generate(self, request):
         """
@@ -1201,27 +1622,71 @@ class ExamCreateMVS(AllMVS):
                 }, target_scope_level)
 
                 total_marks = float(data.get('total_marks') or data.get('totalMarks') or blueprint.get('total_marks') or 100.0)
-                unique_code = f"EXAM-{uuid.uuid4().hex[:8].upper()}"
-                exam = Exam.objects.create(
-                    title=title,
-                    institution_type=inst_type,
-                    uniqueCode=unique_code,
-                    total_marks=total_marks,
-                    examGenerationSetting=setting,
-                    year_id=year_id,
-                    subject_id=subject_id,
-                    examSchedule_id=schedule_id,
-                    country_id=exam_geo.get('country_id'),
-                    governorate_id=exam_geo.get('governorate_id'),
-                    directorate_id=exam_geo.get('directorate_id'),
-                    region_id=exam_geo.get('region_id'),
-                    class_track_id=class_track_id,
-                    bloom_enabled=bloom_enabled,
-                    models_mode=models_mode,
-                    model_groups_config=model_groups if models_mode == 'advanced' else None,
-                    target_scope_level=target_scope_level,
-                    exclude_previously_used=exclude_previously_used,
-                )
+                exam_id = data.get('exam_id') or data.get('id')
+                exam = None
+                if exam_id:
+                    exam = Exam.objects.filter(pk=exam_id, is_deleted=False).first()
+                    if exam:
+                        if exam.is_approved:
+                            return Response({
+                                "success": False,
+                                "message": "لا يمكن تعديل اختبار معتمد بالفعل. يرجى إلغاء اعتماده أولاً من شاشة الأرشيف."
+                            }, status=status.HTTP_400_BAD_REQUEST)
+
+                        exam.title = title
+                        exam.institution_type = inst_type
+                        exam.total_marks = total_marks
+                        exam.examGenerationSetting = setting
+                        exam.year_id = year_id
+                        exam.subject_id = subject_id
+                        exam.examSchedule_id = schedule_id
+                        exam.country_id = exam_geo.get('country_id')
+                        exam.governorate_id = exam_geo.get('governorate_id')
+                        exam.directorate_id = exam_geo.get('directorate_id')
+                        exam.region_id = exam_geo.get('region_id')
+                        exam.class_track_id = class_track_id
+                        exam.bloom_enabled = bloom_enabled
+                        exam.models_mode = models_mode
+                        exam.model_groups_config = model_groups if models_mode == 'advanced' else None
+                        exam.target_scope_level = target_scope_level
+                        exam.exclude_previously_used = exclude_previously_used
+                        exam.is_approved = False
+                        exam.save()
+
+                        # Clear old versions, orders, scopes, and assignments cleanly via cursor
+                        from django.db import connection
+                        with connection.cursor() as cursor:
+                            cursor.execute('''
+                                DELETE FROM exams_examquestionorder 
+                                WHERE "examVersion_id" IN (SELECT id FROM exams_examversion WHERE exam_id = %s)
+                            ''', [exam.id])
+                            cursor.execute("DELETE FROM exams_examversion WHERE exam_id = %s", [exam.id])
+                            cursor.execute("DELETE FROM exams_examtargetscope WHERE exam_id = %s", [exam.id])
+                            cursor.execute("DELETE FROM exams_exammodelregionassignment WHERE exam_id = %s", [exam.id])
+
+                if not exam:
+                    unique_code = f"EXAM-{uuid.uuid4().hex[:8].upper()}"
+                    exam = Exam.objects.create(
+                        title=title,
+                        institution_type=inst_type,
+                        uniqueCode=unique_code,
+                        total_marks=total_marks,
+                        examGenerationSetting=setting,
+                        year_id=year_id,
+                        subject_id=subject_id,
+                        examSchedule_id=schedule_id,
+                        country_id=exam_geo.get('country_id'),
+                        governorate_id=exam_geo.get('governorate_id'),
+                        directorate_id=exam_geo.get('directorate_id'),
+                        region_id=exam_geo.get('region_id'),
+                        class_track_id=class_track_id,
+                        bloom_enabled=bloom_enabled,
+                        models_mode=models_mode,
+                        model_groups_config=model_groups if models_mode == 'advanced' else None,
+                        target_scope_level=target_scope_level,
+                        exclude_previously_used=exclude_previously_used,
+                        is_approved=False,
+                    )
 
                 # 3. Save Target Scopes
                 if target_scopes_data:
@@ -1281,39 +1746,84 @@ class ExamCreateMVS(AllMVS):
                         group_count = int(group.get('count', 1))
                         difficulty_profile = group.get('difficulty_profile', 'mixed')
                         difficulty_dist = group.get('difficulty_distribution', {'easy': 30, 'medium': 50, 'hard': 20})
+                        group_variation = group.get('questions_variation', 'same_scrambled')
+                        effective_types = group.get('types') or blueprint.get('types')
 
-                        # Select questions for this group's difficulty profile, specific unit distribution, and question types
-                        group_questions = self._select_questions_by_units_and_difficulty(
-                            candidate_questions, questions_count, difficulty_dist,
-                            group_units=group.get('units'),
-                            group_types=group.get('types') or blueprint.get('types')
-                        )
+                        if group_variation == 'different_questions':
+                            used_in_group_ids = set()
+                            for m in range(group_count):
+                                version_code = chr(65 + version_letter_idx)
+                                version_letter_idx += 1
 
-                        for m in range(group_count):
-                            version_code = chr(65 + version_letter_idx)  # A, B, C...
-                            version_letter_idx += 1
+                                version = ExamVersion.objects.create(
+                                    exam=exam,
+                                    versionCode=version_code,
+                                    model_group_index=group_idx,
+                                    difficulty_profile=difficulty_profile,
+                                    difficulty_distribution=difficulty_dist,
+                                )
+                                created_versions.append(version)
 
-                            version = ExamVersion.objects.create(
-                                exam=exam,
-                                versionCode=version_code,
-                                model_group_index=group_idx,
-                                difficulty_profile=difficulty_profile,
-                                difficulty_distribution=difficulty_dist,
+                                available_pool = [q for q in candidate_questions if q.id not in used_in_group_ids]
+                                if len(available_pool) >= questions_count:
+                                    model_questions = self._select_questions_by_units_and_difficulty(
+                                        available_pool, questions_count, difficulty_dist,
+                                        group_units=group.get('units'),
+                                        group_types=effective_types
+                                    )
+                                else:
+                                    model_questions = self._select_questions_by_units_and_difficulty(
+                                        available_pool, len(available_pool), difficulty_dist,
+                                        group_units=group.get('units'),
+                                        group_types=effective_types
+                                    )
+                                    shortage = questions_count - len(model_questions)
+                                    if shortage > 0:
+                                        fallback_pool = [q for q in candidate_questions if q.id not in [x.id for x in model_questions]]
+                                        fallback_selected = self._select_questions_by_difficulty(fallback_pool, shortage, difficulty_dist)
+                                        model_questions.extend(fallback_selected)
+
+                                used_in_group_ids.update(q.id for q in model_questions)
+                                shuffled_questions = self._order_questions_by_section(model_questions)
+
+                                for idx, q in enumerate(shuffled_questions):
+                                    q_mark = self._resolve_question_mark(q, effective_types)
+                                    all_orders_to_create.append(ExamQuestionOrder(
+                                        examVersion=version,
+                                        question=q,
+                                        orderIndex=idx + 1,
+                                        assigned_mark=q_mark
+                                    ))
+                        else:
+                            group_questions = self._select_questions_by_units_and_difficulty(
+                                candidate_questions, questions_count, difficulty_dist,
+                                group_units=group.get('units'),
+                                group_types=effective_types
                             )
-                            created_versions.append(version)
 
-                            # Order questions by section (True/False 1..N, MCQ N+1..total) with intra-section shuffle
-                            shuffled_questions = self._order_questions_by_section(group_questions)
-                            effective_types = group.get('types') or blueprint.get('types')
+                            for m in range(group_count):
+                                version_code = chr(65 + version_letter_idx)  # A, B, C...
+                                version_letter_idx += 1
 
-                            for idx, q in enumerate(shuffled_questions):
-                                q_mark = self._resolve_question_mark(q, effective_types)
-                                all_orders_to_create.append(ExamQuestionOrder(
-                                    examVersion=version,
-                                    question=q,
-                                    orderIndex=idx + 1,
-                                    assigned_mark=q_mark
-                                ))
+                                version = ExamVersion.objects.create(
+                                    exam=exam,
+                                    versionCode=version_code,
+                                    model_group_index=group_idx,
+                                    difficulty_profile=difficulty_profile,
+                                    difficulty_distribution=difficulty_dist,
+                                )
+                                created_versions.append(version)
+
+                                shuffled_questions = self._order_questions_by_section(group_questions)
+
+                                for idx, q in enumerate(shuffled_questions):
+                                    q_mark = self._resolve_question_mark(q, effective_types)
+                                    all_orders_to_create.append(ExamQuestionOrder(
+                                        examVersion=version,
+                                        question=q,
+                                        orderIndex=idx + 1,
+                                        assigned_mark=q_mark
+                                    ))
                 else:
                     # ═══ UNIFORM MODE: Same questions, different order ═══
                     diff_dist = {
@@ -1372,16 +1882,9 @@ class ExamCreateMVS(AllMVS):
                         ExamModelRegionAssignment.objects.bulk_create(assignments_to_create)
 
                 # ═══════════════════════════════════════════════════════════
-                # 6. Auto-Register Students Based on ClassTrack + Geographic Scope
+                # 6. Exam Created as Draft (Students are linked upon Approval in Archive)
                 # ═══════════════════════════════════════════════════════════
                 registered_students_count = 0
-                if created_versions and class_track_id:
-                    registered_students_count = self._auto_register_students(
-                        exam, created_versions, class_track_id,
-                        target_scope_level, target_scopes_data,
-                        governorate_id, directorate_id, region_id,
-                        model_region_assignments=model_region_assignments
-                    )
 
                 # Calculate total models and questions
                 total_models = len(created_versions)
@@ -1391,7 +1894,7 @@ class ExamCreateMVS(AllMVS):
                 serializer = ExamSerializer(exam)
                 return Response({
                     "success": True,
-                    "message": f"تم توليد الاختبار بنجاح مع {total_models} نماذج و {total_questions} سؤالاً و {registered_students_count} طالب مسجل",
+                    "message": f"تم توليد وتثبيت الاختبار بنجاح مع {total_models} نماذج و {total_questions} سؤالاً. الاختبار محفوظ كمسودة بانتظار الاعتماد وتسكين الطلاب من شاشة الأرشيف.",
                     "data": serializer.data,
                     "examId": exam.id,
                     "registeredStudentsCount": registered_students_count

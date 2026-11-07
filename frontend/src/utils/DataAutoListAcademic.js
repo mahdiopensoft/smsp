@@ -543,7 +543,27 @@ export default function DataAutoListAcademic(param) {
           shared.getData({
             path: "api/academic/departments/all/",
             params: { college: collegeId }
-          }) : Promise.resolve([]);
+          }) : shared.getData({
+            path: "api/academic/departments/all/",
+          });
+      },
+      title: "name_ar",
+      value: "id",
+    },
+
+    UniversitySection: {
+      label: "القسم الأكاديمي",
+      icon: "domain",
+      method: (p) => {
+        const raw = (p !== undefined && p !== null) ? p : param;
+        const collegeId = (raw && typeof raw === 'object') ? (raw.college || raw.collegeId || raw.fk_college || raw.id || raw.value) : raw;
+        return collegeId ?
+          shared.getData({
+            path: "api/academic/departments/all/",
+            params: { college: collegeId }
+          }) : shared.getData({
+            path: "api/academic/departments/all/",
+          });
       },
       title: "name_ar",
       value: "id",
@@ -622,12 +642,46 @@ export default function DataAutoListAcademic(param) {
       icon: "book-cog",
       method: (p) => {
         const raw = (p !== undefined && p !== null) ? p : param;
-        const specId = (raw && typeof raw === 'object') ? (raw.specialization || raw.specializationId || raw.fk_specialization || raw.id || raw.value) : raw;
-        return specId ?
-          shared.getData({
-            path: "api/academic/semester-subjects/all/",
-            params: { specialization: specId }
-          }) : Promise.resolve([]);
+        const queryParams = {};
+        if (raw) {
+          if (typeof raw === 'object') {
+            const specId = raw.specialization || raw.specializationId || raw.fk_specialization || raw.id || raw.value;
+            if (specId) queryParams.specialization = specId;
+            if (raw.college || raw.collegeId) queryParams.college = raw.college || raw.collegeId;
+            if (raw.department || raw.departmentId || raw.section) queryParams.department = raw.department || raw.departmentId || raw.section;
+          } else {
+            queryParams.specialization = raw;
+          }
+        }
+        return shared.getData({
+          path: "api/academic/semester-subjects/all/",
+          params: Object.keys(queryParams).length ? queryParams : undefined,
+        });
+      },
+      title: "name_ar",
+      value: "id",
+    },
+
+    SemesterSubjectBySpec: {
+      label: "المقرر الدراسي",
+      icon: "book-cog",
+      method: (p) => {
+        const raw = (p !== undefined && p !== null) ? p : param;
+        const queryParams = {};
+        if (raw) {
+          if (typeof raw === 'object') {
+            const specId = raw.specialization || raw.specializationId || raw.fk_specialization || raw.id || raw.value;
+            if (specId) queryParams.specialization = specId;
+            if (raw.college || raw.collegeId) queryParams.college = raw.college || raw.collegeId;
+            if (raw.department || raw.departmentId || raw.section) queryParams.department = raw.department || raw.departmentId || raw.section;
+          } else {
+            queryParams.specialization = raw;
+          }
+        }
+        return shared.getData({
+          path: "api/academic/semester-subjects/all/",
+          params: Object.keys(queryParams).length ? queryParams : undefined,
+        });
       },
       title: "name_ar",
       value: "id",
