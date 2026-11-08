@@ -592,43 +592,124 @@
       </template>
     </CustomDialog>
 
-    <!-- Dialog for Magnifying AI Crop (أين نظر الذكاء الاصطناعي) -->
-    <v-dialog v-model="cropDialog" max-width="440px">
-      <v-card v-if="selectedCrop" class="rounded-2xl pa-5 text-center">
-        <div class="d-flex align-center justify-space-between pb-2 border-b mb-3">
+    <!-- Dialog for Magnifying AI Crop (عين الذكاء الاصطناعي — فحص التظليل) -->
+    <v-dialog v-model="cropDialog" max-width="460px">
+      <v-card v-if="selectedCrop" class="rounded-2xl overflow-hidden main-card border elevation-3">
+        <!-- Header -->
+        <div class="d-flex align-center justify-space-between px-5 py-3 border-b bg-surface">
           <div class="d-flex align-center gap-2">
-            <v-icon color="primary" size="22">mdi-magnify-scan</v-icon>
-            <span class="text-subtitle-1 font-weight-black">
-              عين الذكاء الاصطناعي — سؤال {{ selectedCrop.questionId }} ({{ selectedCrop.choice }})
-            </span>
+            <v-avatar color="primary" variant="tonal" size="34" rounded="lg">
+              <v-icon color="primary" size="20">mdi-eye-check-outline</v-icon>
+            </v-avatar>
+            <div>
+              <div class="text-subtitle-2 font-weight-black text-high-emphasis d-flex align-center gap-1.5">
+                <span>عين الذكاء الاصطناعي</span>
+                <span class="text-medium-emphasis">•</span>
+                <span>سؤال {{ selectedCrop.questionId }}</span>
+                <div class="unified-inspection-badge px-2 py-0.5 font-weight-black text-caption">
+                  {{ selectedCrop.choice }}
+                </div>
+              </div>
+              <div class="text-caption text-medium-emphasis">فحص بصري دقيق للدائرة الملتقطة بالماسح الضوئي</div>
+            </div>
           </div>
-          <v-btn icon="mdi-close" variant="text" size="small" @click="cropDialog = false" />
+          <v-btn icon="mdi-close" variant="text" size="small" density="comfortable" @click="cropDialog = false" />
         </div>
 
-        <div class="pa-4 bg-slate-900 rounded-xl mb-3 d-inline-block">
-          <img :src="selectedCrop.img" style="width: 130px; height: 130px; object-fit: contain; image-rendering: pixelated; border-radius: 8px; background: white;" />
+        <!-- Viewfinder Visual Box -->
+        <div class="pa-5 text-center bg-surface-variant-subtle border-b">
+          <div class="ai-viewfinder-box mx-auto position-relative">
+            <!-- Inspection Crosshair Guides -->
+            <div class="viewfinder-crosshair-h"></div>
+            <div class="viewfinder-crosshair-v"></div>
+
+            <!-- Crisp Bubble Image -->
+            <img
+              :src="selectedCrop.img"
+              alt="Bubble Crop"
+              class="ai-bubble-image"
+            />
+
+            <!-- Corner Brackets -->
+            <div class="bracket-tl"></div>
+            <div class="bracket-tr"></div>
+            <div class="bracket-bl"></div>
+            <div class="bracket-br"></div>
+
+            <!-- Top Tag -->
+            <div class="viewfinder-tag top-tag">
+              <v-icon size="11" class="me-1">mdi-crosshairs-gps</v-icon>
+              <span>تكبير فحص 300 DPI</span>
+            </div>
+          </div>
         </div>
 
-        <div class="pa-3 bg-grey-lighten-4 rounded-xl text-right mb-4">
-          <div class="d-flex justify-space-between align-center mb-2">
-            <span class="text-caption text-medium-emphasis">قرار النموذج (AI Verdict):</span>
-            <v-chip size="x-small" :color="selectedCrop.aiVerdict === 'filled' ? 'success' : 'grey-darken-2'" class="font-weight-bold">
-              {{ selectedCrop.aiVerdict === 'filled' ? 'مظلل (Filled)' : 'فارغ (Empty)' }}
-            </v-chip>
+        <!-- Metric Details Panel -->
+        <div class="pa-5 bg-surface">
+          <div class="d-flex flex-column gap-2.5">
+            <!-- قرار النموذج (AI Verdict) -->
+            <div class="d-flex justify-space-between align-center px-3 py-2 rounded-lg border bg-surface-variant-subtle">
+              <div class="d-flex align-center gap-1.5 text-caption font-weight-medium text-medium-emphasis">
+                <v-icon size="16" color="primary">mdi-shield-check-outline</v-icon>
+                <span>قرار النموذج (AI Verdict):</span>
+              </div>
+              <div
+                class="unified-inspection-badge px-2.5 py-1 text-caption font-weight-black"
+                :class="selectedCrop.aiVerdict === 'filled' ? 'badge-verdict-filled' : 'badge-verdict-empty'"
+              >
+                <v-icon start size="13" class="me-1">
+                  {{ selectedCrop.aiVerdict === 'filled' ? 'mdi-checkbox-marked-circle' : 'mdi-checkbox-blank-circle-outline' }}
+                </v-icon>
+                {{ selectedCrop.aiVerdict === 'filled' ? 'مظلل (Filled)' : 'فارغ (Empty)' }}
+              </div>
+            </div>
+
+            <!-- نسبة الثقة (Confidence) -->
+            <div class="d-flex justify-space-between align-center px-3 py-2 rounded-lg border bg-surface-variant-subtle">
+              <div class="d-flex align-center gap-1.5 text-caption font-weight-medium text-medium-emphasis">
+                <v-icon size="16" color="primary">mdi-chart-bell-curve-cumulative</v-icon>
+                <span>نسبة الثقة (Confidence):</span>
+              </div>
+              <div class="d-flex align-center gap-2">
+                <v-progress-linear
+                  :model-value="Number(selectedCrop.confidence) || 0"
+                  color="primary"
+                  height="6"
+                  rounded
+                  style="width: 70px;"
+                />
+                <span class="font-mono font-weight-black text-body-2 text-primary">
+                  {{ selectedCrop.confidence }}%
+                </span>
+              </div>
+            </div>
+
+            <!-- موضع الدائرة بالبكسل -->
+            <div v-if="selectedCrop.center" class="d-flex justify-space-between align-center px-3 py-2 rounded-lg border bg-surface-variant-subtle">
+              <div class="d-flex align-center gap-1.5 text-caption font-weight-medium text-medium-emphasis">
+                <v-icon size="16" color="primary">mdi-map-marker-radius-outline</v-icon>
+                <span>موضع الدائرة بالبكسل:</span>
+              </div>
+              <div class="unified-inspection-badge font-mono text-caption px-2 py-0.5">
+                X: {{ selectedCrop.center[0] }}, Y: {{ selectedCrop.center[1] }} px
+              </div>
+            </div>
           </div>
-          <div class="d-flex justify-space-between align-center mb-2">
-            <span class="text-caption text-medium-emphasis">نسبة الثقة (Confidence):</span>
-            <span class="font-mono font-weight-bold text-primary">{{ selectedCrop.confidence }}%</span>
-          </div>
-          <div v-if="selectedCrop.center" class="d-flex justify-space-between align-center">
-            <span class="text-caption text-medium-emphasis">موضع الدائرة بالبكسل:</span>
-            <span class="font-mono text-caption">X: {{ selectedCrop.center[0] }}, Y: {{ selectedCrop.center[1] }} px</span>
+
+          <!-- Bottom Close Button -->
+          <div class="mt-4 pt-2 border-t d-flex justify-end">
+            <v-btn
+              color="primary"
+              variant="flat"
+              rounded="lg"
+              class="font-weight-bold px-6"
+              prepend-icon="mdi-check"
+              @click="cropDialog = false"
+            >
+              تم الفحص وإغلاق
+            </v-btn>
           </div>
         </div>
-
-        <v-btn color="primary" variant="tonal" rounded="lg" block @click="cropDialog = false">
-          إغلاق
-        </v-btn>
       </v-card>
     </v-dialog>
   </div>
@@ -1201,5 +1282,101 @@ export default {
 
 .question-row:hover {
   background-color: #f8fafc;
+}
+
+/* AI Crop Viewfinder */
+.ai-viewfinder-box {
+  width: 170px;
+  height: 170px;
+  background: #0f172a;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.6);
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-bubble-image {
+  width: 125px;
+  height: 125px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  z-index: 2;
+}
+
+.viewfinder-crosshair-h {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(var(--v-theme-primary), 0.35);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.viewfinder-crosshair-v {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(var(--v-theme-primary), 0.35);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.bracket-tl, .bracket-tr, .bracket-bl, .bracket-br {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: rgb(var(--v-theme-primary));
+  border-style: solid;
+  z-index: 4;
+}
+.bracket-tl { top: 6px; left: 6px; border-width: 2px 0 0 2px; }
+.bracket-tr { top: 6px; right: 6px; border-width: 2px 2px 0 0; }
+.bracket-bl { bottom: 6px; left: 6px; border-width: 0 0 2px 2px; }
+.bracket-br { bottom: 6px; right: 6px; border-width: 0 2px 2px 0; }
+
+.viewfinder-tag {
+  position: absolute;
+  top: 8px;
+  right: 20px;
+  font-size: 10px;
+  background: rgba(15, 23, 42, 0.88);
+  color: rgb(var(--v-theme-primary));
+  padding: 1px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(var(--v-theme-primary), 0.3);
+  z-index: 5;
+  font-family: monospace;
+}
+
+.unified-inspection-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(var(--v-theme-primary), 0.1);
+  color: rgb(var(--v-theme-primary));
+  border: 1px solid rgba(var(--v-theme-primary), 0.25);
+  border-radius: 6px !important;
+}
+
+.badge-verdict-filled {
+  background: rgba(var(--v-theme-primary), 0.12) !important;
+  color: rgb(var(--v-theme-primary)) !important;
+  border: 1px solid rgba(var(--v-theme-primary), 0.3) !important;
+}
+
+.badge-verdict-empty {
+  background: rgba(100, 116, 139, 0.12) !important;
+  color: #64748b !important;
+  border: 1px solid rgba(100, 116, 139, 0.25) !important;
 }
 </style>
