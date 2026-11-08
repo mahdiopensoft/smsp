@@ -26,11 +26,12 @@ class ExamSerializer(serializers.ModelSerializer):
     target_scopes_data = serializers.SerializerMethodField(read_only=True)
     model_region_assignments_data = serializers.SerializerMethodField(read_only=True)
     active_distribution = serializers.SerializerMethodField(read_only=True)
+    approved_by_name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Exam
         fields = '__all__'
-        read_only_fields = ['id', 'created_at', 'updated_at', 'deleted_at', 'is_deleted']
+        read_only_fields = ['id', 'created_at', 'is_deleted']
 
     def get_target_scopes_data(self, obj):
         from exams.serializers.ExamTargetScope import ExamTargetScopeSerializer
@@ -76,6 +77,13 @@ class ExamSerializer(serializers.ModelSerializer):
             {"id": v.id, "versionCode": v.versionCode}
             for v in obj.versions.filter(is_deleted=False).order_by('versionCode')
         ]
+
+    def get_approved_by_name(self, obj):
+        u = getattr(obj, 'approved_by', None)
+        if u:
+            full = f"{getattr(u, 'first_name', '') or ''} {getattr(u, 'last_name', '') or ''}".strip()
+            return full or getattr(u, 'username', str(u))
+        return None
 
     def get_active_distribution(self, obj):
         active_statuses = ['scheduled', 'dispatched', 'accessible', 'in_progress']

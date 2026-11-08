@@ -125,6 +125,48 @@ var routes_paths = {
       meta: { requiresAuth: true },
     },
     {
+      path: "exams-create",
+      component: () => import("../pages/ExamGenerator/ExamCreateView.vue"),
+      meta: { requiresAuth: true, title: "توليد وتعديل الاختبار" },
+    },
+    {
+      path: "ExamGenerator/ExamCreateView",
+      component: () => import("../pages/ExamGenerator/ExamCreateView.vue"),
+      meta: { requiresAuth: true, title: "توليد وتعديل الاختبار" },
+    },
+    {
+      path: "exams-archive",
+      component: () => import("../pages/ExamGenerator/ExamArchiveView.vue"),
+      meta: { requiresAuth: true, title: "أرشيف الاختبارات" },
+    },
+    {
+      path: "ExamGenerator/ExamArchiveView",
+      component: () => import("../pages/ExamGenerator/ExamArchiveView.vue"),
+      meta: { requiresAuth: true, title: "أرشيف الاختبارات" },
+    },
+    {
+      path: "curriculum-exclusions",
+      name: "curriculum-exclusions",
+      component: () => import("../pages/ExamGenerator/CurriculumExclusionsView.vue"),
+      meta: { requiresAuth: true, title: "المحذوفات من المنهج" },
+    },
+    {
+      path: "ExamGenerator/CurriculumExclusionsView",
+      component: () => import("../pages/ExamGenerator/CurriculumExclusionsView.vue"),
+      meta: { requiresAuth: true, title: "المحذوفات من المنهج" },
+    },
+    {
+      path: "question-bank-import",
+      name: "question-bank-import",
+      component: () => import("../pages/QuestionBank/QuestionImportView.vue"),
+      meta: { requiresAuth: true, title: "استيراد بنك الأسئلة" },
+    },
+    {
+      path: "QuestionBank/QuestionImportView",
+      component: () => import("../pages/QuestionBank/QuestionImportView.vue"),
+      meta: { requiresAuth: true, title: "استيراد بنك الأسئلة" },
+    },
+    {
       path: "/:pathMatch(.*)*",
       name: "NotFound",
       component: DashBoard,

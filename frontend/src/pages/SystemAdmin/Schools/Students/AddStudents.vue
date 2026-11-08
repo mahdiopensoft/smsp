@@ -61,6 +61,19 @@
             />
           </v-col>
 
+          <!-- معرف الطالب / الرقم الوطني -->
+          <v-col cols="12" sm="6" md="4">
+            <v-text-field
+              v-model="data.student_id"
+              label="معرف الطالب / الرقم الوطني"
+              placeholder="مثال: 0101002345"
+              prepend-inner-icon="mdi-identifier"
+              density="compact"
+              variant="outlined"
+              hide-details
+            />
+          </v-col>
+
           <!-- الاسم بالعربي -->
           <v-col cols="12" sm="6" md="4">
             <v-text-field
@@ -129,19 +142,80 @@
             />
           </v-col>
 
-          <!-- الدولة / الجنسية -->
+          <!-- الجنسية -->
           <v-col cols="12" sm="6" md="4">
             <auto-list
-              v-model="data.country"
+              v-model="data.nationality"
               name="Country"
-              placeholder="الجنسية / الدولة"
-              label="الدولة / الجنسية"
+              placeholder="الجنسية"
+              label="الجنسية"
               cols="12"
               :add="false"
             />
           </v-col>
 
-          <!-- رقم الهاتف -->
+          <!-- الدولة ومحل الإقامة -->
+          <v-col cols="12" sm="6" md="4">
+            <auto-list
+              v-model="data.country"
+              name="Country"
+              placeholder="الدولة ومحل الإقامة"
+              label="الدولة / بلد الإقامة"
+              cols="12"
+              :add="false"
+            />
+          </v-col>
+
+          <!-- الديانة -->
+          <v-col cols="12" sm="6" md="4">
+            <v-text-field
+              v-model="data.religion"
+              label="الديانة"
+              placeholder="مثال: مسلم"
+              prepend-inner-icon="mdi-book-cross"
+              density="compact"
+              variant="outlined"
+              hide-details
+            />
+          </v-col>
+        </v-row>
+
+        <v-divider class="my-4" />
+
+        <!-- ── 2. بيانات ولي الأمر والتواصل ── -->
+        <div class="d-flex align-center gap-2 mb-3">
+          <v-icon size="20" color="primary">mdi-account-tie</v-icon>
+          <span class="text-subtitle-1 font-weight-bold">بيانات ولي الأمر وأرقام التواصل</span>
+        </div>
+
+        <v-row dense class="mb-4">
+          <!-- اسم ولي الأمر -->
+          <v-col cols="12" sm="6" md="4">
+            <v-text-field
+              v-model="data.parent_name"
+              label="اسم ولي الأمر"
+              placeholder="الاسم الكامل لولي الأمر"
+              prepend-inner-icon="mdi-account-tie"
+              density="compact"
+              variant="outlined"
+              hide-details
+            />
+          </v-col>
+
+          <!-- صلة القرابة -->
+          <v-col cols="12" sm="6" md="4">
+            <v-text-field
+              v-model="data.parent_relation"
+              label="صلة القرابة"
+              placeholder="أب / أم / أخ / عم..."
+              prepend-inner-icon="mdi-account-switch"
+              density="compact"
+              variant="outlined"
+              hide-details
+            />
+          </v-col>
+
+          <!-- رقم هاتف الطالب / الجوال -->
           <v-col cols="12" sm="6" md="4">
             <v-text-field
               v-model="data.phone_number"
@@ -155,12 +229,26 @@
             />
           </v-col>
 
-          <!-- العنوان -->
+          <!-- هاتف المنزل / الثابت -->
           <v-col cols="12" sm="6" md="4">
+            <v-text-field
+              v-model="data.home_number"
+              label="هاتف المنزل / الثابت"
+              placeholder="01XXXXXX"
+              prepend-inner-icon="mdi-deskphone"
+              density="compact"
+              variant="outlined"
+              dir="ltr"
+              hide-details
+            />
+          </v-col>
+
+          <!-- العنوان السكني -->
+          <v-col cols="12" sm="6" md="8">
             <v-text-field
               v-model="data.address"
               label="العنوان ومحل السكن"
-              placeholder="المدينة - الحي"
+              placeholder="المدينة - الحي - الشارع"
               prepend-inner-icon="mdi-home-outline"
               density="compact"
               variant="outlined"
@@ -388,7 +476,42 @@
 
         <v-divider class="my-4" />
 
-        <!-- ── 4. حالة التفعيل ── -->
+        <!-- ── 4. بيانات التسجيل والحساب ── -->
+        <div class="d-flex align-center gap-2 mb-3">
+          <v-icon size="20" color="primary">mdi-card-account-details</v-icon>
+          <span class="text-subtitle-1 font-weight-bold">بيانات التسجيل والحساب المبدئي</span>
+        </div>
+
+        <v-row dense class="mb-4">
+          <!-- سنة التسجيل -->
+          <v-col cols="12" sm="6" md="6">
+            <auto-list
+              v-model="data.registration_date"
+              name="AcademicYear"
+              placeholder="سنة التسجيل الأكاديمية"
+              label="سنة التسجيل الأكاديمية"
+              cols="12"
+              :add="false"
+            />
+          </v-col>
+
+          <!-- كلمة المرور الأولية -->
+          <v-col cols="12" sm="6" md="6">
+            <v-text-field
+              v-model="data.plain_password"
+              label="كلمة المرور الأولية (للمزامنة)"
+              placeholder="كلمة مرور الحساب المبدئية"
+              prepend-inner-icon="mdi-lock-outline"
+              density="compact"
+              variant="outlined"
+              hide-details
+            />
+          </v-col>
+        </v-row>
+
+        <v-divider class="my-4" />
+
+        <!-- ── 5. حالة التفعيل ── -->
         <v-row dense class="align-center">
           <v-col cols="12" sm="6">
             <v-switch

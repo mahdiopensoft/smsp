@@ -213,15 +213,10 @@
             </template>
 
             <template v-else-if="key === 'institutionType'">
-              <v-chip
-                size="small"
-                :color="item.institutionTypeColor"
-                variant="tonal"
-                class="font-weight-bold"
-              >
-                <v-icon start size="15">{{ item.institutionTypeIcon }}</v-icon>
-                {{ item.institutionTypeFullLabel }}
-              </v-chip>
+              <div class="d-flex align-center justify-center gap-1 font-weight-bold text-body-2" style="color: #000000 !important;">
+                <v-icon size="16" style="color: #000000 !important;">{{ item.institutionTypeIcon }}</v-icon>
+                <span>{{ item.institutionTypeFullLabel }}</span>
+              </div>
             </template>
 
             <template v-else-if="key === 'versionCode'">
@@ -235,77 +230,137 @@
             </template>
 
             <template v-else-if="key === 'questionsCount'">
-              <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold">
+              <span class="font-weight-bold text-body-2" style="color: #000000 !important;">
                 {{ item.questionsCount }} سؤال
+              </span>
+            </template>
+
+            <template v-else-if="key === 'is_approved'">
+              <v-chip
+                size="small"
+                :color="item.is_approved ? 'success' : 'amber-darken-2'"
+                variant="tonal"
+                class="font-weight-bold"
+              >
+                <v-icon start size="14">{{ item.is_approved ? 'mdi-check-decagram' : 'mdi-clock-outline' }}</v-icon>
+                {{ item.is_approved ? 'معتمد' : 'بانتظار الاعتماد' }}
               </v-chip>
             </template>
 
             <template v-else-if="key === 'studentsCount'">
-              <v-chip size="small" :color="(item.studentsCount || 0) > 0 ? 'success' : 'default'" variant="tonal" class="font-weight-bold">
-                <v-icon start size="x-small">mdi-account-group</v-icon>
-                {{ item.studentsCount || 0 }} طالب
-              </v-chip>
+              <div class="d-flex align-center justify-center gap-1 font-weight-bold text-body-2" style="color: #000000 !important;">
+                <v-icon size="16" style="color: #000000 !important;">mdi-account-group</v-icon>
+                <span>{{ item.studentsCount || 0 }} طالب</span>
+              </div>
             </template>
 
             <template v-else-if="key === 'actions'">
-              <div class="d-flex align-center justify-center gap-1">
-                <!-- زر العين المباشر لعرض تفاصيل الاختبار والمحافظة والمديرية -->
-                <v-btn
-                  icon="mdi-eye"
-                  variant="tonal"
-                  color="info"
-                  size="small"
-                  rounded="lg"
-                  title="عرض تفاصيل الاختبار والمناطق المستهدفة"
-                  @click.stop="openExamDetailsModal(item)"
-                />
-
-                <v-menu location="bottom end" transition="slide-y-transition">
+              <div class="d-flex align-center justify-center">
+                <v-menu transition="slide-y-transition" location="bottom end" offset="8">
                   <template v-slot:activator="{ props }">
-                    <v-btn
-                      v-bind="props"
-                      icon="mdi-dots-vertical"
-                      variant="tonal"
-                      color="primary"
-                      size="small"
-                      rounded="lg"
-                      title="قائمة الإجراءات"
-                    />
+                    <custom-btn v-bind="props" is-icon icon="dots-vertical" color="secondary" variant="text" />
                   </template>
 
-                  <v-list density="compact" class="rounded-xl border elevation-4 py-2" min-width="230">
-                    <!-- عرض تفاصيل الاختبار والمناطق (زر العين) -->
-                    <v-list-item
-                      prepend-icon="mdi-eye-outline"
-                      class="font-weight-bold text-info"
-                      @click="openExamDetailsModal(item)"
-                    >
-                      <v-list-item-title class="font-weight-bold">تفاصيل الاختبار والمناطق</v-list-item-title>
-                      <v-list-item-subtitle class="text-caption">المحافظة، المديرية والمعلومات</v-list-item-subtitle>
-                    </v-list-item>
+                  <v-card elevation="24" rounded="lg" class="premium-menu-card border-thin overflow-hidden"
+                    style="min-width: 220px">
+                    <div class="pa-3 border-b d-flex align-center"
+                      style="background-color: rgba(var(--v-theme-primary), 0.08)">
+                      <v-icon color="primary" class="me-2" size="20">mdi-dots-horizontal-circle-outline</v-icon>
+                      <div class="text-caption font-weight-bold" style="color: rgb(var(--v-theme-on-surface))">
+                        إجراءات السجل
+                      </div>
+                    </div>
 
-                    <v-divider class="my-1" />
+                    <v-card-text class="pa-1">
+                      <v-list density="compact" class="bg-transparent pa-0">
+                        <v-list-subheader class="modern-subheader px-2 mt-1 mb-1">
+                          خيارات الاختبار
+                        </v-list-subheader>
 
-                    <!-- لوحة التحكم -->
-                    <v-list-item
-                      prepend-icon="mdi-monitor-dashboard"
-                      class="font-weight-bold text-primary"
-                      @click="openDashboard(item)"
-                    >
-                      <v-list-item-title class="font-weight-bold">لوحة التحكم</v-list-item-title>
-                      <v-list-item-subtitle class="text-caption">النماذج، الطلاب والطباعة</v-list-item-subtitle>
-                    </v-list-item>
+                        <!-- اعتماد وتسكين الطلاب -->
+                        <v-list-item
+                          v-if="!item.is_approved"
+                          @click="confirmApproveExam(item)"
+                          class="premium-list-item"
+                        >
+                          <template v-slot:prepend>
+                            <v-icon size="18" color="success" class="me-2">mdi-check-decagram</v-icon>
+                          </template>
+                          <v-list-item-title class="text-caption font-weight-bold text-success">
+                            اعتماد وتسكين الطلاب
+                          </v-list-item-title>
+                        </v-list-item>
 
-                    <!-- التصحيح الضوئي OMR -->
-                    <v-list-item
-                      prepend-icon="mdi-scanner"
-                      class="font-weight-bold text-purple-darken-1"
-                      :to="`/omr-exams?open_exam_id=${item.id}`"
-                    >
-                      <v-list-item-title class="font-weight-bold">التصحيح الضوئي (OMR)</v-list-item-title>
-                      <v-list-item-subtitle class="text-caption">ربط وتصحيح الأوراق آلياً</v-list-item-subtitle>
-                    </v-list-item>
-                  </v-list>
+                          <!-- تعديل الاختبار ومسودته (فقط إذا لم يكن معتمداً) -->
+                          <v-list-item
+                            v-if="!item.is_approved"
+                            :disabled="loadingEditId === item.id"
+                            @click="editExam(item)"
+                            class="premium-list-item"
+                          >
+                            <template v-slot:prepend>
+                              <v-progress-circular
+                                v-if="loadingEditId === item.id"
+                                indeterminate
+                                size="18"
+                                width="2"
+                                color="warning"
+                                class="me-2"
+                              />
+                              <v-icon v-else size="18" color="warning" class="me-2">mdi-pencil-outline</v-icon>
+                            </template>
+                            <v-list-item-title class="text-caption font-weight-bold text-warning">
+                              {{ loadingEditId === item.id ? 'جاري الانتقال للتعديل...' : 'تعديل الاختبار ومسودته' }}
+                            </v-list-item-title>
+                          </v-list-item>
+
+                        <!-- إلغاء الاعتماد (إعادة لمسودة) -->
+                        <v-list-item
+                          v-else
+                          @click="confirmUnapproveExam(item)"
+                          class="premium-list-item"
+                        >
+                          <template v-slot:prepend>
+                            <v-icon size="18" color="amber-darken-3" class="me-2">mdi-undo-variant</v-icon>
+                          </template>
+                          <v-list-item-title class="text-caption font-weight-medium text-amber-darken-3">
+                            إلغاء الاعتماد (إعادة لمسودة)
+                          </v-list-item-title>
+                        </v-list-item>
+
+                        <!-- تفاصيل الاختبار والمناطق -->
+                        <v-list-item @click="openExamDetailsModal(item)" class="premium-list-item">
+                          <template v-slot:prepend>
+                            <v-icon size="18" color="info" class="me-2">mdi-eye-outline</v-icon>
+                          </template>
+                          <v-list-item-title class="text-caption font-weight-medium text-info">
+                            تفاصيل الاختبار والمناطق
+                          </v-list-item-title>
+                        </v-list-item>
+
+                        <!-- لوحة التحكم والطباعة -->
+                        <v-list-item @click="openDashboard(item)" class="premium-list-item">
+                          <template v-slot:prepend>
+                            <v-icon size="18" color="primary" class="me-2">mdi-monitor-dashboard</v-icon>
+                          </template>
+                          <v-list-item-title class="text-caption font-weight-medium text-primary">
+                            لوحة التحكم والطباعة
+                          </v-list-item-title>
+                        </v-list-item>
+
+                        <!-- التصحيح الضوئي OMR -->
+                        <v-list-item :to="`/omr-exams?open_exam_id=${item.id}`" class="premium-list-item">
+                          <template v-slot:prepend>
+                            <v-icon size="18" color="purple-darken-1" class="me-2">mdi-scanner</v-icon>
+                          </template>
+                          <v-list-item-title class="text-caption font-weight-medium text-purple-darken-1">
+                            التصحيح الضوئي (OMR)
+                          </v-list-item-title>
+                        </v-list-item>
+
+                      </v-list>
+                    </v-card-text>
+                  </v-card>
                 </v-menu>
               </div>
             </template>
@@ -326,11 +381,45 @@
                 <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">{{
                   selectedExam.subjectName
                 }}</v-chip>
+                <v-chip
+                  size="x-small"
+                  :color="selectedExam.is_approved ? 'success' : 'amber-darken-2'"
+                  variant="flat"
+                  class="font-weight-bold"
+                >
+                  <v-icon start size="12">{{ selectedExam.is_approved ? 'mdi-check-decagram' : 'mdi-clock-outline' }}</v-icon>
+                  {{ selectedExam.is_approved ? 'معتمد رسمياً' : 'مسودة بانتظار الاعتماد' }}
+                </v-chip>
               </div>
               <h1 class="text-h4 font-weight-black mb-0">{{ selectedExam.title }}</h1>
             </div>
           </div>
           <div class="d-flex align-center gap-2 flex-wrap">
+            <v-btn
+              v-if="!selectedExam.is_approved"
+              variant="flat"
+              color="success"
+              rounded="lg"
+              class="font-weight-bold text-white shadow-sm"
+              prepend-icon="mdi-check-decagram"
+              :loading="approvingExamId === selectedExam.id"
+              @click="confirmApproveExam(selectedExam)"
+            >
+              اعتماد الاختبار وتسكين الطلاب
+            </v-btn>
+              <v-btn
+                v-if="!selectedExam.is_approved"
+                variant="tonal"
+                color="warning"
+                rounded="lg"
+                class="font-weight-bold shadow-sm"
+                :loading="loadingEditId === selectedExam.id"
+                prepend-icon="mdi-pencil-outline"
+                @click="editExam(selectedExam)"
+              >
+                تعديل الاختبار ومسودته
+              </v-btn>
+
             <custom-btn type="add" label="طباعة الأسئلة" icon="mdi-file-document-outline" variant="tonal" color="primary"
               class="font-weight-bold" :click="() => openPrintDialog('questions')" />
             <custom-btn type="add" label="مفتاح الإجابة" icon="mdi-key-variant" variant="tonal" color="success"
@@ -621,15 +710,35 @@
               <!-- Empty state alert if loaded and count is 0 -->
               <v-alert
                 v-if="!loadingStudents && totalStudentsCount === 0 && (!studentsTableItems.results || studentsTableItems.results.length === 0)"
-                type="info"
+                :type="selectedExam.is_approved ? 'info' : 'warning'"
                 variant="tonal"
                 class="rounded-xl mb-4"
-                icon="mdi-account-off-outline"
+                :icon="selectedExam.is_approved ? 'mdi-account-off-outline' : 'mdi-alert-circle-outline'"
               >
-                <div class="font-weight-bold mb-1">لا يوجد طلاب مسجلون</div>
-                <div class="text-body-2">
-                  لم يتم تسجيل أي طلاب في هذا الاختبار بعد. تأكد من أن الاختبار مرتبط بصف دراسي ونطاق جغرافي يحتوي على طلاب تم توليدهم.
+                <div class="font-weight-bold mb-1">
+                  {{ selectedExam.is_approved ? 'لا يوجد طلاب مسجلون' : 'الاختبار غير معتمد بعد (قيد المسودة)' }}
                 </div>
+                <div class="text-body-2 mb-2">
+                  <template v-if="!selectedExam.is_approved">
+                    لم يتم تسكين وتوزيع الطلاب على نماذج هذا الاختبار لأن الاختبار لا يزال مسودة بانتظار الاعتماد الرسمي. عند اعتماد الاختبار، سيقوم النظام تلقائياً بحصر الطلاب وتسكينهم وتوزيعهم على النماذج وتجميد مفاتيح الإجابة.
+                  </template>
+                  <template v-else>
+                    لم يتم تسجيل أي طلاب في هذا الاختبار. تأكد من أن الاختبار مرتبط بصف دراسي ونطاق جغرافي يحتوي على طلاب مسجلين.
+                  </template>
+                </div>
+                <v-btn
+                  v-if="!selectedExam.is_approved"
+                  variant="flat"
+                  color="success"
+                  size="small"
+                  rounded="lg"
+                  class="font-weight-bold text-white mt-1"
+                  prepend-icon="mdi-check-decagram"
+                  :loading="approvingExamId === selectedExam.id"
+                  @click="confirmApproveExam(selectedExam)"
+                >
+                  اعتماد الاختبار وتسكين الطلاب الآن
+                </v-btn>
               </v-alert>
 
               <!-- Custom Data Table -->
@@ -708,11 +817,10 @@
       </div>
     </div>
 
-    <!-- WIDE PRINT & PREVIEW DIALOG -->
-    <v-dialog v-model="printPreviewDialog" max-width="1150" width="1150" scrollable>
-      <v-card class="d-flex flex-column rounded-2xl overflow-hidden" style="max-height: 90vh;">
-        <!-- Sticky Dialog Header -->
-        <div class="pa-4 border-b d-flex align-center justify-space-between flex-wrap gap-3 bg-surface d-print-none">
+    <!-- WIDE PRINT & PREVIEW DIALOG (CustomDialog) -->
+    <CustomDialog v-model="printPreviewDialog" width="1150" :showClose="true">
+      <template #title>
+        <div class="d-flex align-center justify-space-between flex-wrap gap-3 w-100 pe-2 d-print-none">
           <div class="d-flex align-center gap-3">
             <v-avatar size="40" :color="printModalType === 'questions' ? 'primary' : printModalType === 'key' ? 'success' : 'teal'" variant="tonal" class="rounded-xl">
               <v-icon size="22">
@@ -729,7 +837,7 @@
             </div>
           </div>
 
-          <!-- Controls: Mode Switcher + Version Selector + Print Button + Close -->
+          <!-- Controls: Mode Switcher + Version Selector + Print Button -->
           <div class="d-flex align-center gap-2 flex-wrap">
             <!-- Mode Switcher -->
             <v-btn-toggle v-model="printModalType" mandatory density="compact" rounded="lg" color="primary" variant="outlined">
@@ -790,14 +898,12 @@
               class="font-weight-bold px-4"
               :click="triggerPrint"
             />
-
-            <!-- Close Dialog -->
-            <v-btn icon="mdi-close" variant="text" size="small" @click="printPreviewDialog = false" />
           </div>
         </div>
+      </template>
 
-        <!-- Scrollable Paper Body -->
-        <v-card-text class="pa-4 pa-md-8 print-modal-body overflow-y-auto" style="background-color: #f1f5f9;">
+      <!-- Scrollable Paper Body -->
+      <div class="pa-4 pa-md-6 print-modal-body" style="background-color: #f1f5f9; max-height: 75vh; overflow-y: auto;">
           <div class="printable-exam-sheet pa-8 pa-md-10 rounded-2xl mx-auto" v-if="selectedExam">
             <!-- Exam Paper Header -->
             <div class="exam-paper-header mb-6 pb-4 border-b text-center">
@@ -1007,46 +1113,143 @@
             </div>
 
           </div>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
+      </div>
+    </CustomDialog>
 
-    <!-- MODAL: EXAM DETAILS & GEOGRAPHIC SCOPE (زر العين) -->
-    <v-dialog v-model="detailsDialog" max-width="750" scrollable>
-      <v-card class="rounded-2xl overflow-hidden shadow-2xl">
-        <!-- Header -->
-        <div class="pa-5 bg-surface border-b d-flex align-center justify-space-between">
-          <div class="d-flex align-center gap-3">
-            <v-avatar :color="inspectingExam?.institutionTypeColor || 'info'" variant="tonal" size="44" class="rounded-xl">
-              <v-icon size="24">{{ inspectingExam?.institutionTypeIcon || 'mdi-text-box-search-outline' }}</v-icon>
-            </v-avatar>
-            <div>
-              <div class="d-flex align-center gap-2 flex-wrap">
-                <h3 class="text-h6 font-weight-black mb-0 text-slate-800">{{ inspectingExam?.title }}</h3>
-                <v-chip
-                  size="small"
-                  :color="inspectingExam?.institutionTypeColor"
-                  variant="flat"
-                  class="font-weight-bold"
-                >
-                  <v-icon start size="15">{{ inspectingExam?.institutionTypeIcon }}</v-icon>
-                  {{ inspectingExam?.institutionTypeFullLabel }}
-                </v-chip>
-              </div>
-              <div class="text-caption text-medium-emphasis mt-1">
-                رمز الاختبار: <span class="font-weight-bold font-mono">{{ inspectingExam?.uniqueCode || '—' }}</span>
-                <span class="mx-2">•</span>
-                المادة: <span class="font-weight-bold text-slate-700">{{ inspectingExam?.subjectName }}</span>
-                <span class="mx-2">•</span>
-                الجهة: <span class="font-weight-bold" :class="`text-${inspectingExam?.institutionTypeColor}`">{{ inspectingExam?.institutionTypeMinistry }}</span>
-              </div>
+    <!-- DIALOG: CONFIRM APPROVAL MODAL (CustomDialog) -->
+    <CustomDialog
+      v-model="approvalConfirmDialog"
+      width="540"
+      title="تأكيد اعتماد الاختبار"
+      subTitle="تسكين الطلاب على نماذج الاختبار وتجميد مفاتيح الإجابة"
+      :showClose="true"
+    >
+      <div class="text-center py-2">
+        <v-avatar color="success" variant="tonal" size="64" class="mb-4 mx-auto">
+          <v-icon size="36" color="success">mdi-check-decagram</v-icon>
+        </v-avatar>
+
+        <p class="text-body-1 font-weight-bold mb-3 text-slate-800">
+          هل أنت متأكد من رغبتك في اعتماد اختبار 
+          <span class="text-primary font-weight-black">"{{ examToApprove?.title }}"</span> 
+          رسمياً؟
+        </p>
+
+        <v-alert type="info" variant="tonal" density="compact" class="rounded-xl text-start mb-2 text-caption">
+          <div class="font-weight-bold mb-1">النتائج المترتبة على الاعتماد:</div>
+          <ul class="ps-4 mb-0">
+            <li>حصر الطلاب المستهدفين وفق الصف/المسار والنطاق الجغرافي المحدد.</li>
+            <li>توزيع وتسكين الطلاب على نماذج الاختبار وتوليد أرقام الجلوس والأرقام السرية.</li>
+            <li>تجميد مفاتيح الإجابة (Answer Keys) وتوليد التوقيع الرقمي المشفر.</li>
+          </ul>
+        </v-alert>
+      </div>
+
+      <template #actions>
+        <custom-btn
+          label="إلغاء"
+          variant="tonal"
+          color="secondary"
+          class="font-weight-bold px-4"
+          :disabled="approvingExamId !== null"
+          :click="() => approvalConfirmDialog = false"
+        />
+        <custom-btn
+          type="add"
+          label="تأكيد الاعتماد وتسكين الطلاب"
+          icon="mdi-check-decagram"
+          color="success"
+          class="font-weight-bold px-6"
+          :loading="approvingExamId !== null"
+          :click="executeApproveExam"
+        />
+      </template>
+    </CustomDialog>
+
+    <!-- DIALOG: CONFIRM UNAPPROVE MODAL (CustomDialog) -->
+    <CustomDialog
+      v-model="unapproveConfirmDialog"
+      width="500"
+      title="إلغاء اعتماد الاختبار"
+      subTitle="إعادة الاختبار لحالة المسودة وإلغاء تسكين الطلاب"
+      :showClose="true"
+    >
+      <div class="text-center py-2">
+        <v-avatar color="warning" variant="tonal" size="64" class="mb-4 mx-auto">
+          <v-icon size="36" color="warning">mdi-undo-variant</v-icon>
+        </v-avatar>
+
+        <p class="text-body-1 font-weight-bold mb-3 text-slate-800">
+          هل ترغب بإلغاء اعتماد اختبار 
+          <span class="text-warning-darken-2 font-weight-black">"{{ examToUnapprove?.title }}"</span> 
+          وإعادته لمسودة؟
+        </p>
+
+        <v-alert type="warning" variant="tonal" density="compact" class="rounded-xl text-start mb-2 text-caption">
+          <span class="font-weight-bold text-error">
+            تنبيه: سيتم حذف جميع تسجيلات وتسكين الطلاب على هذا الاختبار وإلغاء تجميد مفاتيح الإجابة.
+          </span>
+        </v-alert>
+      </div>
+
+      <template #actions>
+        <custom-btn
+          label="تراجع"
+          variant="tonal"
+          color="secondary"
+          class="font-weight-bold px-4"
+          :disabled="unapprovingExamId !== null"
+          :click="() => unapproveConfirmDialog = false"
+        />
+        <custom-btn
+          type="del"
+          label="نعم، إلغاء الاعتماد"
+          icon="mdi-undo-variant"
+          color="warning"
+          class="font-weight-bold px-5"
+          :loading="unapprovingExamId !== null"
+          :click="executeUnapproveExam"
+        />
+      </template>
+    </CustomDialog>
+
+    <!-- MODAL: EXAM DETAILS & GEOGRAPHIC SCOPE (CustomDialog) -->
+    <CustomDialog
+      v-model="detailsDialog"
+      width="820"
+      :showClose="true"
+    >
+      <template #title>
+        <div class="d-flex align-center gap-3 pe-2">
+          <v-avatar :color="inspectingExam?.institutionTypeColor || 'info'" variant="tonal" size="44" class="rounded-xl">
+            <v-icon size="24">{{ inspectingExam?.institutionTypeIcon || 'mdi-text-box-search-outline' }}</v-icon>
+          </v-avatar>
+          <div>
+            <div class="d-flex align-center gap-2 flex-wrap">
+              <h3 class="text-h6 font-weight-black mb-0 text-slate-800">{{ inspectingExam?.title }}</h3>
+              <v-chip
+                size="small"
+                :color="inspectingExam?.institutionTypeColor"
+                variant="flat"
+                class="font-weight-bold"
+              >
+                <v-icon start size="15">{{ inspectingExam?.institutionTypeIcon }}</v-icon>
+                {{ inspectingExam?.institutionTypeFullLabel }}
+              </v-chip>
+            </div>
+            <div class="text-caption text-medium-emphasis mt-1">
+              رمز الاختبار: <span class="font-weight-bold font-mono">{{ inspectingExam?.uniqueCode || '—' }}</span>
+              <span class="mx-2">•</span>
+              المادة: <span class="font-weight-bold text-slate-700">{{ inspectingExam?.subjectName }}</span>
+              <span class="mx-2">•</span>
+              الجهة: <span class="font-weight-bold" :class="`text-${inspectingExam?.institutionTypeColor}`">{{ inspectingExam?.institutionTypeMinistry }}</span>
             </div>
           </div>
-          <v-btn icon="mdi-close" variant="text" size="small" @click="detailsDialog = false" />
         </div>
+      </template>
 
-        <!-- Content -->
-        <v-card-text class="pa-5 overflow-y-auto" style="max-height: 70vh;">
+      <!-- Content -->
+      <div class="pa-2">
           <v-row dense>
             <!-- 1. النطاق الجغرافي والمناطق المستهدفة -->
             <v-col cols="12">
@@ -1312,35 +1515,38 @@
               </v-card>
             </v-col>
           </v-row>
-        </v-card-text>
+      </div>
 
-        <!-- Dialog Footer Actions -->
-        <div class="pa-4 bg-slate-50 border-t d-flex align-center justify-space-between">
-          <v-btn variant="text" color="grey-darken-1" class="font-weight-bold" @click="detailsDialog = false">
-            إغلاق
+      <!-- Dialog Footer Actions -->
+      <template #actions>
+        <custom-btn
+          label="إغلاق"
+          variant="outlined"
+          color="secondary"
+          class="font-weight-bold px-4"
+          :click="() => detailsDialog = false"
+        />
+        <div class="d-flex align-center gap-2 ms-auto">
+          <v-btn
+            variant="tonal"
+            color="purple-darken-1"
+            rounded="lg"
+            class="font-weight-bold"
+            prepend-icon="mdi-scanner"
+            :to="`/omr-exams?open_exam_id=${inspectingExam?.id}`"
+          >
+            شاشة التصحيح (OMR)
           </v-btn>
-          <div class="d-flex align-center gap-2">
-            <v-btn
-              variant="tonal"
-              color="purple-darken-1"
-              rounded="lg"
-              class="font-weight-bold"
-              prepend-icon="mdi-scanner"
-              :to="`/omr-exams?open_exam_id=${inspectingExam?.id}`"
-            >
-              شاشة التصحيح (OMR)
-            </v-btn>
-            <custom-btn
-              label="فتح لوحة التحكم"
-              icon="monitor-dashboard"
-              color="primary"
-              class="font-weight-bold"
-              :click="() => viewExamFromModal(inspectingExam)"
-            />
-          </div>
+          <custom-btn
+            label="فتح لوحة التحكم"
+            icon="monitor-dashboard"
+            color="primary"
+            class="font-weight-bold"
+            :click="() => viewExamFromModal(inspectingExam)"
+          />
         </div>
-      </v-card>
-    </v-dialog>
+      </template>
+    </CustomDialog>
   </div>
 </template>
 
@@ -1487,6 +1693,7 @@ export default {
   data() {
     return {
       loading: false,
+      loadingEditId: null,
       items: { results: [], pagination: {} },
       examDetails: null,
       detailsDialog: false,
@@ -1517,8 +1724,15 @@ export default {
         { title: 'نوع المؤسسة', key: 'institutionType', sortable: false, align: 'center' },
         { title: 'النماذج', key: 'versionCode', sortable: false },
         { title: 'عدد الأسئلة', key: 'questionsCount', sortable: false, align: 'center' },
+        { title: 'حالة الاعتماد', key: 'is_approved', sortable: true, align: 'center' },
         { title: 'الطلاب المسجلون', key: 'studentsCount', sortable: false, align: 'center' },
       ],
+      approvalConfirmDialog: false,
+      examToApprove: null,
+      approvingExamId: null,
+      unapproveConfirmDialog: false,
+      examToUnapprove: null,
+      unapprovingExamId: null,
       selectedExam: null,
       dashboardTab: 0,
       activeVersionIndex: 0,
@@ -1624,6 +1838,9 @@ export default {
             versionsList: exam.versions_list || [],
             questionsCount: exam.questions_count || 0,
             studentsCount: exam.students_count ?? exam.studentsCount ?? 0,
+            is_approved: !!exam.is_approved,
+            approved_at: exam.approved_at,
+            approved_by_name: exam.approved_by_name,
             institutionType: exam.institution_type || 'school',
             institutionTypeShortLabel: instMeta.shortLabel,
             institutionTypeFullLabel: instMeta.fullLabel,
@@ -1700,6 +1917,122 @@ export default {
       this.getData()
     },
 
+    editExam(item) {
+      if (!item || item.is_approved) return
+      this.loadingEditId = item.id
+      this.$router.push({
+        path: '/exams-create',
+        query: { edit_exam_id: item.id }
+      }).catch(() => {
+        this.$router.push({
+          path: '/ExamGenerator/ExamCreateView',
+          query: { edit_exam_id: item.id }
+        })
+      }).finally(() => {
+        setTimeout(() => {
+          this.loadingEditId = null
+        }, 1200)
+      })
+    },
+
+    confirmApproveExam(item) {
+      this.examToApprove = item
+      this.approvalConfirmDialog = true
+    },
+
+    async executeApproveExam() {
+      if (!this.examToApprove) return
+      const exam = this.examToApprove
+      this.approvingExamId = exam.id
+      try {
+        const res = await examsService.approveExam(exam.id)
+        if (res && res.success) {
+          exam.is_approved = true
+          exam.studentsCount = res.studentsCount ?? exam.studentsCount
+          exam.approved_at = res.approved_at
+          exam.approved_by_name = res.approved_by_name
+
+          if (this.selectedExam && this.selectedExam.id === exam.id) {
+            this.selectedExam.is_approved = true
+            this.selectedExam.studentsCount = exam.studentsCount
+            this.totalStudentsCount = exam.studentsCount
+            await this.fetchRegisteredStudents({ params: { page: 1 } })
+          }
+
+          if (this.$alert) {
+            this.$alert("successData", {
+              title: "تم اعتماد الاختبار بنجاح",
+              message: res.message || `تم اعتماد الاختبار وتسكين ${res.studentsCount || 0} طالب وتجميد المفاتيح.`
+            })
+          }
+          this.approvalConfirmDialog = false
+          this.examToApprove = null
+        } else {
+          throw new Error(res?.message || 'فشل اعتماد الاختبار')
+        }
+      } catch (err) {
+        console.error('فشل اعتماد الاختبار:', err)
+        const errMsg = err.response?.data?.message || err.message || 'حدث خطأ أثناء اعتماد الاختبار'
+        if (this.$alert) {
+          this.$alert("errorData", {
+            title: "خطأ في الاعتماد",
+            message: errMsg
+          })
+        }
+      } finally {
+        this.approvingExamId = null
+      }
+    },
+
+    confirmUnapproveExam(item) {
+      this.examToUnapprove = item
+      this.unapproveConfirmDialog = true
+    },
+
+    async executeUnapproveExam() {
+      if (!this.examToUnapprove) return
+      const exam = this.examToUnapprove
+      this.unapprovingExamId = exam.id
+      try {
+        const res = await examsService.unapproveExam(exam.id)
+        if (res && res.success) {
+          exam.is_approved = false
+          exam.studentsCount = 0
+          exam.approved_at = null
+          exam.approved_by_name = null
+
+          if (this.selectedExam && this.selectedExam.id === exam.id) {
+            this.selectedExam.is_approved = false
+            this.selectedExam.studentsCount = 0
+            this.totalStudentsCount = 0
+            await this.fetchRegisteredStudents({ params: { page: 1 } })
+          }
+
+          if (this.$alert) {
+            this.$alert("successData", {
+              title: "تم إلغاء الاعتماد",
+              message: res.message || "تمت إعادة الاختبار لحالة المسودة وإلغاء تسكين الطلاب."
+            })
+          }
+          this.unapproveConfirmDialog = false
+          this.examToUnapprove = null
+        } else {
+          throw new Error(res?.message || 'فشل إلغاء اعتماد الاختبار')
+        }
+      } catch (err) {
+        console.error('فشل إلغاء اعتماد الاختبار:', err)
+        const errMsg = err.response?.data?.message || err.message || 'حدث خطأ أثناء إلغاء الاعتماد'
+        if (this.$alert) {
+          this.$alert("errorData", {
+            title: "خطأ",
+            message: errMsg
+          })
+        }
+      } finally {
+        this.unapprovingExamId = null
+      }
+    },
+
     openExamDetailsModal(exam) {
       this.inspectingExam = exam
       this.detailsDialog = true
@@ -1737,6 +2070,13 @@ export default {
       try {
         const dashData = await examsService.getArchivedExamDashboard(exam.id)
         this.examDashboardData = dashData
+        if (dashData && dashData.isApproved !== undefined) {
+          this.selectedExam.is_approved = dashData.isApproved
+          if (dashData.studentsCount !== undefined) {
+            this.selectedExam.studentsCount = dashData.studentsCount
+            this.totalStudentsCount = dashData.studentsCount
+          }
+        }
       } catch (err) {
         console.error("Failed to load dashboard data", err)
       }

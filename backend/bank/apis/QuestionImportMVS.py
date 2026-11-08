@@ -1,3 +1,4 @@
+﻿import json
 from OpenSoftCoreV41.utils.model_view_set.__all__ import AllMVS
 from bank.models.Question import Question
 from bank.models.Answer import Answer
@@ -135,6 +136,7 @@ class QuestionImportMVS(AllMVS):
     Endpoint: /api/bank/question-import/
     Used by: QuestionImportView.vue
     Supports Universal Smart Templates: Single Choice, Multiple Choice, True/False, Essay.
+    Accepts raw Excel/CSV file OR pre-validated 'questions' JSON list.
     """
     queryset = Question.objects.all()
     serializer_class = QuestionSerializer
@@ -154,10 +156,17 @@ class QuestionImportMVS(AllMVS):
 
         lesson_id = req_data.get('fk_lesson') or req_data.get('lesson')
         file = req_files.get('file') or req_data.get('file')
+        questions_raw = req_data.get('questions')
         
-        if not file or not lesson_id:
+        if not lesson_id:
             return Response(
-                {"success": False, "message": "يجب توفير ملف الإكسل ومعرف الدرس الأكاديمي"},
+                {"success": False, "message": "يجب تحديد الدرس الأكاديمي المطلوب ربط الأسئلة به"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not file and not questions_raw:
+            return Response(
+                {"success": False, "message": "يجب توفير ملف الإكسل أو قائمة الأسئلة المجهزة"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -165,77 +174,151 @@ class QuestionImportMVS(AllMVS):
         user_display_name = "مستخدم النظام"
         if created_by:
             user_display_name = f"{created_by.first_name or ''} {created_by.last_name or ''}".strip() or created_by.username
-        file_name = getattr(file, 'name', 'ملف إكسل')
+        file_name = getattr(file, 'name', 'قائمة أسئلة جاهزة')
         institution_type = req_data.get('institution_type', 'school')
 
+        # Standardized questions rows list: each dict has text, options, raw_correct, raw_type, mark, difficulty, bloom, time
+        standardized_rows = []
+
         try:
-            df = pd.read_excel(file)
-            if df.empty:
+            # 1. Check if prepared questions JSON was supplied
+            if questions_raw:
+                if isinstance(questions_raw, str):
+                    try:
+                        parsed_list = json.loads(questions_raw)
+                    except Exception:
+                        parsed_list = []
+                elif isinstance(questions_raw, list):
+                    parsed_list = questions_raw
+                else:
+                    parsed_list = []
+
+                for item in parsed_list:
+                    if not isinstance(item, dict):
+                        continue
+                    q_text = _clean_str(item.get('text'))
+                    if not q_text:
+                        continue
+                    
+                    opts = []
+                    for opt_i in [1, 2, 3, 4]:
+                        val = _clean_str(item.get(f'opt{opt_i}'))
+                        if val:
+                            opts.append((opt_i, val))
+                    
+                    standardized_rows.append({
+                        'text': q_text,
+                        'options': opts,
+                        'raw_correct': _clean_str(item.get('answer')),
+                        'raw_type': _clean_str(item.get('type')),
+                        'mark': item.get('mark', 1.0),
+                        'difficulty': item.get('difficulty', '2'),
+                        'bloom': item.get('bloomLevel') or item.get('bloom', 'تطبيق'),
+                        'time': item.get('time', 1),
+                    })
+
+            # 2. Otherwise read from Excel/CSV file
+            elif file:
+                df = pd.read_excel(file)
+                if df.empty:
+                    return Response(
+                        {"success": False, "message": "ملف الإكسل فارغ ولا يحتوي على بيانات"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                headers = [str(c).strip() for c in df.columns]
+                type_idx = None
+                question_idx = None
+                opt_indices = []
+                answer_idx = None
+                mark_idx = None
+                difficulty_idx = None
+                bloom_idx = None
+                time_idx = None
+
+                for idx, h in enumerate(headers):
+                    h_lower = h.lower()
+                    if 'نوع' in h_lower or 'type' in h_lower:
+                        type_idx = idx
+                    elif any(k in h_lower for k in ['نص السؤال', 'نص', 'السؤال', 'question', 'content']):
+                        question_idx = idx
+                    elif any(k in h_lower for k in ['الخيار', 'خيار', 'option', 'بديل']):
+                        opt_indices.append(idx)
+                    elif any(k in h_lower for k in ['صحيحة', 'إجابة', 'مرجعية', 'answer', 'correct']):
+                        answer_idx = idx
+                    elif any(k in h_lower for k in ['درجة', 'mark', 'score']):
+                        mark_idx = idx
+                    elif any(k in h_lower for k in ['صعوبة', 'difficulty']):
+                        difficulty_idx = idx
+                    elif any(k in h_lower for k in ['بلوم', 'bloom']):
+                        bloom_idx = idx
+                    elif any(k in h_lower for k in ['زمن', 'وقت', 'time', 'دقيقة']):
+                        time_idx = idx
+
+                total_cols = df.shape[1]
+                if question_idx is None:
+                    col0_header = headers[0].lower() if headers else ''
+                    col0_val = _clean_str(df.iloc[0, 0]).lower() if len(df) > 0 else ''
+                    is_first_col_type = (
+                        'نوع' in col0_header or
+                        col0_val in ['اختيار واحد', 'صح وخطأ', 'خيارات متعددة', 'مقالي', 'single choice', 'true/false']
+                    )
+
+                    if is_first_col_type:
+                        type_idx = 0
+                        question_idx = 1
+                        opt_indices = [2, 3, 4, 5] if total_cols >= 6 else []
+                        answer_idx = 6 if total_cols > 6 else (5 if total_cols == 6 else None)
+                        mark_idx = 7 if total_cols > 7 else None
+                        difficulty_idx = 8 if total_cols > 8 else None
+                        bloom_idx = 9 if total_cols > 9 else None
+                    else:
+                        type_idx = None
+                        question_idx = 0
+                        opt_indices = [1, 2, 3, 4] if total_cols >= 5 else []
+                        answer_idx = 5 if total_cols > 5 else (4 if total_cols == 5 else None)
+                        mark_idx = 6 if total_cols > 6 else None
+                        difficulty_idx = 7 if total_cols > 7 else None
+                        bloom_idx = 8 if total_cols > 8 else None
+
+                for index, row in df.iterrows():
+                    q_text = ''
+                    if question_idx is not None and question_idx < len(row):
+                        q_text = _clean_str(row.iloc[question_idx])
+                    if not q_text or q_text.startswith('نص السؤال') or q_text.startswith('نوع السؤال'):
+                        continue
+
+                    options = []
+                    for order_num, col_i in enumerate(opt_indices, start=1):
+                        if col_i < len(row):
+                            opt_val = _clean_str(row.iloc[col_i])
+                            if opt_val:
+                                options.append((order_num, opt_val))
+
+                    raw_correct = ''
+                    if answer_idx is not None and answer_idx < len(row):
+                        raw_correct = _clean_str(row.iloc[answer_idx])
+
+                    raw_type = ''
+                    if type_idx is not None and type_idx < len(row):
+                        raw_type = _clean_str(row.iloc[type_idx])
+
+                    standardized_rows.append({
+                        'text': q_text,
+                        'options': options,
+                        'raw_correct': raw_correct,
+                        'raw_type': raw_type,
+                        'mark': row.iloc[mark_idx] if mark_idx is not None and mark_idx < len(row) else 1.0,
+                        'difficulty': row.iloc[difficulty_idx] if difficulty_idx is not None and difficulty_idx < len(row) else '2',
+                        'bloom': row.iloc[bloom_idx] if bloom_idx is not None and bloom_idx < len(row) else 'تطبيق',
+                        'time': row.iloc[time_idx] if time_idx is not None and time_idx < len(row) else 1,
+                    })
+
+            if not standardized_rows:
                 return Response(
-                    {"success": False, "message": "ملف الإكسل فارغ ولا يحتوي على بيانات"},
+                    {"success": False, "message": "لا توجد أسئلة صالحة للاستيراد"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-
-            # Analyze header columns
-            headers = [str(c).strip() for c in df.columns]
-            
-            type_idx = None
-            question_idx = None
-            opt_indices = []
-            answer_idx = None
-            mark_idx = None
-            difficulty_idx = None
-            bloom_idx = None
-            time_idx = None
-
-            for idx, h in enumerate(headers):
-                h_lower = h.lower()
-                if 'نوع' in h_lower or 'type' in h_lower:
-                    type_idx = idx
-                elif any(k in h_lower for k in ['نص السؤال', 'نص', 'السؤال', 'question', 'content']):
-                    question_idx = idx
-                elif any(k in h_lower for k in ['الخيار', 'خيار', 'option', 'بديل']):
-                    opt_indices.append(idx)
-                elif any(k in h_lower for k in ['صحيحة', 'إجابة', 'مرجعية', 'answer', 'correct']):
-                    answer_idx = idx
-                elif any(k in h_lower for k in ['درجة', 'mark', 'score']):
-                    mark_idx = idx
-                elif any(k in h_lower for k in ['صعوبة', 'difficulty']):
-                    difficulty_idx = idx
-                elif any(k in h_lower for k in ['بلوم', 'bloom']):
-                    bloom_idx = idx
-                elif any(k in h_lower for k in ['زمن', 'وقت', 'time', 'دقيقة']):
-                    time_idx = idx
-
-            # Positional Fallbacks if named headers are not detected
-            total_cols = df.shape[1]
-            if question_idx is None:
-                # Check if col 0 looks like Question Type or Question Text
-                col0_header = headers[0].lower() if headers else ''
-                col0_val = _clean_str(df.iloc[0, 0]).lower() if len(df) > 0 else ''
-                
-                is_first_col_type = (
-                    'نوع' in col0_header or
-                    col0_val in ['اختيار واحد', 'صح وخطأ', 'خيارات متعددة', 'مقالي', 'single choice', 'true/false']
-                )
-
-                if is_first_col_type:
-                    type_idx = 0
-                    question_idx = 1
-                    opt_indices = [2, 3, 4, 5] if total_cols >= 6 else []
-                    answer_idx = 6 if total_cols > 6 else (5 if total_cols == 6 else None)
-                    mark_idx = 7 if total_cols > 7 else None
-                    difficulty_idx = 8 if total_cols > 8 else None
-                    bloom_idx = 9 if total_cols > 9 else None
-                else:
-                    # Classic 6-column layout
-                    type_idx = None
-                    question_idx = 0
-                    opt_indices = [1, 2, 3, 4] if total_cols >= 5 else []
-                    answer_idx = 5 if total_cols > 5 else (4 if total_cols == 5 else None)
-                    mark_idx = 6 if total_cols > 6 else None
-                    difficulty_idx = 7 if total_cols > 7 else None
-                    bloom_idx = 8 if total_cols > 8 else None
 
             created_count = 0
             type_counts = {
@@ -250,42 +333,18 @@ class QuestionImportMVS(AllMVS):
             with transaction.atomic():
                 import_session = ImportSession.objects.create()
 
-                for index, row in df.iterrows():
-                    # 1. Extract Question Text
-                    q_text = ''
-                    if question_idx is not None and question_idx < len(row):
-                        q_text = _clean_str(row.iloc[question_idx])
-                    if not q_text or q_text.startswith('نص السؤال') or q_text.startswith('نوع السؤال'):
-                        continue
+                for row_data in standardized_rows:
+                    q_text = row_data['text']
+                    options = row_data['options']
+                    raw_correct = row_data['raw_correct']
+                    raw_type = row_data['raw_type']
 
-                    # 2. Extract Options
-                    options = []
-                    for order_num, col_i in enumerate(opt_indices, start=1):
-                        if col_i < len(row):
-                            opt_val = _clean_str(row.iloc[col_i])
-                            if opt_val:
-                                options.append((order_num, opt_val))
-
-                    # 3. Extract Raw Correct Answer
-                    raw_correct = ''
-                    if answer_idx is not None and answer_idx < len(row):
-                        raw_correct = _clean_str(row.iloc[answer_idx])
-
-                    # 4. Extract Raw Type
-                    raw_type = ''
-                    if type_idx is not None and type_idx < len(row):
-                        raw_type = _clean_str(row.iloc[type_idx])
-
-                    # 5. Determine Final Question Type
                     q_type = _determine_question_type(raw_type, raw_correct, options)
+                    q_mark = _parse_mark(row_data.get('mark'), 1.0)
+                    q_difficulty = _parse_difficulty(row_data.get('difficulty', '2'))
+                    q_bloom = _parse_bloom(row_data.get('bloom', 'تطبيق'))
+                    q_time = _parse_time(row_data.get('time', 1))
 
-                    # 6. Extract Metadata (Mark, Difficulty, Bloom, Time)
-                    q_mark = _parse_mark(row.iloc[mark_idx] if mark_idx is not None and mark_idx < len(row) else 1.0)
-                    q_difficulty = _parse_difficulty(row.iloc[difficulty_idx] if difficulty_idx is not None and difficulty_idx < len(row) else '2')
-                    q_bloom = _parse_bloom(row.iloc[bloom_idx] if bloom_idx is not None and bloom_idx < len(row) else 'تطبيق')
-                    q_time = _parse_time(row.iloc[time_idx] if time_idx is not None and time_idx < len(row) else 1)
-
-                    # 7. Type-specific setup
                     is_true_field = None
                     answer_text_field = None
 
@@ -296,7 +355,6 @@ class QuestionImportMVS(AllMVS):
                     elif q_type == Question.TypeChoices.ESSAY:
                         answer_text_field = raw_correct
 
-                    # 8. Create Question instance
                     q = Question.objects.create(
                         content=q_text,
                         questionType=q_type,
@@ -316,7 +374,6 @@ class QuestionImportMVS(AllMVS):
                     type_counts[q_type] = type_counts.get(q_type, 0) + 1
                     created_count += 1
 
-                    # 9. Create Answer Options based on Type
                     used_orders = set()
 
                     if q_type == Question.TypeChoices.SINGLE_CHOICE:
@@ -350,7 +407,6 @@ class QuestionImportMVS(AllMVS):
                     elif q_type == Question.TypeChoices.TRUE_FALSE:
                         truth_val = (is_true_field is True)
                         if len(options) >= 2:
-                            # User provided custom labels (e.g., صح / خطأ or صواب / خطأ)
                             for opt_num, opt_val in options[:2]:
                                 is_correct = truth_val if opt_num == 1 else (not truth_val)
                                 all_answers_to_create.append(Answer(
@@ -360,7 +416,6 @@ class QuestionImportMVS(AllMVS):
                                     order_index=opt_num
                                 ))
                         else:
-                            # Generate standard True/False options
                             all_answers_to_create.append(Answer(
                                 question=q,
                                 text='صح',
@@ -375,14 +430,11 @@ class QuestionImportMVS(AllMVS):
                             ))
 
                     elif q_type == Question.TypeChoices.ESSAY:
-                        # Essay questions do not have selectable answer options
                         pass
 
-                # Bulk insert answers
                 if all_answers_to_create:
                     Answer.objects.bulk_create(all_answers_to_create)
 
-                # Bulk insert metrics & audit logs
                 if created_questions:
                     QuestionMetrics.objects.bulk_create([
                         QuestionMetrics(question=q) for q in created_questions
@@ -410,7 +462,7 @@ class QuestionImportMVS(AllMVS):
                 "count": created_count,
                 "type_breakdown": type_counts,
                 "import_session_id": str(import_session.id) if created_questions else None,
-                "message": f"تم استيراد {created_count} أسئلة بنجاح من ملف ({file_name})"
+                "message": f"تم استيراد {created_count} أسئلة بنجاح!"
             }, status=status.HTTP_201_CREATED)
 
         except Exception as e:

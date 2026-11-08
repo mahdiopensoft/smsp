@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from exams.models.CurriculumExclusion import CurriculumExclusion
+from academic.models.schools.SchoolUnit import SchoolUnit
+from academic.models.schools.SchoolLesson import SchoolLesson
 
 class CurriculumExclusionSerializer(serializers.ModelSerializer):
     academic_year_name = serializers.SerializerMethodField()
@@ -40,7 +42,13 @@ class CurriculumExclusionSerializer(serializers.ModelSerializer):
         return ""
 
     def get_subject_name(self, obj):
-        return getattr(obj.subject, 'name_ar', '') if obj.subject else ""
+        if obj.subject:
+            return getattr(obj.subject, 'name_ar', '')
+        if obj.class_subject:
+            if hasattr(obj.class_subject, 'school_subject') and obj.class_subject.school_subject:
+                return obj.class_subject.school_subject.name_ar
+            return getattr(obj.class_subject, 'name_ar', '')
+        return ""
 
     def get_college_name(self, obj):
         return getattr(obj.college, 'name_ar', '') if obj.college else ""
@@ -70,11 +78,19 @@ class CurriculumExclusionSerializer(serializers.ModelSerializer):
         return ""
 
     def get_unit_name(self, obj):
-        if obj.unit:
-            return getattr(obj.unit, 'name_ar', '') or getattr(obj.unit, 'name_en', '') or f"الوحدة #{obj.unit_id}"
+        if obj.unit_id:
+            if obj.unit:
+                return getattr(obj.unit, 'name_ar', '') or getattr(obj.unit, 'name_en', '') or f"الوحدة #{obj.unit_id}"
+            su = SchoolUnit.objects.filter(id=obj.unit_id).first()
+            if su:
+                return su.name_ar or su.name_en or f"الوحدة #{obj.unit_id}"
         return ""
 
     def get_lesson_name(self, obj):
-        if obj.lesson:
-            return getattr(obj.lesson, 'name_ar', '') or getattr(obj.lesson, 'name_en', '') or f"الدرس #{obj.lesson_id}"
+        if obj.lesson_id:
+            if obj.lesson:
+                return getattr(obj.lesson, 'name_ar', '') or getattr(obj.lesson, 'name_en', '') or f"الدرس #{obj.lesson_id}"
+            sl = SchoolLesson.objects.filter(id=obj.lesson_id).first()
+            if sl:
+                return sl.name_ar or sl.name_en or f"الدرس #{obj.lesson_id}"
         return ""

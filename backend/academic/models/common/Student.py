@@ -17,13 +17,25 @@ class Student(BaseSyncModel):
         blank=True
     )
     academic_number = models.BigIntegerField(unique=True, db_index=True, verbose_name=_("الرقم الأكاديمي / رقم القيد"))
+    student_id = models.CharField(max_length=50, null=True, blank=True, db_index=True, verbose_name=_("معرف الطالب / الرقم الوطني"))
     name_ar = models.CharField(max_length=150, db_index=True, verbose_name=_("اسم الطالب (عربي)"))
     name_en = models.CharField(max_length=150, null=True, blank=True, verbose_name=_("اسم الطالب (إنجليزي)"))
     gender = models.PositiveSmallIntegerField(choices=GenderChoices.choices, default=GenderChoices.MALE, db_index=True, verbose_name=_("الجنس"))
     birthdate = models.DateField(null=True, blank=True, verbose_name=_("تاريخ الميلاد"))
     birth_place = models.CharField(max_length=100, null=True, blank=True, verbose_name=_("مكان الميلاد"))
+    religion = models.CharField(max_length=50, null=True, blank=True, verbose_name=_("الديانة"))
     address = models.CharField(max_length=255, null=True, blank=True, verbose_name=_("العنوان"))
     phone_number = models.CharField(max_length=20, null=True, blank=True, verbose_name=_("رقم الهاتف"))
+    home_number = models.CharField(max_length=20, null=True, blank=True, verbose_name=_("رقم المنزل / الهاتف الثابت"))
+    
+    # ── بيانات ولي الأمر ──
+    parent_name = models.CharField(max_length=150, null=True, blank=True, verbose_name=_("ولي الأمر"))
+    parent_relation = models.CharField(max_length=100, null=True, blank=True, verbose_name=_("صلة القرابة"))
+
+    # ── الوثائق والصور ──
+    student_image = models.ImageField(upload_to='students/photos/', null=True, blank=True, max_length=255, verbose_name=_("صورة الطالب"))
+    registration_form = models.FileField(upload_to='students/forms/', null=True, blank=True, max_length=255, verbose_name=_("نموذج التسجيل"))
+    plain_password = models.CharField(max_length=50, null=True, blank=True, verbose_name=_("كلمة المرور غير المشفرة"))
     
     country = models.ForeignKey(
         'common.Country', 
@@ -32,6 +44,14 @@ class Student(BaseSyncModel):
         null=True, 
         blank=True, 
         verbose_name=_("الجنسية / الدولة")
+    )
+    nationality = models.ForeignKey(
+        'common.Country', 
+        related_name='student_nationality_set', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        verbose_name=_("الجنسية")
     )
     directorate = models.ForeignKey(
         'common.Directorate', 
@@ -48,6 +68,14 @@ class Student(BaseSyncModel):
         null=True, 
         blank=True, 
         verbose_name=_("المدرسة / المؤسسة")
+    )
+    registration_date = models.ForeignKey(
+        'academic.AcademicYear',
+        related_name='student_registration_set',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("سنة / تاريخ التسجيل")
     )
     # ── الانتساب للمدارس ──
     class_track = models.ForeignKey(

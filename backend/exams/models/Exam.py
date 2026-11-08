@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from OpenSoftCoreV41.utils.abstract_models.soft_delete_model import SoftDeleteModel
@@ -113,6 +114,27 @@ class Exam(SoftDeleteModel):
         default=100.0,
         verbose_name=_("الدرجة النهائية للاختبار"),
         help_text=_("الدرجة الإجمالية القصوى للاختبار (مثلاً 100 أو 60)")
+    )
+
+    # ── Approval & Accreditation Status ──
+    is_approved = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name=_("معتمد؟"),
+        help_text=_("هل تم اعتماد الاختبار رسمياً؟")
+    )
+    approved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("تاريخ ووقت الاعتماد")
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="approved_exams",
+        verbose_name=_("المستخدم الذي اعتمد الاختبار")
     )
 
     class Meta:
