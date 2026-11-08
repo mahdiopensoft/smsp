@@ -459,26 +459,70 @@
               />
             </div>
 
-            <!-- شريط تقدم المعالجة وتغذية الماسح الضوئي اللحظي (Live Scanner Feed Activity) -->
-            <div v-if="isGrading" class="pa-4 rounded-xl border bg-surface mt-3 shadow-sm">
-              <div class="d-flex align-center justify-space-between mb-2 flex-wrap gap-2">
-                <div class="d-flex align-center gap-2">
-                  <v-avatar color="primary" variant="tonal" size="34" class="rounded-lg">
-                    <v-progress-circular indeterminate size="20" width="2" color="primary" />
-                  </v-avatar>
+            <!-- شريط تقدم المعالجة فائق السرعة والأناقة (High-Performance OMR Scanner Console) -->
+            <div v-if="isGrading" class="scanning-live-console pa-4 rounded-xl mt-3">
+              <!-- Top Row: Active Operation + Live Metrics -->
+              <div class="d-flex align-center justify-space-between mb-3 flex-wrap gap-2">
+                <div class="d-flex align-center gap-3">
+                  <div class="scanner-live-icon-box">
+                    <v-icon color="primary" size="24" class="scanner-radar-pulse">mdi-scanner</v-icon>
+                    <span class="scanner-live-dot"></span>
+                  </div>
                   <div>
-                    <div class="text-subtitle-2 font-weight-black text-primary">{{ gradingStatus }}</div>
-                    <div class="text-caption text-medium-emphasis">
-                      الماسح الضوئي نشط: تغذية الأوراق، قراءة الباركود والنموذج، وفحص الدوائر عبر الذكاء الاصطناعي OMR
+                    <div class="d-flex align-center gap-2">
+                      <span class="text-subtitle-2 font-weight-black text-primary">{{ gradingStatus }}</span>
+                      <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold rounded-s live-tag">
+                        معالجة نشطة
+                      </v-chip>
+                    </div>
+                    <div class="text-caption text-medium-emphasis d-flex align-center gap-2 mt-0.5">
+                      <span>كود المظروف: <strong class="font-mono text-high-emphasis">{{ currentEnvelope.envelopeCode }}</strong></span>
+                      <span>•</span>
+                      <span>القاعة: <strong class="text-high-emphasis">{{ currentEnvelope.hallNumber }}</strong></span>
                     </div>
                   </div>
                 </div>
+
                 <div class="d-flex align-center gap-2">
-                  <span class="text-caption font-weight-bold text-medium-emphasis">نسبة المعالجة:</span>
-                  <span class="font-mono font-weight-black text-primary text-subtitle-1">{{ gradingProgress }}%</span>
+                  <div class="scanner-sheet-counter-pill">
+                    <v-icon size="15" color="primary" class="me-1.5">mdi-file-document-check-outline</v-icon>
+                    <span class="font-weight-bold">ورقة {{ processedSheetsCount }} من {{ batchFiles.length }}</span>
+                  </div>
+                  <div class="scanner-percentage-pill">
+                    <span class="font-mono font-weight-black">{{ gradingProgress }}%</span>
+                  </div>
                 </div>
               </div>
-              <v-progress-linear :model-value="gradingProgress" height="8" rounded color="primary" striped active />
+
+              <!-- Sleek High-Tech Progress Track -->
+              <div class="scanner-progress-track mb-3">
+                <div
+                  class="scanner-progress-fill"
+                  :style="{ width: gradingProgress + '%' }"
+                >
+                  <span class="scanner-beam-glow"></span>
+                </div>
+              </div>
+
+              <!-- 4-Stage Visual Pipeline Bar -->
+              <div class="scanner-pipeline-grid">
+                <div
+                  v-for="(step, sIdx) in scanningPipelineSteps"
+                  :key="step.id"
+                  class="scanner-step-item"
+                  :class="{
+                    'step-completed': currentProcessingStepIndex > sIdx,
+                    'step-active': currentProcessingStepIndex === sIdx,
+                    'step-pending': currentProcessingStepIndex < sIdx
+                  }"
+                >
+                  <div class="step-icon-wrap">
+                    <v-icon v-if="currentProcessingStepIndex > sIdx" size="14" color="primary">mdi-check-bold</v-icon>
+                    <v-icon v-else size="14">{{ step.icon }}</v-icon>
+                  </div>
+                  <span class="step-label">{{ step.label }}</span>
+                </div>
+              </div>
             </div>
 
             <!-- تنبيه الخطأ إن وجد -->
@@ -1839,6 +1883,25 @@ export default {
     const gradingError = ref(null)
     const isCommitted = ref(false)
 
+    const scanningPipelineSteps = [
+      { id: 'prep', label: 'تغذية وسحب الأوراق', icon: 'mdi-tray-arrow-down' },
+      { id: 'align', label: 'محاذاة الزوايا والباركود', icon: 'mdi-crop-free' },
+      { id: 'ai', label: 'الذكاء الاصطناعي OMR', icon: 'mdi-brain' },
+      { id: 'audit', label: 'التدقيق والكنترول', icon: 'mdi-shield-check-outline' },
+    ]
+
+    const currentProcessingStepIndex = computed(() => {
+      if (gradingProgress.value >= 88) return 3
+      if (gradingProgress.value >= 58) return 2
+      if (gradingProgress.value >= 24) return 1
+      return 0
+    })
+
+    const processedSheetsCount = computed(() => {
+      const total = batchFiles.value.length || 1
+      return Math.min(total, Math.max(1, Math.ceil((gradingProgress.value / 100) * total)))
+    })
+
     // Hot-Folder
     const hotFolderActive = ref(false)
     let hotFolderHandle = null
@@ -2386,14 +2449,34 @@ export default {
       if (batchFiles.value.length === 0 || !selectedExamId.value) return
       isGrading.value = true
       gradingError.value = null
-      gradingProgress.value = 15
-      gradingStatus.value = `جاري سحب وتصحيح مظروف القاعة: ${currentEnvelope.envelopeCode}...`
+      gradingProgress.value = 8
+      gradingStatus.value = `تغذية وسحب أوراق المظروف (${batchFiles.value.length} ورقة)...`
 
+      let currentStep = 0
+      const steps = [
+        { threshold: 24, text: 'محاذاة الزوايا الهندسية (Fiducials) وقراءة الباركود...' },
+        { threshold: 58, text: 'فحص التظليل واستدلال الذكاء الاصطناعي OMR...' },
+        { threshold: 88, text: 'تدقيق النتائج ومطابقة درجات الكنترول...' },
+      ]
+
+      const startTime = Date.now()
       const timer = setInterval(() => {
-        if (gradingProgress.value < 85) {
-          gradingProgress.value += 15
+        if (gradingProgress.value < 94) {
+          const elapsed = Date.now() - startTime
+          // Dynamic smooth acceleration curve - never halts or crawls
+          const target = Math.min(94, Math.round(12 + Math.sqrt(elapsed * 2.2)))
+          if (target > gradingProgress.value) {
+            gradingProgress.value = target
+          } else {
+            gradingProgress.value = Math.min(94, gradingProgress.value + 1)
+          }
+
+          if (currentStep < steps.length && gradingProgress.value >= steps[currentStep].threshold) {
+            gradingStatus.value = steps[currentStep].text
+            currentStep++
+          }
         }
-      }, 250)
+      }, 100)
 
       try {
         const formData = new FormData()
@@ -2407,9 +2490,10 @@ export default {
         const resp = await submissionsAPI.bulkUpload(formData)
         clearInterval(timer)
         gradingProgress.value = 100
-        gradingStatus.value = 'تمت معالجة أوراق المظروف بنجاح!'
+        gradingStatus.value = 'اكتملت المعالجة وتصحيح المظروف بنجاح!'
         batchResult.value = resp.data
         activeConsoleTab.value = 'scanned'
+        await new Promise((r) => setTimeout(r, 300))
       } catch (err) {
         clearInterval(timer)
         console.error('Failed to grade batch:', err)
@@ -2505,14 +2589,35 @@ export default {
       }
     }
 
-    const openSheetPreview = (sheet) => {
-      const img = sheet?.image_url || sheet?.original_image || ''
-      const ann = sheet?.annotated_url || sheet?.aligned_image || img
+    const openSheetPreview = async (sheet) => {
+      let targetSheet = { ...sheet }
+
+      // إذا كانت قائمة الأسئلة فارغة وكان هناك معرف تسليم مسجل، جلب البيانات كاملة من السيرفر
+      if ((!targetSheet.questions || targetSheet.questions.length === 0) && targetSheet.id) {
+        try {
+          const resp = await submissionsAPI.get(targetSheet.id)
+          const data = resp.data?.data || resp.data || {}
+          targetSheet.questions = data.omr_result || data.questions || []
+          targetSheet.image_url = targetSheet.image_url || data.original_image || ''
+          targetSheet.annotated_url = targetSheet.annotated_url || data.aligned_image || targetSheet.image_url
+          targetSheet.student_name = targetSheet.student_name || data.student_name
+          targetSheet.seat_number = targetSheet.seat_number || data.seat_number
+          targetSheet.model_code = targetSheet.model_code || data.exam_version_code || data.layout_result?.version_code || 'A'
+          targetSheet.score = targetSheet.score != null ? targetSheet.score : (data.total_score != null ? data.total_score : 0)
+          targetSheet.max_score = targetSheet.max_score || data.layout_result?.max_score || 50
+          targetSheet.percentage = targetSheet.percentage != null ? targetSheet.percentage : (data.layout_result?.score_percent || 0)
+        } catch (e) {
+          console.warn('Could not load detailed submission for preview:', e)
+        }
+      }
+
+      const img = targetSheet?.image_url || targetSheet?.original_image || ''
+      const ann = targetSheet?.annotated_url || targetSheet?.aligned_image || img
       activePreviewSheet.value = {
-        ...sheet,
+        ...targetSheet,
         image_url: img,
         annotated_url: ann,
-        questions: sheet?.questions || sheet?.omr_result || [],
+        questions: targetSheet?.questions || targetSheet?.omr_result || [],
       }
       previewMode.value = 'questions'
       previewQuestionsPage.value = 1
@@ -2588,6 +2693,9 @@ export default {
       gradingStatus,
       gradingError,
       batchResult,
+      scanningPipelineSteps,
+      currentProcessingStepIndex,
+      processedSheetsCount,
       handleFileSelect,
       handleDrop,
       clearFiles,
@@ -2835,5 +2943,179 @@ export default {
   background: rgba(var(--v-theme-surface-variant), 0.1);
   border: 1px solid rgba(var(--v-border-color), 0.3) !important;
   border-right: 4px solid rgba(var(--v-theme-warning), 0.8) !important;
+}
+
+/* ── High-Performance OMR Scanner Live Console ────────────── */
+.scanning-live-console {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.05) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  border: 1px solid rgba(var(--v-theme-primary), 0.28) !important;
+  box-shadow: 0 4px 20px rgba(var(--v-theme-primary), 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.scanner-live-icon-box {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(var(--v-theme-primary), 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scanner-radar-pulse {
+  animation: scanner-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes scanner-pulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.scanner-live-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: live-blink 1s ease-in-out infinite;
+}
+
+@keyframes live-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+.live-tag {
+  font-size: 10px !important;
+  height: 18px !important;
+  padding: 0 6px !important;
+}
+
+.scanner-sheet-counter-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  background: rgba(var(--v-theme-surface-variant), 0.12);
+  border: 1px solid rgba(var(--v-border-color), 0.2);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.scanner-percentage-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  padding: 4px 10px;
+  background: rgb(var(--v-theme-primary));
+  color: #ffffff;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  box-shadow: 0 2px 6px rgba(var(--v-theme-primary), 0.3);
+}
+
+.scanner-progress-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(var(--v-theme-surface-variant), 0.25);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.scanner-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1d4ed8 0%, #0284c7 70%, #38bdf8 100%);
+  border-radius: 999px;
+  transition: width 0.12s linear;
+  position: relative;
+}
+
+.scanner-beam-glow {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 14px;
+  height: 100%;
+  background: #ffffff;
+  opacity: 0.6;
+  border-radius: 50%;
+  filter: blur(2px);
+  animation: beam-shimmer 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes beam-shimmer {
+  from { opacity: 0.3; }
+  to { opacity: 0.9; }
+}
+
+.scanner-pipeline-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.scanner-step-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: rgba(var(--v-theme-surface-variant), 0.08);
+  border: 1px solid transparent;
+  transition: all 0.25s ease;
+}
+
+.scanner-step-item .step-icon-wrap {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--v-theme-surface-variant), 0.16);
+  flex-shrink: 0;
+}
+
+.scanner-step-item.step-completed {
+  background: rgba(var(--v-theme-primary), 0.08);
+  border-color: rgba(var(--v-theme-primary), 0.25);
+  color: rgb(var(--v-theme-primary));
+}
+
+.scanner-step-item.step-completed .step-icon-wrap {
+  background: rgba(var(--v-theme-primary), 0.15);
+}
+
+.scanner-step-item.step-active {
+  background: rgb(var(--v-theme-primary));
+  color: #ffffff;
+  border-color: rgb(var(--v-theme-primary));
+  box-shadow: 0 2px 8px rgba(var(--v-theme-primary), 0.3);
+}
+
+.scanner-step-item.step-active .step-icon-wrap {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.scanner-step-item.step-pending {
+  color: rgba(var(--v-theme-on-surface), 0.45);
+}
+
+@media (max-width: 600px) {
+  .scanner-pipeline-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 </style>
