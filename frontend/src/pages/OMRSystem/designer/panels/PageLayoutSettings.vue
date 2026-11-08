@@ -161,49 +161,49 @@ const isYemeniPreset = computed(() => {
 const presets = [
   {
     id: 'YEMEN_MINISTRY_40',
-    title: '🏫 مدارس: نموذج وزارة التربية (40 سؤال)',
+    title: 'مدارس: نموذج وزارة التربية (40 سؤال)',
     subtitle: '20 سؤال صح/خطأ + 20 سؤال اختيار متعدد (المعتمد في الشهادة الثانوية)',
     category: 'school',
   },
   {
     id: 'YEMEN_MINISTRY_50',
-    title: '🏫 مدارس: نموذج وزارة التربية (50 سؤال هجين)',
+    title: 'مدارس: نموذج وزارة التربية (50 سؤال هجين)',
     subtitle: '20 سؤال صح/خطأ + 30 سؤال اختيار متعدد + بطاقة بيانات الطالب والباركودات',
     category: 'school',
   },
   {
     id: 'YEMEN_MINISTRY_60',
-    title: '🏫 مدارس: نموذج وزارة التربية (60 سؤال موسع)',
+    title: 'مدارس: نموذج وزارة التربية (60 سؤال موسع)',
     subtitle: '20 سؤال صح/خطأ + 40 سؤال اختيار متعدد',
     category: 'school',
   },
   {
     id: 'YEMEN_UNIVERSITY_180',
-    title: '🏛️ جامعات: نموذج الجامعات اليمنية (180 سؤال - 4 أعمدة)',
+    title: 'جامعات: نموذج الجامعات اليمنية (180 سؤال - 4 أعمدة)',
     subtitle: 'اختبارات القبول والمقررات الشاملة في جامعة صنعاء والجامعات الحكومية',
     category: 'university',
   },
   {
     id: 'YEMEN_UNIVERSITY_100',
-    title: '🏛️ جامعات: نموذج الكليات والأقسام (100 سؤال)',
+    title: 'جامعات: نموذج الكليات والأقسام (100 سؤال)',
     subtitle: 'مقررات الفصول الأكاديمية واختبارات الأقسام التخصصية',
     category: 'university',
   },
   {
     id: 'YEMEN_INSTITUTE_60',
-    title: '📜 معاهد: نموذج المعاهد التقنية والمهنية (60 سؤال)',
+    title: 'معاهد: نموذج المعاهد التقنية والمهنية (60 سؤال)',
     subtitle: '20 سؤال صح/خطأ + 40 سؤال متعدد (دبلوم تقني ومسارات مهنية)',
     category: 'institute',
   },
   {
     id: 'YEMEN_INSTITUTE_80',
-    title: '📜 معاهد: نموذج الدبلوم الشامل للمعاهد (80 سؤال)',
+    title: 'معاهد: نموذج الدبلوم الشامل للمعاهد (80 سؤال)',
     subtitle: '20 سؤال صح/خطأ + 60 سؤال اختيار متعدد للمسارات التطبيقية',
     category: 'institute',
   },
   {
     id: 'GENERAL_100',
-    title: '⚙️ عام: النموذج المعياري العام (100 سؤال)',
+    title: 'عام: النموذج المعياري العام (100 سؤال)',
     subtitle: 'مناسب لكافة المؤسسات والامتحانات النصفية والفصلية',
     category: 'general',
   },
@@ -219,12 +219,24 @@ const themeColors = [
 ]
 
 const formattedPresets = computed(() => {
-  return presets.map(p => ({
+  const items = presets.map(p => ({
     id: p.id,
     value: p.id,
     name: p.title,
     title: p.title,
   }))
+  if (selectedPreset.value && !presets.some(p => p.id === selectedPreset.value)) {
+    const customName = props.config?.template_name
+      ? `قالب مخصص / مستورد: ${props.config.template_name}`
+      : `قالب مخصص: ${selectedPreset.value}`
+    items.unshift({
+      id: selectedPreset.value,
+      value: selectedPreset.value,
+      name: customName,
+      title: customName,
+    })
+  }
+  return items
 })
 
 function onPresetChange(presetId: string) {
