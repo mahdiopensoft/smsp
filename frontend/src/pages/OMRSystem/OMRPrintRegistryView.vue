@@ -739,15 +739,6 @@
               </v-tabs>
 
               <div class="d-flex align-center gap-2">
-                <div style="min-width: 240px; max-width: 300px;">
-                  <custom-text-field
-                    v-model="masterSearchQuery"
-                    placeholder="بحث برمز أو اسم الاختبار أو رقم الطلب..."
-                    icon="magnify"
-                    cols="12"
-                    :hideDetails="true"
-                  />
-                </div>
                 <v-chip
                   size="small"
                   variant="tonal"
@@ -764,7 +755,7 @@
 
             <!-- عرض الجدول المركزي للاختبارات حسب التبويب النشط -->
             <custom-data-table
-              :key="'exams-tbl-' + examSubTab + '-' + currentExamSubTabList.length"
+              :key="'exams-tbl-' + examSubTab"
               v-model="selectedExamMasterRows"
               :items="examMasterTableItems"
               :getData="getExamMasterData"
@@ -776,7 +767,7 @@
               :numbering="true"
               :showSelect="true"
               :actions="false"
-              :search="false"
+              :search="true"
               class="bg-transparent"
             >
               <template v-slot:item-slot="{ item, key, index }">
@@ -4978,11 +4969,30 @@ const examMasterTableItems = ref({
   pagination: { count: 0, total: 0, num_pages: 1, current_page: 1 },
 })
 
+const examMasterSearchTerm = ref('')
+
 const getExamMasterData = async (params = {}) => {
   const p = params?.params || params || {}
+  if (p.search !== undefined) {
+    examMasterSearchTerm.value = (p.search || '').trim().toLowerCase()
+  }
   const page = p.page || 1
   const pageSize = p.page_size || 20
-  const all = currentExamSubTabList.value || []
+  let all = currentExamSubTabList.value || []
+
+  if (examMasterSearchTerm.value) {
+    const q = examMasterSearchTerm.value
+    all = all.filter(e => 
+      (e.title && e.title.toLowerCase().includes(q)) ||
+      (e.uniqueCode && e.uniqueCode.toLowerCase().includes(q)) ||
+      (e.subject_name && e.subject_name.toLowerCase().includes(q)) ||
+      (e.order_number && e.order_number.toLowerCase().includes(q)) ||
+      (e.institution_name && e.institution_name.toLowerCase().includes(q)) ||
+      (e.directorate_name && e.directorate_name.toLowerCase().includes(q)) ||
+      (e.governorate_name && e.governorate_name.toLowerCase().includes(q))
+    )
+  }
+
   const start = (page - 1) * pageSize
   examMasterTableItems.value = {
     results: all.slice(start, start + pageSize),
@@ -6756,6 +6766,7 @@ watch(() => route.query, (q) => {
 
 // Keep route.query updated when user switches subtabs
 watch(examSubTab, (sub) => {
+  examMasterSearchTerm.value = ''
   getExamMasterData()
   if (masterTab.value === 'exams' && currentView.value === 'master') {
     if (route.query.subtab !== sub) {
