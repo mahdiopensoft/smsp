@@ -635,7 +635,7 @@ class TemplateBuilderService:
             # Bubble circle: cx=cp.x relative to column, cy=0 relative to row
             # Absolute bubble center: X = col.x + cp.x,  Y = 20 + rowIdx * spacing
             bubble_radius_mm = 2.1   # matches Vue default bubbleRadius: 2.1
-            row_spacing_mm   = 5.2   # max(3.8, min(5.2, floor(100/15*10)/10)) for maxRows=15
+            row_spacing_mm   = 5.4   # calibrated exact 5.4mm pitch (127.5px @ 600 DPI) for maxRows=15
             col_y_offset     = 20.0  # columns start at Y=20 in Vue SVG
             # rowIdx=1 for first question → start_y = col_y_offset + 1*row_spacing
 
@@ -1013,13 +1013,17 @@ class TemplateBuilderService:
         # 4. Effective row spacing
         max_rows = max((c["total_q"] for c in cols_def), default=10)
         if not is_a4:
+            # 50-question Yemeni Ministry sheet has 15 rows where 5.4mm is the exact physical pitch
+            if max_rows == 15 and (not user_row_spacing or user_row_spacing == 5.2):
+                user_row_spacing = 5.4
+
             if user_row_spacing and 0 < user_row_spacing < 6.5:
                 if max_rows * user_row_spacing > 105:
                     eff_row_spacing = max(3.8, math.floor((105 / max_rows) * 10) / 10)
                 else:
                     eff_row_spacing = user_row_spacing
             else:
-                eff_row_spacing = max(3.8, min(5.2, math.floor((100 / max_rows) * 10) / 10))
+                eff_row_spacing = max(3.8, min(5.4, math.floor((100 / max_rows) * 10) / 10))
         else:
             eff_row_spacing = max(4.5, min(12.8, math.floor((210 / max_rows) * 10) / 10))
 

@@ -88,6 +88,11 @@ class OpenCVOMREngine(BaseEngine):
         If fiducials are detected, corrects rotation and perspective skew.
         """
         try:
+            if hasattr(template, "model_dump"):
+                template = template.model_dump()
+            elif not isinstance(template, dict):
+                template = getattr(template, "template_data", {}) or {}
+
             h, w = image.shape[:2]
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
 
@@ -171,6 +176,24 @@ class OpenCVOMREngine(BaseEngine):
 
             if len(detected_centers) == 4:
                 fid_map = {f.get("id"): f for f in template.get("fiducial_marks", [])}
+                if not all(k in fid_map for k in ("TL", "TR", "BL", "BR")):
+                    # Fallback to standard canonical fiducials dynamically calculated from paper dimensions (pw_mm, ph_mm)
+                    if "A4" in paper_size:
+                        # A4 standard margin: 10mm offset, 5.5mm fiducials
+                        fid_map = {
+                            "TL": {"x_mm": 10.0, "y_mm": 10.0, "width_mm": 5.5, "height_mm": 5.5},
+                            "TR": {"x_mm": round(pw_mm - 16.0, 1), "y_mm": 10.0, "width_mm": 5.5, "height_mm": 5.5},
+                            "BL": {"x_mm": 10.0, "y_mm": round(ph_mm - 16.0, 1), "width_mm": 5.5, "height_mm": 5.5},
+                            "BR": {"x_mm": round(pw_mm - 16.0, 1), "y_mm": round(ph_mm - 16.0, 1), "width_mm": 5.5, "height_mm": 5.5},
+                        }
+                    else:
+                        # A5 standard margin: 6mm offset, 5.5mm fiducials
+                        fid_map = {
+                            "TL": {"x_mm": 6.0, "y_mm": 6.0, "width_mm": 5.5, "height_mm": 5.5},
+                            "TR": {"x_mm": round(pw_mm - 11.5, 1), "y_mm": 6.0, "width_mm": 5.5, "height_mm": 5.5},
+                            "BL": {"x_mm": 6.0, "y_mm": round(ph_mm - 11.5, 1), "width_mm": 5.5, "height_mm": 5.5},
+                            "BR": {"x_mm": round(pw_mm - 11.5, 1), "y_mm": round(ph_mm - 11.5, 1), "width_mm": 5.5, "height_mm": 5.5},
+                        }
                 if all(k in fid_map for k in ("TL", "TR", "BL", "BR")):
                     scale = scan_dpi / MM_TO_INCH
                     dst_pts = np.float32([
@@ -393,9 +416,11 @@ class OpenCVOMREngine(BaseEngine):
             expected_cy = by + bh // 2
 
             # ── Dynamic Local Bubble Snapping ─────────────────────────
-            # Search in a local window around expected position for the true printed circle
-            win_pad_x = max(int(bw * 1.2), int(self._mm_to_px(3.5, dpi)))
-            win_pad_y = max(int(bh * 1.0), int(self._mm_to_px(2.5, dpi)))
+            # Search in a local window around expected position for the true printed circle.
+            # Window must be large enough to contain the complete bubble ring (radius ~2.1mm)
+            # without clipping the top/bottom edges into severed arcs, while remaining safe from adjacent rows (~5.4mm pitch).
+            win_pad_x = max(int(bw * 0.60), self._mm_to_px(2.2, dpi))
+            win_pad_y = max(int(bh * 0.60), self._mm_to_px(2.2, dpi))
             img_h, img_w = binary_image.shape[:2]
 
             wx1 = max(0, expected_cx - win_pad_x)
@@ -404,6 +429,7 @@ class OpenCVOMREngine(BaseEngine):
             wy2 = min(img_h, expected_cy + win_pad_y)
 
             best_cx, best_cy = expected_cx, expected_cy
+            max_snap_px_sq = self._mm_to_px(1.0, dpi) ** 2  # Max allowable snap distance: 1.0 mm
             if wx2 > wx1 and wy2 > wy1:
                 win_roi = binary_image[wy1:wy2, wx1:wx2]
                 k_sz = max(3, int(self._mm_to_px(0.4, dpi)) | 1)
@@ -413,13 +439,14 @@ class OpenCVOMREngine(BaseEngine):
                 best_dist = float('inf')
                 for c in cnts:
                     rx, ry, rw, rh = cv2.boundingRect(c)
-                    if int(bw * 0.60) <= rw <= int(bw * 1.50) and int(bh * 0.60) <= rh <= int(bh * 1.50):
+                    # Require full bubble dimensions and circular aspect ratio to prevent snapping to sliced arcs
+                    if int(bw * 0.75) <= rw <= int(bw * 1.35) and int(bh * 0.75) <= rh <= int(bh * 1.35):
                         ratio = rw / float(max(1, rh))
-                        if 0.70 <= ratio <= 1.40:
+                        if 0.80 <= ratio <= 1.25:
                             c_cand_x = wx1 + rx + rw // 2
                             c_cand_y = wy1 + ry + rh // 2
                             dist = (c_cand_x - expected_cx) ** 2 + (c_cand_y - expected_cy) ** 2
-                            if dist < best_dist:
+                            if dist <= max_snap_px_sq and dist < best_dist:
                                 best_dist = dist
                                 best_cx, best_cy = c_cand_x, c_cand_y
 

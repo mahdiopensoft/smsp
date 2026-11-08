@@ -782,7 +782,7 @@ const effectiveRowSpacing = computed(() => {
     return props.rowSpacing
   }
   const maxRows = Math.max(...columnsConfig.value.map(c => c.totalQuestions), 10)
-  return Math.max(3.8, Math.min(5.2, Math.floor((100 / maxRows) * 10) / 10))
+  return Math.max(3.8, Math.min(5.4, Math.floor((100 / maxRows) * 10) / 10))
 })
 
 const effectiveRowSpacingA4 = computed(() => {

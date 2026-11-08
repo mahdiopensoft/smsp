@@ -150,7 +150,7 @@ export const DEFAULT_CONFIG = (): DesignerConfig => ({
       columns_count: 4,
       choices_count: 4,
       bubble_radius_mm: 1.8,
-      row_spacing_mm: 5.2,
+      row_spacing_mm: 5.4,
       bubble_type: 'numbers',
       tf_bubble_type: 'arabic',
       layout_direction: 'rtl',

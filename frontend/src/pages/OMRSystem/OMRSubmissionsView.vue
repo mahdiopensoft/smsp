@@ -9,138 +9,91 @@
       <!-- شريط التصفية الهيكلي الموحد بنمط students-master -->
       <filter-fields label="خيارات التصفية الأكاديمية والهرمية لأوراق الإجابة المصححة" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
         <v-row dense class="align-center">
-          <!-- نوع المؤسسة التعليمية كفلتر منسدل أساسي (حقل واحد قياسي) -->
+          <!-- 1. نوع المؤسسة التعليمية (حقل موحد باستخدام auto-list) -->
           <v-col cols="12" sm="6" :md="institutionType === 'school' ? 2 : 3">
-            <v-select
+            <auto-list
               v-model="institutionType"
-              :items="sectorOptions"
-              item-title="title"
-              item-value="value"
+              name="InstitutionType"
+              :objects="sectorOptionsObjects"
               label="نوع المؤسسة التعليمية"
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              hide-details
-              class="mb-3"
-              :prepend-inner-icon="institutionType === 'university' ? 'mdi-domain' : (institutionType === 'institute' ? 'mdi-tools' : 'mdi-school')"
+              placeholder="نوع المؤسسة التعليمية"
+              cols="12"
+              :add="false"
+              :hideDetails="true"
               @update:model-value="onSectorChange"
-            >
-              <template #item="{ props, item }">
-                <v-list-item v-bind="props" :prepend-icon="item.raw?.icon" />
-              </template>
-            </v-select>
+            />
           </v-col>
 
-          <!-- التعليم العام (مدرسي) -->
+          <!-- 2. حقل البحث الفوري الموحد في الهرمية والرمز -->
+          <v-col cols="12" sm="6" :md="institutionType === 'school' ? 2 : 3">
+            <custom-text-field
+              v-model="masterSearchQuery"
+              label="بحث عام في الهرمية والرمز"
+              placeholder="بحث باسم المكتب، المركز، الاختبار..."
+              icon="magnify"
+              cols="12"
+              :hideDetails="true"
+              clearable
+            />
+          </v-col>
+
+          <!-- 3. التعليم العام (مدرسي) -->
           <template v-if="institutionType === 'school'">
             <v-col cols="12" sm="6" md="2">
-              <v-autocomplete
+              <auto-list
                 v-model="selectedOfficeId"
-                :items="allOfficesList && allOfficesList.length ? allOfficesList : officesList"
-                item-title="office_name"
-                item-value="id"
+                name="Governorate"
+                :objects="officesObjects"
                 label="مكتب التربية (المحافظة)"
                 placeholder="اختر مكتب أو أكثر..."
-                clearable
+                cols="12"
                 multiple
-                chips
-                closable-chips
-                density="compact"
-                variant="outlined"
-                rounded="lg"
-                hide-details
-                class="mb-3"
-                prepend-inner-icon="mdi-office-building-outline"
+                :add="false"
+                :hideDetails="true"
                 @update:model-value="onOfficeFilterChange"
-              >
-                <template #selection="{ item, index }">
-                  <v-chip v-if="index < 1" size="x-small" class="font-weight-bold" color="primary" variant="flat">
-                    {{ item.title }}
-                  </v-chip>
-                  <span v-if="index === 1" class="text-caption text-primary font-weight-bold ms-1">
-                    (+{{ (selectedOfficeId || []).length - 1 }})
-                  </span>
-                </template>
-              </v-autocomplete>
+              />
             </v-col>
 
             <v-col cols="12" sm="6" md="2">
-              <v-autocomplete
+              <auto-list
                 v-model="selectedDirectorateId"
-                :items="directoratesOptions"
-                item-title="name"
-                item-value="id"
+                name="Directorate"
+                :objects="directoratesObjects"
                 label="إدارة التربية (المديرية)"
                 placeholder="اختر مديرية أو أكثر..."
-                clearable
+                cols="12"
                 multiple
-                chips
-                closable-chips
-                density="compact"
-                variant="outlined"
-                rounded="lg"
-                hide-details
-                class="mb-3"
-                prepend-inner-icon="mdi-map-marker-radius-outline"
+                :add="false"
+                :hideDetails="true"
                 @update:model-value="onDirectorateFilterChange"
-              >
-                <template #selection="{ item, index }">
-                  <v-chip v-if="index < 1" size="x-small" class="font-weight-bold" color="teal" variant="flat">
-                    {{ item.title }}
-                  </v-chip>
-                  <span v-if="index === 1" class="text-caption text-teal font-weight-bold ms-1">
-                    (+{{ (selectedDirectorateId || []).length - 1 }})
-                  </span>
-                </template>
-              </v-autocomplete>
+              />
             </v-col>
 
             <v-col cols="12" sm="6" md="2">
-              <v-autocomplete
+              <auto-list
                 v-model="selectedSchoolId"
-                :items="schoolsOptions"
-                item-title="name"
-                item-value="id"
+                name="Organization"
+                :objects="schoolsObjects"
                 label="المدرسة / المركز الامتحاني"
                 placeholder="اختر مركز أو أكثر..."
-                clearable
+                cols="12"
                 multiple
-                chips
-                closable-chips
-                density="compact"
-                variant="outlined"
-                rounded="lg"
-                hide-details
-                class="mb-3"
-                prepend-inner-icon="mdi-school-outline"
+                :add="false"
+                :hideDetails="true"
                 @update:model-value="onSchoolFilterChange"
-              >
-                <template #selection="{ item, index }">
-                  <v-chip v-if="index < 1" size="x-small" class="font-weight-bold" color="indigo" variant="flat">
-                    {{ item.title }}
-                  </v-chip>
-                  <span v-if="index === 1" class="text-caption text-indigo font-weight-bold ms-1">
-                    (+{{ (selectedSchoolId || []).length - 1 }})
-                  </span>
-                </template>
-              </v-autocomplete>
+              />
             </v-col>
 
             <v-col cols="12" sm="6" md="2">
-              <v-autocomplete
+              <auto-list
                 v-model="selectedSubjectId"
-                :items="subjectsList"
-                item-title="name"
-                item-value="id"
+                name="Subject"
+                :objects="subjectsObjects"
                 label="المادة الدراسية"
                 placeholder="تصفية حسب المادة..."
-                clearable
-                density="compact"
-                variant="outlined"
-                rounded="lg"
-                hide-details
-                class="mb-3"
-                prepend-inner-icon="mdi-book-education-outline"
+                cols="12"
+                :add="false"
+                :hideDetails="true"
                 @update:model-value="onSubjectFilterChange"
               />
             </v-col>
@@ -149,51 +102,30 @@
           <!-- التعليم الجامعي -->
           <template v-else-if="institutionType === 'university'">
             <v-col cols="12" sm="6" md="3">
-              <v-autocomplete
+              <auto-list
                 v-model="selectedSchoolId"
-                :items="schoolsOptions"
-                item-title="name"
-                item-value="id"
+                name="College"
+                :objects="schoolsObjects"
                 label="الجامعة / الكلية"
                 placeholder="اختر كلية أو أكثر..."
-                clearable
+                cols="12"
                 multiple
-                chips
-                closable-chips
-                density="compact"
-                variant="outlined"
-                rounded="lg"
-                hide-details
-                class="mb-3"
-                prepend-inner-icon="mdi-domain"
+                :add="false"
+                :hideDetails="true"
                 @update:model-value="onSchoolFilterChange"
-              >
-                <template #selection="{ item, index }">
-                  <v-chip v-if="index < 1" size="x-small" class="font-weight-bold" color="indigo" variant="flat">
-                    {{ item.title }}
-                  </v-chip>
-                  <span v-if="index === 1" class="text-caption text-indigo font-weight-bold ms-1">
-                    (+{{ (selectedSchoolId || []).length - 1 }})
-                  </span>
-                </template>
-              </v-autocomplete>
+              />
             </v-col>
 
             <v-col cols="12" sm="6" md="3">
-              <v-autocomplete
+              <auto-list
                 v-model="selectedSubjectId"
-                :items="subjectsList"
-                item-title="name"
-                item-value="id"
+                name="Subject"
+                :objects="subjectsObjects"
                 label="المادة الدراسية"
                 placeholder="تصفية حسب المادة..."
-                clearable
-                density="compact"
-                variant="outlined"
-                rounded="lg"
-                hide-details
-                class="mb-3"
-                prepend-inner-icon="mdi-book-education-outline"
+                cols="12"
+                :add="false"
+                :hideDetails="true"
                 @update:model-value="onSubjectFilterChange"
               />
             </v-col>
@@ -202,72 +134,46 @@
           <!-- التعليم الفني والمهني (معاهد) -->
           <template v-else-if="institutionType === 'institute'">
             <v-col cols="12" sm="6" md="3">
-              <v-autocomplete
+              <auto-list
                 v-model="selectedSchoolId"
-                :items="schoolsOptions"
-                item-title="name"
-                item-value="id"
+                name="Institute"
+                :objects="schoolsObjects"
                 label="المعهد التقني / المهني"
                 placeholder="اختر معهد أو أكثر..."
-                clearable
+                cols="12"
                 multiple
-                chips
-                closable-chips
-                density="compact"
-                variant="outlined"
-                rounded="lg"
-                hide-details
-                class="mb-3"
-                prepend-inner-icon="mdi-tools"
+                :add="false"
+                :hideDetails="true"
                 @update:model-value="onSchoolFilterChange"
-              >
-                <template #selection="{ item, index }">
-                  <v-chip v-if="index < 1" size="x-small" class="font-weight-bold" color="indigo" variant="flat">
-                    {{ item.title }}
-                  </v-chip>
-                  <span v-if="index === 1" class="text-caption text-indigo font-weight-bold ms-1">
-                    (+{{ (selectedSchoolId || []).length - 1 }})
-                  </span>
-                </template>
-              </v-autocomplete>
+              />
             </v-col>
 
             <v-col cols="12" sm="6" md="3">
-              <v-autocomplete
+              <auto-list
                 v-model="selectedSubjectId"
-                :items="subjectsList"
-                item-title="name"
-                item-value="id"
+                name="Subject"
+                :objects="subjectsObjects"
                 label="المادة الدراسية"
                 placeholder="تصفية حسب المادة..."
-                clearable
-                density="compact"
-                variant="outlined"
-                rounded="lg"
-                hide-details
-                class="mb-3"
-                prepend-inner-icon="mdi-book-education-outline"
+                cols="12"
+                :add="false"
+                :hideDetails="true"
                 @update:model-value="onSubjectFilterChange"
               />
             </v-col>
           </template>
 
           <!-- حقل فلتر حالة وتدقيق ورقة الإجابة -->
-          <v-col cols="12" sm="6" md="2">
-            <v-select
+          <v-col cols="12" sm="6" :md="institutionType === 'school' ? 4 : 4">
+            <auto-list
               v-model="filterStatus"
-              :items="statusFilterFieldOptions"
-              item-title="title"
-              item-value="value"
+              name="ScreenTypeChoices"
+              :objects="statusFilterObjects"
               label="حالة ورقة الإجابة والتصحيح"
               placeholder="تصفية بحالة الورقة..."
-              clearable
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              hide-details
-              class="mb-3"
-              prepend-inner-icon="mdi-list-status"
+              cols="12"
+              :add="false"
+              :hideDetails="true"
               @update:model-value="onStatusFilterChange"
             />
           </v-col>
@@ -871,88 +777,101 @@
       <!-- شريط تصفية نتائج أوراق الإجابة بنمط students-master -->
       <filter-fields label="خيارات تصفية وتدقيق نتائج أوراق الإجابة" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
         <v-row dense class="align-center">
+          <!-- 1. البحث الفوري باسم الطالب أو رقم الجلوس أو الباركود -->
           <v-col cols="12" sm="6" md="3">
-            <v-autocomplete
+            <custom-text-field
+              v-model="searchQuery"
+              label="اسم الطالب أو رقم الجلوس أو الباركود"
+              placeholder="بحث باسم الطالب، رقم الجلوس، الباركود..."
+              icon="magnify"
+              cols="12"
+              :hideDetails="true"
+              clearable
+              @update:model-value="onSearchInput"
+            />
+          </v-col>
+
+          <!-- 2. الاختبار المعروض -->
+          <v-col cols="12" sm="6" md="3">
+            <auto-list
               v-model="selectedExamId"
-              :items="examsList"
-              item-title="title"
-              item-value="id"
+              name="Exam"
+              :objects="examsObjects"
               label="الاختبار المعروض"
               placeholder="اختر الاختبار..."
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              class="mb-3"
-              hide-details
-              prepend-inner-icon="mdi-file-document-edit-outline"
+              cols="12"
+              :add="false"
+              :hideDetails="true"
               @update:model-value="onExamChange"
             />
           </v-col>
 
-          <v-col cols="12" sm="6" md="2">
-            <v-select
-              v-model="filterVersion"
-              :items="versionFilterOptions"
-              item-title="text"
-              item-value="value"
-              placeholder="النموذج"
-              label="النموذج"
-              prepend-inner-icon="mdi-file-document-multiple-outline"
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              class="mb-3"
-              hide-details
-              @update:model-value="applyFilters"
-            />
-          </v-col>
-
+          <!-- 3. النموذج الامتحاني -->
           <v-col cols="12" sm="6" md="3">
-            <v-select
-              v-model="filterStatus"
-              :items="statusFilterFieldOptions"
-              item-title="title"
-              item-value="value"
-              placeholder="حالة المسح والتصحيح"
-              label="حالة الورقة"
-              prepend-inner-icon="mdi-list-status"
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              class="mb-3"
-              hide-details
-              clearable
+            <auto-list
+              v-model="filterVersion"
+              name="ScreenTypeChoices"
+              :objects="versionFilterObjects"
+              label="النموذج"
+              placeholder="النموذج"
+              cols="12"
+              :add="false"
+              :hideDetails="true"
               @update:model-value="applyFilters"
             />
           </v-col>
 
-          <v-col cols="12" sm="12" md="4" class="d-flex justify-end align-center gap-2 flex-wrap mb-3">
-            <v-chip color="indigo" variant="tonal" size="small" class="font-weight-black">
+          <!-- 4. حالة ورقة الإجابة والتصحيح -->
+          <v-col cols="12" sm="6" md="3">
+            <auto-list
+              v-model="filterStatus"
+              name="ScreenTypeChoices"
+              :objects="statusFilterObjects"
+              label="حالة الورقة"
+              placeholder="حالة المسح والتصحيح"
+              cols="12"
+              :add="false"
+              :hideDetails="true"
+              @update:model-value="applyFilters"
+            />
+          </v-col>
+
+          <!-- شريط الإحصائية وإجراءات الفلترة -->
+          <v-col cols="12" class="d-flex align-center justify-space-between flex-wrap gap-2 pt-2 mb-1">
+            <v-chip 
+              color="indigo" 
+              variant="tonal" 
+              size="small" 
+              class="font-weight-black px-3"
+              style="border-radius: 6px !important;"
+            >
               متوسط الدرجات: {{ statsData.average_score || 0 }}%
             </v-chip>
 
-            <v-btn
-              v-if="selectedExamId"
-              color="indigo"
-              variant="tonal"
-              size="small"
-              rounded="lg"
-              class="font-weight-bold"
-              prepend-icon="mdi-clipboard-list-outline"
-              @click="$router.push(`/omr-gradebook?exam=${selectedExamId}`)"
-            >
-              كشف الرصد
-            </v-btn>
+            <div class="d-flex align-center gap-2">
+              <v-btn
+                v-if="selectedExamId"
+                color="indigo"
+                variant="tonal"
+                size="small"
+                rounded="lg"
+                class="font-weight-bold"
+                prepend-icon="mdi-clipboard-list-outline"
+                @click="$router.push(`/omr-gradebook?exam=${selectedExamId}`)"
+              >
+                كشف الرصد
+              </v-btn>
 
-            <custom-btn
-              type="cancel_filter"
-              :click="resetDetailFilters"
-              variant="tonal"
-              color="error"
-              label="تفريغ الفلاتر"
-              icon="mdi-filter-off"
-              class="font-weight-bold"
-            />
+              <custom-btn
+                type="cancel_filter"
+                :click="resetDetailFilters"
+                variant="tonal"
+                color="error"
+                label="تفريغ الفلاتر"
+                icon="mdi-filter-off"
+                class="font-weight-bold"
+              />
+            </div>
           </v-col>
         </v-row>
       </filter-fields>
@@ -1581,6 +1500,97 @@ export default {
   },
 
   computed: {
+    sectorOptionsObjects() {
+      return (this.sectorOptions || []).map(opt => ({
+        id: opt.value,
+        value: opt.value,
+        name: opt.title,
+        name_ar: opt.title,
+        title: opt.title,
+      }))
+    },
+
+    officesObjects() {
+      const list = this.allOfficesList && this.allOfficesList.length ? this.allOfficesList : (this.officesList || [])
+      return list.map(o => ({
+        id: o.id,
+        value: o.id,
+        name: o.office_name || o.name_ar || o.name,
+        name_ar: o.office_name || o.name_ar || o.name,
+        title: o.office_name || o.name_ar || o.name,
+      }))
+    },
+
+    directoratesObjects() {
+      return (this.directoratesOptions || []).map(d => ({
+        id: d.id,
+        value: d.id,
+        name: d.name || d.name_ar,
+        name_ar: d.name || d.name_ar,
+        title: d.name || d.name_ar,
+      }))
+    },
+
+    schoolsObjects() {
+      return (this.schoolsOptions || []).map(s => ({
+        id: s.id,
+        value: s.id,
+        name: s.name || s.school_name || s.name_ar,
+        name_ar: s.name || s.school_name || s.name_ar,
+        title: s.name || s.school_name || s.name_ar,
+      }))
+    },
+
+    subjectsObjects() {
+      return (this.subjectsList || []).map(s => ({
+        id: s.id,
+        value: s.id,
+        name: s.name || s.name_ar,
+        name_ar: s.name || s.name_ar,
+        title: s.name || s.name_ar,
+      }))
+    },
+
+    statusFilterObjects() {
+      return [
+        { id: 'all', value: 'all', name: `جميع الحالات (${this.statsData.total || 0} ورقة مسجلة)`, name_ar: `جميع الحالات (${this.statsData.total || 0} ورقة مسجلة)`, title: `جميع الحالات (${this.statsData.total || 0} ورقة مسجلة)` },
+        { id: 'completed', value: 'completed', name: `أوراق مصححة بنجاح (${this.statsData.completed || 0} مكتملة)`, name_ar: `أوراق مصححة بنجاح (${this.statsData.completed || 0} مكتملة)`, title: `أوراق مصححة بنجاح (${this.statsData.completed || 0} مكتملة)` },
+        { id: 'needs_review', value: 'needs_review', name: `تحتاج مراجعة وتدقيق (${this.statsData.needs_review || 0} شطب/تظليل)`, name_ar: `تحتاج مراجعة وتدقيق (${this.statsData.needs_review || 0} شطب/تظليل)`, title: `تحتاج مراجعة وتدقيق (${this.statsData.needs_review || 0} شطب/تظليل)` },
+        { id: 'failed', value: 'failed', name: `فشل قراءة الباركود (${this.statsData.failed || 0} تالفة)`, name_ar: `فشل قراءة الباركود (${this.statsData.failed || 0} تالفة)`, title: `فشل قراءة الباركود (${this.statsData.failed || 0} تالفة)` },
+      ]
+    },
+
+    examsObjects() {
+      return (this.examsList || []).map(e => ({
+        id: e.id,
+        value: e.id,
+        name: e.title || e.name || `اختبار #${e.id}`,
+        name_ar: e.title || e.name || `اختبار #${e.id}`,
+        title: e.title || e.name || `اختبار #${e.id}`,
+        uniqueCode: e.uniqueCode || '',
+      }))
+    },
+
+    versionFilterObjects() {
+      const opts = [
+        { id: 'all', value: 'all', name: 'جميع النماذج', name_ar: 'جميع النماذج', title: 'جميع النماذج' }
+      ]
+      if (this.availableVersions && this.availableVersions.length) {
+        this.availableVersions.forEach(v => {
+          if (v) {
+            opts.push({
+              id: v,
+              value: v,
+              name: `النموذج ${v}`,
+              name_ar: `النموذج ${v}`,
+              title: `النموذج ${v}`,
+            })
+          }
+        })
+      }
+      return opts
+    },
+
     statusFilterFieldOptions() {
       return [
         { title: `إجمالي الأوراق المقروءة (${this.statsData.total || 0} ورقة مسجلة - عرض الكل)`, value: null },
@@ -2295,7 +2305,7 @@ export default {
       } else if (extra && extra.search) {
         q.search = extra.search
       }
-      if (this.filterStatus) q.status = this.filterStatus
+      if (this.filterStatus && this.filterStatus !== 'all') q.status = this.filterStatus
       if (this.filterVersion && this.filterVersion !== 'all') {
         q.version_code = this.filterVersion
         q.exam_version = this.filterVersion
@@ -2381,8 +2391,8 @@ export default {
     },
 
     onStatusFilterChange(val) {
-      this.filterStatus = val
-      if (this.currentView === 'master' && val) {
+      this.filterStatus = (val === 'all') ? null : val
+      if (this.currentView === 'master' && this.filterStatus) {
         this.currentView = 'detail'
       }
       this.fetchSubmissionsRoster({ params: { page: 1 } })
@@ -2403,6 +2413,7 @@ export default {
     },
 
     applyFilters() {
+      if (this.filterStatus === 'all') this.filterStatus = null
       this.activeKpiFilter = this.filterStatus
       this.fetchSubmissionsRoster({ params: { page: 1 } })
     },

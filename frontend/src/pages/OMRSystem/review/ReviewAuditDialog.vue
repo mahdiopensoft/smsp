@@ -42,7 +42,7 @@
           <!-- الدرجة الحالية والمراجعة -->
           <div class="text-end me-3 d-none d-md-block">
             <div class="text-caption text-medium-emphasis">الدرجة المحتسبة</div>
-            <div class="font-weight-black text-body-1 text-success">
+            <div class="font-weight-black text-body-1 text-primary">
               {{ activeReviewSheet.mcq_score ?? 0 }} / {{ activeReviewSheet.mcq_max_score ?? activeReviewSheet.total_questions ?? 0 }}
             </div>
           </div>
@@ -74,7 +74,7 @@
 
           <!-- زر الاعتماد السريع -->
           <v-btn
-            color="success"
+            color="primary"
             variant="flat"
             rounded="lg"
             prepend-icon="mdi-check-decagram"
@@ -140,7 +140,7 @@
             إغلاق
           </v-btn>
           <v-btn
-            color="success"
+            color="primary"
             variant="flat"
             rounded="lg"
             prepend-icon="mdi-check-all"

@@ -237,7 +237,73 @@ const props = defineProps({
 defineEmits(['update:modelValue'])
 
 const triggerPrint = () => {
-  window.print()
+  const manifestEl = document.getElementById('printableManifest')
+  if (!manifestEl) {
+    window.print()
+    return
+  }
+
+  const existingFrame = document.getElementById('manifest-print-frame')
+  if (existingFrame) existingFrame.remove()
+
+  const iframe = document.createElement('iframe')
+  iframe.id = 'manifest-print-frame'
+  iframe.style.position = 'fixed'
+  iframe.style.right = '0'
+  iframe.style.bottom = '0'
+  iframe.style.width = '0'
+  iframe.style.height = '0'
+  iframe.style.border = '0'
+  iframe.style.visibility = 'hidden'
+  document.body.appendChild(iframe)
+
+  const doc = iframe.contentWindow?.document || iframe.contentDocument
+  if (doc) {
+    doc.open()
+    doc.write(`
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="utf-8">
+        <title>إذن صرف وأمر طباعة رسمي - ${props.orderData?.orderNumber || ''}</title>
+        <style>
+          @page { size: A4 portrait; margin: 10mm; }
+          *, *::before, *::after { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          body { font-family: 'Amiri', 'Traditional Arabic', 'Cairo', Tahoma, Arial, sans-serif; margin: 0; padding: 0; color: #000; background: #fff; }
+          .d-print-none { display: none !important; }
+          .official-manifest-sheet { width: 100% !important; max-width: 100% !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+          .border-b-2 { border-bottom: 2px solid #000; }
+          .manifest-header { text-align: center; }
+          .ministry-title { font-size: 16px; font-weight: bold; margin: 0 0 4px 0; }
+          .committee-title { font-size: 13px; color: #444; margin: 0 0 6px 0; }
+          .manifest-headline { font-size: 18px; font-weight: 900; border: 2px solid #000; display: inline-block; padding: 4px 16px; border-radius: 6px; margin: 6px 0; }
+          .order-code-badge { font-family: monospace; font-size: 13px; font-weight: bold; margin-top: 6px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 12px; }
+          th, td { border: 1px solid #333; padding: 6px 8px; text-align: right; }
+          th { background: #f0f0f0; font-weight: bold; text-align: center; }
+          .font-mono { font-family: monospace; }
+          .signatures-grid, .d-flex { display: flex; }
+          .justify-space-between { justify-content: space-between; }
+        </style>
+      </head>
+      <body>
+        ${manifestEl.outerHTML}
+      </body>
+      </html>
+    `)
+    doc.close()
+
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus()
+        iframe.contentWindow?.print()
+      } catch (err) {
+        window.print()
+      }
+    }, 200)
+  } else {
+    window.print()
+  }
 }
 </script>
 
