@@ -504,23 +504,66 @@
                 </div>
               </div>
 
-              <!-- 4-Stage Visual Pipeline Bar -->
-              <div class="scanner-pipeline-grid">
-                <div
-                  v-for="(step, sIdx) in scanningPipelineSteps"
-                  :key="step.id"
-                  class="scanner-step-item"
-                  :class="{
-                    'step-completed': currentProcessingStepIndex > sIdx,
-                    'step-active': currentProcessingStepIndex === sIdx,
-                    'step-pending': currentProcessingStepIndex < sIdx
-                  }"
-                >
-                  <div class="step-icon-wrap">
-                    <v-icon v-if="currentProcessingStepIndex > sIdx" size="14" color="primary">mdi-check-bold</v-icon>
-                    <v-icon v-else size="14">{{ step.icon }}</v-icon>
+              <!-- Circular Stepper Pipeline (دوائر تفاعلية مع خطوط توصيل وعلامات صح) -->
+              <div class="stepper-pipeline-container mt-4 pt-1">
+                <div class="stepper-track-wrapper">
+                  <div
+                    v-for="(step, sIdx) in scanningPipelineSteps"
+                    :key="step.id"
+                    class="stepper-node-wrapper"
+                    :class="{
+                      'node-completed': currentProcessingStepIndex > sIdx,
+                      'node-active': currentProcessingStepIndex === sIdx && gradingProgress < 100,
+                      'node-pending': currentProcessingStepIndex < sIdx
+                    }"
+                  >
+                    <!-- Step Node (Circle + Icon + Pulse Wave) -->
+                    <div class="stepper-circle-anchor">
+                      <!-- Active pulsing wave ring -->
+                      <span
+                        v-if="currentProcessingStepIndex === sIdx && gradingProgress < 100"
+                        class="stepper-pulse-ring"
+                      ></span>
+
+                      <div class="stepper-circle">
+                        <!-- If Completed: Show Crisp Checkmark -->
+                        <v-icon
+                          v-if="currentProcessingStepIndex > sIdx"
+                          size="20"
+                          class="checkmark-pop"
+                        >
+                          mdi-check-bold
+                        </v-icon>
+
+                        <!-- If Active or Pending: Show Step Icon -->
+                        <v-icon
+                          v-else
+                          size="18"
+                          :class="{ 'icon-active-breath': currentProcessingStepIndex === sIdx }"
+                        >
+                          {{ step.icon }}
+                        </v-icon>
+                      </div>
+                    </div>
+
+                    <!-- Step Labels -->
+                    <div class="stepper-node-text mt-2 text-center">
+                      <div class="node-title font-weight-black">
+                        {{ step.label }}
+                      </div>
+                      <div class="node-subtitle text-caption">
+                        <span v-if="currentProcessingStepIndex > sIdx" class="status-completed-text">
+                          <v-icon size="12" class="me-0.5">mdi-check</v-icon> تم بنجاح
+                        </span>
+                        <span v-else-if="currentProcessingStepIndex === sIdx && gradingProgress < 100" class="status-active-text">
+                          جاري الفحص...
+                        </span>
+                        <span v-else class="status-pending-text">
+                          في الانتظار
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <span class="step-label">{{ step.label }}</span>
                 </div>
               </div>
             </div>
@@ -1891,6 +1934,7 @@ export default {
     ]
 
     const currentProcessingStepIndex = computed(() => {
+      if (gradingProgress.value >= 100) return 4
       if (gradingProgress.value >= 88) return 3
       if (gradingProgress.value >= 58) return 2
       if (gradingProgress.value >= 24) return 1
@@ -3057,65 +3101,199 @@ export default {
   to { opacity: 0.9; }
 }
 
-.scanner-pipeline-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+/* ── Circular Stepper Pipeline ───────────────────────────── */
+.stepper-pipeline-container {
+  padding: 4px 6px 0 6px;
 }
 
-.scanner-step-item {
+.stepper-track-wrapper {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  background: rgba(var(--v-theme-surface-variant), 0.08);
-  border: 1px solid transparent;
-  transition: all 0.25s ease;
+  align-items: flex-start;
+  justify-content: space-between;
+  position: relative;
 }
 
-.scanner-step-item .step-icon-wrap {
-  width: 22px;
-  height: 22px;
-  border-radius: 4px;
+.stepper-node-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  z-index: 2;
+}
+
+/* Connecting bar behind nodes (RTL support) */
+.stepper-node-wrapper:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  top: 19px;
+  right: -50%;
+  width: 100%;
+  height: 3px;
+  background: rgba(var(--v-theme-surface-variant), 0.35);
+  z-index: 1;
+  transition: all 0.35s ease;
+}
+
+.stepper-node-wrapper.node-completed:not(:first-child)::before {
+  background: rgb(var(--v-theme-primary)) !important;
+  box-shadow: 0 0 6px rgba(var(--v-theme-primary), 0.35);
+}
+
+.stepper-node-wrapper.node-active:not(:first-child)::before {
+  background: linear-gradient(to left, rgb(var(--v-theme-primary)), rgba(var(--v-theme-primary), 0.35)) !important;
+}
+
+.stepper-circle-anchor {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(var(--v-theme-surface-variant), 0.16);
-  flex-shrink: 0;
+  z-index: 3;
 }
 
-.scanner-step-item.step-completed {
-  background: rgba(var(--v-theme-primary), 0.08);
-  border-color: rgba(var(--v-theme-primary), 0.25);
-  color: rgb(var(--v-theme-primary));
-}
-
-.scanner-step-item.step-completed .step-icon-wrap {
-  background: rgba(var(--v-theme-primary), 0.15);
-}
-
-.scanner-step-item.step-active {
-  background: rgb(var(--v-theme-primary));
-  color: #ffffff;
-  border-color: rgb(var(--v-theme-primary));
-  box-shadow: 0 2px 8px rgba(var(--v-theme-primary), 0.3);
-}
-
-.scanner-step-item.step-active .step-icon-wrap {
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-}
-
-.scanner-step-item.step-pending {
+.stepper-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(var(--v-theme-surface));
+  border: 2px solid rgba(var(--v-border-color), 0.35);
   color: rgba(var(--v-theme-on-surface), 0.45);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+}
+
+/* 1. Pending Node */
+.node-pending .stepper-circle {
+  background: rgba(var(--v-theme-surface-variant), 0.12);
+  border-color: rgba(var(--v-border-color), 0.28);
+  color: rgba(var(--v-theme-on-surface), 0.4);
+}
+
+/* 2. Active Node */
+.node-active .stepper-circle {
+  background: rgb(var(--v-theme-primary)) !important;
+  border-color: rgb(var(--v-theme-primary)) !important;
+  color: #ffffff !important;
+  transform: scale(1.15);
+  box-shadow: 0 0 0 4px rgba(var(--v-theme-primary), 0.22), 0 4px 12px rgba(var(--v-theme-primary), 0.4);
+}
+
+/* Active Pulsing Wave Ring */
+.stepper-pulse-ring {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  right: -6px;
+  bottom: -6px;
+  border-radius: 50%;
+  border: 2px solid rgb(var(--v-theme-primary));
+  opacity: 0.8;
+  animation: stepper-ring-expand 1.6s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes stepper-ring-expand {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.25); opacity: 0.3; }
+  100% { transform: scale(1.45); opacity: 0; }
+}
+
+.icon-active-breath {
+  animation: icon-breath 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes icon-breath {
+  from { transform: scale(0.95); opacity: 0.9; }
+  to { transform: scale(1.08); opacity: 1; }
+}
+
+/* 3. Completed Node */
+.node-completed .stepper-circle {
+  background: rgba(var(--v-theme-primary), 0.12) !important;
+  border-color: rgb(var(--v-theme-primary)) !important;
+  color: rgb(var(--v-theme-primary)) !important;
+  box-shadow: 0 2px 8px rgba(var(--v-theme-primary), 0.18);
+}
+
+.checkmark-pop {
+  animation: pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0.4); opacity: 0; }
+  70% { transform: scale(1.25); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Stepper Node Typography */
+.stepper-node-text {
+  max-width: 140px;
+}
+
+.node-title {
+  font-size: 0.78rem;
+  line-height: 1.25;
+  transition: color 0.2s ease;
+}
+
+.node-active .node-title {
+  color: rgb(var(--v-theme-primary));
+  font-weight: 800;
+}
+
+.node-completed .node-title {
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.node-pending .node-title {
+  color: rgba(var(--v-theme-on-surface), 0.5);
+  font-weight: 600;
+}
+
+.node-subtitle {
+  font-size: 0.7rem;
+  margin-top: 2px;
+}
+
+.status-completed-text {
+  color: rgb(var(--v-theme-primary));
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+}
+
+.status-active-text {
+  color: rgb(var(--v-theme-primary));
+  font-weight: 700;
+  animation: pulse-text 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-text {
+  from { opacity: 0.7; }
+  to { opacity: 1; }
+}
+
+.status-pending-text {
+  color: rgba(var(--v-theme-on-surface), 0.4);
 }
 
 @media (max-width: 600px) {
-  .scanner-pipeline-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .stepper-circle {
+    width: 32px;
+    height: 32px;
+  }
+  .stepper-node-wrapper:not(:first-child)::before {
+    top: 16px;
+  }
+  .node-title {
+    font-size: 0.7rem;
+  }
+  .node-subtitle {
+    display: none;
   }
 }
 </style>
