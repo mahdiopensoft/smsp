@@ -10,7 +10,7 @@
       <filter-fields label="خيارات التصفية الأكاديمية والهرمية لأوراق الإجابة المصححة" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
         <v-row dense class="align-center">
           <!-- 1. نوع المؤسسة التعليمية (حقل موحد باستخدام auto-list) -->
-          <v-col cols="12" sm="6" :md="institutionType === 'school' ? 2 : 3">
+          <v-col cols="12" sm="6" md="3">
             <auto-list
               v-model="institutionType"
               name="InstitutionType"
@@ -24,22 +24,9 @@
             />
           </v-col>
 
-          <!-- 2. حقل البحث الفوري الموحد في الهرمية والرمز -->
-          <v-col cols="12" sm="6" :md="institutionType === 'school' ? 2 : 3">
-            <custom-text-field
-              v-model="masterSearchQuery"
-              label="بحث عام في الهرمية والرمز"
-              placeholder="بحث باسم المكتب، المركز، الاختبار..."
-              icon="magnify"
-              cols="12"
-              :hideDetails="true"
-              clearable
-            />
-          </v-col>
-
           <!-- 3. التعليم العام (مدرسي) -->
           <template v-if="institutionType === 'school'">
-            <v-col cols="12" sm="6" md="2">
+            <v-col cols="12" sm="6" md="3">
               <auto-list
                 v-model="selectedOfficeId"
                 name="Governorate"
@@ -54,7 +41,7 @@
               />
             </v-col>
 
-            <v-col cols="12" sm="6" md="2">
+            <v-col cols="12" sm="6" md="3">
               <auto-list
                 v-model="selectedDirectorateId"
                 name="Directorate"
@@ -69,7 +56,7 @@
               />
             </v-col>
 
-            <v-col cols="12" sm="6" md="2">
+            <v-col cols="12" sm="6" md="3">
               <auto-list
                 v-model="selectedSchoolId"
                 name="Organization"
@@ -84,7 +71,7 @@
               />
             </v-col>
 
-            <v-col cols="12" sm="6" md="2">
+            <v-col cols="12" sm="6" md="3">
               <auto-list
                 v-model="selectedSubjectId"
                 name="Subject"
@@ -241,7 +228,7 @@
           <!-- 1. تبويب مكاتب التربية بالمحافظات -->
           <v-window-item value="offices" v-if="institutionType === 'school'">
             <custom-data-table
-              :key="'offices-tbl-' + filteredOfficesTable.length + '-' + normalizeIds(selectedOfficeId).join('-')"
+              :key="'offices-tbl-' + normalizeIds(selectedOfficeId).join('-')"
               v-model="selectedOfficeMasterRows"
               :items="officeMasterTableItems"
               :getData="getOfficeMasterData"
@@ -253,7 +240,7 @@
               :numbering="true"
               :showSelect="true"
               :actions="false"
-              :search="false"
+              :search="true"
               class="bg-transparent"
             >
               <template v-slot:item-slot="{ item, key, index }">
@@ -351,7 +338,7 @@
           <!-- 2. تبويب إدارات التربية بالمديريات -->
           <v-window-item value="directorates" v-if="institutionType === 'school'">
             <custom-data-table
-              :key="'dirs-tbl-' + filteredDirectoratesTable.length + '-' + normalizeIds(selectedDirectorateId).join('-') + '-' + normalizeIds(selectedOfficeId).join('-')"
+              :key="'dirs-tbl-' + normalizeIds(selectedDirectorateId).join('-') + '-' + normalizeIds(selectedOfficeId).join('-')"
               v-model="selectedDirectorateMasterRows"
               :items="directorateMasterTableItems"
               :getData="getDirectorateMasterData"
@@ -363,7 +350,7 @@
               :numbering="true"
               :showSelect="true"
               :actions="false"
-              :search="false"
+              :search="true"
               class="bg-transparent"
             >
               <template v-slot:item-slot="{ item, key, index }">
@@ -460,7 +447,7 @@
           <!-- 3. تبويب المراكز الامتحانية والمدارس / الجامعات / المعاهد -->
           <v-window-item value="schools">
             <custom-data-table
-              :key="'schools-tbl-' + filteredSchoolsTable.length + '-' + normalizeIds(selectedSchoolId).join('-') + '-' + normalizeIds(selectedDirectorateId).join('-')"
+              :key="'schools-tbl-' + normalizeIds(selectedSchoolId).join('-') + '-' + normalizeIds(selectedDirectorateId).join('-')"
               v-model="selectedSchoolMasterRows"
               :items="schoolMasterTableItems"
               :getData="getSchoolMasterData"
@@ -472,7 +459,7 @@
               :numbering="true"
               :showSelect="true"
               :actions="false"
-              :search="false"
+              :search="true"
               class="bg-transparent"
             >
               <template v-slot:item-slot="{ item, key, index }">
@@ -626,7 +613,7 @@
           <!-- 4. تبويب الاختبارات الأكاديمية ومسحوبات الدفعات -->
           <v-window-item value="exams">
             <custom-data-table
-              :key="'exams-tbl-' + filteredExamsTable.length + '-' + normalizeIds(selectedOfficeId).join('-')"
+              :key="'exams-tbl-' + normalizeIds(selectedOfficeId).join('-')"
               v-model="selectedExamMasterRows"
               :items="examMasterTableItems"
               :getData="getExamMasterData"
@@ -638,7 +625,7 @@
               :numbering="true"
               :showSelect="true"
               :actions="false"
-              :search="false"
+              :search="true"
               class="bg-transparent"
             >
               <template v-slot:item-slot="{ item, key, index }">
@@ -2104,6 +2091,9 @@ export default {
     // Master Tables Data Providers
     async getOfficeMasterData(params = {}) {
       const p = params?.params || params || {}
+      if (p.search !== undefined) {
+        this.masterSearchQuery = (p.search || '').trim()
+      }
       const page = p.page || 1
       const pageSize = p.page_size || 20
       const all = this.filteredOfficesTable || []
@@ -2123,6 +2113,9 @@ export default {
 
     async getDirectorateMasterData(params = {}) {
       const p = params?.params || params || {}
+      if (p.search !== undefined) {
+        this.masterSearchQuery = (p.search || '').trim()
+      }
       const page = p.page || 1
       const pageSize = p.page_size || 20
       const all = this.filteredDirectoratesTable || []
@@ -2142,6 +2135,9 @@ export default {
 
     async getSchoolMasterData(params = {}) {
       const p = params?.params || params || {}
+      if (p.search !== undefined) {
+        this.masterSearchQuery = (p.search || '').trim()
+      }
       const page = p.page || 1
       const pageSize = p.page_size || 20
       const all = this.filteredSchoolsTable || []
@@ -2161,6 +2157,9 @@ export default {
 
     async getExamMasterData(params = {}) {
       const p = params?.params || params || {}
+      if (p.search !== undefined) {
+        this.masterSearchQuery = (p.search || '').trim()
+      }
       const page = p.page || 1
       const pageSize = p.page_size || 20
       const all = this.filteredExamsTable || []
