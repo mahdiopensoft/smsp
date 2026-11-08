@@ -328,7 +328,7 @@
                 label="المرحلة الدراسية"
                 cols="12"
                 :add="false"
-                @update:model-value="data.class_track = null"
+                @update:model-value="onStageChange"
               />
             </v-col>
 
@@ -544,6 +544,7 @@ export default {
       studentType: 'school',
       selectedGovernorate: null,
       selectedStage: null,
+      isInitializing: false,
       genderChoices: [
         { text: 'ذكر', value: 1 },
         { text: 'أنثى', value: 2 },
@@ -585,7 +586,14 @@ export default {
     data: {
       immediate: true,
       handler(val) {
-        if (!val) return;
+        if (!val || !Object.keys(val).length) {
+          this.selectedGovernorate = null;
+          this.selectedStage = null;
+          return;
+        }
+
+        this.isInitializing = true;
+
         // تعيين الحالة الافتراضية للنشاط إذا كانت غير محددة
         if (val.is_active === undefined) {
           val.is_active = true;
@@ -599,21 +607,35 @@ export default {
           this.studentType = 'university';
         } else if (val.institute_field || val.institute_specialization) {
           this.studentType = 'institute';
-        } else if (val.class_track) {
+        } else if (val.class_track || val.stage_id) {
           this.studentType = 'school';
         } else if (val.institution_type) {
           this.studentType = val.institution_type;
+        }
+
+        // استخراج المرحلة الدراسية من السجل عند التعديل
+        if (val.stage_id) {
+          this.selectedStage = val.stage_id;
         }
 
         // استخراج المحافظة من السجل إذا كانت متوفرة
         if (val.governorate_id) {
           this.selectedGovernorate = val.governorate_id;
         }
+
+        this._prevGovernorate = val.governorate_id || null;
+        this._prevDirectorate = val.directorate || null;
+        this._prevStage = val.stage_id || null;
+
+        this.$nextTick(() => {
+          this.isInitializing = false;
+        });
       },
     },
   },
   methods: {
     onStudentTypeChange(newType) {
+      if (this.isInitializing) return;
       this.data.organization = null;
       if (newType !== 'school') {
         this.data.directorate = null;
@@ -646,21 +668,37 @@ export default {
     },
 
     onGovernorateChange(val) {
+      if (this.isInitializing) return;
+      if (this._prevGovernorate !== undefined && this._prevGovernorate === val) return;
+      this._prevGovernorate = val;
       this.selectedGovernorate = val;
       this.data.directorate = null;
       this.data.organization = null;
     },
 
-    onDirectorateChange() {
+    onDirectorateChange(val) {
+      if (this.isInitializing) return;
+      if (this._prevDirectorate !== undefined && this._prevDirectorate === val) return;
+      this._prevDirectorate = val;
       this.data.organization = null;
     },
 
+    onStageChange(stageVal) {
+      if (this.isInitializing) return;
+      if (this._prevStage !== undefined && this._prevStage === stageVal) return;
+      this._prevStage = stageVal;
+      this.selectedStage = stageVal;
+      this.data.class_track = null;
+    },
+
     onCollegeChange() {
+      if (this.isInitializing) return;
       this.data.university_department = null;
       this.data.university_specialization = null;
     },
 
     onInstituteFieldChange() {
+      if (this.isInitializing) return;
       this.data.institute_education_system = null;
       this.data.institute_specialization = null;
     },

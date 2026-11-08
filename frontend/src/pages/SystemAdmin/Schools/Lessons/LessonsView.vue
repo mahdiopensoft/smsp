@@ -117,19 +117,13 @@
       <template v-slot:item-slot="{ item, key }">
         <!-- Subject Name -->
         <template v-if="key === 'subject_name'">
-          <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold" v-if="item.subject_name">
-            <v-icon start size="14">mdi-book-outline</v-icon>
-            {{ item.subject_name }}
-          </v-chip>
+          <span v-if="item.subject_name">{{ item.subject_name }}</span>
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 
         <!-- Unit Name -->
         <template v-else-if="key === 'unit_name'">
-          <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold" v-if="item.unit_name">
-            <v-icon start size="14">mdi-folder-outline</v-icon>
-            {{ item.unit_name }}
-          </v-chip>
+          <span v-if="item.unit_name">{{ item.unit_name }}</span>
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 

@@ -33,7 +33,7 @@
         </v-col>
 
         <!-- 2. العام الدراسي -->
-        <v-col cols="12" sm="6" md="3">
+        <v-col cols="12" sm="6" md="4">
           <auto-list
             v-model="filterListYear"
             name="AcademicYear"
@@ -46,7 +46,7 @@
         </v-col>
 
         <!-- 3. نطاق الحذف (وحدة / درس) -->
-        <v-col cols="12" sm="6" md="3">
+        <v-col cols="12" sm="6" md="4">
           <v-select
             v-model="filterExclusionType"
             :items="[
@@ -68,24 +68,8 @@
           />
         </v-col>
 
-        <!-- 4. بحث نصي مباشر -->
-        <v-col cols="12" sm="6" md="3">
-          <v-text-field
-            v-model="searchExclusionsQuery"
-            placeholder="بحث بالمادة، الدرس، الوحدة، القرار..."
-            label="بحث نصي"
-            variant="outlined"
-            density="compact"
-            prepend-inner-icon="mdi-magnify"
-            hide-details
-            clearable
-            class="mb-6"
-            @keydown.enter="applyFilters"
-          />
-        </v-col>
-
-        <!-- 5. أزرار الإجراءات -->
-        <v-col cols="12" sm="6" md="3" class="d-flex align-center justify-end gap-2 mb-6">
+        <!-- 4. أزرار الإجراءات -->
+        <v-col cols="12" sm="12" md="4" class="d-flex align-center justify-end gap-2 mb-6">
           <custom-btn
             type="show"
             label="تصفية النتائج"

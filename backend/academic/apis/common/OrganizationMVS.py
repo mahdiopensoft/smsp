@@ -26,6 +26,10 @@ class OrganizationMVS(AllMVS):
         if inst_type and inst_type != 'all':
             qs = qs.filter(institution_type=inst_type)
 
+        org_id = self.request.query_params.get('id') or self.request.query_params.get('pk')
+        if org_id and str(org_id).isdigit():
+            return qs.filter(id=int(org_id))
+
         gov_raw = self.request.query_params.getlist('governorate') or [self.request.query_params.get('governorate') or self.request.query_params.get('governorate_id') or '']
         gov_ids = [int(p.strip()) for item in gov_raw for p in str(item).split(',') if p.strip().isdigit()]
 
@@ -121,14 +125,17 @@ class OrganizationMVS(AllMVS):
     def educational_governorates(self, request):
         """
         جلب مكاتب التربية والتعليم بالمحافظات (company_level = 30)
+        مع إرجاع المعرف الجغرافي للمحافظة id = fk_governorate_id لضمان التطابق مع جداول النظام
         """
         orgs = CoreOrg.objects.filter(is_deleted=False, company_level=30).values(
-            'id', 'name_ar', 'name_en', 'company_level', 'branch_no', 'fk_parent_organization_id'
+            'id', 'name_ar', 'name_en', 'company_level', 'branch_no', 'fk_parent_organization_id', 'fk_governorate_id'
         ).order_by('branch_no', 'id')
 
         data = [
             {
-                "id": o['id'],
+                "id": o.get('fk_governorate_id') or o['id'],
+                "core_org_id": o['id'],
+                "fk_governorate_id": o.get('fk_governorate_id'),
                 "name": o['name_ar'],
                 "name_ar": o['name_ar'],
                 "name_en": o['name_en'] or o['name_ar'],
@@ -147,6 +154,8 @@ class OrganizationMVS(AllMVS):
     def educational_directorates(self, request):
         """
         جلب إدارات التربية والتعليم بالمديريات (company_level = 40) المفلترة بحسب المحافظة
+        مع دعم الفلترة سواء بمعرف المحافظة الجغرافي أو بمعرف CoreOrg
+        وإرجاع المعرف الجغرافي للمديرية id = fk_directorate_id ليتطابق مع جداول النظام (كجدول الطلاب)
         """
         gov_id = (
             request.query_params.get('governorate') or
@@ -157,17 +166,30 @@ class OrganizationMVS(AllMVS):
         if gov_id and str(gov_id).strip() not in ['__none__', 'null', 'undefined', '']:
             try:
                 g_int = int(gov_id)
-                qs = qs.filter(fk_parent_organization_id=g_int)
+                # استعلام مرن للآباء: يدعم كلاً من CoreOrg ID ومُعرّف المحافظة الجغرافي
+                gov_org_ids = list(CoreOrg.objects.filter(
+                    Q(id=g_int) | Q(fk_governorate_id=g_int),
+                    company_level=30,
+                    is_deleted=False
+                ).values_list('id', flat=True))
+
+                qs = qs.filter(
+                    Q(fk_parent_organization_id__in=gov_org_ids) |
+                    Q(fk_governorate_id=g_int) |
+                    Q(fk_parent_organization_id=g_int)
+                )
             except (ValueError, TypeError):
                 pass
 
         orgs = qs.values(
-            'id', 'name_ar', 'name_en', 'company_level', 'branch_no', 'fk_parent_organization_id'
+            'id', 'name_ar', 'name_en', 'company_level', 'branch_no', 'fk_parent_organization_id', 'fk_directorate_id'
         ).order_by('branch_no', 'id')
 
         data = [
             {
-                "id": o['id'],
+                "id": o.get('fk_directorate_id') or o['id'],
+                "core_org_id": o['id'],
+                "fk_directorate_id": o.get('fk_directorate_id'),
                 "name": o['name_ar'],
                 "name_ar": o['name_ar'],
                 "name_en": o['name_en'] or o['name_ar'],
