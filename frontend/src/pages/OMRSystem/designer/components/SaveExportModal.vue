@@ -13,60 +13,55 @@
         </v-btn>
       </div>
 
-      <div class="mb-4">
-        <v-text-field
+      <v-row dense class="mb-2">
+        <custom-text-field
           v-model="form.name"
           label="اسم القالب المعياري *"
           placeholder="مثال: نموذج اختبار الشهادة الثانوية العامة (50 سؤال)"
-          variant="outlined"
-          density="comfortable"
-          rounded="lg"
-          class="mb-3"
+          icon="file-document-outline"
+          cols="12"
+          :hideDetails="true"
+          :clearable="false"
           @update:model-value="onNameInput"
         />
-        <v-text-field
+        <custom-text-field
           v-model="form.subject_name"
           label="المادة الدراسية / التخصص *"
           placeholder="مثال: القرآن الكريم والتربية الإسلامية"
-          variant="outlined"
-          density="comfortable"
-          rounded="lg"
-          class="mb-3"
+          icon="book-open-outline"
+          cols="12"
+          :hideDetails="true"
+          :clearable="false"
           @update:model-value="userManuallyEditedSubject = true"
         />
-        <v-row dense class="mb-3">
-          <v-col cols="6">
-            <v-text-field
-              v-model="form.version"
-              label="رقم الإصدار"
-              placeholder="1.0"
-              variant="outlined"
-              density="comfortable"
-              rounded="lg"
-              hide-details
-            />
-          </v-col>
-          <v-col cols="6">
-            <v-text-field
-              :model-value="totalQuestions"
-              label="إجمالي الأسئلة"
-              variant="outlined"
-              density="comfortable"
-              rounded="lg"
-              disabled
-              hide-details
-            />
-          </v-col>
-        </v-row>
-        <v-textarea
+        <custom-text-field
+          v-model="form.version"
+          label="رقم الإصدار"
+          placeholder="1.0"
+          icon="tag-outline"
+          cols="6"
+          :hideDetails="true"
+          :clearable="false"
+        />
+        <custom-text-field
+          :model-value="totalQuestions"
+          label="إجمالي الأسئلة"
+          icon="help-circle-outline"
+          cols="6"
+          :hideDetails="true"
+          :clearable="false"
+          :disabled="true"
+        />
+        <custom-text-note
           v-model="form.description"
           label="الوصف والملاحظات الفنية"
-          rows="3"
-          variant="outlined"
-          density="comfortable"
-          rounded="lg"
+          icon="text-box-outline"
+          cols="12"
+          :rows="3"
+          :hideDetails="true"
+          :clearable="false"
         />
-      </div>
+      </v-row>
 
       <div class="d-flex justify-end gap-2">
         <v-btn variant="text" rounded="lg" class="font-weight-bold" @click="emit('update:modelValue', false)">

@@ -6,10 +6,10 @@
         هيكلية أقسام الأسئلة (Question Architecture)
       </label>
       <div class="d-flex align-center gap-1">
-        <v-chip size="small" color="primary" variant="flat" class="font-weight-bold">
+        <v-chip size="small" color="primary" variant="flat" class="font-weight-bold rounded-s">
           إجمالي: {{ totalQuestionsCount }} سؤال
         </v-chip>
-        <v-chip size="small" color="success" variant="flat" class="font-weight-bold">
+        <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold rounded-s">
           {{ totalExamMarks }} درجة
         </v-chip>
       </div>
@@ -102,7 +102,7 @@
               icon="mdi-minus"
               size="x-small"
               variant="outlined"
-              color="success"
+              color="primary"
               :disabled="tfCount <= 0"
               @click="$emit('adjust-tf', -5)"
             />
@@ -113,6 +113,7 @@
               max="100"
               density="compact"
               hide-details
+              rounded="s"
               variant="outlined"
               class="text-center font-weight-bold"
               style="width: 70px;"
@@ -122,7 +123,7 @@
               icon="mdi-plus"
               size="x-small"
               variant="outlined"
-              color="success"
+              color="primary"
               @click="$emit('adjust-tf', 5)"
             />
           </div>
@@ -155,6 +156,7 @@
               max="200"
               density="compact"
               hide-details
+              rounded="s"
               variant="outlined"
               class="text-center font-weight-bold"
               style="width: 70px;"

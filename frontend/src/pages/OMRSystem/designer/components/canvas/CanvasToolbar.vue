@@ -86,7 +86,7 @@
 
     <div class="d-flex align-center gap-2">
       <v-btn
-        color="success"
+        color="primary"
         size="small"
         rounded="lg"
         class="font-weight-bold"

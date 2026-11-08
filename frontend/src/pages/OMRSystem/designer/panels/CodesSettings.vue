@@ -15,24 +15,26 @@
         <p class="text-caption text-medium-emphasis mb-3">
           يُطبع في أسفل الورقة لربط رقم الجلوس وكود القالب آلياً بماسح الباركود السريع.
         </p>
-        <v-text-field
-          v-model="config.barcode.value"
-          label="قيمة الباركود المشفرة"
-          variant="outlined"
-          density="compact"
-          rounded="lg"
-          class="mb-3"
-          hide-details
-        />
-        <v-select
-          v-model="config.barcode.format"
-          :items="['CODE128', 'CODE39', 'EAN13']"
-          label="صيغة التشفير (Encoding)"
-          variant="outlined"
-          density="compact"
-          rounded="lg"
-          hide-details
-        />
+        <v-row dense>
+          <custom-text-field
+            v-model="config.barcode.value"
+            label="قيمة الباركود المشفرة"
+            icon="barcode"
+            cols="12"
+            :hideDetails="true"
+            :clearable="false"
+          />
+          <auto-list
+            v-model="config.barcode.format"
+            name="ScreenTypeChoices"
+            :objects="barcodeFormats"
+            label="صيغة التشفير (Encoding)"
+            placeholder="اختر صيغة التشفير..."
+            cols="12"
+            :add="false"
+            :hideDetails="true"
+          />
+        </v-row>
       </template>
     </div>
 
@@ -51,24 +53,26 @@
         <p class="text-caption text-medium-emphasis mb-3">
           يحتوي على بصمة التحقق الرقمية للامتحان والطالب لمنع التزوير أو تبديل الأوراق.
         </p>
-        <v-text-field
-          v-model="config.qr.value"
-          label="البيانات المشفرة بالـ QR"
-          variant="outlined"
-          density="compact"
-          rounded="lg"
-          class="mb-3"
-          hide-details
-        />
-        <v-select
-          v-model="config.qr.ecc"
-          :items="['L', 'M', 'Q', 'H']"
-          label="مستوى تصحيح الأخطاء (Error Correction)"
-          variant="outlined"
-          density="compact"
-          rounded="lg"
-          hide-details
-        />
+        <v-row dense>
+          <custom-text-field
+            v-model="config.qr.value"
+            label="البيانات المشفرة بالـ QR"
+            icon="qrcode"
+            cols="12"
+            :hideDetails="true"
+            :clearable="false"
+          />
+          <auto-list
+            v-model="config.qr.ecc"
+            name="ScreenTypeChoices"
+            :objects="qrEccOptions"
+            label="مستوى تصحيح الأخطاء (Error Correction)"
+            placeholder="اختر مستوى التصحيح..."
+            cols="12"
+            :add="false"
+            :hideDetails="true"
+          />
+        </v-row>
       </template>
     </div>
 
@@ -82,60 +86,57 @@
         تخصيص قواعد وتنبيهات التظليل المطبوعة في صندوق التعليمات أسفل ورقة الإجابة.
       </p>
 
-      <v-text-field
-        v-model="config.instructions.rule1"
-        label="التعليمة 1: تظليل الدائرة كاملاً بالقلم الجاف (Rule 1)"
-        placeholder="1- يجب أن يكون تظليل الدائرة بقلم جاف أسود أو أزرق بشكل كامل مثال:"
-        variant="outlined"
-        density="compact"
-        rounded="lg"
-        class="mb-3"
-        hide-details
-      />
+      <v-row dense>
+        <custom-text-field
+          v-model="config.instructions.rule1"
+          label="التعليمة 1: تظليل الدائرة كاملاً بالقلم الجاف (Rule 1)"
+          placeholder="1- يجب أن يكون تظليل الدائرة بقلم جاف أسود أو أزرق بشكل كامل مثال:"
+          icon="numeric-1-circle-outline"
+          cols="12"
+          :hideDetails="true"
+          :clearable="false"
+        />
 
-      <v-text-field
-        v-model="config.instructions.correct_label"
-        label="كلمة توضيح النموذج الصحيح (Correct Label)"
-        placeholder="واجب"
-        variant="outlined"
-        density="compact"
-        rounded="lg"
-        class="mb-3"
-        hide-details
-      />
+        <custom-text-field
+          v-model="config.instructions.correct_label"
+          label="كلمة توضيح النموذج الصحيح (Correct Label)"
+          placeholder="واجب"
+          icon="check-circle-outline"
+          cols="12"
+          :hideDetails="true"
+          :clearable="false"
+        />
 
-      <v-text-field
-        v-model="config.instructions.rule2"
-        label="التعليمة 2: التأكد من مكان التظليل (Rule 2)"
-        placeholder="2 - تأكد من تظليل إجاباتك في الأماكن المخصصة لها."
-        variant="outlined"
-        density="compact"
-        rounded="lg"
-        class="mb-3"
-        hide-details
-      />
+        <custom-text-field
+          v-model="config.instructions.rule2"
+          label="التعليمة 2: التأكد من مكان التظليل (Rule 2)"
+          placeholder="2 - تأكد من تظليل إجاباتك في الأماكن المخصصة لها."
+          icon="numeric-2-circle-outline"
+          cols="12"
+          :hideDetails="true"
+          :clearable="false"
+        />
 
-      <v-text-field
-        v-model="config.instructions.rule3"
-        label="التعليمة 3: منع المصحح (Rule 3)"
-        placeholder="3 - يمنع استخدام المصحح."
-        variant="outlined"
-        density="compact"
-        rounded="lg"
-        class="mb-3"
-        hide-details
-      />
+        <custom-text-field
+          v-model="config.instructions.rule3"
+          label="التعليمة 3: منع المصحح (Rule 3)"
+          placeholder="3 - يمنع استخدام المصحح."
+          icon="numeric-3-circle-outline"
+          cols="12"
+          :hideDetails="true"
+          :clearable="false"
+        />
 
-      <v-text-field
-        v-model="config.instructions.rule4"
-        label="التعليمة 4: عدم قبول الإجابات مالم تسجل (Rule 4)"
-        placeholder="4 - لن تقبل الإجابات مالم تسجل على هذه الورقة، اترك لنفسك وقتاً كافياً لنقل الإجابات."
-        variant="outlined"
-        density="compact"
-        rounded="lg"
-        class="mb-3"
-        hide-details
-      />
+        <custom-text-field
+          v-model="config.instructions.rule4"
+          label="التعليمة 4: عدم قبول الإجابات مالم تسجل (Rule 4)"
+          placeholder="4 - لن تقبل الإجابات مالم تسجل على هذه الورقة، اترك لنفسك وقتاً كافياً لنقل الإجابات."
+          icon="numeric-4-circle-outline"
+          cols="12"
+          :hideDetails="true"
+          :clearable="false"
+        />
+      </v-row>
 
       <v-divider class="my-3" />
 
@@ -159,7 +160,7 @@
     <div class="pa-4 rounded-xl border bg-surface">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">علامات المحاذاة البصرية (Optical Fiducials)</label>
-        <v-chip size="x-small" color="success" variant="flat" class="font-weight-bold">4 زوايا إجبارية</v-chip>
+        <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold rounded-s">4 زوايا إجبارية</v-chip>
       </div>
       <p class="text-caption text-medium-emphasis mb-0">
         أربع مربعات سوداء صلبة مطبوعة في الأركان الأربعة للورقة مع منطقة أمان بيضاء معزولة (Quiet Zones)، يعتمد عليها محرك OpenCV في الكشف وتصحيح زاوية الميلان والانحراف المنظوري (Perspective Transform) بدقة 100%.
@@ -172,6 +173,19 @@
 const props = defineProps<{
   config: any
 }>()
+
+const barcodeFormats = [
+  { id: 'CODE128', value: 'CODE128', name: 'CODE128 (شامل ومعياري)', title: 'CODE128 (شامل ومعياري)' },
+  { id: 'CODE39', value: 'CODE39', name: 'CODE39 (أرقام وأحرف)', title: 'CODE39 (أرقام وأحرف)' },
+  { id: 'EAN13', value: 'EAN13', name: 'EAN13 (أرقام تجارية)', title: 'EAN13 (أرقام تجارية)' },
+]
+
+const qrEccOptions = [
+  { id: 'L', value: 'L', name: 'L - منخفض (7% تصحيح)', title: 'L - منخفض (7% تصحيح)' },
+  { id: 'M', value: 'M', name: 'M - متوسط (15% تصحيح)', title: 'M - متوسط (15% تصحيح)' },
+  { id: 'Q', value: 'Q', name: 'Q - عالي (25% تصحيح)', title: 'Q - عالي (25% تصحيح)' },
+  { id: 'H', value: 'H', name: 'H - فائق الأمان (30% تصحيح)', title: 'H - فائق الأمان (30% تصحيح)' },
+]
 
 if (!props.config.instructions) {
   props.config.instructions = {

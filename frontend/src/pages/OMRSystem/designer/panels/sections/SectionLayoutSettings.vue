@@ -4,7 +4,7 @@
     <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">عدد الأعمدة الهندسية (Columns Count)</label>
-        <v-chip size="small" color="info" variant="flat" class="font-weight-bold">
+        <v-chip size="small" color="primary" variant="flat" class="font-weight-bold rounded-s">
           {{ config.questions.layout.columns_count }} أعمدة
         </v-chip>
       </div>
@@ -29,10 +29,10 @@
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">التباعد الرأسي بين الأسئلة (Row Spacing)</label>
         <div class="d-flex align-center gap-2">
-          <v-chip size="small" color="primary" variant="flat" class="font-weight-bold">
+          <v-chip size="small" color="primary" variant="flat" class="font-weight-bold rounded-s">
             {{ config.questions.layout.row_spacing_mm }} mm
           </v-chip>
-          <v-btn size="x-small" variant="tonal" color="info" rounded="lg" class="font-weight-bold" @click="$emit('auto-fit-spacing')">
+          <v-btn size="x-small" variant="tonal" color="primary" rounded="lg" class="font-weight-bold" @click="$emit('auto-fit-spacing')">
             ملاءمة تلقائية
           </v-btn>
         </div>
@@ -52,7 +52,7 @@
     <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">نصف قطر الدائرة (Bubble Radius)</label>
-        <v-chip size="small" color="primary" variant="flat" class="font-weight-bold">
+        <v-chip size="small" color="primary" variant="flat" class="font-weight-bold rounded-s">
           {{ config.questions.layout.bubble_radius_mm }} mm
         </v-chip>
       </div>
@@ -71,7 +71,7 @@
     <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">نمط خيارات الاختيار من متعدد (MCQ)</label>
-        <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
+        <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold rounded-s">
           {{ config.questions.layout.bubble_type === 'arabic_letters' ? 'عربي (أ، ب، ج، د)' : (config.questions.layout.bubble_type === 'letters' ? 'إنجليزي (A, B, C, D)' : 'أرقام (1, 2, 3, 4)') }}
         </v-chip>
       </div>
@@ -94,14 +94,14 @@
     <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">نمط خيارات الصواب والخطأ (True / False)</label>
-        <v-chip size="small" color="success" variant="tonal" class="font-weight-bold">
+        <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold rounded-s">
           {{ config.questions.layout.tf_bubble_type === 'english' ? 'T / F' : (config.questions.layout.tf_bubble_type === 'symbols' ? '✓ / ✗' : (config.questions.layout.tf_bubble_type === 'arabic_words' ? 'صح / خطأ' : 'ص / خ')) }}
         </v-chip>
       </div>
       <v-btn-toggle
         v-model="config.questions.layout.tf_bubble_type"
         mandatory
-        color="success"
+        color="primary"
         variant="outlined"
         rounded="lg"
         grow
@@ -118,7 +118,7 @@
     <div class="pa-4 rounded-xl border bg-surface">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">عدد خيارات أسئلة الاختيار من متعدد</label>
-        <v-chip size="small" color="info" variant="flat" class="font-weight-bold">
+        <v-chip size="small" color="primary" variant="flat" class="font-weight-bold rounded-s">
           {{ config.questions.layout.choices_count || 4 }} خيارات
         </v-chip>
       </div>

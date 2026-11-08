@@ -100,19 +100,26 @@
 
       <!-- Optional URL Input Field -->
       <div v-if="showUrlInput" class="mb-3">
-        <v-text-field
+        <custom-text-field
           v-model="logoUrlInput"
           label="رابط صورة الشعار المباشر (URL أو Base64)"
           placeholder="https://example.com/logo.png أو /logo.png"
-          variant="outlined"
-          density="compact"
-          rounded="lg"
-          hide-details
-          prepend-inner-icon="mdi-image-outline"
-          append-inner-icon="mdi-check"
-          @click:append-inner="applyLogoUrl"
+          icon="image-outline"
+          cols="12"
+          :hideDetails="true"
+          :clearable="false"
           @keydown.enter="applyLogoUrl"
-        />
+        >
+          <template #append-inner>
+            <v-btn
+              icon="mdi-check"
+              size="x-small"
+              variant="tonal"
+              color="primary"
+              @click="applyLogoUrl"
+            />
+          </template>
+        </custom-text-field>
       </div>
 
       <!-- Emblem Type Selection Buttons -->

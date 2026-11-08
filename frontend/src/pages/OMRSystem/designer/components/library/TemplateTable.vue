@@ -8,6 +8,7 @@
         editItem: (item: any) => $emit('edit', item),
         create: () => $emit('create-new'),
       }"
+      :search="true"
       :hasFilter="false"
       :log="false"
       :restore="false"

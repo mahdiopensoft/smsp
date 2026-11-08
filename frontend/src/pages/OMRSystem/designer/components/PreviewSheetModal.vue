@@ -35,7 +35,7 @@
             طباعة الورقة
           </v-btn>
           <v-btn
-            color="success"
+            color="primary"
             size="small"
             rounded="lg"
             class="font-weight-bold"

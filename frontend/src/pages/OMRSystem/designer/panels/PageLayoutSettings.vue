@@ -4,23 +4,19 @@
     <div class="pa-4 rounded-xl border bg-surface mb-4">
       <div class="d-flex align-center justify-space-between mb-2">
         <label class="text-subtitle-2 font-weight-bold">النموذج القياسي المعتمد (Preset Pattern)</label>
-        <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold">موصى به</v-chip>
+        <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold rounded-s">موصى به</v-chip>
       </div>
-      <v-select
+      <auto-list
         v-model="selectedPreset"
-        :items="presets"
-        item-title="title"
-        item-value="id"
-        variant="outlined"
-        density="comfortable"
-        rounded="lg"
-        hide-details
+        name="ScreenTypeChoices"
+        :objects="formattedPresets"
+        label="النموذج القياسي المعتمد"
+        placeholder="اختر النموذج القياسي..."
+        cols="12"
+        :add="false"
+        :hideDetails="true"
         @update:model-value="onPresetChange"
-      >
-        <template v-slot:item="{ props, item }">
-          <v-list-item v-bind="props" :subtitle="item.raw.subtitle" />
-        </template>
-      </v-select>
+      />
     </div>
 
     <!-- Document Output & Layout Mode (For Yemeni Ministry 50) -->
@@ -73,30 +69,24 @@
       </v-btn-toggle>
 
       <v-row dense>
-        <v-col cols="6">
-          <v-text-field
-            v-model.number="config.paper.width_mm"
-            label="العرض (مم)"
-            type="number"
-            variant="outlined"
-            density="compact"
-            rounded="lg"
-            hide-details
-            disabled
-          />
-        </v-col>
-        <v-col cols="6">
-          <v-text-field
-            v-model.number="config.paper.height_mm"
-            label="الارتفاع (مم)"
-            type="number"
-            variant="outlined"
-            density="compact"
-            rounded="lg"
-            hide-details
-            disabled
-          />
-        </v-col>
+        <custom-text-field
+          v-model.number="config.paper.width_mm"
+          label="العرض (مم)"
+          type="number"
+          cols="6"
+          :hideDetails="true"
+          :clearable="false"
+          :disabled="true"
+        />
+        <custom-text-field
+          v-model.number="config.paper.height_mm"
+          label="الارتفاع (مم)"
+          type="number"
+          cols="6"
+          :hideDetails="true"
+          :clearable="false"
+          :disabled="true"
+        />
       </v-row>
     </div>
 
@@ -227,6 +217,15 @@ const themeColors = [
   { hex: '#1e40af', label: 'أزرق ملكي داكن' },
   { hex: '#b91c1c', label: 'عنابي أمني' },
 ]
+
+const formattedPresets = computed(() => {
+  return presets.map(p => ({
+    id: p.id,
+    value: p.id,
+    name: p.title,
+    title: p.title,
+  }))
+})
 
 function onPresetChange(presetId: string) {
   emit('preset-selected', presetId)

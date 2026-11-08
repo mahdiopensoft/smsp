@@ -62,7 +62,7 @@
 
         <v-btn
           v-if="savedDbId"
-          color="success"
+          color="primary"
           rounded="lg"
           class="font-weight-bold"
           prepend-icon="mdi-content-save-check"

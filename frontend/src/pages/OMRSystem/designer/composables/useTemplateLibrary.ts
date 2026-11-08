@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 export function useTemplateLibrary(props: { templates: any[] }) {
   const viewMode = ref<'table' | 'cards'>('table')
   const searchQuery = ref('')
+  const tableSearch = ref('')
   const filterCategory = ref('all')
   const filterQuestions = ref('all')
   const filterActive = ref<any>('all')
@@ -177,13 +178,15 @@ export function useTemplateLibrary(props: { templates: any[] }) {
       })
     }
 
-    if (searchQuery.value && searchQuery.value.trim()) {
-      const q = searchQuery.value.toLowerCase().trim()
+    const effectiveSearch = (tableSearch.value || searchQuery.value || '').toLowerCase().trim()
+    if (effectiveSearch) {
       list = list.filter((t) =>
-        (t.name && t.name.toLowerCase().includes(q)) ||
-        (t.description && t.description.toLowerCase().includes(q)) ||
-        (String(t.id).includes(q)) ||
-        (t.template_data?.template_id && t.template_data.template_id.toLowerCase().includes(q))
+        (t.name && t.name.toLowerCase().includes(effectiveSearch)) ||
+        (t.description && t.description.toLowerCase().includes(effectiveSearch)) ||
+        (String(t.id).includes(effectiveSearch)) ||
+        (t.template_data?.template_id && t.template_data.template_id.toLowerCase().includes(effectiveSearch)) ||
+        (t.template_data?.header?.exam_name && t.template_data.header.exam_name.toLowerCase().includes(effectiveSearch)) ||
+        (t.subject_name && t.subject_name.toLowerCase().includes(effectiveSearch))
       )
     }
 
@@ -209,6 +212,10 @@ export function useTemplateLibrary(props: { templates: any[] }) {
     const pageSize = Number(p.page_size) || libraryPageSize.value || 10
     libraryPage.value = page
     libraryPageSize.value = pageSize
+
+    if (p.search !== undefined) {
+      tableSearch.value = String(p.search).trim()
+    }
 
     const all = filteredTemplates.value || []
     const total = all.length
@@ -240,6 +247,7 @@ export function useTemplateLibrary(props: { templates: any[] }) {
 
   function resetFilters() {
     searchQuery.value = ''
+    tableSearch.value = ''
     filterCategory.value = 'all'
     filterQuestions.value = 'all'
     filterActive.value = 'all'

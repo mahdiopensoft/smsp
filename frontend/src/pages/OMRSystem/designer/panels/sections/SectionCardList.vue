@@ -44,9 +44,9 @@
           <div class="d-flex align-center gap-2">
             <v-chip
               size="x-small"
-              :color="sec.type === 'true_false' ? 'success' : 'primary'"
+              :color="sec.type === 'true_false' ? 'info' : 'primary'"
               variant="flat"
-              class="font-weight-bold"
+              class="font-weight-bold rounded-s"
             >
               القسم {{ idx + 1 }}
             </v-chip>
@@ -86,61 +86,59 @@
 
         <!-- Section Controls Row -->
         <v-row dense class="align-center">
-          <!-- Title -->
-          <v-col cols="12" sm="5">
-            <v-text-field
-              v-model="sec.title"
-              label="عنوان القسم"
-              density="compact"
-              hide-details
-              variant="outlined"
-            />
-          </v-col>
+          <custom-text-field
+            v-model="sec.title"
+            label="عنوان القسم"
+            icon="format-title"
+            cols="12"
+            sm="5"
+            md="5"
+            :hideDetails="true"
+            :clearable="false"
+          />
 
-          <!-- Type -->
-          <v-col cols="6" sm="3">
-            <v-select
-              v-model="sec.type"
-              :items="[
-                { title: 'صح وخطأ', value: 'true_false' },
-                { title: 'اختيار من متعدد', value: 'mcq' }
-              ]"
-              label="نوع الأسئلة"
-              density="compact"
-              hide-details
-              variant="outlined"
-              @update:model-value="$emit('change-type', idx, $event)"
-            />
-          </v-col>
+          <auto-list
+            v-model="sec.type"
+            name="ScreenTypeChoices"
+            :objects="questionTypeOptions"
+            label="نوع الأسئلة"
+            placeholder="النوع..."
+            cols="6"
+            sm="3"
+            md="3"
+            :add="false"
+            :hideDetails="true"
+            @update:model-value="$emit('change-type', idx, $event)"
+          />
 
-          <!-- Question Count in Section -->
-          <v-col cols="6" sm="2">
-            <v-text-field
-              :model-value="getSectionCount(sec)"
-              type="number"
-              min="1"
-              max="100"
-              label="العدد"
-              density="compact"
-              hide-details
-              variant="outlined"
-              @update:model-value="$emit('update-count', idx, Number($event))"
-            />
-          </v-col>
+          <custom-text-field
+            :model-value="getSectionCount(sec)"
+            type="number"
+            min="1"
+            max="100"
+            label="العدد"
+            icon="numeric"
+            cols="3"
+            sm="2"
+            md="2"
+            :hideDetails="true"
+            :clearable="false"
+            @update:model-value="$emit('update-count', idx, Number($event))"
+          />
 
-          <!-- Mark per question -->
-          <v-col cols="12" sm="2">
-            <v-text-field
-              v-model.number="sec.mark"
-              type="number"
-              step="0.5"
-              min="0.5"
-              label="الدرجة"
-              density="compact"
-              hide-details
-              variant="outlined"
-            />
-          </v-col>
+          <custom-text-field
+            v-model.number="sec.mark"
+            type="number"
+            step="0.5"
+            min="0.5"
+            label="الدرجة"
+            icon="star-circle-outline"
+            cols="3"
+            sm="2"
+            md="2"
+            :hideDetails="true"
+            :clearable="false"
+          />
         </v-row>
 
         <!-- Section Footer / Summary -->
@@ -177,6 +175,11 @@
 </template>
 
 <script setup lang="ts">
+const questionTypeOptions = [
+  { id: 'true_false', value: 'true_false', name: 'صح وخطأ', title: 'صح وخطأ' },
+  { id: 'mcq', value: 'mcq', name: 'اختيار من متعدد', title: 'اختيار من متعدد' },
+]
+
 defineProps<{
   config: any
   sectionsList: any[]

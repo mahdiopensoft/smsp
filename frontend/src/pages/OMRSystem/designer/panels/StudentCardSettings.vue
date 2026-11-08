@@ -72,103 +72,86 @@
         <label class="text-subtitle-2 font-weight-bold mb-2 d-block">
           الترويسة والشعار — {{ activeProfile.fullName }}
         </label>
-        <v-text-field
-          v-model="config.header.institution_name"
-          :label="activeProfile.labels.institution"
-          variant="outlined"
-          density="compact"
-          rounded="lg"
-          class="mb-3"
-          hide-details
-        />
-        <v-text-field
-          v-model="config.header.sub_title"
-          :label="activeProfile.labels.subTitle"
-          variant="outlined"
-          density="compact"
-          rounded="lg"
-          class="mb-3"
-          hide-details
-        />
         <v-row dense>
-          <v-col cols="6">
-            <v-text-field
-              v-model="config.header.exam_stage_title"
-              :label="activeProfile.labels.examStage"
-              variant="outlined"
-              density="compact"
-              rounded="lg"
-              hide-details
-            />
-          </v-col>
-          <v-col cols="6">
-            <v-text-field
-              v-model="config.metadata.academic_year"
-              :label="activeProfile.labels.academicYear"
-              variant="outlined"
-              density="compact"
-              rounded="lg"
-              hide-details
-            />
-          </v-col>
+          <custom-text-field
+            v-model="config.header.institution_name"
+            :label="activeProfile.labels.institution"
+            cols="12"
+            icon="domain"
+            :hideDetails="true"
+            :clearable="false"
+          />
+          <custom-text-field
+            v-model="config.header.sub_title"
+            :label="activeProfile.labels.subTitle"
+            cols="12"
+            icon="text"
+            :hideDetails="true"
+            :clearable="false"
+          />
+          <custom-text-field
+            v-model="config.header.exam_stage_title"
+            :label="activeProfile.labels.examStage"
+            cols="6"
+            icon="school-outline"
+            :hideDetails="true"
+            :clearable="false"
+          />
+          <custom-text-field
+            v-model="config.metadata.academic_year"
+            :label="activeProfile.labels.academicYear"
+            cols="6"
+            icon="calendar-clock"
+            :hideDetails="true"
+            :clearable="false"
+          />
         </v-row>
       </div>
 
       <!-- Exam & Subject Information (Dynamic Labels) -->
       <div class="pa-4 rounded-xl border bg-surface mb-4">
         <label class="text-subtitle-2 font-weight-bold mb-2 d-block">بيانات المقرر وموقع الاختبار</label>
-        <v-text-field
-          v-model="config.header.exam_name"
-          :label="activeProfile.labels.examSubject"
-          variant="outlined"
-          density="compact"
-          rounded="lg"
-          class="mb-3"
-          hide-details
-        />
-        <v-row dense class="mb-2">
-          <v-col cols="6">
-            <v-text-field
-              v-model="config.header.governorate"
-              :label="activeProfile.labels.area1"
-              variant="outlined"
-              density="compact"
-              rounded="lg"
-              hide-details
-            />
-          </v-col>
-          <v-col cols="6">
-            <v-text-field
-              v-model="config.header.directorate"
-              :label="activeProfile.labels.area2"
-              variant="outlined"
-              density="compact"
-              rounded="lg"
-              hide-details
-            />
-          </v-col>
-        </v-row>
         <v-row dense>
-          <v-col cols="6">
-            <v-text-field
-              v-model="config.header.center_name"
-              :label="activeProfile.labels.centerName"
-              variant="outlined"
-              density="compact"
-              rounded="lg"
-              hide-details
-            />
-          </v-col>
-          <v-col cols="6">
-            <v-text-field
-              v-model="config.header.center_code"
-              :label="activeProfile.labels.centerCode"
-              variant="outlined"
-              density="compact"
-              rounded="lg"
-              hide-details
-            />
-          </v-col>
+          <custom-text-field
+            v-model="config.header.exam_name"
+            :label="activeProfile.labels.examSubject"
+            cols="12"
+            icon="book-open-outline"
+            :hideDetails="true"
+            :clearable="false"
+          />
+          <custom-text-field
+            v-model="config.header.governorate"
+            :label="activeProfile.labels.area1"
+            cols="6"
+            icon="map-marker-outline"
+            :hideDetails="true"
+            :clearable="false"
+          />
+          <custom-text-field
+            v-model="config.header.directorate"
+            :label="activeProfile.labels.area2"
+            cols="6"
+            icon="city-variant-outline"
+            :hideDetails="true"
+            :clearable="false"
+          />
+          <custom-text-field
+            v-model="config.header.center_name"
+            :label="activeProfile.labels.centerName"
+            cols="6"
+            icon="domain"
+            :hideDetails="true"
+            :clearable="false"
+          />
+          <custom-text-field
+            v-model="config.header.center_code"
+            :label="activeProfile.labels.centerCode"
+            cols="6"
+            icon="pound"
+            :hideDetails="true"
+            :clearable="false"
+          />
         </v-row>
       </div>
 
@@ -178,26 +161,22 @@
           صندوق {{ activeProfile.labels.seatNumber }} والرقم التسلسلي
         </label>
         <v-row dense>
-          <v-col cols="7">
-            <v-text-field
-              v-model="config.header.seat_number"
-              :label="activeProfile.labels.seatNumber"
-              variant="outlined"
-              density="compact"
-              rounded="lg"
-              hide-details
-            />
-          </v-col>
-          <v-col cols="5">
-            <v-text-field
-              v-model="config.header.serial_number"
-              :label="activeProfile.labels.serialNumber"
-              variant="outlined"
-              density="compact"
-              rounded="lg"
-              hide-details
-            />
-          </v-col>
+          <custom-text-field
+            v-model="config.header.seat_number"
+            :label="activeProfile.labels.seatNumber"
+            cols="7"
+            icon="card-account-details-outline"
+            :hideDetails="true"
+            :clearable="false"
+          />
+          <custom-text-field
+            v-model="config.header.serial_number"
+            :label="activeProfile.labels.serialNumber"
+            cols="5"
+            icon="numeric"
+            :hideDetails="true"
+            :clearable="false"
+          />
         </v-row>
       </div>
 
@@ -205,17 +184,17 @@
       <div class="pa-4 rounded-xl border bg-surface">
         <div class="d-flex align-center justify-space-between mb-2">
           <label class="text-subtitle-2 font-weight-bold">دوائر الملاحظة ولجنة النظام والمراقبة</label>
-          <v-chip size="x-small" color="warning" variant="tonal" class="font-weight-bold">5 حالات معتمدة</v-chip>
+          <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold rounded-s">5 حالات معتمدة</v-chip>
         </div>
         <p class="text-caption text-medium-emphasis mb-3">
           يتم تضمين دوائر تظليل الحالات الخاصة لتمكين رئيس المركز ولجنة المراقبة من رصد الغياب أو المخالفات آلياً:
         </p>
         <div class="d-flex gap-1 flex-wrap">
-          <v-chip size="small" variant="outlined" color="primary">غائب</v-chip>
-          <v-chip size="small" variant="outlined" color="error">غش</v-chip>
-          <v-chip size="small" variant="outlined" color="error">شغب</v-chip>
-          <v-chip size="small" variant="outlined" color="warning">تلفون</v-chip>
-          <v-chip size="small" variant="outlined" color="grey-darken-1">أخرى</v-chip>
+          <v-chip size="small" variant="outlined" color="primary" class="rounded-s font-weight-bold">غائب</v-chip>
+          <v-chip size="small" variant="outlined" color="error" class="rounded-s font-weight-bold">غش</v-chip>
+          <v-chip size="small" variant="outlined" color="error" class="rounded-s font-weight-bold">شغب</v-chip>
+          <v-chip size="small" variant="outlined" color="warning" class="rounded-s font-weight-bold">تلفون</v-chip>
+          <v-chip size="small" variant="outlined" color="grey-darken-1" class="rounded-s font-weight-bold">أخرى</v-chip>
         </div>
       </div>
     </template>

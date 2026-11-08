@@ -1,22 +1,8 @@
 <template>
   <filter-fields label="خيارات التصفية والبحث المتقدم" class="main-card border-0 pa-5 rounded-2xl mb-6">
     <v-row dense class="align-center">
-      <!-- 1. حقل البحث بالاسم والمادة الموحد -->
-      <v-col cols="12" sm="6" md="3">
-        <custom-text-field
-          :model-value="searchQuery"
-          label="اسم القالب أو المادة"
-          placeholder="بحث باسم القالب أو المادة..."
-          icon="magnify"
-          cols="12"
-          :hideDetails="true"
-          clearable
-          @update:model-value="$emit('update:searchQuery', $event); $emit('apply')"
-        />
-      </v-col>
-
-      <!-- 2. فلتر نوع القالب / المؤسسة الموحد -->
-      <v-col cols="12" sm="6" md="3">
+      <!-- 1. فلتر نوع القالب / المؤسسة الموحد -->
+      <v-col cols="12" sm="6" md="4">
         <auto-list
           :model-value="filterCategory"
           name="ScreenTypeChoices"
@@ -30,8 +16,8 @@
         />
       </v-col>
 
-      <!-- 3. فلتر سعة الأسئلة الموحد -->
-      <v-col cols="12" sm="6" md="2">
+      <!-- 2. فلتر سعة الأسئلة الموحد -->
+      <v-col cols="12" sm="6" md="3">
         <auto-list
           :model-value="filterQuestions"
           name="ScreenTypeChoices"
@@ -45,8 +31,8 @@
         />
       </v-col>
 
-      <!-- 4. فلتر حالة التفعيل الموحد -->
-      <v-col cols="12" sm="6" md="2">
+      <!-- 3. فلتر حالة التفعيل الموحد -->
+      <v-col cols="12" sm="6" md="3">
         <auto-list
           :model-value="filterActive"
           name="ScreenTypeChoices"
@@ -60,7 +46,7 @@
         />
       </v-col>
 
-      <!-- 5. أزرار إجراءات الفلترة الموحدة -->
+      <!-- 4. أزرار إجراءات الفلترة الموحدة -->
       <v-col cols="12" sm="6" md="2" class="d-flex align-center justify-end gap-2">
         <custom-btn
           type="show"
@@ -88,20 +74,20 @@
 import { computed } from 'vue'
 
 const props = defineProps<{
-  searchQuery: string
   filterCategory: string
   filterQuestions: any
   filterActive: any
   categoryOptions?: any[]
   questionCountOptions?: any[]
   activeOptions?: any[]
+  searchQuery?: string
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:searchQuery', val: string): void
   (e: 'update:filterCategory', val: string): void
   (e: 'update:filterQuestions', val: any): void
   (e: 'update:filterActive', val: any): void
+  (e: 'update:searchQuery', val: string): void
   (e: 'apply'): void
   (e: 'reset'): void
 }>()
