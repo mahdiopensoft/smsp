@@ -73,32 +73,91 @@
       :class="{ 'content-loading-blur': isLoadingForEdit }"
     >
 
-      <!-- Premium Connected Wizard Stepper -->
+      <!-- Premium Connected Wizard Stepper Pipeline (دوائر تفاعلية مع خطوط توصيل وحالات نجاح/فشل صريحة) -->
       <div class="premium-wizard-wrapper">
         <div class="premium-wizard-container">
-          <!-- Connecting Progress Line -->
+          <!-- Connecting Progress Line with RTL support -->
           <div class="wizard-progress-track">
-            <div class="wizard-progress-fill"
-              :style="{ width: ((step - 1) / (wizardSteps.length - 1)) * 100 + '%', right: 0, left: 'auto' }">
+            <div
+              class="wizard-progress-fill"
+              :style="{ width: wizardProgressPercentage + '%' }"
+            >
+              <span class="wizard-beam-glow"></span>
             </div>
           </div>
 
           <!-- Step Nodes -->
-          <div v-for="s in wizardSteps" :key="s.value" class="premium-wizard-node" :class="{
-            'is-active': step === s.value,
-            'is-completed': step > s.value,
-            'is-pending': step < s.value
-          }" @click="handleStepClick(s.value)">
-
-            <div class="node-icon-wrapper">
+          <div
+            v-for="s in wizardSteps"
+            :key="s.value"
+            class="premium-wizard-node"
+            :class="getStepNodeClasses(s.value)"
+            @click="handleStepClick(s.value)"
+          >
+            <!-- Circular Node Anchor -->
+            <div class="stepper-circle-anchor">
+              <!-- Number badge on top-right corner -->
               <span class="node-step-number">{{ s.value }}</span>
-              <v-icon v-if="step > s.value" size="20" color="white" class="node-icon">mdi-check</v-icon>
-              <v-icon v-else size="20" class="node-icon" :color="step === s.value ? 'white' : 'primary'">{{ s.icon }}</v-icon>
+
+              <!-- Active pulsing wave ring for active or warning steps -->
+              <span
+                v-if="getStepStatus(s.value).type === 'active'"
+                class="stepper-pulse-ring pulse-primary"
+              ></span>
+              <span
+                v-else-if="getStepStatus(s.value).type === 'error'"
+                class="stepper-pulse-ring pulse-error"
+              ></span>
+
+              <div class="stepper-circle">
+                <!-- If Completed/Success: Show Animated Checkmark -->
+                <v-icon
+                  v-if="getStepStatus(s.value).type === 'completed'"
+                  size="22"
+                  class="checkmark-pop"
+                >
+                  mdi-check-bold
+                </v-icon>
+
+                <!-- If Error/Failure: Show Alert Icon -->
+                <v-icon
+                  v-else-if="getStepStatus(s.value).type === 'error'"
+                  size="22"
+                  class="error-icon-shake"
+                >
+                  mdi-alert-circle
+                </v-icon>
+
+                <!-- Otherwise (Active / Pending): Show Step Custom Icon -->
+                <v-icon
+                  v-else
+                  size="20"
+                  :class="{ 'icon-active-breath': getStepStatus(s.value).type === 'active' }"
+                >
+                  {{ s.icon }}
+                </v-icon>
+              </div>
             </div>
 
-            <div class="node-content text-center">
+            <!-- Step Titles & Explicit Status Pill -->
+            <div class="node-content text-center mt-2">
               <span class="node-title font-weight-black">{{ s.title }}</span>
-              <span v-if="s.subtitle" class="node-subtitle text-caption text-medium-emphasis d-none d-md-block">{{ s.subtitle }}</span>
+              <span v-if="s.subtitle" class="node-subtitle text-caption text-medium-emphasis d-none d-lg-block">
+                {{ s.subtitle }}
+              </span>
+
+              <!-- Explicit Status Indicator (نجاح / فشل / قيد الضبط / انتظار) -->
+              <div class="node-status-badge-wrapper mt-1">
+                <span
+                  class="node-status-pill font-weight-bold"
+                  :class="`status-${getStepStatus(s.value).type}`"
+                >
+                  <v-icon size="11" class="me-1">
+                    {{ getStepStatus(s.value).statusIcon }}
+                  </v-icon>
+                  {{ getStepStatus(s.value).text }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -2984,6 +3043,179 @@ const wizardSteps = [
   { value: 4, title: 'استعراض وضبط النماذج', subtitle: 'المسودة التفاعلية والتحكيم', icon: 'mdi-file-document-edit-outline' },
 ]
 
+const validatedStep2Once = ref(false)
+
+const wizardProgressPercentage = computed(() => {
+  return ((step.value - 1) / (wizardSteps.length - 1)) * 100
+})
+
+function getStepStatus(sValue) {
+  // ── Step 1: إعدادات الاختبار ──
+  if (sValue === 1) {
+    if (step.value === 1) {
+      if (validatedOnce.value && invalidSectionsCount.value > 0) {
+        return {
+          type: 'error',
+          badge: 'تنبيه',
+          text: `فشل: ${invalidSectionsCount.value} أقسام غير مكتملة`,
+          statusIcon: 'mdi-alert-circle',
+        }
+      }
+      return {
+        type: 'active',
+        badge: 'قيد الإعداد',
+        text: 'جاري ضبط الإعدادات...',
+        statusIcon: 'mdi-record-circle-outline',
+      }
+    }
+    if (invalidSectionsCount.value > 0) {
+      return {
+        type: 'error',
+        badge: 'تنبيه',
+        text: 'فشل: حقول مطلوبة غير مكتملة',
+        statusIcon: 'mdi-alert-circle',
+      }
+    }
+    return {
+      type: 'completed',
+      badge: 'نجاح',
+      text: 'تم بنجاح (مكتمل)',
+      statusIcon: 'mdi-check-bold',
+    }
+  }
+
+  // ── Step 2: مصفوفة المعايير ──
+  if (sValue === 2) {
+    const isStep2Valid = modelsMode.value === 'advanced'
+      ? (Array.isArray(modelGroups.value) && modelGroups.value.length > 0 && modelGroups.value.every(g => getGroupUnitsTotal(g) === 100 && getGroupTypesTotal(g) === 100))
+      : (totalUnitsPercentage.value === 100 && totalTypesPercentage.value === 100)
+
+    if (step.value === 2) {
+      if (validatedStep2Once.value && !isStep2Valid) {
+        return {
+          type: 'error',
+          badge: 'غير متطابق',
+          text: `فشل: الأوزان ${totalUnitsPercentage.value}% (المطلوب 100%)`,
+          statusIcon: 'mdi-alert-circle',
+        }
+      }
+      return {
+        type: 'active',
+        badge: 'قيد الضبط',
+        text: isStep2Valid ? 'المصفوفة متوازنة (جاهزة)' : 'جاري موازنة النسب...',
+        statusIcon: 'mdi-record-circle-outline',
+      }
+    }
+    if (step.value > 2) {
+      if (!isStep2Valid) {
+        return {
+          type: 'error',
+          badge: 'تنبيه',
+          text: 'فشل: المصفوفة غير متوازنة',
+          statusIcon: 'mdi-alert-circle',
+        }
+      }
+      return {
+        type: 'completed',
+        badge: 'نجاح',
+        text: 'تم بنجاح (المصفوفة متطابقة)',
+        statusIcon: 'mdi-check-bold',
+      }
+    }
+    return {
+      type: 'pending',
+      badge: 'في الانتظار',
+      text: 'في الانتظار',
+      statusIcon: 'mdi-clock-outline',
+    }
+  }
+
+  // ── Step 3: المعاينة والتأكيد ──
+  if (sValue === 3) {
+    if (step.value === 3) {
+      if (shortageReport.value && shortageReport.value.totalMissing > 0) {
+        return {
+          type: 'error',
+          badge: 'عجز بالأسئلة',
+          text: `فشل: عجز ${shortageReport.value.totalMissing} سؤال`,
+          statusIcon: 'mdi-alert-circle',
+        }
+      }
+      return {
+        type: 'active',
+        badge: 'قيد الفحص',
+        text: 'جاري مطابقة الملخص والمواصفات...',
+        statusIcon: 'mdi-record-circle-outline',
+      }
+    }
+    if (step.value > 3) {
+      return {
+        type: 'completed',
+        badge: 'نجاح',
+        text: 'تم الاعتماد والتأكيد بنجاح',
+        statusIcon: 'mdi-check-bold',
+      }
+    }
+    return {
+      type: 'pending',
+      badge: 'في الانتظار',
+      text: 'في الانتظار',
+      statusIcon: 'mdi-clock-outline',
+    }
+  }
+
+  // ── Step 4: استعراض وضبط النماذج ──
+  if (sValue === 4) {
+    if (step.value === 4) {
+      if (generating.value) {
+        return {
+          type: 'active',
+          badge: 'جاري التوليد',
+          text: 'جاري بناء النماذج وسحب الأسئلة...',
+          statusIcon: 'mdi-loading',
+        }
+      }
+      if (stagedModels.value && stagedModels.value.length > 0) {
+        return {
+          type: 'completed',
+          badge: 'نجاح',
+          text: `تم بنجاح (${stagedModels.value.length} نماذج جاهزة)`,
+          statusIcon: 'mdi-check-bold',
+        }
+      }
+      return {
+        type: 'active',
+        badge: 'قيد الاستعراض',
+        text: 'معاينة النماذج والتحكيم',
+        statusIcon: 'mdi-record-circle-outline',
+      }
+    }
+    return {
+      type: 'pending',
+      badge: 'في الانتظار',
+      text: 'في الانتظار',
+      statusIcon: 'mdi-clock-outline',
+    }
+  }
+
+  return {
+    type: 'pending',
+    badge: 'في الانتظار',
+    text: 'في الانتظار',
+    statusIcon: 'mdi-clock-outline',
+  }
+}
+
+function getStepNodeClasses(sVal) {
+  const status = getStepStatus(sVal).type
+  return {
+    'is-active': status === 'active',
+    'is-completed': status === 'completed',
+    'is-error': status === 'error',
+    'is-pending': status === 'pending',
+  }
+}
+
 const handleStepClick = (stepVal) => {
   if (stepVal < step.value) {
     step.value = stepVal
@@ -5409,6 +5641,7 @@ const nextStep = async () => {
   }
 
   if (step.value === 2) {
+    validatedStep2Once.value = true
     if (modelsMode.value === 'advanced') {
       const invalidGrp = modelGroups.value.find(g => getGroupUnitsTotal(g) !== 100)
       if (invalidGrp) {
@@ -5648,12 +5881,12 @@ const generateAndSaveExam = async () => {
 }
 
 /* ==========================================================================
-   2. Connected Stepper Wizard (Executive 4-Step Progress)
+   2. Connected Stepper Wizard Pipeline (Executive 4-Step Progress)
    ========================================================================== */
 .premium-wizard-wrapper {
   position: relative;
-  padding: 28px 40px;
-  background: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.04) 0%, rgb(var(--v-theme-surface)) 100%) !important;
+  padding: 24px 36px 20px 36px;
+  background: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.05) 0%, rgb(var(--v-theme-surface)) 100%) !important;
   border-bottom: 1.5px solid rgba(var(--v-theme-primary), 0.12) !important;
 }
 
@@ -5662,28 +5895,49 @@ const generateAndSaveExam = async () => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  max-width: 980px;
+  max-width: 1080px;
   margin: 0 auto;
 }
 
 .wizard-progress-track {
   position: absolute;
-  top: 26px;
+  top: 23px;
   left: 60px;
   right: 60px;
   height: 4px;
-  background: rgba(var(--v-theme-primary), 0.12) !important;
+  background: rgba(var(--v-theme-primary), 0.1) !important;
   z-index: 1;
   border-radius: 999px;
   overflow: hidden;
 }
 
 .wizard-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #10b981 0%, rgb(var(--v-theme-primary)) 100%) !important;
-  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #0284c7 0%, rgb(var(--v-theme-primary)) 100%) !important;
+  transition: width 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
   border-radius: 999px;
-  box-shadow: 0 0 12px rgba(var(--v-theme-primary), 0.5);
+  box-shadow: 0 0 10px rgba(var(--v-theme-primary), 0.4);
+}
+
+.wizard-beam-glow {
+  position: absolute;
+  left: 0;
+  top: -2px;
+  bottom: -2px;
+  width: 16px;
+  background: #ffffff;
+  border-radius: 50%;
+  filter: blur(3px);
+  opacity: 0.9;
+  animation: wizard-beam-pulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes wizard-beam-pulse {
+  from { opacity: 0.5; transform: scaleX(0.8); }
+  to { opacity: 1; transform: scaleX(1.3); }
 }
 
 .premium-wizard-node {
@@ -5694,96 +5948,250 @@ const generateAndSaveExam = async () => {
   align-items: center;
   text-align: center;
   cursor: pointer;
-  width: 200px;
+  flex: 1;
+  max-width: 250px;
   transition: all 0.25s ease;
   user-select: none;
 }
 
-.node-icon-wrapper {
+/* Stepper Circle Anchor & Geometry */
+.stepper-circle-anchor {
   position: relative;
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid rgba(var(--v-theme-primary), 0.18) !important;
-  background: rgb(var(--v-theme-surface)) !important;
-  margin-bottom: 10px;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  z-index: 3;
+}
+
+.stepper-circle {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(var(--v-theme-surface));
+  border: 2px solid rgba(var(--v-theme-primary), 0.2);
+  color: rgba(var(--v-theme-on-surface), 0.55);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .node-step-number {
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: -4px;
+  right: -4px;
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: rgba(var(--v-theme-primary), 0.12);
-  color: rgb(var(--v-theme-primary));
+  background: rgb(var(--v-theme-surface));
+  color: rgba(var(--v-theme-on-surface), 0.7);
   font-size: 11px;
   font-weight: 900;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid rgb(var(--v-theme-surface));
-  transition: all 0.2s ease;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.25);
+  z-index: 4;
+  transition: all 0.25s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* 1. Active State (قيد الضبط) */
+.premium-wizard-node.is-active .stepper-circle {
+  background: rgb(var(--v-theme-primary)) !important;
+  border-color: rgb(var(--v-theme-primary)) !important;
+  color: #ffffff !important;
+  transform: scale(1.1);
+  box-shadow: 0 0 0 4px rgba(var(--v-theme-primary), 0.18), 0 4px 14px rgba(var(--v-theme-primary), 0.35);
+}
+
+.premium-wizard-node.is-active .node-step-number {
+  background: rgb(var(--v-theme-primary));
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+/* Active Pulsing Wave Ring */
+.stepper-pulse-ring {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  right: -6px;
+  bottom: -6px;
+  border-radius: 50%;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.pulse-primary {
+  border: 2px solid rgb(var(--v-theme-primary));
+  animation: stepper-ring-expand-blue 1.8s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+}
+
+@keyframes stepper-ring-expand-blue {
+  0% { transform: scale(0.92); opacity: 0.85; }
+  50% { transform: scale(1.22); opacity: 0.3; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.pulse-error {
+  border: 2px solid rgb(var(--v-theme-error));
+  animation: stepper-ring-expand-error 1.4s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+}
+
+@keyframes stepper-ring-expand-error {
+  0% { transform: scale(0.92); opacity: 0.9; }
+  50% { transform: scale(1.25); opacity: 0.35; }
+  100% { transform: scale(1.42); opacity: 0; }
+}
+
+.icon-active-breath {
+  animation: icon-breath-subtle 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes icon-breath-subtle {
+  from { transform: scale(0.94); opacity: 0.9; }
+  to { transform: scale(1.08); opacity: 1; }
+}
+
+/* 2. Completed State (نجاح / مكتمل) */
+.premium-wizard-node.is-completed .stepper-circle {
+  background: rgba(var(--v-theme-primary), 0.1) !important;
+  border-color: rgb(var(--v-theme-primary)) !important;
+  color: rgb(var(--v-theme-primary)) !important;
+  box-shadow: 0 2px 10px rgba(var(--v-theme-primary), 0.15);
+}
+
+.premium-wizard-node.is-completed .node-step-number {
+  background: rgb(var(--v-theme-primary));
+  color: #ffffff;
+  border-color: rgb(var(--v-theme-surface));
+}
+
+.checkmark-pop {
+  animation: checkmark-pop-anim 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes checkmark-pop-anim {
+  0% { transform: scale(0.3); opacity: 0; }
+  70% { transform: scale(1.25); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 3. Error / Failure State (فشل / تنبيه / غير مكتمل) */
+.premium-wizard-node.is-error .stepper-circle {
+  background: rgba(var(--v-theme-error), 0.08) !important;
+  border-color: rgb(var(--v-theme-error)) !important;
+  color: rgb(var(--v-theme-error)) !important;
+  box-shadow: 0 0 0 3px rgba(var(--v-theme-error), 0.16), 0 3px 12px rgba(var(--v-theme-error), 0.2);
+}
+
+.premium-wizard-node.is-error .node-step-number {
+  background: rgb(var(--v-theme-error));
+  color: #ffffff;
+  border-color: rgb(var(--v-theme-surface));
+}
+
+.error-icon-shake {
+  animation: error-shake-subtle 0.6s ease-in-out;
+}
+
+@keyframes error-shake-subtle {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-3px); }
+  40%, 80% { transform: translateX(3px); }
+}
+
+/* 4. Pending State */
+.premium-wizard-node.is-pending {
+  opacity: 0.72;
+}
+
+.premium-wizard-node.is-pending:hover {
+  opacity: 0.95;
+}
+
+.premium-wizard-node.is-pending:hover .stepper-circle {
+  border-color: rgba(var(--v-theme-primary), 0.4);
+  transform: translateY(-2px);
+}
+
+/* Stepper Node Typography & Titles */
+.node-content {
+  width: 100%;
 }
 
 .node-title {
-  font-size: 0.94rem;
+  font-size: 0.88rem;
+  line-height: 1.3;
   color: rgb(var(--v-theme-on-surface));
-  display: block;
-  line-height: 1.35;
-  font-weight: 800;
   transition: color 0.2s ease;
+  white-space: nowrap;
 }
 
-.node-subtitle {
-  font-size: 0.76rem;
-  color: rgba(var(--v-theme-on-surface), 0.65);
-  margin-top: 2px;
-}
-
-/* Active Node State */
-.premium-wizard-node.is-active .node-icon-wrapper {
-  border-color: rgb(var(--v-theme-primary)) !important;
-  background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, #1d4ed8 100%) !important;
-  box-shadow: 0 6px 20px rgba(var(--v-theme-primary), 0.35) !important;
-  transform: translateY(-2px);
-}
-.premium-wizard-node.is-active .node-icon-wrapper .node-step-number {
-  background: #ffffff;
-  color: rgb(var(--v-theme-primary));
-}
 .premium-wizard-node.is-active .node-title {
   color: rgb(var(--v-theme-primary)) !important;
   font-weight: 900;
 }
 
-/* Completed Node State */
-.premium-wizard-node.is-completed .node-icon-wrapper {
-  border-color: #10b981 !important;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3) !important;
-}
-.premium-wizard-node.is-completed .node-icon-wrapper .node-step-number {
-  background: #ffffff;
-  color: #10b981;
-}
-.premium-wizard-node.is-completed .node-title {
-  color: #10b981 !important;
+.premium-wizard-node.is-error .node-title {
+  color: rgb(var(--v-theme-error)) !important;
+  font-weight: 900;
 }
 
-/* Pending Node State */
-.premium-wizard-node.is-pending {
-  opacity: 0.85;
+.node-subtitle {
+  font-size: 0.72rem;
+  line-height: 1.25;
+  color: rgba(var(--v-theme-on-surface), 0.65);
+  margin-top: 2px;
 }
-.premium-wizard-node.is-pending:hover .node-icon-wrapper {
-  border-color: rgba(var(--v-theme-primary), 0.4) !important;
-  transform: translateY(-2px);
+
+/* Explicit Status Badges (نجاح / فشل / قيد الضبط / انتظار) */
+.node-status-badge-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.node-status-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 6px !important;
+  transition: all 0.25s ease;
+  line-height: 1.2;
+}
+
+.node-status-pill.status-completed {
+  background: rgba(var(--v-theme-primary), 0.1);
+  color: rgb(var(--v-theme-primary));
+  border: 1px solid rgba(var(--v-theme-primary), 0.25);
+}
+
+.node-status-pill.status-active {
+  background: rgba(var(--v-theme-primary), 0.12);
+  color: rgb(var(--v-theme-primary));
+  border: 1px solid rgb(var(--v-theme-primary));
+  animation: pulse-text-glow 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-text-glow {
+  from { opacity: 0.75; }
+  to { opacity: 1; }
+}
+
+.node-status-pill.status-error {
+  background: rgba(var(--v-theme-error), 0.1);
+  color: rgb(var(--v-theme-error));
+  border: 1px solid rgba(var(--v-theme-error), 0.35);
+}
+
+.node-status-pill.status-pending {
+  background: rgba(var(--v-theme-on-surface), 0.05);
+  color: rgba(var(--v-theme-on-surface), 0.5);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
 }
 
 /* ==========================================================================
@@ -6457,13 +6865,25 @@ const generateAndSaveExam = async () => {
   }
   .premium-wizard-container {
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 16px;
   }
   .wizard-progress-track {
     display: none;
   }
   .premium-wizard-node {
     width: 48%;
+    max-width: none;
+  }
+  .stepper-circle {
+    width: 40px;
+    height: 40px;
+  }
+  .node-title {
+    font-size: 0.8rem;
+  }
+  .node-status-pill {
+    font-size: 0.65rem;
+    padding: 1px 6px;
   }
 }
 
