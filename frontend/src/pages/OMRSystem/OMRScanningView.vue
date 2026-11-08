@@ -202,31 +202,28 @@
         <!-- أرقام المظروف والقاعة وسعة الطلاب وفق حافظة التسليم الرسمية -->
         <!-- رقم القاعة -->
         <v-col cols="12" sm="6" md="3">
-          <v-text-field
+          <custom-text-field
             v-model="currentEnvelope.hallNumber"
             label="رقم القاعة *"
-            variant="outlined"
-            density="compact"
-            rounded="lg"
-            class="mb-3"
-            prepend-inner-icon="mdi-map-marker-outline"
-            hide-details
             placeholder="مثال: قاعة 03"
+            icon="map-marker-outline"
+            cols="12"
+            :hideDetails="true"
+            :clearable="false"
             @update:model-value="generateEnvelopeBarcode"
           />
         </v-col>
 
         <!-- باركود / كود المظروف الامتحاني -->
         <v-col cols="12" sm="6" md="3">
-          <v-text-field
+          <custom-text-field
             v-model="currentEnvelope.envelopeCode"
             label="باركود / كود المظروف الامتحاني *"
-            variant="outlined"
-            density="compact"
-            rounded="lg"
-            class="mb-3"
-            prepend-inner-icon="mdi-barcode"
-            hide-details
+            placeholder="كود المظروف..."
+            icon="barcode"
+            cols="12"
+            :hideDetails="true"
+            :clearable="false"
           >
             <template #append-inner>
               <v-btn
@@ -241,41 +238,36 @@
                 style="min-width: 32px; min-height: 32px;"
               />
             </template>
-          </v-text-field>
+          </custom-text-field>
         </v-col>
 
         <!-- سعة القاعة المقيدة (الطلاب المقيدون) -->
         <v-col cols="12" sm="6" md="3">
-          <v-text-field
+          <custom-text-field
             v-model.number="currentEnvelope.expectedCount"
             type="number"
             min="0"
             max="1000"
             label="سعة القاعة المقيدة (الطلاب المقيدون) *"
-            variant="outlined"
-            density="compact"
-            rounded="lg"
-            class="mb-3"
-            prepend-inner-icon="mdi-account-group-outline"
-            hide-details
+            icon="account-group-outline"
+            cols="12"
+            :hideDetails="true"
+            :clearable="false"
           />
         </v-col>
 
         <!-- عدد الغائبين (وفق حافظة الكشف) -->
         <v-col cols="12" sm="6" md="3">
-          <v-text-field
+          <custom-text-field
             v-model.number="currentEnvelope.absentCount"
             type="number"
             min="0"
             :max="currentEnvelope.expectedCount"
             label="عدد الغائبين (وفق حافظة الكشف) *"
-            variant="outlined"
-            density="compact"
-            rounded="lg"
-            class="mb-3"
-            prepend-inner-icon="mdi-account-remove-outline"
-            color="warning"
-            hide-details
+            icon="account-remove-outline"
+            cols="12"
+            :hideDetails="true"
+            :clearable="false"
           />
         </v-col>
 
