@@ -17,24 +17,6 @@
           />
         </v-col>
 
-        <!-- Search Query Input -->
-        <v-col cols="12" sm="6" md="3">
-          <v-text-field
-            v-model="_searchInput"
-            @update:model-value="onSearchInput"
-            label="اسم الاختبار أو الرمز"
-            placeholder="بحث باسم الاختبار أو رمزه (Code)..."
-            prepend-inner-icon="mdi-magnify"
-            clearable
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            class="mb-3"
-            hide-details
-            @keyup.enter="fetchExams"
-          />
-        </v-col>
-
         <!-- 2. المحافظة -->
         <v-col cols="12" sm="6" md="3">
           <auto-list
@@ -899,13 +881,6 @@ const loading = ref(false)
 const visitedTabs = ref(new Set(['questions', 'template']))
 const exams = ref([])
 const searchQuery = ref('')
-const _searchInput = ref('')
-let _searchDebounceTimer = null
-const onSearchInput = (val) => {
-  _searchInput.value = val
-  if (_searchDebounceTimer) clearTimeout(_searchDebounceTimer)
-  _searchDebounceTimer = setTimeout(() => { searchQuery.value = val }, 300)
-}
 const filterInstitutionType = ref('all')
 const filterStage = ref(null)
 const filterClassTrack = ref(null)
@@ -1196,6 +1171,9 @@ const examsTableItems = ref({
 
 const getExamsData = async (params = {}) => {
   const p = params?.params || params || {}
+  if (p.search !== undefined) {
+    searchQuery.value = (p.search || '').trim()
+  }
   const page = Number(p.page) || examsPage.value || 1
   const pageSize = Number(p.page_size) || examsPageSize.value || 10
   examsPage.value = page
@@ -1227,7 +1205,6 @@ watch(filteredExams, () => {
 
 const resetFilters = () => {
   searchQuery.value = ''
-  _searchInput.value = ''
   filterGovernorate.value = null
   filterDirectorate.value = null
   filterOrganization.value = null
