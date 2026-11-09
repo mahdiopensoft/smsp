@@ -101,19 +101,13 @@
       <template v-slot:item-slot="{ item, key }">
         <!-- Subject Name -->
         <template v-if="key === 'subject_name'">
-          <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold" v-if="item.subject_name">
-            <v-icon start size="14">mdi-book-outline</v-icon>
-            {{ item.subject_name }}
-          </v-chip>
+          <span v-if="item.subject_name">{{ item.subject_name }}</span>
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 
         <!-- Semester Name -->
         <template v-else-if="key === 'semester_name'">
-          <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold" v-if="item.semester_name">
-            <v-icon start size="14">mdi-calendar-range</v-icon>
-            {{ item.semester_name }}
-          </v-chip>
+          <span v-if="item.semester_name">{{ item.semester_name }}</span>
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 

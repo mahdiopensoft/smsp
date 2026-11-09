@@ -286,6 +286,7 @@
         headers,
         delItem: url,
         editItem,
+        create: createStudent,
       }"
       :hasFilter="false"
       :log="false"
@@ -1249,6 +1250,11 @@ export default {
       this.filterInstituteLevel = null;
 
       this.getData();
+    },
+
+    createStudent() {
+      this.data = {};
+      this.drawer = true;
     },
 
     editItem(itemData) {

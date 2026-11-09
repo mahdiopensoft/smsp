@@ -190,11 +190,11 @@ export default function DataAutoListAcademic(param) {
       method: (p) => {
         const raw = (p !== undefined && p !== null) ? p : param;
         const stageId = (raw && typeof raw === 'object') ? (raw.stage || raw.stageId || raw.id || raw.value) : raw;
-        return stageId ?
-          shared.getData({
-            path: "api/academic/class-tracks/all/",
-            params: { stage: stageId }
-          }) : Promise.resolve([]);
+        const queryParams = stageId ? { stage: stageId } : undefined;
+        return shared.getData({
+          path: "api/academic/class-tracks/all/",
+          params: queryParams
+        });
       },
       title: "full_name",
       value: "id",
@@ -879,6 +879,9 @@ export default function DataAutoListAcademic(param) {
           if (dirVal) {
             queryParams.directorate = dirVal;
           }
+          if (raw.id || raw.value) {
+            queryParams.id = raw.id || raw.value;
+          }
           if (raw.is_active !== undefined) {
             queryParams.is_active = raw.is_active;
           }
@@ -894,19 +897,21 @@ export default function DataAutoListAcademic(param) {
         }
 
         // قاعدة النظام الصارمة:
-        // المدارس: تشترط اختيار المحافظة والمديرية معاً
+        // المدارس: تشترط اختيار المحافظة والمديرية معاً (إلا في حالة الاستعلام المباشر بمعرف المؤسسة)
         // الجامعات والمعاهد: تشترط اختيار المحافظة فقط
-        if (instType === 'school') {
-          if (!queryParams.governorate || !queryParams.directorate) {
-            return Promise.resolve([]);
-          }
-        } else if (instType === 'university' || instType === 'institute') {
-          if (!queryParams.governorate) {
-            return Promise.resolve([]);
-          }
-        } else {
-          if (!queryParams.governorate) {
-            return Promise.resolve([]);
+        if (!queryParams.id) {
+          if (instType === 'school') {
+            if (!queryParams.governorate || !queryParams.directorate) {
+              return Promise.resolve([]);
+            }
+          } else if (instType === 'university' || instType === 'institute') {
+            if (!queryParams.governorate) {
+              return Promise.resolve([]);
+            }
+          } else {
+            if (!queryParams.governorate) {
+              return Promise.resolve([]);
+            }
           }
         }
 

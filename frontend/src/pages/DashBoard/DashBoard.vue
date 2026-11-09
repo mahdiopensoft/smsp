@@ -7,8 +7,8 @@
       <v-col cols="12" sm="6" lg="3">
         <div class="stat-glass-card pa-5 rounded-xl">
           <div class="d-flex align-center justify-space-between mb-4">
-            <div class="stat-icon-wrapper bg-indigo-gradient">
-              <v-icon size="26" color="white">mdi-file-document-multiple-outline</v-icon>
+            <div class="stat-icon-wrapper bg-indigo-light">
+              <v-icon size="26" color="#4f46e5">mdi-file-document-multiple-outline</v-icon>
             </div>
             <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold px-3">
               <v-icon size="14" start>mdi-trending-up</v-icon>
@@ -29,8 +29,8 @@
       <v-col cols="12" sm="6" lg="3">
         <div class="stat-glass-card pa-5 rounded-xl">
           <div class="d-flex align-center justify-space-between mb-4">
-            <div class="stat-icon-wrapper bg-emerald-gradient">
-              <v-icon size="26" color="white">mdi-check-decagram</v-icon>
+            <div class="stat-icon-wrapper bg-emerald-light">
+              <v-icon size="26" color="#059669">mdi-check-decagram</v-icon>
             </div>
             <v-chip size="small" color="emerald" variant="tonal" class="font-weight-bold px-3">
               <v-icon size="14" start>mdi-trending-up</v-icon>
@@ -51,8 +51,8 @@
       <v-col cols="12" sm="6" lg="3">
         <div class="stat-glass-card pa-5 rounded-xl">
           <div class="d-flex align-center justify-space-between mb-4">
-            <div class="stat-icon-wrapper bg-amber-gradient">
-              <v-icon size="26" color="white">mdi-clock-fast</v-icon>
+            <div class="stat-icon-wrapper bg-amber-light">
+              <v-icon size="26" color="#d97706">mdi-clock-fast</v-icon>
             </div>
             <v-chip size="small" color="amber" variant="tonal" class="font-weight-bold px-3">
               <v-icon size="14" start>mdi-clock-outline</v-icon>
@@ -73,8 +73,8 @@
       <v-col cols="12" sm="6" lg="3">
         <div class="stat-glass-card pa-5 rounded-xl">
           <div class="d-flex align-center justify-space-between mb-4">
-            <div class="stat-icon-wrapper bg-sky-gradient">
-              <v-icon size="26" color="white">mdi-file-percent</v-icon>
+            <div class="stat-icon-wrapper bg-sky-light">
+              <v-icon size="26" color="#0284c7">mdi-file-percent</v-icon>
             </div>
             <v-chip size="small" color="sky" variant="tonal" class="font-weight-bold px-3">
               <v-icon size="14" start>mdi-trending-up</v-icon>
@@ -272,75 +272,7 @@
       </v-col>
     </v-row>
 
-    <!-- Quick Actions Panel -->
-    <div class="mb-8">
-      <h3 class="text-h6 font-weight-bold mb-4 d-flex align-center gap-2">
-        <v-icon color="primary">mdi-lightning-bolt</v-icon>
-        إجراءات سريعة وشائعة
-      </h3>
-      <v-row>
-        <v-col cols="12" sm="6" md="3">
-          <router-link to="/author/questions/new" class="action-card-link">
-            <div class="action-card pa-5 rounded-2xl d-flex align-center gap-4">
-              <div class="action-icon-circle bg-indigo-light">
-                <v-icon size="24" color="indigo">mdi-plus</v-icon>
-              </div>
-              <div>
-                <div class="text-subtitle-2 font-weight-bold">سؤال جديد</div>
-                <div class="text-caption text-medium-emphasis">إضافة سؤال جديد للبنك</div>
-              </div>
-            </div>
-          </router-link>
-        </v-col>
 
-        <v-col cols="12" sm="6" md="3">
-          <router-link to="/generator/exams/create" class="action-card-link">
-            <div class="action-card pa-5 rounded-2xl d-flex align-center gap-4">
-              <div class="action-icon-circle bg-emerald-light">
-                <v-icon size="24" color="emerald">mdi-file-document-plus</v-icon>
-              </div>
-              <div>
-                <div class="text-subtitle-2 font-weight-bold">إنشاء اختبار</div>
-                <div class="text-caption text-medium-emphasis">توليد اختبار أوتوماتيكي</div>
-              </div>
-            </div>
-          </router-link>
-        </v-col>
-
-        <v-col cols="12" sm="6" md="3">
-          <router-link to="/reviewer/review-queue" class="action-card-link">
-            <div class="action-card pa-5 rounded-2xl d-flex align-center gap-4">
-              <div class="action-icon-circle bg-amber-light">
-                <v-icon size="24" color="amber-darken-2">mdi-clipboard-check-outline</v-icon>
-              </div>
-              <div class="flex-grow-1">
-                <div class="d-flex align-center justify-space-between">
-                  <div class="text-subtitle-2 font-weight-bold">مراجعة الأسئلة</div>
-                  <v-chip size="x-small" color="amber-darken-2" class="font-weight-bold">
-                    {{ stats.pendingReview }}
-                  </v-chip>
-                </div>
-                <div class="text-caption text-medium-emphasis">مراجعة والاعتماد</div>
-              </div>
-            </div>
-          </router-link>
-        </v-col>
-
-        <v-col cols="12" sm="6" md="3">
-          <router-link to="/admin/users" class="action-card-link">
-            <div class="action-card pa-5 rounded-2xl d-flex align-center gap-4">
-              <div class="action-icon-circle bg-purple-light">
-                <v-icon size="24" color="purple">mdi-account-group-outline</v-icon>
-              </div>
-              <div>
-                <div class="text-subtitle-2 font-weight-bold">إدارة المستخديمن</div>
-                <div class="text-caption text-medium-emphasis">إدارة الصلاحيات والأدوار</div>
-              </div>
-            </div>
-          </router-link>
-        </v-col>
-      </v-row>
-    </div>
 
     <!-- Recent Activity & Latest Content -->
     <v-row class="mb-8">
@@ -849,13 +781,12 @@ const getStatusText = (status) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
-.bg-indigo-gradient { background: linear-gradient(135deg, #6366f1, #4f46e5); }
-.bg-emerald-gradient { background: linear-gradient(135deg, #10b981, #059669); }
-.bg-amber-gradient   { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.bg-sky-gradient     { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
+.bg-indigo-gradient { background: rgba(99, 102, 241, 0.12) !important; }
+.bg-emerald-gradient { background: rgba(16, 185, 129, 0.12) !important; }
+.bg-amber-gradient   { background: rgba(245, 158, 11, 0.12) !important; }
+.bg-sky-gradient     { background: rgba(14, 165, 233, 0.12) !important; }
 
 /* ===== Main Cards ===== */
 .main-card {
@@ -1058,10 +989,11 @@ const getStatusText = (status) => {
   justify-content: center;
 }
 
-.bg-indigo-light  { background: rgba(99, 102, 241, 0.15); }
-.bg-emerald-light { background: rgba(16, 185, 129, 0.15); }
-.bg-amber-light   { background: rgba(245, 158, 11, 0.15); }
-.bg-purple-light  { background: rgba(168, 85, 247, 0.15); }
+.bg-indigo-light  { background: rgba(99, 102, 241, 0.12) !important; }
+.bg-emerald-light { background: rgba(16, 185, 129, 0.12) !important; }
+.bg-amber-light   { background: rgba(245, 158, 11, 0.12) !important; }
+.bg-sky-light     { background: rgba(14, 165, 233, 0.12) !important; }
+.bg-purple-light  { background: rgba(168, 85, 247, 0.12) !important; }
 
 /* ===== Question Row ===== */
 .question-item-row {

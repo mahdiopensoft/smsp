@@ -213,8 +213,7 @@
             </template>
 
             <template v-else-if="key === 'institutionType'">
-              <div class="d-flex align-center justify-center gap-1 font-weight-bold text-body-2" style="color: #000000 !important;">
-                <v-icon size="16" style="color: #000000 !important;">{{ item.institutionTypeIcon }}</v-icon>
+              <div class="d-flex align-center justify-center text-body-2" style="color: #000000 !important;">
                 <span>{{ item.institutionTypeFullLabel }}</span>
               </div>
             </template>
@@ -230,7 +229,7 @@
             </template>
 
             <template v-else-if="key === 'questionsCount'">
-              <span class="font-weight-bold text-body-2" style="color: #000000 !important;">
+              <span class="text-body-2" style="color: #000000 !important;">
                 {{ item.questionsCount }} سؤال
               </span>
             </template>
@@ -248,8 +247,7 @@
             </template>
 
             <template v-else-if="key === 'studentsCount'">
-              <div class="d-flex align-center justify-center gap-1 font-weight-bold text-body-2" style="color: #000000 !important;">
-                <v-icon size="16" style="color: #000000 !important;">mdi-account-group</v-icon>
+              <div class="d-flex align-center justify-center text-body-2" style="color: #000000 !important;">
                 <span>{{ item.studentsCount || 0 }} طالب</span>
               </div>
             </template>
