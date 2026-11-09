@@ -370,11 +370,11 @@
               </div>
             </div>
 
-            <!-- مساحة إفلات وتلقيم حزمة أوراق المظروف (تصميم أنيق ومنظم ومحدد) -->
+            <!-- مساحة إفلات وتلقيم حزمة أوراق المظروف (تصميم أنيق ومنظم وغير ممدود وسريع) -->
             <div
+              v-if="batchFiles.length === 0"
               class="upload-dropzone pa-5 rounded-xl text-center d-flex flex-column align-center justify-center transition-all cursor-pointer"
-              :class="{ 'is-dragover': isDragging, 'has-file': batchFiles.length > 0 }"
-              style="min-height: 150px;"
+              :class="{ 'is-dragover': isDragging }"
               @dragover.prevent="isDragging = true"
               @dragleave.prevent="isDragging = false"
               @drop.prevent="handleDrop"
@@ -389,74 +389,120 @@
                 @change="handleFileSelect"
               />
 
-              <template v-if="batchFiles.length === 0">
-                <v-avatar size="52" color="primary" variant="tonal" class="mb-2 rounded-xl">
-                  <v-icon size="28" color="primary">mdi-cloud-upload-outline</v-icon>
-                </v-avatar>
-                <div class="text-subtitle-1 font-weight-black mb-1">
-                  إفلات حزمة أوراق المظروف هنا أو النقر للاستعراض
-                </div>
-                <div class="text-caption text-medium-emphasis mb-3" style="max-width: 600px; margin: 0 auto; line-height: 1.5;">
-                  يدعم ملفات PDF متعددة الصفحات الصادرة من الماسحات الضوئية (300 DPI) أو حزم الصور
-                </div>
-                <div class="d-flex align-center flex-wrap gap-2 justify-center mb-1">
-                  <custom-btn
-                    type="imports"
-                    label="استعراض واختيار ملفات المظروف"
-                    icon="mdi-file-document-plus-outline"
-                    density="comfortable"
-                    class="font-weight-bold px-4"
-                    :click="(e) => { if(e) e.stopPropagation(); $refs.fileInput.click(); }"
-                  />
-                </div>
-                <div class="d-flex align-center justify-center flex-wrap gap-1.5 mt-2">
-                  <span class="text-caption font-mono font-weight-bold px-2 py-0.5 rounded border" style="background: rgba(var(--v-theme-surface-variant), 0.1);">PDF متعدد الصفحات</span>
-                  <span class="text-caption font-mono font-weight-bold px-2 py-0.5 rounded border" style="background: rgba(var(--v-theme-surface-variant), 0.1);">صور JPG / PNG</span>
-                  <span class="text-caption font-mono font-weight-bold px-2 py-0.5 rounded border" style="background: rgba(var(--v-theme-surface-variant), 0.1);">أرشيف ZIP</span>
-                </div>
-              </template>
-
-              <template v-else>
-                <v-avatar size="56" color="success" variant="tonal" class="mb-2 rounded-2xl">
-                  <v-icon size="32" color="success">mdi-file-check-outline</v-icon>
-                </v-avatar>
-                <div class="text-subtitle-1 font-weight-black text-success mb-1">
-                  تم تجهيز {{ batchFiles.length }} ورقة / ملف تابعة للمظروف
-                </div>
-                <div class="text-caption text-medium-emphasis font-weight-bold mb-3">
-                  الحجم الإجمالي للحزمة: {{ formatTotalSize() }} — المظروف جاهز لبدء المسح والتصحيح
-                </div>
-                <div class="d-flex align-center justify-center gap-2">
-                  <custom-btn
-                    type="del"
-                    label="إلغاء الملفات"
-                    density="comfortable"
-                    class="font-weight-bold"
-                    :click="(e) => { if(e) e.stopPropagation(); clearFiles(); }"
-                  />
-                  <custom-btn
-                    type="add"
-                    label="إضافة أوراق أخرى"
-                    density="comfortable"
-                    class="font-weight-bold"
-                    :click="(e) => { if(e) e.stopPropagation(); $refs.fileInput.click(); }"
-                  />
-                </div>
-              </template>
+              <v-avatar size="48" color="primary" variant="tonal" class="mb-2 rounded-xl">
+                <v-icon size="26" color="primary">mdi-tray-arrow-down</v-icon>
+              </v-avatar>
+              <div class="text-subtitle-1 font-weight-black mb-1">
+                إفلات حزمة أوراق المظروف هنا أو النقر للاستعراض
+              </div>
+              <div class="text-caption text-medium-emphasis mb-3" style="max-width: 520px; margin: 0 auto; line-height: 1.5;">
+                يدعم ملفات PDF متعددة الصفحات الصادرة من الماسحات الضوئية (300 DPI) أو حزم الصور
+              </div>
+              <div class="d-flex align-center flex-wrap gap-2 justify-center mb-1">
+                <custom-btn
+                  type="imports"
+                  label="استعراض واختيار ملفات المظروف"
+                  icon="mdi-file-document-plus-outline"
+                  density="comfortable"
+                  class="font-weight-bold px-4"
+                  :click="(e) => { if(e) e.stopPropagation(); $refs.fileInput.click(); }"
+                />
+              </div>
+              <div class="d-flex align-center justify-center flex-wrap gap-1.5 mt-2">
+                <span class="text-caption font-mono font-weight-bold px-2 py-0.5 rounded border" style="background: rgba(var(--v-theme-surface-variant), 0.1);">PDF متعدد الصفحات</span>
+                <span class="text-caption font-mono font-weight-bold px-2 py-0.5 rounded border" style="background: rgba(var(--v-theme-surface-variant), 0.1);">صور JPG / PNG</span>
+                <span class="text-caption font-mono font-weight-bold px-2 py-0.5 rounded border" style="background: rgba(var(--v-theme-surface-variant), 0.1);">أرشيف ZIP</span>
+              </div>
             </div>
 
-            <!-- زر بدء التصحيح والمسح الموحد -->
-            <div v-if="batchFiles.length > 0 && !isGrading" class="mt-4 text-center">
-              <custom-btn
-                type="ok"
-                :label="`بدء المسح والتصحيح الآلي للمظروف (${batchFiles.length} ورقة) الآن`"
-                color="primary"
-                variant="flat"
-                class="font-weight-black px-8"
-                style="height: 40px; min-width: 280px;"
-                :disabled="!selectedExamId"
-                :click="startBatchGrading"
+            <!-- منصة تلقيم وتجهيز المظروف المدمجة السريعة (Executive Envelope Staging Hub) -->
+            <div
+              v-else
+              class="envelope-staging-hub pa-3.5 px-4 rounded-xl d-flex align-center justify-space-between flex-wrap gap-3 transition-all"
+              :class="{ 'is-dragover': isDragging }"
+              @dragover.prevent="isDragging = true"
+              @dragleave.prevent="isDragging = false"
+              @drop.prevent="handleDrop"
+            >
+              <input
+                ref="fileInput"
+                type="file"
+                multiple
+                accept="image/*,application/pdf,.zip"
+                class="d-none"
+                @change="handleFileSelect"
               />
+
+              <!-- الجانب الأيمن: بيانات جاهزية حزمة المظروف -->
+              <div class="d-flex align-center gap-3">
+                <v-avatar size="44" color="success" variant="tonal" class="rounded-lg flex-shrink-0">
+                  <v-icon size="24" color="success">mdi-file-check-outline</v-icon>
+                </v-avatar>
+                <div>
+                  <div class="d-flex align-center gap-2 flex-wrap">
+                    <span class="text-subtitle-2 font-weight-black text-high-emphasis">
+                      تم تجهيز حزمة أوراق المظروف
+                    </span>
+                    <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold rounded-s">
+                      <span class="live-dot-green me-1"></span>
+                      جاهز للتصحيح
+                    </v-chip>
+                  </div>
+                  <div class="d-flex align-center gap-2 flex-wrap text-caption text-medium-emphasis mt-0.5">
+                    <span class="font-weight-bold text-success">
+                      <v-icon size="14" class="me-0.5">mdi-file-document-multiple-outline</v-icon>
+                      {{ batchFiles.length }} ورقة
+                    </span>
+                    <span>•</span>
+                    <span class="font-mono">الحجم: {{ totalBatchSizeFormatted }}</span>
+                    <template v-if="currentEnvelope.envelopeCode">
+                      <span>•</span>
+                      <span class="font-mono">المظروف: {{ currentEnvelope.envelopeCode }}</span>
+                    </template>
+                  </div>
+                </div>
+              </div>
+
+              <!-- الجانب الأيسر: الإجراءات الموحدة في سطر واحد دون تباعد أو تمدد -->
+              <div class="d-flex align-center gap-2 flex-wrap">
+                <v-btn
+                  color="error"
+                  variant="text"
+                  size="small"
+                  class="font-weight-bold px-2 rounded-s"
+                  prepend-icon="mdi-delete-sweep-outline"
+                  title="تفريغ الحزمة وإلغاء الملفات"
+                  @click="clearFiles"
+                >
+                  إلغاء
+                </v-btn>
+
+                <v-btn
+                  color="primary"
+                  variant="outlined"
+                  size="small"
+                  class="font-weight-bold px-3 rounded-s"
+                  prepend-icon="mdi-plus"
+                  title="إضافة أوراق أو ملفات أخرى لنفس المظروف"
+                  @click="$refs.fileInput.click()"
+                >
+                  إضافة أوراق
+                </v-btn>
+
+                <v-btn
+                  v-if="!isGrading"
+                  color="primary"
+                  variant="flat"
+                  size="small"
+                  class="font-weight-black px-4 rounded-s shadow-sm"
+                  style="min-height: 36px;"
+                  prepend-icon="mdi-scanner"
+                  :disabled="!selectedExamId"
+                  @click="startBatchGrading"
+                >
+                  بدء المسح والتصحيح ({{ batchFiles.length }} ورقة)
+                </v-btn>
+              </div>
             </div>
 
             <!-- شريط تقدم المعالجة الرسمي (OMR Scanner Live Pipeline Console) -->
@@ -797,33 +843,24 @@
 
                 <!-- في حال وجود أوراق ممسوحة -->
                 <div v-else>
-                  <!-- شريط الأدوات والخيارات: إحصائيات هادئة موحدة + تبديل طريقة العرض -->
-                  <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3 pa-2 rounded-xl border bg-surface">
+                  <!-- شريط الأدوات والخيارات: إحصائيات هادئة موحدة -->
+                  <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3 pa-2.5 rounded-lg border bg-surface">
                     <div class="d-flex align-center flex-wrap gap-2 text-caption">
-                      <span class="d-inline-flex align-center gap-1.5 px-3 py-1 rounded-s border bg-surface font-weight-bold">
+                      <span class="d-inline-flex align-center gap-1.5 px-3 py-1 rounded-lg border bg-surface font-weight-bold">
                         <span class="text-medium-emphasis">الممسوح:</span>
                         <span class="font-mono text-primary font-weight-black">{{ displaySheets.length }} ورقة</span>
                       </span>
-                      <span class="d-inline-flex align-center gap-1.5 px-3 py-1 rounded-s border bg-surface font-weight-bold">
+                      <span class="d-inline-flex align-center gap-1.5 px-3 py-1 rounded-lg border bg-surface font-weight-bold">
                         <span class="text-medium-emphasis">سليمة:</span>
                         <span class="font-mono text-success font-weight-black">{{ successfulSheets.length }}</span>
                       </span>
                       <span
                         v-if="needsReviewSheets.length > 0"
-                        class="d-inline-flex align-center gap-1.5 px-3 py-1 rounded-s border bg-surface font-weight-bold"
+                        class="d-inline-flex align-center gap-1.5 px-3 py-1 rounded-lg border bg-surface font-weight-bold"
                       >
                         <span class="text-medium-emphasis">تحتاج تدقيق:</span>
                         <span class="font-mono text-error font-weight-black">{{ needsReviewSheets.length }}</span>
                       </span>
-                    </div>
-
-                    <!-- تبديل العرض بين جدول وشبكة كروت -->
-                    <div class="d-flex align-center gap-1">
-                      <span class="text-caption text-medium-emphasis me-1">طريقة العرض:</span>
-                      <v-btn-toggle v-model="sheetViewMode" mandatory density="compact" rounded="lg" color="primary">
-                        <v-btn value="table" size="small" icon="mdi-view-headline" aria-label="عرض جدولي" title="عرض جدولي" />
-                        <v-btn value="grid" size="small" icon="mdi-view-grid-outline" aria-label="عرض شبكة البطاقات" title="عرض شبكة البطاقات" />
-                      </v-btn-toggle>
                     </div>
                   </div>
 
@@ -843,8 +880,8 @@
                     </div>
                   </div>
 
-                  <!-- 1.1 العرض الجدولي (Table View) -->
-                  <div v-if="sheetViewMode === 'table'">
+                  <!-- العرض الجدولي المعياري (Table View) -->
+                  <div>
                     <custom-data-table
                       v-model="selectedScannedSheets"
                       :items="scannedSheetsTableItems"
@@ -948,90 +985,6 @@
                         </template>
                       </template>
                     </custom-data-table>
-                  </div>
-
-                  <!-- 1.2 العرض الشبكي بالبطاقات البصرية (Grid View) -->
-                  <div v-else-if="sheetViewMode === 'grid'">
-                    <v-row dense>
-                      <v-col
-                        v-for="sheet in displaySheets"
-                        :key="sheet.id || sheet.filename || sheet.seat_number"
-                        cols="12"
-                        sm="6"
-                        md="4"
-                        lg="3"
-                      >
-                        <v-card
-                          class="rounded-xl border pa-3 h-100 d-flex flex-column justify-space-between transition-all"
-                          :class="{
-                            'border-warning': isNeedsReview(sheet),
-                            'border-success': !isNeedsReview(sheet)
-                          }"
-                          variant="outlined"
-                          style="background: rgba(var(--v-theme-surface), 0.9);"
-                        >
-                          <div>
-                            <div class="d-flex align-center justify-space-between mb-2">
-                              <span class="seat-number-box font-mono text-caption">
-                                {{ sheet.seat_number || '—' }}
-                              </span>
-                              <span class="text-caption font-weight-bold px-2 py-0.5 rounded border" style="background: rgba(var(--v-theme-surface-variant), 0.1);">
-                                النموذج {{ sheet.model_code || 'A' }}
-                              </span>
-                            </div>
-
-                            <div class="text-subtitle-2 font-weight-black text-on-surface text-truncate mb-1" :title="sheet.student_name">
-                              {{ sheet.student_name || 'طالب غير محدد' }}
-                            </div>
-
-                            <div class="d-flex align-center flex-wrap gap-1 mb-2">
-                              <v-chip
-                                size="x-small"
-                                :color="isNeedsReview(sheet) ? 'warning' : 'success'"
-                                variant="flat"
-                                class="font-weight-bold"
-                              >
-                                {{ isNeedsReview(sheet) ? 'تدقيق بشري' : 'معتمد وسليم' }}
-                              </v-chip>
-                              <v-chip
-                                v-if="!isSheetInRoster(sheet)"
-                                size="x-small"
-                                color="error"
-                                variant="tonal"
-                                class="font-weight-bold"
-                              >
-                                ورقة دخيلة
-                              </v-chip>
-                            </div>
-
-                            <div
-                              v-if="sheet.error_message"
-                              class="text-caption text-error font-weight-medium pa-1.5 rounded-lg mb-2 text-truncate"
-                              style="background: rgba(var(--v-theme-error), 0.08);"
-                              :title="sheet.error_message"
-                            >
-                              {{ sheet.error_message }}
-                            </div>
-                          </div>
-
-                          <div class="d-flex align-center justify-space-between border-t pt-2 mt-2">
-                            <div>
-                              <span class="font-mono font-weight-black text-body-2 text-primary">
-                                {{ sheet.score != null ? sheet.score : 0 }} / {{ sheet.max_score || 40 }}
-                              </span>
-                              <span class="text-caption text-medium-emphasis ms-1">({{ sheet.percentage || 0 }}%)</span>
-                            </div>
-                            <custom-btn
-                              type="show"
-                              label="معاينة"
-                              density="compact"
-                              class="font-weight-bold"
-                              :click="() => openSheetPreview(sheet)"
-                            />
-                          </div>
-                        </v-card>
-                      </v-col>
-                    </v-row>
                   </div>
                 </div>
               </div>
@@ -2106,9 +2059,8 @@ export default {
       return Math.round(total / displaySheets.value.length)
     })
 
-    // ── Unified Envelope Console: Tab Navigation & View Mode ──
+    // ── Unified Envelope Console: Tab Navigation ──
     const activeConsoleTab = ref('roster')
-    const sheetViewMode = ref('table')
 
     const isSheetInRoster = (sheet) => {
       if (!sheet || !sheet.seat_number) return false
@@ -2427,11 +2379,13 @@ export default {
       activeConsoleTab.value = 'roster'
     }
 
-    const formatTotalSize = () => {
+    const totalBatchSizeFormatted = computed(() => {
       const bytes = batchFiles.value.reduce((acc, f) => acc + (f.size || 0), 0)
       if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
       return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-    }
+    })
+
+    const formatTotalSize = () => totalBatchSizeFormatted.value
 
     // Real Batch Grading via Backend
     const startBatchGrading = async () => {
@@ -2689,6 +2643,7 @@ export default {
       handleDrop,
       clearFiles,
       formatTotalSize,
+      totalBatchSizeFormatted,
       startBatchGrading,
       // Reconciliation
       actualScannedCount,
@@ -2701,7 +2656,6 @@ export default {
       openDiscrepancyReport,
       // Unified Console & Views
       activeConsoleTab,
-      sheetViewMode,
       rosterMatchedCount,
       intruderSheets,
       isSheetInRoster,
@@ -2776,29 +2730,54 @@ export default {
   white-space: nowrap;
 }
 
-/* ── Upload Dropzone (Standard System Design) ──────────────── */
+/* ── Upload Dropzone (Compact, Centered & Proportioned) ─────── */
 .upload-dropzone {
-  background: rgba(var(--v-theme-surface-variant), 0.15);
-  border: 2px dashed rgba(var(--v-border-color), 0.25);
+  max-width: 680px;
+  margin: 0 auto;
+  background: rgba(var(--v-theme-surface-variant), 0.12);
+  border: 2px dashed rgba(var(--v-border-color), 0.3);
   cursor: pointer;
-  min-height: 240px;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 135px;
+  transition: all 0.25s ease;
   position: relative;
 }
 
 .upload-dropzone:hover, .upload-dropzone.is-dragover {
-  border-color: rgba(var(--v-theme-primary), 0.6);
+  border-color: rgba(var(--v-theme-primary), 0.7);
   background: rgba(var(--v-theme-primary), 0.05);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(var(--v-theme-primary), 0.08);
+  box-shadow: 0 6px 20px rgba(var(--v-theme-primary), 0.1);
 }
 
-.upload-dropzone.has-file {
-  border-style: solid;
-  border-color: rgba(var(--v-theme-success), 0.5);
-  background: rgba(var(--v-theme-success), 0.04);
-  box-shadow: 0 8px 24px rgba(var(--v-theme-success), 0.08);
-  cursor: default;
+/* ── Executive Envelope Staging Hub (Compact, Fast & Centered) ── */
+.envelope-staging-hub {
+  max-width: 880px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, rgba(var(--v-theme-surface), 0.98), rgba(16, 185, 129, 0.04));
+  border: 1.5px solid rgba(16, 185, 129, 0.4);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.08);
+  transition: all 0.25s ease;
+}
+
+.envelope-staging-hub.is-dragover {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  transform: scale(1.005);
+}
+
+.live-dot-green {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background-color: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+  animation: live-pulse-dot 1.6s ease-in-out infinite;
+}
+
+@keyframes live-pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.75); }
 }
 
 /* ── Governorate Cards (Video Wall) ────────────────────────── */
