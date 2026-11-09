@@ -408,10 +408,10 @@
                   :click="(e) => { if(e) e.stopPropagation(); $refs.fileInput.click(); }"
                 />
               </div>
-              <div class="d-flex align-center justify-center flex-wrap gap-1.5 mt-2">
-                <span class="text-caption font-mono font-weight-bold px-2 py-0.5 rounded border" style="background: rgba(var(--v-theme-surface-variant), 0.1);">PDF متعدد الصفحات</span>
-                <span class="text-caption font-mono font-weight-bold px-2 py-0.5 rounded border" style="background: rgba(var(--v-theme-surface-variant), 0.1);">صور JPG / PNG</span>
-                <span class="text-caption font-mono font-weight-bold px-2 py-0.5 rounded border" style="background: rgba(var(--v-theme-surface-variant), 0.1);">أرشيف ZIP</span>
+              <div class="d-flex align-center justify-center flex-wrap ga-2 mt-2.5" style="gap: 8px;">
+                <span class="text-caption font-mono font-weight-bold px-2.5 py-1 rounded border" style="background: rgba(var(--v-theme-surface-variant), 0.15);">PDF متعدد الصفحات</span>
+                <span class="text-caption font-mono font-weight-bold px-2.5 py-1 rounded border" style="background: rgba(var(--v-theme-surface-variant), 0.15);">صور JPG / PNG</span>
+                <span class="text-caption font-mono font-weight-bold px-2.5 py-1 rounded border" style="background: rgba(var(--v-theme-surface-variant), 0.15);">أرشيف ZIP</span>
               </div>
             </div>
 
@@ -449,7 +449,7 @@
               </div>
 
               <!-- بطاقات تفاصيل المظروف والأوراق في سطر منظم ومتناسق ومريح بصرياً -->
-              <div class="d-flex align-center justify-center flex-wrap ga-2 gap-2 mb-4">
+              <div class="d-flex align-center justify-center flex-wrap ga-2.5 mb-4" style="gap: 10px;">
                 <!-- 1. العدد: [الأيقونة] ثم [التسمية :] ثم مسافة ثم [القيمة] -->
                 <div class="metadata-badge px-3 py-1 rounded-lg">
                   <v-icon size="16" color="primary" class="meta-icon">mdi-file-document-multiple-outline</v-icon>
@@ -479,8 +479,8 @@
                 </div>
               </div>
 
-              <!-- زر بدء التصحيح الأساسي والأزرار المساعدة بتناسق تام -->
-              <div class="d-flex align-center justify-center flex-wrap gap-2.5 w-100" style="max-width: 540px;">
+              <!-- زر بدء التصحيح الأساسي والأزرار المساعدة بتناسق تام ومسافات بينية مريحة -->
+              <div class="d-flex align-center justify-center flex-wrap ga-3 w-100" style="max-width: 540px; gap: 12px;">
                 <v-btn
                   v-if="!isGrading"
                   color="primary"
