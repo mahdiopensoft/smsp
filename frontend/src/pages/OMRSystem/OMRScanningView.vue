@@ -297,8 +297,8 @@
       <div class="d-flex align-center justify-space-between flex-wrap ga-3 pa-2.5 mt-3 rounded-lg border bg-surface" style="gap: 12px;">
         <div class="d-flex align-center flex-wrap ga-2" style="gap: 8px;">
           <span class="text-caption font-weight-bold text-medium-emphasis me-1 d-flex align-center ga-1" style="gap: 4px;">
-            <v-icon size="16" color="primary">mdi-calculator-variant-outline</v-icon>
-            معادلة المطابقة:
+            <v-icon size="16" color="primary">mdi-clipboard-text-outline</v-icon>
+            حصر مقيدي القاعة:
           </span>
 
           <div class="audit-equation-strip d-flex align-center flex-wrap ga-2" style="gap: 8px;">
@@ -341,10 +341,7 @@
               <div class="d-flex align-center gap-2">
                 <v-icon size="20" color="primary">mdi-tray-arrow-down</v-icon>
                 <span class="text-subtitle-2 font-weight-black text-on-surface">
-                  2. تغذية حزمة أوراق المظروف من الماسح الضوئي
-                </span>
-                <span class="text-caption text-medium-emphasis d-none d-sm-inline">
-                  (معالجة السحب المباشر أو المجلد الساخن)
+                  2. تغذية أوراق المظروف من الماسح الضوئي
                 </span>
               </div>
 
@@ -415,7 +412,66 @@
               </div>
             </div>
 
-            <!-- حالة جاهزية حزمة المظروف بعد الرفع (نفس الهيكل الأنيق والمتناسق) -->
+            <!-- عند إنجاز المسح والتصحيح: شريط إنجاز مدمج دون تكرار صندوق التلقيم -->
+            <div
+              v-else-if="reconciliationCalculated && !isGrading"
+              class="pa-3 px-4 rounded-xl border bg-surface d-flex align-center justify-space-between flex-wrap ga-2"
+              style="background: rgba(var(--v-theme-surface-variant), 0.08); gap: 8px;"
+            >
+              <div class="d-flex align-center ga-2" style="gap: 8px;">
+                <v-avatar size="32" color="success" variant="tonal" class="rounded-circle">
+                  <v-icon size="18" color="success">mdi-check-decagram</v-icon>
+                </v-avatar>
+                <div>
+                  <span class="text-subtitle-2 font-weight-bold text-high-emphasis">
+                    تم إنجاز مسح وتصحيح حزمة المظروف بنجاح
+                  </span>
+                  <span class="text-caption text-medium-emphasis ms-2 font-mono">
+                    ({{ batchFiles.length }} ورقة • {{ totalBatchSizeFormatted }})
+                  </span>
+                </div>
+              </div>
+
+              <div class="d-flex align-center ga-2" style="gap: 8px;">
+                <v-btn
+                  size="small"
+                  variant="outlined"
+                  color="primary"
+                  class="font-weight-bold rounded-s"
+                  prepend-icon="mdi-plus"
+                  title="إضافة أوراق أو ملفات أخرى لنفس المظروف"
+                  @click="$refs.fileInput.click()"
+                >
+                  إضافة أوراق
+                </v-btn>
+
+                <v-btn
+                  size="small"
+                  variant="text"
+                  color="primary"
+                  class="font-weight-bold rounded-s"
+                  prepend-icon="mdi-barcode-scan"
+                  title="إعادة مسح وتصحيح الحزمة"
+                  @click="startBatchGrading"
+                >
+                  إعادة المسح
+                </v-btn>
+
+                <v-btn
+                  size="small"
+                  variant="text"
+                  color="error"
+                  class="font-weight-bold rounded-s"
+                  prepend-icon="mdi-delete-outline"
+                  title="تفريغ الحزمة"
+                  @click="clearFiles"
+                >
+                  إلغاء الملفات
+                </v-btn>
+              </div>
+            </div>
+
+            <!-- حالة جاهزية حزمة المظروف بعد الرفع (نفس الهيكل الأنيق والمتناسق دون تكرار بيانات القاعة والمظروف) -->
             <div
               v-else
               class="upload-dropzone upload-dropzone-ready pa-6 rounded-xl text-center d-flex flex-column align-center justify-center transition-all"
@@ -448,7 +504,7 @@
                 </v-chip>
               </div>
 
-              <!-- بطاقات تفاصيل المظروف والأوراق في سطر منظم ومتناسق ومريح بصرياً -->
+              <!-- بطاقات تفاصيل الحزمة الفعلية فقط (العدد والحجم دون تكرار القاعة والمظروف) -->
               <div class="d-flex align-center justify-center flex-wrap ga-2.5 mb-4" style="gap: 10px;">
                 <!-- 1. العدد: [الأيقونة] ثم [التسمية :] ثم مسافة ثم [القيمة] -->
                 <div class="metadata-badge px-3 py-1 rounded-lg">
@@ -462,20 +518,6 @@
                   <v-icon size="16" class="meta-icon text-medium-emphasis">mdi-database-outline</v-icon>
                   <span class="meta-label">الحجم:</span>
                   <span class="meta-value font-mono">{{ totalBatchSizeFormatted }}</span>
-                </div>
-
-                <!-- 3. المظروف: [الأيقونة] ثم [التسمية :] ثم مسافة ثم [القيمة] -->
-                <div v-if="currentEnvelope.envelopeCode" class="metadata-badge px-3 py-1 rounded-lg">
-                  <v-icon size="16" class="meta-icon text-medium-emphasis">mdi-barcode</v-icon>
-                  <span class="meta-label">المظروف:</span>
-                  <span class="meta-value font-mono">{{ currentEnvelope.envelopeCode }}</span>
-                </div>
-
-                <!-- 4. القاعة: [الأيقونة] ثم [التسمية :] ثم مسافة ثم [القيمة] -->
-                <div v-if="currentEnvelope.hallNumber" class="metadata-badge px-3 py-1 rounded-lg">
-                  <v-icon size="16" class="meta-icon text-medium-emphasis">mdi-map-marker-outline</v-icon>
-                  <span class="meta-label">القاعة:</span>
-                  <span class="meta-value">{{ currentEnvelope.hallNumber }}</span>
                 </div>
               </div>
 
@@ -636,119 +678,7 @@
             </v-alert>
           </v-card>
 
-          <!-- ── 3. ميزان ومطابقة أوراق المظروف (Reconciliation Audit Strip) ── -->
-          <div v-if="reconciliationCalculated" class="reconciliation-audit-card mb-3 pa-3 rounded-lg border bg-surface">
-            <!-- حالة 1: مطابق ومكتمل 100% -->
-            <div
-              v-if="reconciliationStatus === 'BALANCED'"
-              class="d-flex align-center justify-space-between flex-wrap gap-2"
-            >
-              <div class="d-flex align-center flex-wrap gap-2">
-                <!-- شارة الحالة الرسمية -->
-                <v-chip size="small" variant="tonal" color="primary" class="font-weight-bold rounded-s">
-                  <v-icon start size="14" color="success">mdi-check-decagram</v-icon>
-                  المظروف مطابق ومكتمل: {{ actualScannedCount + currentEnvelope.absentCount }} / {{ currentEnvelope.expectedCount }} ورقة
-                </v-chip>
-
-                <!-- خلايا معادلة المطابقة المنظمة -->
-                <div class="audit-equation-strip d-flex align-center ga-2 px-3 py-1 rounded-s text-caption" style="gap: 8px;">
-                  <span>المقيدون: <bdi class="font-mono text-high-emphasis ms-1">{{ currentEnvelope.expectedCount }}</bdi></span>
-                  <span class="text-disabled mx-1">=</span>
-                  <span>الممسوح: <bdi class="font-mono text-high-emphasis ms-1">{{ actualScannedCount }}</bdi></span>
-                  <span class="text-disabled mx-1">+</span>
-                  <span>الغياب: <bdi class="font-mono text-high-emphasis ms-1">{{ currentEnvelope.absentCount }}</bdi></span>
-                </div>
-              </div>
-
-              <custom-btn
-                type="done"
-                :label="isCommitted ? 'تم الاعتماد' : 'اعتماد وترحيل المظروف'"
-                color="primary"
-                variant="flat"
-                density="comfortable"
-                class="font-weight-bold rounded-s"
-                :disabled="isCommitted"
-                :click="commitEnvelopeToControl"
-              />
-            </div>
-
-            <!-- حالة 2: عجز ونقص في الأوراق -->
-            <div
-              v-else-if="reconciliationStatus === 'DEFICIT'"
-              class="d-flex align-center justify-space-between flex-wrap gap-2"
-            >
-              <div class="d-flex align-center flex-wrap gap-2">
-                <!-- شارة التنبيه الرسمية -->
-                <v-chip size="small" variant="tonal" color="error" class="font-weight-bold rounded-s">
-                  <v-icon start size="14">mdi-alert-circle-outline</v-icon>
-                  تنبيه عجز: نقص {{ discrepancyAmount }} ورقة مفقودة
-                </v-chip>
-
-                <!-- خلايا معادلة المطابقة المنظمة -->
-                <div class="audit-equation-strip d-flex align-center ga-2 px-3 py-1 rounded-s text-caption" style="gap: 8px;">
-                  <span>سعة القاعة: <bdi class="font-mono text-high-emphasis ms-1">{{ currentEnvelope.expectedCount }}</bdi></span>
-                  <span class="text-disabled mx-1">=</span>
-                  <span>الممسوح: <bdi class="font-mono text-high-emphasis ms-1">{{ actualScannedCount }}</bdi></span>
-                  <span class="text-disabled mx-1">+</span>
-                  <span>الغياب: <bdi class="font-mono text-high-emphasis ms-1">{{ currentEnvelope.absentCount }}</bdi></span>
-                </div>
-
-                <!-- الملاحظة التوجيهية الرسمية الهادئة -->
-                <span class="text-caption text-medium-emphasis">
-                  (يرجى فحص سلة الماسح أو المظروف)
-                </span>
-              </div>
-
-              <custom-btn
-                type="show"
-                label="تحرير محضر عجز مظروف"
-                color="primary"
-                variant="outlined"
-                icon="mdi-file-document-edit-outline"
-                density="comfortable"
-                class="font-weight-bold rounded-s"
-                :click="openDiscrepancyReport"
-              />
-            </div>
-
-            <!-- حالة 3: فائض وزيادة غير مبررة -->
-            <div
-              v-else-if="reconciliationStatus === 'SURPLUS'"
-              class="d-flex align-center justify-space-between flex-wrap gap-2"
-            >
-              <div class="d-flex align-center flex-wrap gap-2">
-                <!-- شارة التنبيه الرسمية -->
-                <v-chip size="small" variant="tonal" color="warning" class="font-weight-bold rounded-s">
-                  <v-icon start size="14">mdi-alert-outline</v-icon>
-                  تنبيه فائض: زيادة {{ Math.abs(discrepancyAmount) }} ورقة
-                </v-chip>
-
-                <!-- خلايا معادلة المطابقة المنظمة -->
-                <div class="audit-equation-strip d-flex align-center ga-2 px-3 py-1 rounded-s text-caption" style="gap: 8px;">
-                  <span>سعة القاعة: <bdi class="font-mono text-high-emphasis ms-1">{{ currentEnvelope.expectedCount }}</bdi></span>
-                  <span class="text-disabled mx-1">|</span>
-                  <span>الممسوح + الغياب: <bdi class="font-mono text-high-emphasis ms-1">{{ actualScannedCount + currentEnvelope.absentCount }}</bdi></span>
-                </div>
-
-                <!-- الملاحظة التوجيهية -->
-                <span class="text-caption text-medium-emphasis">
-                  (يرجى فحص سلة الماسح أو المظروف)
-                </span>
-              </div>
-
-              <custom-btn
-                type="show"
-                label="مراجعة الرزمة"
-                color="primary"
-                variant="outlined"
-                density="comfortable"
-                class="font-weight-bold rounded-s"
-                :click="openDiscrepancyReport"
-              />
-            </div>
-          </div>
-
-          <!-- ── 4. مركز التحكم والمتابعة الموحد للمظروف (Unified Envelope Control Console) ── -->
+          <!-- ── 3. مركز التحكم والمتابعة ومطابقة المظروف (Unified Envelope Control & Audit Console) ── -->
           <v-card class="main-card rounded-2xl border mb-5 overflow-hidden shadow-sm bg-surface">
             <!-- شريط رأس الكونسول والمؤشرات السريعة (تصميم رسمي هادئ) -->
             <div class="pa-4 border-b d-flex align-center justify-space-between flex-wrap gap-3 bg-surface">
@@ -808,6 +738,91 @@
               </div>
             </div>
 
+            <!-- شريط حالة المطابقة الرسمية والعجز/الفائض مدمج بسلاسة داخل كونسول المظروف دون تكرار -->
+            <div
+              v-if="reconciliationCalculated"
+              class="px-4 py-2.5 border-b d-flex align-center justify-space-between flex-wrap ga-2"
+              :style="{
+                background: reconciliationStatus === 'BALANCED'
+                  ? 'rgba(16, 185, 129, 0.05)'
+                  : reconciliationStatus === 'DEFICIT'
+                    ? 'rgba(239, 68, 68, 0.04)'
+                    : 'rgba(245, 158, 11, 0.05)'
+              }"
+            >
+              <div class="d-flex align-center flex-wrap ga-2.5" style="gap: 10px;">
+                <!-- شارة الحالة الرسمية -->
+                <v-chip
+                  size="small"
+                  variant="tonal"
+                  :color="reconciliationStatus === 'BALANCED' ? 'success' : reconciliationStatus === 'DEFICIT' ? 'error' : 'warning'"
+                  class="font-weight-bold rounded-s"
+                >
+                  <v-icon start size="14">
+                    {{ reconciliationStatus === 'BALANCED' ? 'mdi-check-decagram' : 'mdi-alert-circle-outline' }}
+                  </v-icon>
+                  <template v-if="reconciliationStatus === 'BALANCED'">
+                    المطابقة مكتملة: {{ actualScannedCount + currentEnvelope.absentCount }} / {{ currentEnvelope.expectedCount }} ورقة
+                  </template>
+                  <template v-else-if="reconciliationStatus === 'DEFICIT'">
+                    تنبيه عجز: نقص {{ discrepancyAmount }} ورقة مفقودة
+                  </template>
+                  <template v-else>
+                    تنبيه فائض: زيادة {{ Math.abs(discrepancyAmount) }} ورقة
+                  </template>
+                </v-chip>
+
+                <!-- معادلة المطابقة المنظمة -->
+                <div class="audit-equation-strip d-flex align-center ga-2 px-3 py-1 rounded-s text-caption" style="gap: 8px;">
+                  <span>سعة القاعة: <bdi class="font-mono text-high-emphasis ms-1">{{ currentEnvelope.expectedCount }}</bdi></span>
+                  <span class="text-disabled mx-1">=</span>
+                  <span>الممسوح: <bdi class="font-mono text-high-emphasis ms-1">{{ actualScannedCount }}</bdi></span>
+                  <span class="text-disabled mx-1">+</span>
+                  <span>الغياب: <bdi class="font-mono text-high-emphasis ms-1">{{ currentEnvelope.absentCount }}</bdi></span>
+                </div>
+
+                <span v-if="reconciliationStatus === 'DEFICIT'" class="text-caption text-medium-emphasis">
+                  (يرجى فحص سلة الماسح أو المظروف)
+                </span>
+              </div>
+
+              <!-- إجراء المطابقة -->
+              <div>
+                <custom-btn
+                  v-if="reconciliationStatus === 'BALANCED'"
+                  type="done"
+                  :label="isCommitted ? 'تم الاعتماد' : 'اعتماد وترحيل المظروف'"
+                  color="primary"
+                  variant="flat"
+                  density="comfortable"
+                  class="font-weight-bold rounded-s"
+                  :disabled="isCommitted"
+                  :click="commitEnvelopeToControl"
+                />
+                <custom-btn
+                  v-else-if="reconciliationStatus === 'DEFICIT'"
+                  type="show"
+                  label="تحرير محضر عجز مظروف"
+                  color="primary"
+                  variant="outlined"
+                  icon="mdi-file-document-edit-outline"
+                  density="comfortable"
+                  class="font-weight-bold rounded-s"
+                  :click="openDiscrepancyReport"
+                />
+                <custom-btn
+                  v-else
+                  type="show"
+                  label="مراجعة الرزمة"
+                  color="primary"
+                  variant="outlined"
+                  density="comfortable"
+                  class="font-weight-bold rounded-s"
+                  :click="openDiscrepancyReport"
+                />
+              </div>
+            </div>
+
             <!-- تبويبات العرض الموحدة والمتزامنة -->
             <v-tabs v-model="activeConsoleTab" color="primary" density="comfortable" class="border-b px-4 bg-surface">
               <!-- تبويب 1: الأوراق الممسوحة بالمظروف -->
@@ -861,14 +876,11 @@
 
                 <!-- في حال وجود أوراق ممسوحة -->
                 <div v-else>
-                  <!-- شريط الأدوات والخيارات: إحصائيات هادئة موحدة ومفصولة ومريحة -->
+                  <!-- شريط الأدوات والخيارات: إحصائيات الفحص والتدقيق الداخلي -->
                   <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-3 pa-2.5 rounded-lg border bg-surface" style="gap: 8px;">
                     <div class="d-flex align-center flex-wrap ga-2.5 text-caption" style="gap: 10px;">
                       <span class="stat-pill-badge d-inline-flex align-center px-3 py-1 rounded-lg border font-weight-bold">
-                        <span class="text-medium-emphasis">الممسوح:</span>
-                        <bdi class="font-mono text-primary font-weight-black ms-1.5">{{ displaySheets.length }} ورقة</bdi>
-                      </span>
-                      <span class="stat-pill-badge d-inline-flex align-center px-3 py-1 rounded-lg border font-weight-bold">
+                        <v-icon size="14" color="success" class="me-1">mdi-check-circle-outline</v-icon>
                         <span class="text-medium-emphasis">أوراق سليمة:</span>
                         <bdi class="font-mono text-success font-weight-black ms-1.5">{{ successfulSheets.length }}</bdi>
                       </span>
@@ -876,6 +888,7 @@
                         v-if="needsReviewSheets.length > 0"
                         class="stat-pill-badge d-inline-flex align-center px-3 py-1 rounded-lg border font-weight-bold"
                       >
+                        <v-icon size="14" color="error" class="me-1">mdi-alert-circle-outline</v-icon>
                         <span class="text-medium-emphasis">تحتاج تدقيق:</span>
                         <bdi class="font-mono text-error font-weight-black ms-1.5">{{ needsReviewSheets.length }}</bdi>
                       </span>
