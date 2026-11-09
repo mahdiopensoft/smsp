@@ -293,44 +293,44 @@
         </v-col>
       </v-row>
 
-      <!-- ── معادلة مطابقة القاعة والمطلوب سحبه (تصميم رسمي بخلايا منظمة وهادئة) ── -->
-      <div class="d-flex align-center justify-space-between flex-wrap gap-2 pa-2.5 mt-3 rounded-lg border bg-surface">
-        <div class="d-flex align-center flex-wrap gap-2">
-          <span class="text-caption font-weight-bold text-medium-emphasis me-1 d-flex align-center gap-1">
+      <!-- ── معادلة مطابقة القاعة والمطلوب سحبه (تصميم رسمي بخلايا منظمة وهادئة ومريحة) ── -->
+      <div class="d-flex align-center justify-space-between flex-wrap ga-3 pa-2.5 mt-3 rounded-lg border bg-surface" style="gap: 12px;">
+        <div class="d-flex align-center flex-wrap ga-2" style="gap: 8px;">
+          <span class="text-caption font-weight-bold text-medium-emphasis me-1 d-flex align-center ga-1" style="gap: 4px;">
             <v-icon size="16" color="primary">mdi-calculator-variant-outline</v-icon>
             معادلة المطابقة:
           </span>
 
-          <div class="d-flex align-center gap-1.5 flex-wrap audit-equation-strip">
+          <div class="audit-equation-strip d-flex align-center flex-wrap ga-2" style="gap: 8px;">
             <!-- مقيد -->
             <div class="audit-cell">
               <span class="cell-label">المقيدون:</span>
-              <span class="cell-val font-mono text-high-emphasis">{{ currentEnvelope.expectedCount }}</span>
+              <bdi class="cell-val font-mono text-high-emphasis ms-1">{{ currentEnvelope.expectedCount }}</bdi>
             </div>
 
-            <span class="text-medium-emphasis font-weight-bold mx-0.5">=</span>
+            <span class="text-medium-emphasis font-weight-bold mx-1">=</span>
 
             <!-- ورقة حاضرة -->
             <div class="audit-cell">
               <span class="cell-label text-success">الحضور:</span>
-              <span class="cell-val font-mono text-success">{{ expectedPresentSheets }} ورقة</span>
+              <bdi class="cell-val font-mono text-success ms-1">{{ expectedPresentSheets }} ورقة</bdi>
             </div>
 
-            <span class="text-medium-emphasis font-weight-bold mx-0.5">+</span>
+            <span class="text-medium-emphasis font-weight-bold mx-1">+</span>
 
             <!-- طالب غائب -->
             <div class="audit-cell">
               <span class="cell-label text-medium-emphasis">الغياب:</span>
-              <span class="cell-val font-mono text-medium-emphasis">{{ currentEnvelope.absentCount }}</span>
+              <bdi class="cell-val font-mono text-medium-emphasis ms-1">{{ currentEnvelope.absentCount }}</bdi>
             </div>
           </div>
         </div>
 
         <!-- المطلوب سحبه من الماسح -->
-        <div class="d-flex align-center gap-1.5 px-3 py-1.5 rounded border" style="background: rgba(var(--v-theme-surface-variant), 0.08);">
+        <div class="d-flex align-center ga-2 px-3 py-1.5 rounded-lg border" style="background: rgba(var(--v-theme-surface-variant), 0.12); gap: 8px;">
           <v-icon size="16" color="primary">mdi-tray-arrow-down</v-icon>
           <span class="text-caption text-medium-emphasis font-weight-bold">المطلوب سحبه:</span>
-          <span class="font-mono font-weight-bold text-primary">{{ expectedPresentSheets }} ورقة</span>
+          <bdi class="font-mono font-weight-bold text-primary ms-1">{{ expectedPresentSheets }} ورقة</bdi>
         </div>
       </div>
     </filter-fields>
@@ -651,12 +651,12 @@
                 </v-chip>
 
                 <!-- خلايا معادلة المطابقة المنظمة -->
-                <div class="audit-equation-strip d-flex align-center gap-2 px-3 py-1 rounded-s text-caption">
-                  <span>المقيدون: <strong class="font-mono text-high-emphasis">{{ currentEnvelope.expectedCount }}</strong></span>
-                  <span class="text-disabled">=</span>
-                  <span>الممسوح: <strong class="font-mono text-high-emphasis">{{ actualScannedCount }}</strong></span>
-                  <span class="text-disabled">+</span>
-                  <span>الغياب: <strong class="font-mono text-high-emphasis">{{ currentEnvelope.absentCount }}</strong></span>
+                <div class="audit-equation-strip d-flex align-center ga-2 px-3 py-1 rounded-s text-caption" style="gap: 8px;">
+                  <span>المقيدون: <bdi class="font-mono text-high-emphasis ms-1">{{ currentEnvelope.expectedCount }}</bdi></span>
+                  <span class="text-disabled mx-1">=</span>
+                  <span>الممسوح: <bdi class="font-mono text-high-emphasis ms-1">{{ actualScannedCount }}</bdi></span>
+                  <span class="text-disabled mx-1">+</span>
+                  <span>الغياب: <bdi class="font-mono text-high-emphasis ms-1">{{ currentEnvelope.absentCount }}</bdi></span>
                 </div>
               </div>
 
@@ -685,12 +685,12 @@
                 </v-chip>
 
                 <!-- خلايا معادلة المطابقة المنظمة -->
-                <div class="audit-equation-strip d-flex align-center gap-2 px-3 py-1 rounded-s text-caption">
-                  <span>سعة القاعة: <strong class="font-mono text-high-emphasis">{{ currentEnvelope.expectedCount }}</strong></span>
-                  <span class="text-disabled">=</span>
-                  <span>الممسوح: <strong class="font-mono text-high-emphasis">{{ actualScannedCount }}</strong></span>
-                  <span class="text-disabled">+</span>
-                  <span>الغياب: <strong class="font-mono text-high-emphasis">{{ currentEnvelope.absentCount }}</strong></span>
+                <div class="audit-equation-strip d-flex align-center ga-2 px-3 py-1 rounded-s text-caption" style="gap: 8px;">
+                  <span>سعة القاعة: <bdi class="font-mono text-high-emphasis ms-1">{{ currentEnvelope.expectedCount }}</bdi></span>
+                  <span class="text-disabled mx-1">=</span>
+                  <span>الممسوح: <bdi class="font-mono text-high-emphasis ms-1">{{ actualScannedCount }}</bdi></span>
+                  <span class="text-disabled mx-1">+</span>
+                  <span>الغياب: <bdi class="font-mono text-high-emphasis ms-1">{{ currentEnvelope.absentCount }}</bdi></span>
                 </div>
 
                 <!-- الملاحظة التوجيهية الرسمية الهادئة -->
@@ -724,10 +724,10 @@
                 </v-chip>
 
                 <!-- خلايا معادلة المطابقة المنظمة -->
-                <div class="audit-equation-strip d-flex align-center gap-2 px-3 py-1 rounded-s text-caption">
-                  <span>سعة القاعة: <strong class="font-mono text-high-emphasis">{{ currentEnvelope.expectedCount }}</strong></span>
-                  <span class="text-disabled">|</span>
-                  <span>الممسوح + الغياب: <strong class="font-mono text-high-emphasis">{{ actualScannedCount + currentEnvelope.absentCount }}</strong></span>
+                <div class="audit-equation-strip d-flex align-center ga-2 px-3 py-1 rounded-s text-caption" style="gap: 8px;">
+                  <span>سعة القاعة: <bdi class="font-mono text-high-emphasis ms-1">{{ currentEnvelope.expectedCount }}</bdi></span>
+                  <span class="text-disabled mx-1">|</span>
+                  <span>الممسوح + الغياب: <bdi class="font-mono text-high-emphasis ms-1">{{ actualScannedCount + currentEnvelope.absentCount }}</bdi></span>
                 </div>
 
                 <!-- الملاحظة التوجيهية -->
@@ -861,23 +861,23 @@
 
                 <!-- في حال وجود أوراق ممسوحة -->
                 <div v-else>
-                  <!-- شريط الأدوات والخيارات: إحصائيات هادئة موحدة -->
-                  <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3 pa-2.5 rounded-lg border bg-surface">
-                    <div class="d-flex align-center flex-wrap gap-2 text-caption">
-                      <span class="d-inline-flex align-center gap-1.5 px-3 py-1 rounded-lg border bg-surface font-weight-bold">
+                  <!-- شريط الأدوات والخيارات: إحصائيات هادئة موحدة ومفصولة ومريحة -->
+                  <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-3 pa-2.5 rounded-lg border bg-surface" style="gap: 8px;">
+                    <div class="d-flex align-center flex-wrap ga-2.5 text-caption" style="gap: 10px;">
+                      <span class="stat-pill-badge d-inline-flex align-center px-3 py-1 rounded-lg border font-weight-bold">
                         <span class="text-medium-emphasis">الممسوح:</span>
-                        <span class="font-mono text-primary font-weight-black">{{ displaySheets.length }} ورقة</span>
+                        <bdi class="font-mono text-primary font-weight-black ms-1.5">{{ displaySheets.length }} ورقة</bdi>
                       </span>
-                      <span class="d-inline-flex align-center gap-1.5 px-3 py-1 rounded-lg border bg-surface font-weight-bold">
-                        <span class="text-medium-emphasis">سليمة:</span>
-                        <span class="font-mono text-success font-weight-black">{{ successfulSheets.length }}</span>
+                      <span class="stat-pill-badge d-inline-flex align-center px-3 py-1 rounded-lg border font-weight-bold">
+                        <span class="text-medium-emphasis">أوراق سليمة:</span>
+                        <bdi class="font-mono text-success font-weight-black ms-1.5">{{ successfulSheets.length }}</bdi>
                       </span>
                       <span
                         v-if="needsReviewSheets.length > 0"
-                        class="d-inline-flex align-center gap-1.5 px-3 py-1 rounded-lg border bg-surface font-weight-bold"
+                        class="stat-pill-badge d-inline-flex align-center px-3 py-1 rounded-lg border font-weight-bold"
                       >
                         <span class="text-medium-emphasis">تحتاج تدقيق:</span>
-                        <span class="font-mono text-error font-weight-black">{{ needsReviewSheets.length }}</span>
+                        <bdi class="font-mono text-error font-weight-black ms-1.5">{{ needsReviewSheets.length }}</bdi>
                       </span>
                     </div>
                   </div>
@@ -2845,27 +2845,39 @@ export default {
 }
 
 .audit-equation-strip {
-  background: rgba(var(--v-theme-surface-variant), 0.08);
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid rgba(var(--v-border-color), 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(var(--v-theme-surface-variant), 0.12);
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(var(--v-border-color), 0.15);
+  white-space: nowrap;
 }
 
 .audit-cell {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   padding: 2px 6px;
   font-size: 0.82rem;
+  white-space: nowrap;
 }
 
 .audit-cell .cell-label {
   color: rgba(var(--v-theme-on-surface), 0.7);
   font-weight: 600;
+  margin-inline-end: 4px;
 }
 
 .audit-cell .cell-val {
   font-weight: 700;
+}
+
+.stat-pill-badge {
+  background: rgba(var(--v-theme-surface-variant), 0.15);
+  border-color: rgba(var(--v-border-color), 0.12) !important;
+  white-space: nowrap;
 }
 
 .audit-note {
