@@ -1,5 +1,15 @@
 <template>
   <div class="qb-national-control-console pa-3 pa-md-6">
+    <!-- حقل اختيار ملفات المظروف العام -->
+    <input
+      ref="fileInput"
+      type="file"
+      multiple
+      accept="image/*,application/pdf,.zip"
+      class="d-none"
+      @change="handleFileSelect"
+    />
+
     <!-- ── 1. بيانات المظروف الامتحاني والقاعة (Envelope Manifest & Dispatch Details) ── -->
     <filter-fields
       label="1. بيانات المظروف الامتحاني والقاعة (Envelope Manifest & Dispatch Details)"
@@ -293,8 +303,12 @@
         </v-col>
       </v-row>
 
-      <!-- ── معادلة مطابقة القاعة والمطلوب سحبه (تصميم رسمي بخلايا منظمة وهادئة ومريحة) ── -->
-      <div class="d-flex align-center justify-space-between flex-wrap ga-3 pa-2.5 mt-3 rounded-lg border bg-surface" style="gap: 12px;">
+      <!-- ── معادلة مطابقة القاعة والمطلوب سحبه (تظهر فقط قبل المسح لتجنب التكرار) ── -->
+      <div
+        v-if="!reconciliationCalculated && currentEnvelope.expectedCount > 0"
+        class="d-flex align-center justify-space-between flex-wrap ga-3 pa-2.5 mt-3 rounded-lg border bg-surface"
+        style="gap: 12px;"
+      >
         <div class="d-flex align-center flex-wrap ga-2" style="gap: 8px;">
           <span class="text-caption font-weight-bold text-medium-emphasis me-1 d-flex align-center ga-1" style="gap: 4px;">
             <v-icon size="16" color="primary">mdi-clipboard-text-outline</v-icon>
@@ -335,8 +349,11 @@
       </div>
     </filter-fields>
 
-          <!-- ── 2. ملقم تغذية أوراق المظروف من الماسح الضوئي (Scanner Feed Bay) ── -->
-          <v-card class="main-card pa-4 rounded-xl border mb-4">
+          <!-- ── 2. ملقم تغذية أوراق المظروف من الماسح الضوئي (يختفي بعد اكتمال المسح لمنع التكرار) ── -->
+          <v-card
+            v-show="!reconciliationCalculated || isGrading"
+            class="main-card pa-4 rounded-xl border mb-4"
+          >
             <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3">
               <div class="d-flex align-center gap-2">
                 <v-icon size="20" color="primary">mdi-tray-arrow-down</v-icon>
@@ -377,15 +394,6 @@
               @drop.prevent="handleDrop"
               @click="$refs.fileInput.click()"
             >
-              <input
-                ref="fileInput"
-                type="file"
-                multiple
-                accept="image/*,application/pdf,.zip"
-                class="d-none"
-                @change="handleFileSelect"
-              />
-
               <v-avatar size="56" color="primary" variant="tonal" class="mb-3 rounded-circle">
                 <v-icon size="30" color="primary">mdi-cloud-upload-outline</v-icon>
               </v-avatar>
@@ -412,65 +420,6 @@
               </div>
             </div>
 
-            <!-- عند إنجاز المسح والتصحيح: شريط إنجاز مدمج دون تكرار صندوق التلقيم -->
-            <div
-              v-else-if="reconciliationCalculated && !isGrading"
-              class="pa-3 px-4 rounded-xl border bg-surface d-flex align-center justify-space-between flex-wrap ga-2"
-              style="background: rgba(var(--v-theme-surface-variant), 0.08); gap: 8px;"
-            >
-              <div class="d-flex align-center ga-2" style="gap: 8px;">
-                <v-avatar size="32" color="success" variant="tonal" class="rounded-circle">
-                  <v-icon size="18" color="success">mdi-check-decagram</v-icon>
-                </v-avatar>
-                <div>
-                  <span class="text-subtitle-2 font-weight-bold text-high-emphasis">
-                    تم إنجاز مسح وتصحيح حزمة المظروف بنجاح
-                  </span>
-                  <span class="text-caption text-medium-emphasis ms-2 font-mono">
-                    ({{ batchFiles.length }} ورقة • {{ totalBatchSizeFormatted }})
-                  </span>
-                </div>
-              </div>
-
-              <div class="d-flex align-center ga-2" style="gap: 8px;">
-                <v-btn
-                  size="small"
-                  variant="outlined"
-                  color="primary"
-                  class="font-weight-bold rounded-s"
-                  prepend-icon="mdi-plus"
-                  title="إضافة أوراق أو ملفات أخرى لنفس المظروف"
-                  @click="$refs.fileInput.click()"
-                >
-                  إضافة أوراق
-                </v-btn>
-
-                <v-btn
-                  size="small"
-                  variant="text"
-                  color="primary"
-                  class="font-weight-bold rounded-s"
-                  prepend-icon="mdi-barcode-scan"
-                  title="إعادة مسح وتصحيح الحزمة"
-                  @click="startBatchGrading"
-                >
-                  إعادة المسح
-                </v-btn>
-
-                <v-btn
-                  size="small"
-                  variant="text"
-                  color="error"
-                  class="font-weight-bold rounded-s"
-                  prepend-icon="mdi-delete-outline"
-                  title="تفريغ الحزمة"
-                  @click="clearFiles"
-                >
-                  إلغاء الملفات
-                </v-btn>
-              </div>
-            </div>
-
             <!-- حالة جاهزية حزمة المظروف بعد الرفع (نفس الهيكل الأنيق والمتناسق دون تكرار بيانات القاعة والمظروف) -->
             <div
               v-else
@@ -480,14 +429,6 @@
               @dragleave.prevent="isDragging = false"
               @drop.prevent="handleDrop"
             >
-              <input
-                ref="fileInput"
-                type="file"
-                multiple
-                accept="image/*,application/pdf,.zip"
-                class="d-none"
-                @change="handleFileSelect"
-              />
 
               <!-- أيقونة دائرية رسمية معتمدة مماثلة لأيقونة الرفع التي أعجبت المستخدم -->
               <v-avatar size="56" color="primary" variant="tonal" class="mb-2 rounded-circle">
@@ -724,6 +665,32 @@
                   density="comfortable"
                   class="font-weight-bold rounded-s"
                   :click="() => $router.push(`/omr-human-review?exam=${selectedExamId}`)"
+                />
+
+                <!-- زر إضافة أوراق أخرى لنفس المظروف -->
+                <custom-btn
+                  v-if="reconciliationCalculated"
+                  type="add"
+                  label="إضافة أوراق"
+                  color="primary"
+                  variant="outlined"
+                  icon="mdi-plus"
+                  density="comfortable"
+                  class="font-weight-bold rounded-s"
+                  :click="() => $refs.fileInput.click()"
+                />
+
+                <!-- زر إعادة المسح والتصحيح -->
+                <custom-btn
+                  v-if="reconciliationCalculated"
+                  type="refresh"
+                  label="إعادة المسح"
+                  color="primary"
+                  variant="text"
+                  icon="mdi-refresh"
+                  density="comfortable"
+                  class="font-weight-bold rounded-s"
+                  :click="startBatchGrading"
                 />
 
                 <custom-btn
@@ -1022,38 +989,6 @@
 
               <!-- ═══════════ التبويب 2: حافظة كشف الطلاب والمطابقة اللحظية ═══════════ -->
               <div v-else-if="activeConsoleTab === 'roster'">
-                <!-- شريط توضيحي يشرح فائدة كشف الحافظة ومعادلة المطابقة -->
-                <div class="pa-3 mb-3 rounded-0 border bg-surface d-flex align-center justify-space-between flex-wrap gap-3">
-                  <div class="d-flex align-center gap-2">
-                    <v-avatar color="info" variant="tonal" size="32" class="rounded-lg">
-                      <v-icon color="info" size="18">mdi-shield-account-outline</v-icon>
-                    </v-avatar>
-                    <div>
-                      <span class="text-subtitle-2 font-weight-black text-on-surface">
-                        كشف المناداة والتسليم الرسمي للقاعة: {{ currentEnvelope.envelopeCode }}
-                      </span>
-                      <div class="text-caption text-medium-emphasis">
-                        السجل المعتمد للطلاب الـ ({{ registeredStudents.length }}) المقيدين بهذه القاعة. يتم تحديث حالة كل طالب لحظياً فور مرور ورقته عبر الماسح.
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="d-flex align-center flex-wrap gap-2">
-                    <v-chip color="info" variant="tonal" size="small" class="font-weight-bold">
-                      المقيدون: {{ registeredStudents.length }}
-                    </v-chip>
-                    <v-chip color="success" variant="tonal" size="small" class="font-weight-bold">
-                      تم المسح: {{ rosterMatchedCount }}
-                    </v-chip>
-                    <v-chip color="blue-grey" variant="tonal" size="small" class="font-weight-bold">
-                      بانتظار السحب: {{ Math.max(0, registeredStudents.length - rosterMatchedCount - currentEnvelope.absentCount) }}
-                    </v-chip>
-                    <v-chip v-if="currentEnvelope.absentCount > 0" color="warning" variant="tonal" size="small" class="font-weight-bold">
-                      الغياب: {{ currentEnvelope.absentCount }}
-                    </v-chip>
-                  </div>
-                </div>
-
                 <div v-if="registeredStudents.length > 0">
                   <custom-data-table
                     v-model="selectedRegisteredStudents"
@@ -2388,16 +2323,19 @@ export default {
 
     // File Handling
     const handleFileSelect = (e) => {
-      if (e.target.files) {
+      if (e.target.files && e.target.files.length > 0) {
         batchFiles.value = [...batchFiles.value, ...Array.from(e.target.files)]
+        batchResult.value = null
         gradingError.value = null
+        e.target.value = ''
       }
     }
 
     const handleDrop = (e) => {
       isDragging.value = false
-      if (e.dataTransfer?.files) {
+      if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
         batchFiles.value = [...batchFiles.value, ...Array.from(e.dataTransfer.files)]
+        batchResult.value = null
         gradingError.value = null
       }
     }
