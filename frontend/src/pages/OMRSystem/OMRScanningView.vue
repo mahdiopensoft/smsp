@@ -370,10 +370,10 @@
               </div>
             </div>
 
-            <!-- مساحة إفلات وتلقيم حزمة أوراق المظروف (تصميم أنيق ومنظم وغير ممدود وسريع) -->
+            <!-- مساحة إفلات وتلقيم حزمة أوراق المظروف (تصميم أنيق ومنظم ومحدد) -->
             <div
               v-if="batchFiles.length === 0"
-              class="upload-dropzone pa-5 rounded-xl text-center d-flex flex-column align-center justify-center transition-all cursor-pointer"
+              class="upload-dropzone pa-6 rounded-xl text-center d-flex flex-column align-center justify-center transition-all cursor-pointer"
               :class="{ 'is-dragover': isDragging }"
               @dragover.prevent="isDragging = true"
               @dragleave.prevent="isDragging = false"
@@ -389,8 +389,8 @@
                 @change="handleFileSelect"
               />
 
-              <v-avatar size="48" color="primary" variant="tonal" class="mb-2 rounded-xl">
-                <v-icon size="26" color="primary">mdi-tray-arrow-down</v-icon>
+              <v-avatar size="56" color="primary" variant="tonal" class="mb-3 rounded-circle">
+                <v-icon size="30" color="primary">mdi-cloud-upload-outline</v-icon>
               </v-avatar>
               <div class="text-subtitle-1 font-weight-black mb-1">
                 إفلات حزمة أوراق المظروف هنا أو النقر للاستعراض
@@ -415,10 +415,10 @@
               </div>
             </div>
 
-            <!-- منصة تلقيم وتجهيز المظروف المدمجة السريعة (Executive Envelope Staging Hub) -->
+            <!-- حالة جاهزية حزمة المظروف بعد الرفع (نفس الهيكل الأنيق والمتناسق) -->
             <div
               v-else
-              class="envelope-staging-hub pa-3.5 px-4 rounded-xl d-flex align-center justify-space-between flex-wrap gap-3 transition-all"
+              class="upload-dropzone upload-dropzone-ready pa-6 rounded-xl text-center d-flex flex-column align-center justify-center transition-all"
               :class="{ 'is-dragover': isDragging }"
               @dragover.prevent="isDragging = true"
               @dragleave.prevent="isDragging = false"
@@ -433,55 +433,63 @@
                 @change="handleFileSelect"
               />
 
-              <!-- الجانب الأيمن: بيانات جاهزية حزمة المظروف -->
-              <div class="d-flex align-center gap-3">
-                <v-avatar size="44" color="success" variant="tonal" class="rounded-lg flex-shrink-0">
-                  <v-icon size="24" color="success">mdi-file-check-outline</v-icon>
-                </v-avatar>
-                <div>
-                  <div class="d-flex align-center gap-2 flex-wrap">
-                    <span class="text-subtitle-2 font-weight-black text-high-emphasis">
-                      تم تجهيز حزمة أوراق المظروف
-                    </span>
-                    <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold rounded-s">
-                      <span class="live-dot-green me-1"></span>
-                      جاهز للتصحيح
-                    </v-chip>
-                  </div>
-                  <div class="d-flex align-center gap-2 flex-wrap text-caption text-medium-emphasis mt-0.5">
-                    <span class="font-weight-bold text-success">
-                      <v-icon size="14" class="me-0.5">mdi-file-document-multiple-outline</v-icon>
-                      {{ batchFiles.length }} ورقة
-                    </span>
-                    <span>•</span>
-                    <span class="font-mono">الحجم: {{ totalBatchSizeFormatted }}</span>
-                    <template v-if="currentEnvelope.envelopeCode">
-                      <span>•</span>
-                      <span class="font-mono">المظروف: {{ currentEnvelope.envelopeCode }}</span>
-                    </template>
-                  </div>
-                </div>
+              <!-- أيقونة دائرية رسمية معتمدة مماثلة لأيقونة الرفع التي أعجبت المستخدم -->
+              <v-avatar size="56" color="primary" variant="tonal" class="mb-2 rounded-circle">
+                <v-icon size="30" color="primary">mdi-file-document-check-outline</v-icon>
+              </v-avatar>
+
+              <!-- عنوان الجاهزية الرسمي -->
+              <div class="d-flex align-center justify-center gap-2 mb-1 flex-wrap">
+                <span class="text-subtitle-1 font-weight-black text-high-emphasis">
+                  تم تجهيز حزمة أوراق المظروف بنجاح
+                </span>
+                <v-chip size="x-small" color="success" variant="flat" class="font-weight-bold rounded-s">
+                  جاهز للتصحيح
+                </v-chip>
               </div>
 
-              <!-- الجانب الأيسر: الإجراءات الموحدة في سطر واحد دون تباعد أو تمدد -->
-              <div class="d-flex align-center gap-2 flex-wrap">
+              <!-- بطاقات تفاصيل المظروف والأوراق في سطر منظم ومتناسق -->
+              <div class="d-flex align-center justify-center flex-wrap gap-2 mb-4 text-caption text-medium-emphasis">
+                <span class="font-weight-bold px-2.5 py-1 rounded border d-flex align-center gap-1" style="background: rgba(var(--v-theme-surface), 0.7);">
+                  <v-icon size="14" color="primary">mdi-file-document-multiple-outline</v-icon>
+                  العدد: <strong class="text-primary">{{ batchFiles.length }} ورقة</strong>
+                </span>
+                <span class="font-mono px-2.5 py-1 rounded border d-flex align-center gap-1" style="background: rgba(var(--v-theme-surface), 0.7);">
+                  <v-icon size="14" color="medium-emphasis">mdi-database-outline</v-icon>
+                  الحجم: <strong>{{ totalBatchSizeFormatted }}</strong>
+                </span>
+                <span v-if="currentEnvelope.envelopeCode" class="font-mono px-2.5 py-1 rounded border d-flex align-center gap-1" style="background: rgba(var(--v-theme-surface), 0.7);">
+                  <v-icon size="14" color="medium-emphasis">mdi-barcode</v-icon>
+                  المظروف: <strong>{{ currentEnvelope.envelopeCode }}</strong>
+                </span>
+                <span v-if="currentEnvelope.hallNumber" class="px-2.5 py-1 rounded border d-flex align-center gap-1" style="background: rgba(var(--v-theme-surface), 0.7);">
+                  <v-icon size="14" color="medium-emphasis">mdi-map-marker-outline</v-icon>
+                  القاعة: <strong>{{ currentEnvelope.hallNumber }}</strong>
+                </span>
+              </div>
+
+              <!-- زر بدء التصحيح الأساسي والأزرار المساعدة بتناسق تام -->
+              <div class="d-flex align-center justify-center flex-wrap gap-2.5 w-100" style="max-width: 540px;">
                 <v-btn
-                  color="error"
-                  variant="text"
-                  size="small"
-                  class="font-weight-bold px-2 rounded-s"
-                  prepend-icon="mdi-delete-sweep-outline"
-                  title="تفريغ الحزمة وإلغاء الملفات"
-                  @click="clearFiles"
+                  v-if="!isGrading"
+                  color="primary"
+                  variant="flat"
+                  size="default"
+                  class="font-weight-black px-6 rounded-lg elevation-1 flex-grow-1"
+                  style="min-height: 42px;"
+                  prepend-icon="mdi-scanner"
+                  :disabled="!selectedExamId"
+                  @click="startBatchGrading"
                 >
-                  إلغاء
+                  بدء المسح والتصحيح الآلي ({{ batchFiles.length }} ورقة)
                 </v-btn>
 
                 <v-btn
                   color="primary"
                   variant="outlined"
-                  size="small"
-                  class="font-weight-bold px-3 rounded-s"
+                  size="default"
+                  class="font-weight-bold px-4 rounded-lg"
+                  style="min-height: 42px;"
                   prepend-icon="mdi-plus"
                   title="إضافة أوراق أو ملفات أخرى لنفس المظروف"
                   @click="$refs.fileInput.click()"
@@ -490,17 +498,16 @@
                 </v-btn>
 
                 <v-btn
-                  v-if="!isGrading"
-                  color="primary"
-                  variant="flat"
-                  size="small"
-                  class="font-weight-black px-4 rounded-s shadow-sm"
-                  style="min-height: 36px;"
-                  prepend-icon="mdi-scanner"
-                  :disabled="!selectedExamId"
-                  @click="startBatchGrading"
+                  color="error"
+                  variant="text"
+                  size="default"
+                  class="font-weight-bold px-3 rounded-lg"
+                  style="min-height: 42px;"
+                  prepend-icon="mdi-delete-outline"
+                  title="تفريغ الحزمة وإلغاء الملفات"
+                  @click="clearFiles"
                 >
-                  بدء المسح والتصحيح ({{ batchFiles.length }} ورقة)
+                  إلغاء
                 </v-btn>
               </div>
             </div>
@@ -2737,7 +2744,7 @@ export default {
   background: rgba(var(--v-theme-surface-variant), 0.12);
   border: 2px dashed rgba(var(--v-border-color), 0.3);
   cursor: pointer;
-  min-height: 135px;
+  min-height: 180px;
   transition: all 0.25s ease;
   position: relative;
 }
@@ -2749,35 +2756,11 @@ export default {
   box-shadow: 0 6px 20px rgba(var(--v-theme-primary), 0.1);
 }
 
-/* ── Executive Envelope Staging Hub (Compact, Fast & Centered) ── */
-.envelope-staging-hub {
-  max-width: 880px;
-  margin: 0 auto;
-  background: linear-gradient(135deg, rgba(var(--v-theme-surface), 0.98), rgba(16, 185, 129, 0.04));
-  border: 1.5px solid rgba(16, 185, 129, 0.4);
-  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.08);
-  transition: all 0.25s ease;
-}
-
-.envelope-staging-hub.is-dragover {
-  border-color: #10b981;
-  background: rgba(16, 185, 129, 0.1);
-  transform: scale(1.005);
-}
-
-.live-dot-green {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  background-color: #10b981;
-  border-radius: 50%;
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
-  animation: live-pulse-dot 1.6s ease-in-out infinite;
-}
-
-@keyframes live-pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.35; transform: scale(0.75); }
+.upload-dropzone-ready {
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.35);
+  background: linear-gradient(180deg, rgba(var(--v-theme-surface), 0.96), rgba(var(--v-theme-primary), 0.03));
+  box-shadow: 0 4px 18px rgba(var(--v-theme-primary), 0.06);
+  cursor: default;
 }
 
 /* ── Governorate Cards (Video Wall) ────────────────────────── */
