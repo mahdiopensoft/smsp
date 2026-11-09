@@ -526,11 +526,12 @@
                       ></span>
 
                       <div class="stepper-circle">
-                        <!-- If Completed: Show Crisp Checkmark -->
+                        <!-- If Completed: Show Crisp Green Checkmark -->
                         <v-icon
                           v-if="currentProcessingStepIndex > sIdx"
                           size="20"
-                          class="checkmark-pop"
+                          color="success"
+                          class="checkmark-pop text-success"
                         >
                           mdi-check-bold
                         </v-icon>
@@ -552,8 +553,8 @@
                         {{ step.label }}
                       </div>
                       <div class="node-subtitle text-caption">
-                        <span v-if="currentProcessingStepIndex > sIdx" class="status-completed-text">
-                          <v-icon size="12" class="me-0.5">mdi-check</v-icon> تم بنجاح
+                        <span v-if="currentProcessingStepIndex > sIdx" class="status-completed-text text-success font-weight-bold">
+                          <v-icon size="12" class="me-0.5" color="success">mdi-check</v-icon> تم بنجاح
                         </span>
                         <span v-else-if="currentProcessingStepIndex === sIdx && gradingProgress < 100" class="status-active-text">
                           جاري الفحص...
@@ -3122,26 +3123,27 @@ export default {
   z-index: 2;
 }
 
-/* Connecting bar behind nodes (RTL support) */
+/* Connecting bar between nodes (RTL support, doesn't cut across circles) */
 .stepper-node-wrapper:not(:first-child)::before {
   content: '';
   position: absolute;
-  top: 19px;
-  right: -50%;
-  width: 100%;
-  height: 3px;
-  background: rgba(var(--v-theme-surface-variant), 0.35);
+  top: 18px;
+  right: calc(-50% + 25px);
+  width: calc(100% - 50px);
+  height: 4px;
+  background: rgba(var(--v-theme-surface-variant), 0.4);
+  border-radius: 999px;
   z-index: 1;
   transition: all 0.35s ease;
 }
 
 .stepper-node-wrapper.node-completed:not(:first-child)::before {
-  background: rgb(var(--v-theme-primary)) !important;
-  box-shadow: 0 0 6px rgba(var(--v-theme-primary), 0.35);
+  background: #10b981 !important;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
 }
 
 .stepper-node-wrapper.node-active:not(:first-child)::before {
-  background: linear-gradient(to left, rgb(var(--v-theme-primary)), rgba(var(--v-theme-primary), 0.35)) !important;
+  background: linear-gradient(to left, rgb(var(--v-theme-primary)), #10b981) !important;
 }
 
 .stepper-circle-anchor {
@@ -3153,24 +3155,25 @@ export default {
 }
 
 .stepper-circle {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgb(var(--v-theme-surface));
+  background: rgb(var(--v-theme-surface)) !important;
   border: 2px solid rgba(var(--v-border-color), 0.35);
   color: rgba(var(--v-theme-on-surface), 0.45);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 0 0 5px rgb(var(--v-theme-surface)), 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 /* 1. Pending Node */
 .node-pending .stepper-circle {
-  background: rgba(var(--v-theme-surface-variant), 0.12);
-  border-color: rgba(var(--v-border-color), 0.28);
+  background: rgb(var(--v-theme-surface)) !important;
+  border-color: rgba(var(--v-border-color), 0.3);
   color: rgba(var(--v-theme-on-surface), 0.4);
+  box-shadow: 0 0 0 5px rgb(var(--v-theme-surface)), 0 1px 4px rgba(0, 0, 0, 0.03);
 }
 
 /* 2. Active Node */
@@ -3178,8 +3181,8 @@ export default {
   background: rgb(var(--v-theme-primary)) !important;
   border-color: rgb(var(--v-theme-primary)) !important;
   color: #ffffff !important;
-  transform: scale(1.15);
-  box-shadow: 0 0 0 4px rgba(var(--v-theme-primary), 0.22), 0 4px 12px rgba(var(--v-theme-primary), 0.4);
+  transform: scale(1.1);
+  box-shadow: 0 0 0 5px rgb(var(--v-theme-surface)), 0 0 0 8px rgba(var(--v-theme-primary), 0.22), 0 4px 12px rgba(var(--v-theme-primary), 0.4);
 }
 
 /* Active Pulsing Wave Ring */
@@ -3211,12 +3214,12 @@ export default {
   to { transform: scale(1.08); opacity: 1; }
 }
 
-/* 3. Completed Node */
+/* 3. Completed Node (علامة الصح خضراء والحدود خضراء زمردية) */
 .node-completed .stepper-circle {
-  background: rgba(var(--v-theme-primary), 0.12) !important;
-  border-color: rgb(var(--v-theme-primary)) !important;
-  color: rgb(var(--v-theme-primary)) !important;
-  box-shadow: 0 2px 8px rgba(var(--v-theme-primary), 0.18);
+  background: rgb(var(--v-theme-surface)) !important;
+  border-color: #10b981 !important;
+  color: #10b981 !important;
+  box-shadow: 0 0 0 5px rgb(var(--v-theme-surface)), 0 0 0 6px rgba(16, 185, 129, 0.25), 0 2px 8px rgba(16, 185, 129, 0.2);
 }
 
 .checkmark-pop {
@@ -3260,7 +3263,7 @@ export default {
 }
 
 .status-completed-text {
-  color: rgb(var(--v-theme-primary));
+  color: #10b981 !important;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -3285,9 +3288,12 @@ export default {
   .stepper-circle {
     width: 32px;
     height: 32px;
+    box-shadow: 0 0 0 4px rgb(var(--v-theme-surface)), 0 2px 5px rgba(0, 0, 0, 0.04);
   }
   .stepper-node-wrapper:not(:first-child)::before {
-    top: 16px;
+    top: 14px;
+    right: calc(-50% + 20px);
+    width: calc(100% - 40px);
   }
   .node-title {
     font-size: 0.7rem;

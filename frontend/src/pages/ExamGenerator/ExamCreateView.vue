@@ -110,11 +110,12 @@
               ></span>
 
               <div class="stepper-circle">
-                <!-- If Completed/Success: Show Animated Checkmark -->
+                <!-- If Completed/Success: Show Animated Green Checkmark -->
                 <v-icon
                   v-if="getStepStatus(s.value).type === 'completed'"
                   size="22"
-                  class="checkmark-pop"
+                  color="success"
+                  class="checkmark-pop text-success"
                 >
                   mdi-check-bold
                 </v-icon>
@@ -152,7 +153,11 @@
                   class="node-status-pill font-weight-bold"
                   :class="`status-${getStepStatus(s.value).type}`"
                 >
-                  <v-icon size="11" class="me-1">
+                  <v-icon
+                    size="11"
+                    class="me-1"
+                    :color="getStepStatus(s.value).type === 'completed' ? 'success' : undefined"
+                  >
                     {{ getStepStatus(s.value).statusIcon }}
                   </v-icon>
                   {{ getStepStatus(s.value).text }}
@@ -5916,10 +5921,10 @@ const generateAndSaveExam = async () => {
   right: 0;
   top: 0;
   bottom: 0;
-  background: linear-gradient(90deg, #0284c7 0%, rgb(var(--v-theme-primary)) 100%) !important;
+  background: linear-gradient(90deg, #10b981 0%, rgb(var(--v-theme-primary)) 100%) !important;
   transition: width 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
   border-radius: 999px;
-  box-shadow: 0 0 10px rgba(var(--v-theme-primary), 0.4);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
 }
 
 .wizard-beam-glow {
@@ -5970,11 +5975,11 @@ const generateAndSaveExam = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgb(var(--v-theme-surface));
+  background: rgb(var(--v-theme-surface)) !important;
   border: 2px solid rgba(var(--v-theme-primary), 0.2);
   color: rgba(var(--v-theme-on-surface), 0.55);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 0 0 6px rgb(var(--v-theme-surface)), 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .node-step-number {
@@ -6003,7 +6008,7 @@ const generateAndSaveExam = async () => {
   border-color: rgb(var(--v-theme-primary)) !important;
   color: #ffffff !important;
   transform: scale(1.1);
-  box-shadow: 0 0 0 4px rgba(var(--v-theme-primary), 0.18), 0 4px 14px rgba(var(--v-theme-primary), 0.35);
+  box-shadow: 0 0 0 6px rgb(var(--v-theme-surface)), 0 0 0 9px rgba(var(--v-theme-primary), 0.18), 0 4px 14px rgba(var(--v-theme-primary), 0.35);
 }
 
 .premium-wizard-node.is-active .node-step-number {
@@ -6055,16 +6060,16 @@ const generateAndSaveExam = async () => {
   to { transform: scale(1.08); opacity: 1; }
 }
 
-/* 2. Completed State (نجاح / مكتمل) */
+/* 2. Completed State (نجاح / مكتمل - علامة الصح والحدود خضراء زمردية) */
 .premium-wizard-node.is-completed .stepper-circle {
-  background: rgba(var(--v-theme-primary), 0.1) !important;
-  border-color: rgb(var(--v-theme-primary)) !important;
-  color: rgb(var(--v-theme-primary)) !important;
-  box-shadow: 0 2px 10px rgba(var(--v-theme-primary), 0.15);
+  background: rgb(var(--v-theme-surface)) !important;
+  border-color: #10b981 !important;
+  color: #10b981 !important;
+  box-shadow: 0 0 0 6px rgb(var(--v-theme-surface)), 0 0 0 7px rgba(16, 185, 129, 0.25), 0 3px 10px rgba(16, 185, 129, 0.18);
 }
 
 .premium-wizard-node.is-completed .node-step-number {
-  background: rgb(var(--v-theme-primary));
+  background: #10b981;
   color: #ffffff;
   border-color: rgb(var(--v-theme-surface));
 }
@@ -6165,9 +6170,9 @@ const generateAndSaveExam = async () => {
 }
 
 .node-status-pill.status-completed {
-  background: rgba(var(--v-theme-primary), 0.1);
-  color: rgb(var(--v-theme-primary));
-  border: 1px solid rgba(var(--v-theme-primary), 0.25);
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .node-status-pill.status-active {
