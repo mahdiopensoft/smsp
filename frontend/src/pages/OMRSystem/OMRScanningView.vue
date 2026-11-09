@@ -449,23 +449,34 @@
               </div>
 
               <!-- بطاقات تفاصيل المظروف والأوراق في سطر منظم ومتناسق -->
-              <div class="d-flex align-center justify-center flex-wrap gap-2 mb-4 text-caption text-medium-emphasis">
-                <span class="font-weight-bold px-2.5 py-1 rounded border d-flex align-center gap-1" style="background: rgba(var(--v-theme-surface), 0.7);">
-                  <v-icon size="14" color="primary">mdi-file-document-multiple-outline</v-icon>
-                  العدد: <strong class="text-primary">{{ batchFiles.length }} ورقة</strong>
-                </span>
-                <span class="font-mono px-2.5 py-1 rounded border d-flex align-center gap-1" style="background: rgba(var(--v-theme-surface), 0.7);">
-                  <v-icon size="14" color="medium-emphasis">mdi-database-outline</v-icon>
-                  الحجم: <strong>{{ totalBatchSizeFormatted }}</strong>
-                </span>
-                <span v-if="currentEnvelope.envelopeCode" class="font-mono px-2.5 py-1 rounded border d-flex align-center gap-1" style="background: rgba(var(--v-theme-surface), 0.7);">
-                  <v-icon size="14" color="medium-emphasis">mdi-barcode</v-icon>
-                  المظروف: <strong>{{ currentEnvelope.envelopeCode }}</strong>
-                </span>
-                <span v-if="currentEnvelope.hallNumber" class="px-2.5 py-1 rounded border d-flex align-center gap-1" style="background: rgba(var(--v-theme-surface), 0.7);">
-                  <v-icon size="14" color="medium-emphasis">mdi-map-marker-outline</v-icon>
-                  القاعة: <strong>{{ currentEnvelope.hallNumber }}</strong>
-                </span>
+              <div class="d-flex align-center justify-center flex-wrap gap-2.5 mb-4">
+                <!-- 1. العدد: [الأيقونة] ثم [التسمية] ثم [القيمة] -->
+                <div class="metadata-badge d-flex align-center gap-1.5 px-3 py-1.5 rounded-lg">
+                  <v-icon size="16" color="primary">mdi-file-document-multiple-outline</v-icon>
+                  <span class="meta-label">العدد:</span>
+                  <span class="meta-value text-primary font-weight-bold">{{ batchFiles.length }} ورقة</span>
+                </div>
+
+                <!-- 2. الحجم: [الأيقونة] ثم [التسمية] ثم [القيمة] -->
+                <div class="metadata-badge d-flex align-center gap-1.5 px-3 py-1.5 rounded-lg">
+                  <v-icon size="16" class="text-medium-emphasis">mdi-database-outline</v-icon>
+                  <span class="meta-label">الحجم:</span>
+                  <span class="meta-value font-mono">{{ totalBatchSizeFormatted }}</span>
+                </div>
+
+                <!-- 3. المظروف: [الأيقونة] ثم [التسمية] ثم [القيمة] -->
+                <div v-if="currentEnvelope.envelopeCode" class="metadata-badge d-flex align-center gap-1.5 px-3 py-1.5 rounded-lg">
+                  <v-icon size="16" class="text-medium-emphasis">mdi-barcode</v-icon>
+                  <span class="meta-label">المظروف:</span>
+                  <span class="meta-value font-mono">{{ currentEnvelope.envelopeCode }}</span>
+                </div>
+
+                <!-- 4. القاعة: [الأيقونة] ثم [التسمية] ثم [القيمة] -->
+                <div v-if="currentEnvelope.hallNumber" class="metadata-badge d-flex align-center gap-1.5 px-3 py-1.5 rounded-lg">
+                  <v-icon size="16" class="text-medium-emphasis">mdi-map-marker-outline</v-icon>
+                  <span class="meta-label">القاعة:</span>
+                  <span class="meta-value">{{ currentEnvelope.hallNumber }}</span>
+                </div>
               </div>
 
               <!-- زر بدء التصحيح الأساسي والأزرار المساعدة بتناسق تام -->
@@ -477,7 +488,7 @@
                   size="default"
                   class="font-weight-black px-6 rounded-lg elevation-1 flex-grow-1"
                   style="min-height: 42px;"
-                  prepend-icon="mdi-scanner"
+                  prepend-icon="mdi-barcode-scan"
                   :disabled="!selectedExamId"
                   @click="startBatchGrading"
                 >
@@ -2761,6 +2772,31 @@ export default {
   background: linear-gradient(180deg, rgba(var(--v-theme-surface), 0.96), rgba(var(--v-theme-primary), 0.03));
   box-shadow: 0 4px 18px rgba(var(--v-theme-primary), 0.06);
   cursor: default;
+}
+
+/* ── Metadata Badges (Soft, Modern, RTL Aligned) ───────────── */
+.metadata-badge {
+  background: rgba(var(--v-theme-surface-variant), 0.28);
+  border: 1px solid rgba(var(--v-border-color), 0.1);
+  transition: all 0.2s ease;
+}
+
+.metadata-badge:hover {
+  background: rgba(var(--v-theme-surface-variant), 0.42);
+}
+
+.metadata-badge .meta-label {
+  font-size: 0.75rem;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.metadata-badge .meta-value {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgb(var(--v-theme-on-surface));
+  white-space: nowrap;
 }
 
 /* ── Governorate Cards (Video Wall) ────────────────────────── */
