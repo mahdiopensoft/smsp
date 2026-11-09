@@ -1,0 +1,35 @@
+{
+  "model_name": "MasterUnifiedYOLOv8_OMR",
+  "architecture": "YOLOv8 (Ultralytics PyTorch Engine)",
+  "task": "detect",
+  "export_file": "master_omr_yolo.pt",
+  "file_size_mb": 5.96,
+  "file_size_bytes": 6247914,
+  "sha256": "9bedf9189d5ae754a0a86eb9bb38a8645ecc06749afa08c2579a3cdec1514539",
+  "input_contract": {
+    "format": "BGR numpy.ndarray or PyTorch Tensor",
+    "channels": 3,
+    "normalized_receptive_field": "Automatic dynamic context padding (0.45 pad for crops <= 500px)",
+    "color_space": "BGR [0, 255] uint8"
+  },
+  "classes": {
+    "0": "filled",
+    "1": "empty",
+    "2": "crossed"
+  },
+  "per_class_thresholds": {
+    "filled": 0.80,
+    "crossed": 0.80,
+    "empty": 0.65
+  },
+  "ood_guardrails": {
+    "min_texture_std": 12.0,
+    "aspect_ratio_range": [0.60, 1.65],
+    "empty_detection_policy": "Explicit status='DETECTION_FAILED', no synthetic blind guessing"
+  },
+  "metadata": {
+    "inference_device": "cuda:0 (NVIDIA GeForce RTX 4060 Laptop GPU)",
+    "concurrency": "Thread-Safe with re-entrant threading lock",
+    "status": "PRODUCTION_APPROVED"
+  }
+}
