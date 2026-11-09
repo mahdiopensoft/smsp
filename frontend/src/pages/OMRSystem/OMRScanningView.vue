@@ -459,19 +459,18 @@
               />
             </div>
 
-            <!-- شريط تقدم المعالجة فائق السرعة والأناقة (High-Performance OMR Scanner Console) -->
+            <!-- شريط تقدم المعالجة الرسمي (OMR Scanner Live Pipeline Console) -->
             <div v-if="isGrading" class="scanning-live-console pa-4 rounded-xl mt-3">
               <!-- Top Row: Active Operation + Live Metrics -->
-              <div class="d-flex align-center justify-space-between mb-3 flex-wrap gap-2">
+              <div class="d-flex align-center justify-space-between mb-2 flex-wrap gap-2">
                 <div class="d-flex align-center gap-3">
-                  <div class="scanner-live-icon-box">
-                    <v-icon color="primary" size="24" class="scanner-radar-pulse">mdi-scanner</v-icon>
-                    <span class="scanner-live-dot"></span>
-                  </div>
+                  <v-avatar color="primary" variant="tonal" size="38" class="rounded-lg flex-shrink-0">
+                    <v-icon size="20" color="primary">mdi-shield-check-outline</v-icon>
+                  </v-avatar>
                   <div>
                     <div class="d-flex align-center gap-2">
                       <span class="text-subtitle-2 font-weight-black text-primary">{{ gradingStatus }}</span>
-                      <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold rounded-s live-tag">
+                      <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold rounded-s">
                         معالجة نشطة
                       </v-chip>
                     </div>
@@ -494,18 +493,8 @@
                 </div>
               </div>
 
-              <!-- Sleek High-Tech Progress Track -->
-              <div class="scanner-progress-track mb-3">
-                <div
-                  class="scanner-progress-fill"
-                  :style="{ width: gradingProgress + '%' }"
-                >
-                  <span class="scanner-beam-glow"></span>
-                </div>
-              </div>
-
-              <!-- Circular Stepper Pipeline (دوائر تفاعلية مع خطوط توصيل وعلامات صح) -->
-              <div class="stepper-pipeline-container mt-4 pt-1">
+              <!-- Circular Stepper Pipeline (المسار التفاعلي الموحد بالدوائر دون خطوط علوية مكررة) -->
+              <div class="stepper-pipeline-container mt-3 pt-1">
                 <div class="stepper-track-wrapper">
                   <div
                     v-for="(step, sIdx) in scanningPipelineSteps"
@@ -588,44 +577,32 @@
             <!-- حالة 1: مطابق ومكتمل 100% -->
             <div
               v-if="reconciliationStatus === 'BALANCED'"
-              class="d-flex align-center justify-space-between flex-wrap gap-3"
+              class="d-flex align-center justify-space-between flex-wrap gap-2"
             >
               <div class="d-flex align-center flex-wrap gap-2">
                 <!-- شارة الحالة الرسمية -->
-                <div class="audit-badge audit-badge-success d-flex align-center gap-1.5 px-3 py-1.5 rounded border">
-                  <v-icon color="success" size="18">mdi-check-decagram</v-icon>
-                  <span class="text-caption font-weight-bold text-success">المظروف مطابق ومكتمل:</span>
-                  <span class="font-mono font-weight-bold text-success">
-                    {{ actualScannedCount + currentEnvelope.absentCount }} / {{ currentEnvelope.expectedCount }} ورقة
-                  </span>
-                </div>
+                <v-chip size="small" variant="tonal" color="primary" class="font-weight-bold rounded-s">
+                  <v-icon start size="14" color="success">mdi-check-decagram</v-icon>
+                  المظروف مطابق ومكتمل: {{ actualScannedCount + currentEnvelope.absentCount }} / {{ currentEnvelope.expectedCount }} ورقة
+                </v-chip>
 
                 <!-- خلايا معادلة المطابقة المنظمة -->
-                <div class="d-flex align-center gap-1 flex-wrap audit-equation-strip">
-                  <div class="audit-cell">
-                    <span class="cell-label">المقيدون:</span>
-                    <span class="cell-val font-mono">{{ currentEnvelope.expectedCount }}</span>
-                  </div>
-                  <span class="text-medium-emphasis font-weight-bold">=</span>
-                  <div class="audit-cell">
-                    <span class="cell-label">الممسوح:</span>
-                    <span class="cell-val font-mono text-success">{{ actualScannedCount }}</span>
-                  </div>
-                  <span class="text-medium-emphasis font-weight-bold">+</span>
-                  <div class="audit-cell">
-                    <span class="cell-label">الغياب:</span>
-                    <span class="cell-val font-mono">{{ currentEnvelope.absentCount }}</span>
-                  </div>
+                <div class="audit-equation-strip d-flex align-center gap-2 px-3 py-1 rounded-s text-caption">
+                  <span>المقيدون: <strong class="font-mono text-high-emphasis">{{ currentEnvelope.expectedCount }}</strong></span>
+                  <span class="text-disabled">=</span>
+                  <span>الممسوح: <strong class="font-mono text-high-emphasis">{{ actualScannedCount }}</strong></span>
+                  <span class="text-disabled">+</span>
+                  <span>الغياب: <strong class="font-mono text-high-emphasis">{{ currentEnvelope.absentCount }}</strong></span>
                 </div>
               </div>
 
               <custom-btn
                 type="done"
                 :label="isCommitted ? 'تم الاعتماد' : 'اعتماد وترحيل المظروف'"
-                color="success"
+                color="primary"
                 variant="flat"
                 density="comfortable"
-                class="font-weight-bold"
+                class="font-weight-bold rounded-s"
                 :disabled="isCommitted"
                 :click="commitEnvelopeToControl"
               />
@@ -634,50 +611,38 @@
             <!-- حالة 2: عجز ونقص في الأوراق -->
             <div
               v-else-if="reconciliationStatus === 'DEFICIT'"
-              class="d-flex align-center justify-space-between flex-wrap gap-3"
+              class="d-flex align-center justify-space-between flex-wrap gap-2"
             >
               <div class="d-flex align-center flex-wrap gap-2">
                 <!-- شارة التنبيه الرسمية -->
-                <div class="audit-badge audit-badge-error d-flex align-center gap-1.5 px-3 py-1.5 rounded border">
-                  <v-icon color="error" size="18">mdi-alert-circle-outline</v-icon>
-                  <span class="text-caption font-weight-bold text-error">تنبيه عجز:</span>
-                  <span class="font-mono font-weight-bold text-error">
-                    نقص ({{ discrepancyAmount }}) ورقة مفقودة
-                  </span>
-                </div>
+                <v-chip size="small" variant="tonal" color="error" class="font-weight-bold rounded-s">
+                  <v-icon start size="14">mdi-alert-circle-outline</v-icon>
+                  تنبيه عجز: نقص {{ discrepancyAmount }} ورقة مفقودة
+                </v-chip>
 
                 <!-- خلايا معادلة المطابقة المنظمة -->
-                <div class="d-flex align-center gap-1 flex-wrap audit-equation-strip">
-                  <div class="audit-cell">
-                    <span class="cell-label">سعة القاعة:</span>
-                    <span class="cell-val font-mono">{{ currentEnvelope.expectedCount }}</span>
-                  </div>
-                  <span class="text-medium-emphasis font-weight-bold">=</span>
-                  <div class="audit-cell">
-                    <span class="cell-label">الممسوح:</span>
-                    <span class="cell-val font-mono text-error">{{ actualScannedCount }}</span>
-                  </div>
-                  <span class="text-medium-emphasis font-weight-bold">+</span>
-                  <div class="audit-cell">
-                    <span class="cell-label">الغياب:</span>
-                    <span class="cell-val font-mono">{{ currentEnvelope.absentCount }}</span>
-                  </div>
+                <div class="audit-equation-strip d-flex align-center gap-2 px-3 py-1 rounded-s text-caption">
+                  <span>سعة القاعة: <strong class="font-mono text-high-emphasis">{{ currentEnvelope.expectedCount }}</strong></span>
+                  <span class="text-disabled">=</span>
+                  <span>الممسوح: <strong class="font-mono text-high-emphasis">{{ actualScannedCount }}</strong></span>
+                  <span class="text-disabled">+</span>
+                  <span>الغياب: <strong class="font-mono text-high-emphasis">{{ currentEnvelope.absentCount }}</strong></span>
                 </div>
 
-                <!-- الملاحظة التوجيهية الرسمية -->
-                <div class="audit-note d-flex align-center gap-1 px-2 py-1 rounded text-caption text-error font-weight-medium">
-                  <v-icon size="14" color="error">mdi-information-outline</v-icon>
-                  <span>(يرجى فحص سلة الماسح أو المظروف)</span>
-                </div>
+                <!-- الملاحظة التوجيهية الرسمية الهادئة -->
+                <span class="text-caption text-medium-emphasis">
+                  (يرجى فحص سلة الماسح أو المظروف)
+                </span>
               </div>
 
               <custom-btn
-                type="del"
+                type="show"
                 label="تحرير محضر عجز مظروف"
-                color="error"
-                variant="tonal"
+                color="primary"
+                variant="outlined"
+                icon="mdi-file-document-edit-outline"
                 density="comfortable"
-                class="font-weight-bold"
+                class="font-weight-bold rounded-s"
                 :click="openDiscrepancyReport"
               />
             </div>
@@ -685,45 +650,35 @@
             <!-- حالة 3: فائض وزيادة غير مبررة -->
             <div
               v-else-if="reconciliationStatus === 'SURPLUS'"
-              class="d-flex align-center justify-space-between flex-wrap gap-3"
+              class="d-flex align-center justify-space-between flex-wrap gap-2"
             >
               <div class="d-flex align-center flex-wrap gap-2">
                 <!-- شارة التنبيه الرسمية -->
-                <div class="audit-badge audit-badge-warning d-flex align-center gap-1.5 px-3 py-1.5 rounded border">
-                  <v-icon color="warning" size="18">mdi-alert-outline</v-icon>
-                  <span class="text-caption font-weight-bold text-warning">تنبيه فائض:</span>
-                  <span class="font-mono font-weight-bold text-warning">
-                    زيادة {{ Math.abs(discrepancyAmount) }} ورقة
-                  </span>
-                </div>
+                <v-chip size="small" variant="tonal" color="warning" class="font-weight-bold rounded-s">
+                  <v-icon start size="14">mdi-alert-outline</v-icon>
+                  تنبيه فائض: زيادة {{ Math.abs(discrepancyAmount) }} ورقة
+                </v-chip>
 
                 <!-- خلايا معادلة المطابقة المنظمة -->
-                <div class="d-flex align-center gap-1 flex-wrap audit-equation-strip">
-                  <div class="audit-cell">
-                    <span class="cell-label">سعة القاعة:</span>
-                    <span class="cell-val font-mono">{{ currentEnvelope.expectedCount }}</span>
-                  </div>
-                  <v-divider vertical class="mx-1" style="height: 16px;" />
-                  <div class="audit-cell">
-                    <span class="cell-label">الممسوح + الغياب:</span>
-                    <span class="cell-val font-mono text-warning">{{ actualScannedCount + currentEnvelope.absentCount }}</span>
-                  </div>
+                <div class="audit-equation-strip d-flex align-center gap-2 px-3 py-1 rounded-s text-caption">
+                  <span>سعة القاعة: <strong class="font-mono text-high-emphasis">{{ currentEnvelope.expectedCount }}</strong></span>
+                  <span class="text-disabled">|</span>
+                  <span>الممسوح + الغياب: <strong class="font-mono text-high-emphasis">{{ actualScannedCount + currentEnvelope.absentCount }}</strong></span>
                 </div>
 
                 <!-- الملاحظة التوجيهية -->
-                <div class="audit-note d-flex align-center gap-1 px-2 py-1 rounded text-caption text-medium-emphasis">
-                  <v-icon size="14" color="medium-emphasis">mdi-information-outline</v-icon>
-                  <span>(يرجى فحص سلة الماسح أو المظروف)</span>
-                </div>
+                <span class="text-caption text-medium-emphasis">
+                  (يرجى فحص سلة الماسح أو المظروف)
+                </span>
               </div>
 
               <custom-btn
                 type="show"
                 label="مراجعة الرزمة"
-                color="warning"
-                variant="tonal"
+                color="primary"
+                variant="outlined"
                 density="comfortable"
-                class="font-weight-bold"
+                class="font-weight-bold rounded-s"
                 :click="openDiscrepancyReport"
               />
             </div>
@@ -731,11 +686,11 @@
 
           <!-- ── 4. مركز التحكم والمتابعة الموحد للمظروف (Unified Envelope Control Console) ── -->
           <v-card class="main-card rounded-2xl border mb-5 overflow-hidden shadow-sm bg-surface">
-            <!-- شريط رأس الكونسول والمؤشرات السريعة -->
-            <div class="pa-4 border-b d-flex align-center justify-space-between flex-wrap gap-3" style="background: rgba(var(--v-theme-surface-variant), 0.12);">
+            <!-- شريط رأس الكونسول والمؤشرات السريعة (تصميم رسمي هادئ) -->
+            <div class="pa-4 border-b d-flex align-center justify-space-between flex-wrap gap-3 bg-surface">
               <div class="d-flex align-center flex-wrap gap-2">
                 <v-avatar color="primary" variant="tonal" size="36" class="rounded-lg">
-                  <v-icon size="20" color="primary">mdi-view-dashboard-outline</v-icon>
+                  <v-icon size="20" color="primary">mdi-folder-text-outline</v-icon>
                 </v-avatar>
                 <div>
                   <div class="d-flex align-center gap-2">
@@ -750,15 +705,15 @@
                 </div>
               </div>
 
-              <!-- مؤشرات سريعة وأزرار الإجراءات -->
+              <!-- مؤشرات سريعة وأزرار الإجراءات (هوية زرقاء رسمية موحدة) -->
               <div class="d-flex align-center flex-wrap gap-2">
                 <!-- متوسط درجات القاعة -->
                 <v-chip
                   v-if="displaySheets.length > 0"
                   size="small"
-                  color="indigo"
+                  color="primary"
                   variant="tonal"
-                  class="font-weight-bold"
+                  class="font-weight-bold rounded-s"
                 >
                   <v-icon start size="14">mdi-chart-line</v-icon>
                   متوسط القاعة: {{ currentEnvelopeAvgScore }}%
@@ -769,20 +724,21 @@
                   v-if="needsReviewSheets.length > 0"
                   type="show"
                   :label="`مراجعة وتدقيق (${needsReviewSheets.length})`"
-                  color="warning"
+                  color="primary"
                   variant="tonal"
+                  icon="mdi-eye-outline"
                   density="comfortable"
-                  class="font-weight-bold"
+                  class="font-weight-bold rounded-s"
                   :click="() => $router.push(`/omr-human-review?exam=${selectedExamId}`)"
                 />
 
                 <custom-btn
                   type="add"
                   label="المظروف التالي"
-                  color="success"
-                  variant="outlined"
+                  color="primary"
+                  variant="flat"
                   density="comfortable"
-                  class="font-weight-bold px-4"
+                  class="font-weight-bold px-4 rounded-s"
                   :click="prepareNextEnvelope"
                 />
               </div>
@@ -794,7 +750,7 @@
               <v-tab value="scanned" class="font-weight-bold">
                 <v-icon start size="18">mdi-file-document-check-outline</v-icon>
                 الأوراق الممسوحة بالمظروف
-                <v-chip size="x-small" color="primary" variant="tonal" class="ms-2 font-weight-black font-mono">
+                <v-chip size="x-small" color="primary" variant="tonal" class="ms-2 font-weight-black font-mono rounded-s">
                   {{ displaySheets.length }}
                 </v-chip>
               </v-tab>
@@ -803,16 +759,16 @@
               <v-tab value="roster" class="font-weight-bold">
                 <v-icon start size="18">mdi-clipboard-list-outline</v-icon>
                 حافظة كشف الطلاب والمطابقة
-                <v-chip size="x-small" color="info" variant="tonal" class="ms-2 font-weight-black font-mono">
+                <v-chip size="x-small" color="primary" variant="tonal" class="ms-2 font-weight-black font-mono rounded-s">
                   {{ registeredStudents.length }}
                 </v-chip>
               </v-tab>
 
               <!-- تبويب 3: أوراق تحتاج تدقيق بشري -->
-              <v-tab v-if="needsReviewSheets.length > 0" value="needs_review" class="font-weight-bold text-warning">
-                <v-icon start size="18">mdi-alert-circle-outline</v-icon>
+              <v-tab v-if="needsReviewSheets.length > 0" value="needs_review" class="font-weight-bold">
+                <v-icon start size="18" color="error">mdi-alert-circle-outline</v-icon>
                 أوراق تحتاج تدقيق بشري
-                <v-chip size="x-small" color="warning" variant="flat" class="ms-2 font-weight-black font-mono text-white">
+                <v-chip size="x-small" color="error" variant="tonal" class="ms-2 font-weight-black font-mono rounded-s">
                   {{ needsReviewSheets.length }}
                 </v-chip>
               </v-tab>
@@ -834,43 +790,31 @@
                     type="show"
                     label="معاينة كشف الطلاب المقيدين في القاعة"
                     density="comfortable"
-                    class="font-weight-bold"
+                    class="font-weight-bold rounded-s"
                     :click="() => activeConsoleTab = 'roster'"
                   />
                 </div>
 
                 <!-- في حال وجود أوراق ممسوحة -->
                 <div v-else>
-                  <!-- شريط الأدوات والخيارات: إحصائيات + تبديل طريقة العرض (جدول / شبكة بطاقات) -->
+                  <!-- شريط الأدوات والخيارات: إحصائيات هادئة موحدة + تبديل طريقة العرض -->
                   <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3 pa-2 rounded-xl border bg-surface">
-                    <div class="d-flex align-center flex-wrap gap-2">
-                      <v-chip
-                        rounded="md"
-                        size="small"
-                        color="primary"
-                        variant="tonal"
-                        class="font-weight-bold font-mono px-3"
+                    <div class="d-flex align-center flex-wrap gap-2 text-caption">
+                      <span class="d-inline-flex align-center gap-1.5 px-3 py-1 rounded-s border bg-surface font-weight-bold">
+                        <span class="text-medium-emphasis">الممسوح:</span>
+                        <span class="font-mono text-primary font-weight-black">{{ displaySheets.length }} ورقة</span>
+                      </span>
+                      <span class="d-inline-flex align-center gap-1.5 px-3 py-1 rounded-s border bg-surface font-weight-bold">
+                        <span class="text-medium-emphasis">سليمة:</span>
+                        <span class="font-mono text-success font-weight-black">{{ successfulSheets.length }}</span>
+                      </span>
+                      <span
+                        v-if="needsReviewSheets.length > 0"
+                        class="d-inline-flex align-center gap-1.5 px-3 py-1 rounded-s border bg-surface font-weight-bold"
                       >
-                        الممسوح: {{ displaySheets.length }} ورقة
-                      </v-chip>
-                      <v-chip
-                        rounded="md"
-                        size="small"
-                        color="success"
-                        variant="tonal"
-                        class="font-weight-bold font-mono px-3"
-                      >
-                        أوراق سليمة: {{ successfulSheets.length }}
-                      </v-chip>
-                      <v-chip
-                        rounded="md"
-                        size="small"
-                        color="warning"
-                        variant="tonal"
-                        class="font-weight-bold font-mono px-3"
-                      >
-                        تحتاج تدقيق: {{ needsReviewSheets.length }}
-                      </v-chip>
+                        <span class="text-medium-emphasis">تحتاج تدقيق:</span>
+                        <span class="font-mono text-error font-weight-black">{{ needsReviewSheets.length }}</span>
+                      </span>
                     </div>
 
                     <!-- تبديل العرض بين جدول وشبكة كروت -->
@@ -888,7 +832,7 @@
                     v-if="intruderSheets.length > 0"
                     class="official-notice-box mb-3 pa-3 rounded-lg border d-flex align-start gap-3"
                   >
-                    <v-icon color="warning" size="20" class="mt-0.5 flex-shrink-0">mdi-shield-alert-outline</v-icon>
+                    <v-icon color="primary" size="20" class="mt-0.5 flex-shrink-0">mdi-shield-alert-outline</v-icon>
                     <div class="flex-grow-1">
                       <div class="text-caption font-weight-bold text-high-emphasis mb-1">
                         تنبيه تدقيق ومطابقة — رصد ورقة دخيلة:
@@ -2884,34 +2828,16 @@ export default {
 
 /* ── Reconciliation Audit Panel ────────────────────────────── */
 .reconciliation-audit-card {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-
-.audit-badge {
-  background: rgba(var(--v-theme-surface-variant), 0.12);
-  border-color: rgba(var(--v-border-color), 0.3) !important;
-}
-
-.audit-badge-success {
-  background: rgba(var(--v-theme-success), 0.08);
-  border-color: rgba(var(--v-theme-success), 0.35) !important;
-}
-
-.audit-badge-error {
-  background: rgba(var(--v-theme-error), 0.08);
-  border-color: rgba(var(--v-theme-error), 0.35) !important;
-}
-
-.audit-badge-warning {
-  background: rgba(var(--v-theme-warning), 0.08);
-  border-color: rgba(var(--v-theme-warning), 0.35) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-theme-primary), 0.15) !important;
 }
 
 .audit-equation-strip {
-  background: rgba(var(--v-theme-surface-variant), 0.06);
-  padding: 3px 8px;
+  background: rgba(var(--v-theme-surface-variant), 0.08);
+  padding: 4px 10px;
   border-radius: 6px;
-  border: 1px solid rgba(var(--v-border-color), 0.2);
+  border: 1px solid rgba(var(--v-border-color), 0.25);
 }
 
 .audit-cell {
@@ -2983,71 +2909,27 @@ export default {
   padding: 4px 12px;
 }
 
-/* ── Calm Official Notice Box (Toned Down Warning) ─────────── */
+/* ── Calm Official Notice Box (Toned Down Official Notice) ──── */
 .official-notice-box {
-  background: rgba(var(--v-theme-surface-variant), 0.1);
-  border: 1px solid rgba(var(--v-border-color), 0.3) !important;
-  border-right: 4px solid rgba(var(--v-theme-warning), 0.8) !important;
+  background: rgba(var(--v-theme-primary), 0.03);
+  border: 1px solid rgba(var(--v-theme-primary), 0.18) !important;
+  border-right: 4px solid rgb(var(--v-theme-primary)) !important;
 }
 
 /* ── High-Performance OMR Scanner Live Console ────────────── */
 .scanning-live-console {
-  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.05) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
-  border: 1px solid rgba(var(--v-theme-primary), 0.28) !important;
-  box-shadow: 0 4px 20px rgba(var(--v-theme-primary), 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.04) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  border: 1px solid rgba(var(--v-theme-primary), 0.22) !important;
+  box-shadow: 0 4px 18px rgba(var(--v-theme-primary), 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
   position: relative;
   overflow: hidden;
-}
-
-.scanner-live-icon-box {
-  position: relative;
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  background: rgba(var(--v-theme-primary), 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.scanner-radar-pulse {
-  animation: scanner-pulse 1.8s ease-in-out infinite;
-}
-
-@keyframes scanner-pulse {
-  0% { transform: scale(0.95); opacity: 0.8; }
-  50% { transform: scale(1.08); opacity: 1; }
-  100% { transform: scale(0.95); opacity: 0.8; }
-}
-
-.scanner-live-dot {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 8px #10b981;
-  animation: live-blink 1s ease-in-out infinite;
-}
-
-@keyframes live-blink {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.8); }
-}
-
-.live-tag {
-  font-size: 10px !important;
-  height: 18px !important;
-  padding: 0 6px !important;
 }
 
 .scanner-sheet-counter-pill {
   display: inline-flex;
   align-items: center;
   padding: 5px 12px;
-  background: rgba(var(--v-theme-surface-variant), 0.12);
+  background: rgba(var(--v-theme-surface-variant), 0.08);
   border: 1px solid rgba(var(--v-border-color), 0.2);
   border-radius: 6px;
   font-size: 0.82rem;
@@ -3063,43 +2945,8 @@ export default {
   background: rgb(var(--v-theme-primary));
   color: #ffffff;
   border-radius: 6px;
-  font-size: 0.95rem;
-  box-shadow: 0 2px 6px rgba(var(--v-theme-primary), 0.3);
-}
-
-.scanner-progress-track {
-  width: 100%;
-  height: 8px;
-  background: rgba(var(--v-theme-surface-variant), 0.25);
-  border-radius: 999px;
-  overflow: hidden;
-  position: relative;
-}
-
-.scanner-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #1d4ed8 0%, #0284c7 70%, #38bdf8 100%);
-  border-radius: 999px;
-  transition: width 0.12s linear;
-  position: relative;
-}
-
-.scanner-beam-glow {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 14px;
-  height: 100%;
-  background: #ffffff;
-  opacity: 0.6;
-  border-radius: 50%;
-  filter: blur(2px);
-  animation: beam-shimmer 1.2s ease-in-out infinite alternate;
-}
-
-@keyframes beam-shimmer {
-  from { opacity: 0.3; }
-  to { opacity: 0.9; }
+  font-size: 0.92rem;
+  box-shadow: 0 2px 6px rgba(var(--v-theme-primary), 0.25);
 }
 
 /* ── Circular Stepper Pipeline ───────────────────────────── */

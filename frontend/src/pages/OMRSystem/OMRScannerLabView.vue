@@ -2481,13 +2481,23 @@ async function startGrading() {
   gradingProgress.value = 10
   gradingStatus.value = 'جاري الفحص المبدئي ومحاذاة العلامات الهندسية (OpenCV)...'
 
+  let currentStep = 0
+  const steps = [
+    { threshold: 35, text: 'جاري قراءة الباركود ورمز الـ QR وتحديد النموذج...' },
+    { threshold: 65, text: 'جاري استدلال الذكاء الاصطناعي (YOLOv8 + ResNet CNN)...' },
+    { threshold: 85, text: 'جاري تدقيق الشطب ومطابقة مفتاح الإجابة وحساب النتيجة...' },
+  ]
+
   const progressTimer = setInterval(() => {
-    if (gradingProgress.value < 70) gradingProgress.value += 12
-    else if (gradingProgress.value < 90) {
-      gradingProgress.value += 4
-      gradingStatus.value = 'جاري التدقيق العميق بواسطة نموذج YOLOv8 (AI Verifier)...'
+    if (gradingProgress.value < 95) {
+      const delta = Math.max(1, Math.round((96 - gradingProgress.value) * 0.12))
+      gradingProgress.value = Math.min(95, gradingProgress.value + delta)
+      if (currentStep < steps.length && gradingProgress.value >= steps[currentStep].threshold) {
+        gradingStatus.value = steps[currentStep].text
+        currentStep++
+      }
     }
-  }, 250)
+  }, 400)
 
   try {
     const form = new FormData()

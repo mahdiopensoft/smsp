@@ -18,9 +18,10 @@ If confidence < REVIEW_THRESHOLD, the bubble is flagged for human review.
 
 import os
 import logging
+import threading
 import numpy as np
 import cv2
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 
 import torch
 import torch.nn as nn
@@ -444,7 +445,11 @@ def train_model(
 
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            torch.save(model.state_dict(), MODEL_PATH)
+            # Atomic save to prevent corrupted/half-written files
+            tmp_fd, tmp_path = tempfile.mkstemp(suffix=".pt", dir=os.path.dirname(MODEL_PATH))
+            os.close(tmp_fd)
+            torch.save(model.state_dict(), tmp_path)
+            os.replace(tmp_path, MODEL_PATH)
 
         scheduler.step()
 
@@ -475,6 +480,19 @@ def train_model(
 
 # ─── AIBubbleVerifier — the main interface ────────────────────────────────────
 
+_GLOBAL_AI_VERIFIER: Optional["AIBubbleVerifier"] = None
+_GLOBAL_VERIFIER_LOCK = threading.Lock()
+
+def get_ai_verifier(model_path: str = MODEL_PATH) -> "AIBubbleVerifier":
+    """Returns a pre-warmed, process-wide cached singleton of AIBubbleVerifier."""
+    global _GLOBAL_AI_VERIFIER
+    if _GLOBAL_AI_VERIFIER is None:
+        with _GLOBAL_VERIFIER_LOCK:
+            if _GLOBAL_AI_VERIFIER is None:
+                _GLOBAL_AI_VERIFIER = AIBubbleVerifier(model_path=model_path)
+    return _GLOBAL_AI_VERIFIER
+
+
 class AIBubbleVerifier:
     """
     Production-grade bubble classifier.
@@ -490,97 +508,84 @@ class AIBubbleVerifier:
         # }
     """
 
-    def __init__(self, model_path: str = MODEL_PATH, auto_train: bool = True):
+    def __init__(self, model_path: str = MODEL_PATH, auto_train: bool = False):
         self.normalizer = BubbleNormalizer()
         self.device     = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model      = BubbleClassifierCNN().to(self.device)
         self.model.eval()
+
+        self.is_yolo_ready = False
+        self.is_cnn_ready  = False
         
-        # ── Primary: Master Unified YOLOv8 Verifier ──
+        # ── 1. Primary Engine: Master Unified YOLOv8 Verifier ──
         self.yolo_verifier = None
         try:
-            from .master_yolo_verifier import MasterYOLOVerifier
+            from .master_yolo_verifier import get_master_yolo_verifier
             yolo_path = os.path.join(os.path.dirname(__file__), "master_omr_yolo.pt")
             if os.path.exists(yolo_path):
-                self.yolo_verifier = MasterYOLOVerifier(model_path=yolo_path)
+                self.yolo_verifier = get_master_yolo_verifier(model_path=yolo_path)
                 if self.yolo_verifier.model is not None:
+                    self.is_yolo_ready = True
                     print(f"✅ [AI Verification] Master Unified YOLOv8 Verifier Active: {yolo_path}")
         except Exception as e:
             logger.warning(f"Could not initialize Master YOLO verifier: {e}")
             self.yolo_verifier = None
 
-        if self.yolo_verifier is None or self.yolo_verifier.model is None:
-            if os.path.exists(model_path):
-                try:
-                    self.model.load_state_dict(
-                        torch.load(model_path, map_location=self.device)
-                    )
-                    logger.info(f"AI model loaded from {model_path}")
-                    print(f"[AI] Model loaded: {model_path}")
-                except Exception as e:
-                    logger.warning(f"Could not load model: {e} — retraining.")
-                    if auto_train:
-                        self._auto_train()
-            elif auto_train:
-                print(f"[AI] No model found at {model_path}. Training now...")
-                self._auto_train()
+        # ── 2. Auxiliary Engine: Certified ResNet CNN Verifier ──
+        # Always attempt to load the certified CNN weights so that fallbacks, Grad-CAM,
+        # and embedding extraction never operate on random untrained weights!
+        if os.path.exists(model_path):
+            try:
+                state_dict = torch.load(model_path, map_location=self.device)
+                self.model.load_state_dict(state_dict)
+                self.is_cnn_ready = True
+                logger.info(f"AI CNN model loaded from {model_path}")
+                print(f"✅ [AI Verification] Certified CNN Auxiliary Verifier Active: {model_path}")
+            except Exception as e:
+                logger.warning(f"Could not load CNN model: {e}")
+                self.is_cnn_ready = False
+                if auto_train:
+                    self._auto_train()
+        elif auto_train:
+            print(f"[AI] No model found at {model_path}. Training now...")
+            self._auto_train()
+        else:
+            logger.warning(f"⚠️ [AI Verification] CNN weights not found at {model_path}. Auxiliary CNN disabled.")
 
     def _auto_train(self):
-        """Generate data and train the model from scratch."""
+        """Generate data and train the model from scratch (offline only)."""
         print("[AI] Generating realistic training dataset (10,000 samples)...")
         gen = RealisticBubbleDataGenerator()
         X, y = gen.generate_dataset(n_per_class=TRAIN_SAMPLES_PER_CLASS)
         print(f"[AI] Dataset ready: {X.shape} | Training for {TRAIN_EPOCHS} epochs...")
         self.model = train_model(self.model, X, y)
         self.model.eval()
+        self.is_cnn_ready = True
 
     # ── inference ─────────────────────────────────────────────────────────────
 
     def predict(self, crop: np.ndarray) -> Dict:
         """
-        Classify a single raw bubble crop.
+        Classify a single raw bubble crop with hybrid YOLOv8 -> CNN fallback.
         """
-        if self.yolo_verifier is not None and self.yolo_verifier.model is not None:
-            return self.yolo_verifier.predict(crop)
-            
-        norm = self.normalizer.normalize(crop)          # (48, 48) float32
-        tensor = torch.tensor(norm, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
-        tensor = tensor.to(self.device)                 # (1, 1, 48, 48)
-
-        with torch.no_grad():
-            logits = self.model(tensor)
-            probs  = torch.softmax(logits, dim=1)[0].cpu().numpy()
-
-        idx        = int(probs.argmax())
-        label      = CLASS_NAMES[idx]
-        confidence = float(probs[idx])
-
-        # Hybrid Thresholding: Prevent false positives for 'erased' and 'crossed'
-        if label in ['erased', 'crossed'] and confidence < 0.85:
-            empty_idx = CLASS_NAMES.index('empty')
-            filled_idx = CLASS_NAMES.index('filled')
-            if probs[empty_idx] > probs[filled_idx]:
-                idx = empty_idx
-            else:
-                idx = filled_idx
-            label = CLASS_NAMES[idx]
-            confidence = float(probs[idx])
-
-        return {
-            "label":        label,
-            "confidence":   confidence,
-            "distribution": {n: float(p) for n, p in zip(CLASS_NAMES, probs)},
-            "needs_review": confidence < REVIEW_THRESHOLD,
+        results = self.predict_batch([crop])
+        return results[0] if results else {
+            "status": "error",
+            "detection_succeeded": False,
+            "label": "unclassified",
+            "confidence": 0.0,
+            "distribution": {c: 0.0 for c in CLASS_NAMES},
+            "decision_reason": "EMPTY_OR_FAILED_INFERENCE",
+            "needs_review": True
         }
 
-    def predict_batch(self, crops: List[np.ndarray]) -> List[Dict]:
-        """Classify a batch of bubble crops efficiently."""
+    def _predict_batch_cnn(self, crops: List[np.ndarray]) -> List[Dict]:
+        """Classify a batch of bubble crops using the certified ResNet CNN."""
         if not crops:
             return []
-            
-        if self.yolo_verifier is not None and self.yolo_verifier.model is not None:
-            return self.yolo_verifier.predict_batch(crops)
-            
+        if not self.is_cnn_ready:
+            raise RuntimeError("CNN verifier weights are not loaded.")
+
         normed = self.normalizer.normalize_batch(crops)     # (N, 48, 48)
         tensor = torch.tensor(normed, dtype=torch.float32).unsqueeze(1).to(self.device)
 
@@ -589,41 +594,107 @@ class AIBubbleVerifier:
             probs  = torch.softmax(logits, dim=1).cpu().numpy()  # (N, 5)
 
         results = []
-        for row in probs:
-            idx        = int(row.argmax())
-            label      = CLASS_NAMES[idx]
-            confidence = float(row[idx])
+        for idx, row in enumerate(probs):
+            raw_idx        = int(row.argmax())
+            raw_label      = CLASS_NAMES[raw_idx]
+            raw_confidence = float(row[raw_idx])
+
+            final_label      = raw_label
+            final_confidence = raw_confidence
+            decision_reason  = "CNN_RAW_OUTPUT"
             
-            # Hybrid Thresholding: Prevent false positives
-            if label in ['erased', 'crossed'] and confidence < 0.85:
+            # Hybrid Thresholding Policy
+            if raw_label in ['erased', 'crossed'] and raw_confidence < 0.85:
                 empty_idx = CLASS_NAMES.index('empty')
                 filled_idx = CLASS_NAMES.index('filled')
                 if row[empty_idx] > row[filled_idx]:
-                    idx = empty_idx
+                    final_label = 'empty'
+                    final_confidence = float(row[empty_idx])
+                    decision_reason = "POLICY_FALLBACK_LOW_CONF_ERASED_CROSSED_TO_EMPTY"
                 else:
-                    idx = filled_idx
-                label = CLASS_NAMES[idx]
-                confidence = float(row[idx])
+                    final_label = 'filled'
+                    final_confidence = float(row[filled_idx])
+                    decision_reason = "POLICY_FALLBACK_LOW_CONF_ERASED_CROSSED_TO_FILLED"
                 
-            entropy    = float(-np.sum(row * np.log2(row + 1e-9)))   # H(P)
+            entropy      = float(-np.sum(row * np.log2(row + 1e-9)))   # H(P)
+            norm_entropy = float(entropy / np.log2(len(CLASS_NAMES)))
+            review_reasons = []
+            if final_confidence < REVIEW_THRESHOLD:
+                review_reasons.append(f"LOW_CONFIDENCE: {final_confidence:.2%}")
+            if decision_reason != "CNN_RAW_OUTPUT":
+                review_reasons.append(f"POLICY_RULE: {decision_reason}")
+            if norm_entropy > 0.65:
+                review_reasons.append(f"HIGH_ENTROPY: {norm_entropy:.2f}")
+
             results.append({
-                "label":        label,
-                "confidence":   confidence,
-                "entropy":      entropy,
-                "distribution": {n: float(p) for n, p in zip(CLASS_NAMES, row)},
-                "needs_review": confidence < REVIEW_THRESHOLD,
+                "status":             "success",
+                "detection_succeeded": True,
+                "crop_index":         idx,
+                "label":              final_label,
+                "confidence":         round(final_confidence, 4),
+                "distribution":       {n: round(float(p), 4) for n, p in zip(CLASS_NAMES, row)},
+                "entropy":            round(entropy, 4),
+                "normalized_entropy": round(norm_entropy, 4),
+                "raw_prediction":     raw_label,
+                "raw_confidence":     round(raw_confidence, 4),
+                "decision_reason":    decision_reason,
+                "needs_review":       len(review_reasons) > 0,
+                "review_reasons":     review_reasons,
+                "model_name":         "ResNet_CNN_v4",
+                "model_version":      "4.0",
             })
         return results
+
+    def predict_batch(self, crops: List[np.ndarray]) -> List[Dict]:
+        """Classify a batch of bubble crops with automatic auxiliary CNN fallback."""
+        if not crops:
+            return []
+            
+        yolo_results = None
+        if self.is_yolo_ready and self.yolo_verifier is not None:
+            try:
+                yolo_results = self.yolo_verifier.predict_batch(crops)
+            except Exception as e:
+                logger.warning(f"Master YOLO batch prediction failed: {e}")
+                yolo_results = None
+
+        if yolo_results is not None:
+            # Check for any crops where YOLO failed to detect a box or returned unknown/low-confidence
+            failed_indices = [
+                i for i, r in enumerate(yolo_results)
+                if not r.get("detection_succeeded", True) or r.get("label") in ["unknown", "unclassified"] or r.get("confidence", 0.0) < 0.20
+            ]
+            if failed_indices and self.is_cnn_ready:
+                failed_crops = [crops[i] for i in failed_indices]
+                cnn_fallback_results = self._predict_batch_cnn(failed_crops)
+                for orig_idx, cnn_res in zip(failed_indices, cnn_fallback_results):
+                    cnn_res["decision_reason"] = f"CNN_FALLBACK_AFTER_YOLO_MISS: {cnn_res.get('decision_reason', '')}"
+                    cnn_res["crop_index"] = orig_idx
+                    yolo_results[orig_idx] = cnn_res
+            return yolo_results
+
+        if not self.is_cnn_ready:
+            raise RuntimeError(
+                "Neither YOLOv8 nor CNN verifier weights are loaded. Cannot perform batch inference."
+            )
+
+        return self._predict_batch_cnn(crops)
 
     # ── Grad-CAM ─────────────────────────────────────────────────────────────
 
     def gradcam(self, crop: np.ndarray, target_class: Optional[int] = None) -> np.ndarray:
         """
-        Grad-CAM heatmap for the last conv layer (ResidualBlock).
+        Grad-CAM visual explanation for the auxiliary ResNet CNN.
+        Explains feature activations inside the ResidualBlock.
+        Note: When YOLOv8 is the primary verifier, Grad-CAM explains the CNN's feature representation.
         Returns a (48, 48) float32 heatmap in [0, 1].
-
-        target_class=None → uses predicted class (default)
         """
+        if not self.is_cnn_ready:
+            raise RuntimeError(
+                "Cannot generate Grad-CAM: Certified CNN weights are not loaded. "
+                "Grad-CAM requires a trained model to compute true gradient activations."
+            )
+
         normalized = self.normalizer.normalize(crop)
         tensor = torch.tensor(normalized, dtype=torch.float32).unsqueeze(0).unsqueeze(0).to(self.device)
         tensor.requires_grad_(True)
@@ -639,8 +710,8 @@ class AIBubbleVerifier:
         def bwd_hook(m, grad_in, grad_out):
             gradients.append(grad_out[0])
 
-        # Register on ResidualBlock's inner block (last Conv2d layer)
-        last_conv = self.model.features[-1].block[-2]   # Last BN before skip
+        # Register on ResidualBlock's second Conv2d (block[-2] in Conv-BN-ReLU-Conv-BN)
+        last_conv = self.model.features[-1].block[-2]
         h_fwd = last_conv.register_forward_hook(fwd_hook)
         h_bwd = last_conv.register_full_backward_hook(bwd_hook)
 
@@ -721,30 +792,98 @@ class AIBubbleVerifier:
     def verify_ambiguous_bubbles(
         self,
         bubble_crops: Dict[str, np.ndarray],
-        classical_results: Dict[str, str],
-    ) -> Tuple[Dict[str, Dict], List[str]]:
+        classical_results: Optional[Dict[str, str]] = None,
+        darkness_values: Optional[Dict[str, float]] = None,
+        confidence_threshold: float = 0.80,
+    ) -> Tuple[Dict[str, Dict[str, Any]], List[str]]:
         """
-        Given classical results and the raw crops, verify ALL bubbles with AI.
+        Production Hybrid Verification & Conflict Arbitration Engine.
+        Compares Classical OpenCV pixel measurements with AI Model Predictions.
+        Flags discrepancies, low-confidence bubbles, and ambiguous ink artifacts.
 
-        Returns:
-        ai_results  — {choice_label: {"label", "confidence", ...}}
-        flagged     — list of choice labels that need human review
+        Parameters
+        ----------
+        bubble_crops : Dict[str, np.ndarray]
+            Map of choice identifier -> raw cropped bubble image.
+        classical_results : Optional[Dict[str, str]]
+            Map of choice identifier -> classical label ('filled', 'empty', etc.).
+        darkness_values : Optional[Dict[str, float]]
+            Map of choice identifier -> calculated dark pixel ratio (0.0 to 1.0).
+        confidence_threshold : float
+            Threshold below which bubbles are marked for human review.
+
+        Returns
+        -------
+        Tuple[Dict[str, Dict[str, Any]], List[str]]
+            - ai_results: Normalized Unified Prediction Contract for every bubble.
+            - flagged_keys: List of bubble IDs requiring human review.
         """
-        all_keys   = list(bubble_crops.keys())
-        all_crops  = [bubble_crops[k] for k in all_keys]
+        if not bubble_crops:
+            return {}, []
+
+        all_keys = list(bubble_crops.keys())
+        all_crops = [bubble_crops[k] for k in all_keys]
         predictions = self.predict_batch(all_crops)
 
+        if len(predictions) != len(all_keys):
+            raise RuntimeError(
+                f"Batch prediction synchronization error: submitted {len(all_keys)} crops, "
+                f"but received {len(predictions)} predictions."
+            )
+
         ai_results = {}
-        flagged    = []
+        flagged_keys = []
+
         for key, pred in zip(all_keys, predictions):
+            review_reasons = list(pred.get("review_reasons", []))
+            pred_label = pred.get("label", "empty")
+            pred_conf = pred.get("confidence", 0.0)
+
+            # ── Check 1: Classical vs AI Conflict Arbitration ──
+            if classical_results is not None and key in classical_results:
+                class_label = classical_results[key]
+                if class_label != pred_label:
+                    pred["needs_review"] = True
+                    reason_msg = f"CLASSICAL_AI_DISAGREEMENT: classical='{class_label}' vs ai='{pred_label}'"
+                    if reason_msg not in review_reasons:
+                        review_reasons.append(reason_msg)
+                    if pred.get("decision_reason") in ("MODEL_RAW_OUTPUT", "YOLO_OBJECT_DETECTION"):
+                        pred["decision_reason"] = "HYBRID_CONFLICT_ARBITRATION"
+
+            # ── Check 2: Low Model Confidence ──
+            if pred_conf < confidence_threshold:
+                pred["needs_review"] = True
+                conf_msg = f"LOW_CONFIDENCE: {pred_conf:.2%}"
+                if conf_msg not in review_reasons:
+                    review_reasons.append(conf_msg)
+
+            # ── Check 3: Extreme Darkness Discrepancy (Physical Ink Sanity) ──
+            if darkness_values is not None and key in darkness_values:
+                d_val = darkness_values[key]
+                if d_val >= 0.40 and pred_label == "empty":
+                    pred["needs_review"] = True
+                    review_reasons.append(f"PHYSICAL_INK_OVERRIDE: darkness={d_val:.2f} but AI said empty")
+                elif d_val <= 0.05 and pred_label in ("filled", "crossed"):
+                    pred["needs_review"] = True
+                    review_reasons.append(f"PHYSICAL_EMPTY_OVERRIDE: darkness={d_val:.2f} but AI said {pred_label}")
+
+            # ── Check 4: High Prediction Entropy (Ambiguity) ──
+            if pred.get("entropy", 0.0) > 1.25:
+                pred["needs_review"] = True
+                ent_msg = f"HIGH_ENTROPY: {pred.get('entropy'):.2f}"
+                if ent_msg not in review_reasons:
+                    review_reasons.append(ent_msg)
+
+            pred["review_reasons"] = review_reasons
             ai_results[key] = pred
-            if pred["needs_review"]:
-                flagged.append(key)
+
+            if pred.get("needs_review", False):
+                flagged_keys.append(key)
                 logger.debug(
-                    f"  [REVIEW] {key}: {pred['label']} ({pred['confidence']:.1%})"
+                    f"  [REVIEW_FLAG] {key}: {pred_label} (Conf: {pred_conf:.1%}) | Reasons: {review_reasons}"
                 )
 
-        return ai_results, flagged
+        return ai_results, flagged_keys
 
 
 # ─── Convenience: re-train from CLI ───────────────────────────────────────────

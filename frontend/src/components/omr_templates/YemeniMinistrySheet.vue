@@ -99,8 +99,8 @@ const props = withDefaults(
     envelopeNo: '2',
     governorate: 'أمانة العاصمة',
     directorate: 'معين',
-    barcodeValue: '41848501164148',
-    qrValue: 'YE-MOE-1444-418485-SUB1',
+    barcodeValue: '',
+    qrValue: '',
     studentAnswers: () => ({}),
     answerKey: () => ({}),
     showInspectionOverlay: false,
@@ -187,20 +187,20 @@ const computedBarcodeValue = computed(() => {
   if (props.barcodeValue && String(props.barcodeValue).trim()) {
     return String(props.barcodeValue).trim()
   }
-  const seat = String(props.seatNumber || '418485').trim()
-  const model = String(props.modelCode || 'A').trim()
-  return `SEAT_${seat}_VER_${model}`
+  const seat = String(props.seatNumber || '').trim()
+  if (!seat) return ''
+  return seat
 })
 
 const computedQrValue = computed(() => {
   if (props.qrValue && String(props.qrValue).trim()) {
     return String(props.qrValue).trim()
   }
-  const seat = String(props.seatNumber || '418485').trim()
+  const seat = String(props.seatNumber || '').trim()
   const model = String(props.modelCode || 'A').trim()
   const subj = String(props.examSubject || 'EXAM').trim()
   const center = String(props.centerCode || props.centerName || 'CENTER').trim()
-  return `${subj}|${model}|${seat}|${center}`
+  return seat ? `${subj}|${model}|${seat}|${center}` : ''
 })
 
 const barcodeDataUrl = ref('')

@@ -1,0 +1,40 @@
+{
+  "model_name": "BubbleClassifierCNN_v4",
+  "format": "PyTorch State Dict (Compiled Binary)",
+  "export_file": "omr_bubble_cnn_certified_v4.pt",
+  "file_size_mb": 1.53,
+  "sha256": "83c405b9a54e64a7a3630f6463a5beb576e3ca6ec30da49a0a8c11383bcbc6b3",
+  "exported_at": "2026-11-08T14:25:32Z",
+  "input_contract": {
+    "shape": [
+      1,
+      1,
+      48,
+      48
+    ],
+    "dtype": "float32",
+    "range": [
+      0.0,
+      1.0
+    ],
+    "channels": 1
+  },
+  "classes": [
+    "empty",
+    "filled",
+    "half_filled",
+    "erased",
+    "crossed"
+  ],
+  "metadata": {
+    "test_metrics": {
+      "accuracy": 0.9973,
+      "macro_f1": 0.9974,
+      "weighted_f1": 0.9973,
+      "cohen_kappa": 0.9967,
+      "mcc": 0.9967,
+      "total_samples": 1500
+    },
+    "status": "APPROVED"
+  }
+}

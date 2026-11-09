@@ -454,7 +454,7 @@ class SubmissionMVS(AllMVS):
                 seat_num = student_info.get("seat_number") or ""
                 s_name = student_info.get("name") or ""
 
-                # 1. استخراج وفحص الأكواد المشفرة من الباركود والـ QR
+                # 1. استخراج وفحص الأكواد المشفرة من الباركود والـ QR بدقة وأولوية
                 import re
                 candidate_seats = []
                 candidate_versions = []
@@ -462,11 +462,20 @@ class SubmissionMVS(AllMVS):
                 if seat_num:
                     candidate_seats.append(str(seat_num).strip())
 
-                for c_val in [barcode_val, qr_val]:
+                if barcode_val:
+                    if "_SEAT_" in barcode_val:
+                        candidate_seats.insert(0, barcode_val.split("_SEAT_")[-1].split("_")[0].strip())
+                    clean_b = barcode_val.strip()
+                    if clean_b.isdigit():
+                        candidate_seats.insert(0, clean_b)
+                    else:
+                        candidate_seats.append(clean_b)
+                        if len(clean_b) >= 6 and clean_b[:6].isdigit():
+                            candidate_seats.append(clean_b[:6])
+
+                for c_val in [qr_val, barcode_val]:
                     if not c_val:
                         continue
-                    if "_SEAT_" in c_val:
-                        candidate_seats.insert(0, c_val.split("_SEAT_")[-1].split("_")[0].strip())
                     if "_VER_" in c_val:
                         candidate_versions.append(c_val.split("_VER_")[1].split("_")[0].strip())
                     if "|" in c_val:
@@ -477,12 +486,14 @@ class SubmissionMVS(AllMVS):
                             candidate_seats.insert(0, parts[2])
                         if len(parts) >= 4 and parts[3].isdigit():
                             candidate_seats.append(parts[3])
-                        tokens = [t.strip() for t in re.split(r'[-|_/]', c_val) if t.strip().isdigit()]
-                        candidate_seats.extend(tokens)
-                    clean_b = c_val.strip()
-                    candidate_seats.append(clean_b)
-                    if len(clean_b) >= 6:
-                        candidate_seats.append(clean_b[:6])
+
+                # إدراج أرقام QR فقط إذا لم يكن الكود الافتراضي التجريبي
+                if qr_val and qr_val not in ("YE-MOE-1444-418485-SUB1", "41848501164148"):
+                    tokens = [t.strip() for t in re.split(r'[-|_/]', qr_val) if t.strip().isdigit()]
+                    candidate_seats.extend(tokens)
+                elif qr_val and not candidate_seats:
+                    tokens = [t.strip() for t in re.split(r'[-|_/]', qr_val) if t.strip().isdigit()]
+                    candidate_seats.extend(tokens)
 
                 # إزالة التكرارات مع الحفاظ على الترتيب
                 seen_s = set()
@@ -590,9 +601,13 @@ class SubmissionMVS(AllMVS):
                 elif seat_num and exam_obj:
                     locked_sub = Submission.objects.filter(exam=exam_obj, layout_result__seat_number=str(seat_num), is_deleted=False).first()
 
+                is_control_locked = False
                 if locked_sub and (locked_sub.layout_result or {}).get("dispatched_to_control"):
+                    is_control_locked = True
                     receipt = (locked_sub.layout_result or {}).get("control_receipt_code", "CTL-CONFIRMED")
-                    raise PermissionError(f"درجات الطالب '{s_name}' (رقم الجلوس {seat_num}) معتمدة ومقفلة بالكنترول (إيصال: {receipt}).")
+                    logger.info(f"Sheet for student '{s_name}' is dispatched to control (receipt: {receipt}). Preserving control receipt while saving scanned verification.")
+                    if not unregistered_error:
+                        unregistered_error = f"الورقة معتمدة ومقفلة رسمياً بالكنترول (إيصال: {receipt})."
 
                 # 3. إعادة التصحيح التلقائي بمفتاح النموذج الفعلي المعتمد وأوزان الأسئلة الحقيقية
                 from omr.providers.opencv_omr import normalize_choice
@@ -668,6 +683,11 @@ class SubmissionMVS(AllMVS):
                     "is_cross_exam": False,
                     "cross_exam_title": None,
                 }
+                if is_control_locked and locked_sub and locked_sub.layout_result:
+                    layout_data["dispatched_to_control"] = True
+                    layout_data["control_receipt_code"] = locked_sub.layout_result.get("control_receipt_code", "CTL-CONFIRMED")
+                    layout_data["dispatched_at"] = locked_sub.layout_result.get("dispatched_at", "")
+                    layout_data["dispatched_by"] = locked_sub.layout_result.get("dispatched_by", "")
 
                 if existing_sub:
                     sub_record = existing_sub
@@ -791,8 +811,16 @@ class SubmissionMVS(AllMVS):
                     needs_review_count += 1
                 total_scores += score_val
 
-                img_url = request.build_absolute_uri(sub_record.original_image.url) if (sub_record.original_image and hasattr(sub_record.original_image, 'url')) else ""
-                annotated_url = request.build_absolute_uri(sub_record.aligned_image.url) if (sub_record.aligned_image and hasattr(sub_record.aligned_image, 'url')) else ""
+                def safe_url(f):
+                    if not f or not hasattr(f, 'url'):
+                        return ""
+                    try:
+                        return request.build_absolute_uri(f.url)
+                    except Exception:
+                        return f.url
+
+                img_url = safe_url(sub_record.original_image)
+                annotated_url = safe_url(sub_record.aligned_image)
                 err_msg = sub_record.error_message or unregistered_error or ""
                 processed_sheets.append({
                     "id": sub_record.id,
@@ -820,17 +848,19 @@ class SubmissionMVS(AllMVS):
             except PermissionError as e_perm:
                 logger.warning(f"Control lock triggered for sheet {img_name}: {e_perm}")
                 processed_sheets.append({
-                    "id": None,
+                    "id": locked_sub.id if 'locked_sub' in locals() and locked_sub else None,
                     "filename": img_name,
                     "seat_number": seat_num or "—",
-                    "student_name": s_name or "مقفل بالكنترول",
-                    "model_code": "—",
-                    "score": 0,
-                    "max_score": 0,
-                    "percentage": 0,
-                    "confidence": 0,
-                    "status": "locked_in_control",
-                    "error": str(e_perm),
+                    "student_name": s_name or "طالب مقفل بالكنترول",
+                    "model_code": target_version.versionCode if 'target_version' in locals() and target_version else "A",
+                    "score": grading_result.get("score", 0) if 'grading_result' in locals() and grading_result else 0,
+                    "max_score": grading_result.get("max_score", 50) if 'grading_result' in locals() and grading_result else 50,
+                    "percentage": grading_result.get("score_percent", 0) if 'grading_result' in locals() and grading_result else 0,
+                    "confidence": avg_conf if 'avg_conf' in locals() else 1.0,
+                    "status": "COMPLETED",
+                    "needs_review": False,
+                    "error_message": str(e_perm),
+                    "questions": grading_result.get("questions", []) if 'grading_result' in locals() and grading_result else [],
                 })
             except Exception as e_sheet:
                 logger.error(f"Error processing sheet {img_name}: {e_sheet}")

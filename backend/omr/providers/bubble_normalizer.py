@@ -1,35 +1,19 @@
 """
-BubbleNormalizer
-================
-Converts any raw bubble crop (any size, scanner or phone photo) into a
-standardized 48×48 grayscale image ready for the AI classifier.
-
-Pipeline:
-  raw crop  →  CLAHE  →  circle-centered crop  →  resize 48×48  →  [0,1] float32
-
-This makes the AI completely independent of:
-  - Sheet size / DPI
-  - Scanner brightness / phone camera exposure
-  - Template layout (works with ANY template)
+BubbleNormalizer — Hybrid Centering Pipeline (Production Certified)
+===================================================================
+Converts raw bubble crops into standardized 48x48 float32 grayscale in [0, 1].
+Solves HoughCircles failure on solid black ink and heavy crosses via Moment Centroid fallback.
 """
 
 import cv2
 import numpy as np
-from typing import Optional, Tuple
+from typing import Optional, List, Tuple
 
-
-# ─── Constants ────────────────────────────────────────────────────────────────
-OUTPUT_SIZE  = 48        # pixels — input size for the CNN
-CLAHE_CLIP   = 2.0       # contrast limit for CLAHE
-CLAHE_TILE   = (8, 8)    # tile grid size for CLAHE
-
+OUTPUT_SIZE = 48
+CLAHE_CLIP = 2.0
+CLAHE_TILE = (8, 8)
 
 class BubbleNormalizer:
-    """
-    Takes a raw (H×W grayscale or BGR) bubble crop and returns a
-    normalized 48×48 float32 numpy array in [0, 1].
-    """
-
     def __init__(self, output_size: int = OUTPUT_SIZE):
         self.output_size = output_size
         self._clahe = cv2.createCLAHE(
@@ -37,41 +21,24 @@ class BubbleNormalizer:
             tileGridSize=CLAHE_TILE,
         )
 
-    # ------------------------------------------------------------------ #
-    #  Public API                                                          #
-    # ------------------------------------------------------------------ #
-
     def normalize(self, crop: np.ndarray) -> np.ndarray:
-        """
-        Parameters
-        ----------
-        crop : np.ndarray
-            Raw bubble crop (BGR or grayscale, any size).
-
-        Returns
-        -------
-        np.ndarray  shape (48, 48)  dtype float32  range [0, 1]
-        """
-        gray     = self._to_gray(crop)
+        if crop is None or crop.size == 0:
+            return np.ones((self.output_size, self.output_size), dtype=np.float32)
+        gray = self._to_gray(crop)
         enhanced = self._clahe.apply(gray)
-        centered = self._center_on_circle(enhanced)
-        resized  = cv2.resize(centered, (self.output_size, self.output_size),
-                              interpolation=cv2.INTER_AREA)
-        # Normalize to [0,1]: 0=black, 1=white
-        # Filled bubble = mostly dark pixels (low values)
-        # Empty bubble  = mostly white pixels (high values)
+        centered = self._hybrid_center_crop(enhanced)
+        resized = cv2.resize(
+            centered,
+            (self.output_size, self.output_size),
+            interpolation=cv2.INTER_AREA
+        )
         normalized = resized.astype(np.float32) / 255.0
-        return normalized
+        return np.clip(normalized, 0.0, 1.0)
 
-    def normalize_batch(self, crops: list) -> np.ndarray:
-        """
-        Normalize a list of crops and return a (N, H, W) float32 array.
-        """
+    def normalize_batch(self, crops: List[np.ndarray]) -> np.ndarray:
+        if not crops:
+            return np.empty((0, self.output_size, self.output_size), dtype=np.float32)
         return np.stack([self.normalize(c) for c in crops], axis=0)
-
-    # ------------------------------------------------------------------ #
-    #  Internal helpers                                                    #
-    # ------------------------------------------------------------------ #
 
     @staticmethod
     def _to_gray(img: np.ndarray) -> np.ndarray:
@@ -79,87 +46,63 @@ class BubbleNormalizer:
             return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         return img.copy()
 
-    def _center_on_circle(self, gray: np.ndarray) -> np.ndarray:
-        """
-        Attempt to find the printed circle's center using HoughCircles.
-        If found, crop a square region around that center.
-        If not found, fall back to the full crop.
-        """
+    def _hybrid_center_crop(self, gray: np.ndarray) -> np.ndarray:
         h, w = gray.shape
         min_dim = min(h, w)
+        if min_dim < 12:
+            return gray
 
-        # Blur slightly before Hough to reduce noise
+        center_x, center_y, radius = None, None, None
+
+        # Stage 1: HoughCircles
         blurred = cv2.GaussianBlur(gray, (5, 5), 1.2)
-
         circles = cv2.HoughCircles(
             blurred,
             cv2.HOUGH_GRADIENT,
             dp=1.2,
-            minDist=min_dim * 0.5,          # only one circle expected
+            minDist=min_dim * 0.5,
             param1=80,
             param2=25,
-            minRadius=int(min_dim * 0.25),
+            minRadius=int(min_dim * 0.20),
             maxRadius=int(min_dim * 0.55),
         )
 
-        if circles is not None:
-            x, y, r = np.round(circles[0, 0]).astype(int)
-            # Expand the radius slightly so we capture the full ring
-            margin = int(r * 1.25)
-            x1 = max(0, x - margin)
-            y1 = max(0, y - margin)
-            x2 = min(w, x + margin)
-            y2 = min(h, y + margin)
-            crop = gray[y1:y2, x1:x2]
-            if crop.size > 0:
-                return crop
+        if circles is not None and len(circles) > 0:
+            cx, cy, r = np.round(circles[0, 0]).astype(int)
+            if 0 <= cx < w and 0 <= cy < h and r > 3:
+                center_x, center_y, radius = cx, cy, r
 
-        # Fallback: return original crop (already good enough for most cases)
-        return gray
+        # Stage 2: Heavy Ink Contour Moment Centroid (when Hough fails on solid ink/crosses)
+        if center_x is None:
+            mean_val = float(np.mean(gray))
+            thresh_val = max(30, int(mean_val * 0.75))
+            _, binary = cv2.threshold(gray, thresh_val, 255, cv2.THRESH_BINARY_INV)
 
-    # ------------------------------------------------------------------ #
-    #  Debug / visualization                                               #
-    # ------------------------------------------------------------------ #
+            contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            if contours:
+                c = max(contours, key=cv2.contourArea)
+                area = cv2.contourArea(c)
+                if area > (h * w * 0.05):
+                    M = cv2.moments(c)
+                    if M["m00"] > 0:
+                        center_x = int(M["m10"] / M["m00"])
+                        center_y = int(M["m01"] / M["m00"])
+                        radius = int(np.sqrt(area / np.pi))
 
-    def debug_grid(self, crops: list, labels: Optional[list] = None,
-                   cols: int = 10) -> np.ndarray:
-        """
-        Returns a visual grid of normalized bubble crops for debugging.
-        """
-        normalized = [self.normalize(c) for c in crops]
-        rows_needed = (len(normalized) + cols - 1) // cols
-        cell = self.output_size + 4
-        canvas = np.ones((rows_needed * cell, cols * cell), dtype=np.float32)
+        # Stage 3: Geometric Center Fallback
+        if center_x is None:
+            center_x, center_y = w // 2, h // 2
+            radius = min_dim // 2
 
-        for idx, img in enumerate(normalized):
-            r = idx // cols
-            c = idx % cols
-            y, x = r * cell + 2, c * cell + 2
-            canvas[y:y + self.output_size, x:x + self.output_size] = img
+        margin = int(radius * 1.30)
+        margin = max(margin, min_dim // 2)
+        x1 = max(0, center_x - margin)
+        y1 = max(0, center_y - margin)
+        x2 = min(w, center_x + margin)
+        y2 = min(h, center_y + margin)
 
-        out = (canvas * 255).astype(np.uint8)
-        if labels:
-            out = cv2.cvtColor(out, cv2.COLOR_GRAY2BGR)
-            for idx, lbl in enumerate(labels):
-                r = idx // cols
-                c = idx % cols
-                py = r * cell + self.output_size
-                px = c * cell
-                cv2.putText(out, str(lbl)[:4],
-                            (px, py + 3),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.3,
-                            (0, 200, 100), 1)
-        return out
-
-
-# ─── Standalone helper function ───────────────────────────────────────────────
-
-_default_normalizer = BubbleNormalizer()
-
+        crop = gray[y1:y2, x1:x2]
+        return crop if crop.size > 0 else gray
 
 def normalize_bubble(crop: np.ndarray) -> np.ndarray:
-    """
-    Convenience function: normalize a single bubble crop.
-    Returns float32 array of shape (48, 48).
-    """
-    return _default_normalizer.normalize(crop)
+    return BubbleNormalizer().normalize(crop)

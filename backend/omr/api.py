@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import tempfile
+import time
 import uuid
 import io
 import zipfile
@@ -154,10 +155,16 @@ def _process_and_grade_image_file(
         if "_SEAT_" in barcode_val:
             candidate_seats.append(barcode_val.split("_SEAT_")[-1].split("_")[0].strip())
         clean_b = barcode_val.strip()
-        candidate_seats.append(clean_b)
-        if len(clean_b) >= 6:
-            candidate_seats.append(clean_b[:6])
-    if qr_val:
+        if clean_b.isdigit():
+            candidate_seats.insert(0, clean_b)
+        else:
+            candidate_seats.append(clean_b)
+            if len(clean_b) >= 6 and clean_b[:6].isdigit():
+                candidate_seats.append(clean_b[:6])
+    if qr_val and qr_val not in ("YE-MOE-1444-418485-SUB1", "41848501164148"):
+        tokens = [t.strip() for t in re.split(r'[-|_/]', qr_val) if t.strip().isdigit()]
+        candidate_seats.extend(tokens)
+    elif qr_val and not candidate_seats:
         tokens = [t.strip() for t in re.split(r'[-|_/]', qr_val) if t.strip().isdigit()]
         candidate_seats.extend(tokens)
 
@@ -230,22 +237,24 @@ def _process_and_grade_image_file(
                     examVersion__exam=foreign_exam, seatNumber=seat_num, is_deleted=False
                 ).select_related('student_profile', 'student').first()
 
+            target_title = exam_obj.title if (exam_obj and hasattr(exam_obj, 'title')) else 'غير محدد'
             if foreign_reg:
                 f_name = foreign_reg.student_profile.name_ar if (foreign_reg.student_profile and foreign_reg.student_profile.name_ar) else str(foreign_reg.student)
                 s_name = f"{f_name} (ورقة تابعة لاختبار آخر)"
                 unregistered_error = (
                     f"MISMATCHED_EXAM: الورقة تتبع اختبار آخر ('{foreign_exam.title}' - كود: {foreign_exam.uniqueCode or foreign_exam.id}) "
-                    f"وليست لهذا الاختبار المختار ('{exam_obj.title}'). الطالبة/الطالب: {f_name} (رقم الجلوس: {seat_num}). تم عزل الورقة للتدقيق البشري."
+                    f"وليست لهذا الاختبار المختار ('{target_title}'). الطالبة/الطالب: {f_name} (رقم الجلوس: {seat_num}). تم عزل الورقة للتدقيق البشري."
                 )
             else:
                 s_name = f"طالب من اختبار آخر (رقم الجلوس: {seat_num})" if seat_num else "طالب من اختبار آخر"
                 unregistered_error = (
-                    f"MISMATCHED_EXAM: الورقة تتبع اختبار آخر ('{foreign_exam.title}') وليست لهذا الاختبار المختار ('{exam_obj.title}'). "
+                    f"MISMATCHED_EXAM: الورقة تتبع اختبار آخر ('{foreign_exam.title}') وليست لهذا الاختبار المختار ('{target_title}'). "
                     f"رقم الجلوس: {seat_num or 'غير محدد'}. تم عزل الورقة للتدقيق البشري."
                 )
         elif seat_num or barcode_val:
+            target_title = exam_obj.title if (exam_obj and hasattr(exam_obj, 'title')) else 'غير محدد'
             s_name = f"طالب غير مسجل (رقم الجلوس: {seat_num})" if seat_num else "طالب غير مسجل"
-            unregistered_error = f"UNREGISTERED_STUDENT_IN_EXAM: رقم الجلوس ({seat_num or 'غير محدد'}) غير مسجل في قوائم هذا الاختبار ('{exam_obj.title}')."
+            unregistered_error = f"UNREGISTERED_STUDENT_IN_EXAM: رقم الجلوس ({seat_num or 'غير محدد'}) غير مسجل في قوائم هذا الاختبار ('{target_title}')."
         else:
             s_name = "طالب غير محدد (تعذر قراءة الباركود)"
             unregistered_error = "MISSING_STUDENT_IDENTITY: تعذر قراءة رقم الجلوس أو الباركود التعريفي للورقة الضوئية. يرجى التدقيق اليدوي."
@@ -416,6 +425,7 @@ def _process_and_grade_image_file(
     if target_version:
         sub_kwargs["exam_version"] = target_version
 
+    t_db_start = time.time()
     if existing_locked_sub:
         # تحديث السجل غير المقفل القائم لمنع التكرار في المظروف الامتحاني
         sub_record = existing_locked_sub
@@ -459,13 +469,14 @@ def _process_and_grade_image_file(
         processing_time_ms=result.get("processing_ms", 0.0),
     )
 
+    q_objects = []
     for q_item in result.get("questions", []):
         q_num = int(q_item.get("question_id") or q_item.get("q") or 1)
         c_choice = q_item.get("candidate_choice") or q_item.get("marked_choice")
         f_choice = q_item.get("final_marked_choice") or q_item.get("marked_choice")
         b_state = q_item.get("bubble_state") or ("filled" if f_choice else "empty")
         q_weight = float(q_item.get("max_mark", 1.0))
-        OMRQuestionResult.objects.create(
+        q_objects.append(OMRQuestionResult(
             sheet_result=sheet_obj,
             question_number=q_num,
             marked_choice=f_choice,
@@ -483,7 +494,28 @@ def _process_and_grade_image_file(
             review_priority=q_item.get("review_priority", "NONE"),
             assigned_weight=q_weight,
             marks_awarded=float(q_item.get("marks_awarded", q_item.get("score_awarded", q_weight if q_item.get("is_correct") else 0.0))),
-        )
+        ))
+
+    if q_objects:
+        OMRQuestionResult.objects.bulk_create(q_objects)
+
+    t_db_end = time.time()
+    t_db_ms = round((t_db_end - t_db_start) * 1000, 1)
+
+    # Telemetry timings aggregation
+    timings = dict(result.get("timings", {}))
+    timings["db_commit_ms"] = t_db_ms
+    total_elapsed_ms = round(timings.get("total_ms", result.get("processing_ms", 0.0)) + t_db_ms, 1)
+    timings["total_pipeline_ms"] = total_elapsed_ms
+
+    logger.info(
+        f"\n⏱️ [OMR Telemetry] Sheet: {seat_num or 'Unknown'} | Exam: {exam_obj.id if exam_obj else 'Auto'} | Total: {total_elapsed_ms:.1f}ms\n"
+        f"  ├── 1. QR/Barcode Detect:     {timings.get('qr_detect_ms', 0):6.1f} ms\n"
+        f"  ├── 2. Fiducial Alignment:    {timings.get('alignment_ms', 0):6.1f} ms\n"
+        f"  ├── 3. AI Inference (YOLO):   {timings.get('ai_inference_ms', 0):6.1f} ms\n"
+        f"  ├── 4. Annotated Rendering:   {timings.get('rendering_ms', 0):6.1f} ms\n"
+        f"  └── 5. Database Save (Bulk):  {t_db_ms:6.1f} ms\n"
+    )
 
     result_id = str(sub_record.id)
     _RESULT_CACHE[result_id] = {
@@ -524,6 +556,7 @@ def _process_and_grade_image_file(
         "qr":               qr_val,
         "student_info":     result.get("student_info", {}),
         "switched_notice":  result.get("switched_notice", ""),
+        "timings":          timings,
     }
 
 
@@ -1015,42 +1048,74 @@ def _detect_template_from_sheet(image_path: str, requested_template_id: str = ""
         .order_by("-id")
     )
 
+    class DetectResult(tuple):
+        def __new__(cls, tpl, code, qs, barcode="", qr=""):
+            return super().__new__(cls, (tpl, code, qs))
+        def __init__(self, tpl, code, qs, barcode="", qr=""):
+            self.tpl = tpl
+            self.code = code
+            self.qs = qs
+            self.barcode = barcode
+            self.qr = qr
+
+    detected_barcode = ""
+    detected_qr = ""
+
+    def _make_ret(tpl, code, qs):
+        bc = detected_barcode or (code if code and "|" not in code and "EXAM_" not in code else "")
+        return DetectResult(tpl, code, qs, barcode=bc, qr=detected_qr)
+
     # ── 2. كشف الباركود والـ QR ─────────────────────────────────────
     detected_code = None
+    found_codes = []
     try:
         import zxingcpp
         for zr in zxingcpp.read_barcodes(img):
-            if zr.text:
-                detected_code = zr.text.strip()
-                logger.info("Auto-detected barcode via zxingcpp: %s (%s)", detected_code, zr.format)
-                break
+            if zr.text and zr.text.strip():
+                txt = zr.text.strip()
+                fmt = str(zr.format).upper()
+                if "QR" in fmt or "MATRIX" in fmt or "AZTEC" in fmt:
+                    if not detected_qr:
+                        detected_qr = txt
+                else:
+                    if not detected_barcode:
+                        detected_barcode = txt
+                found_codes.append((txt, fmt))
+                logger.info("Auto-detected code via zxingcpp: %s (%s)", txt, zr.format)
     except Exception as z_err:
         logger.debug("zxingcpp scan error: %s", z_err)
 
-    if not detected_code:
+    if not detected_barcode or not detected_qr:
         try:
             from pyzbar import pyzbar
             for b in pyzbar.decode(img):
                 c = b.data.decode("utf-8", errors="ignore").strip()
+                b_type = str(b.type).upper()
                 if c:
-                    detected_code = c
-                    logger.info("Auto-detected barcode via pyzbar: %s", detected_code)
-                    break
+                    if "QR" in b_type:
+                        if not detected_qr:
+                            detected_qr = c
+                    else:
+                        if not detected_barcode:
+                            detected_barcode = c
+                    found_codes.append((c, b_type))
+                    logger.info("Auto-detected code via pyzbar: %s (%s)", c, b_type)
         except Exception as b_err:
             logger.debug("pyzbar scan error: %s", b_err)
 
-    if not detected_code:
+    if not detected_qr:
         try:
             qr_detector = cv2.QRCodeDetector()
             data, _, _ = qr_detector.detectAndDecode(img)
             if data:
-                detected_code = data.strip()
-                logger.info("Auto-detected QR via cv2: %s", detected_code)
+                detected_qr = data.strip()
+                found_codes.append((detected_qr, "QR_CV2"))
+                logger.info("Auto-detected QR via cv2: %s", detected_qr)
         except Exception as q_err:
             logger.debug("cv2 QR scan error: %s", q_err)
 
     import re
-    if not detected_code:
+    if not detected_barcode and not detected_qr:
         try:
             import pytesseract
             # فحص حجرة الباركود النصية أسفل يسار الورقة (OCR Barcode Text Fallback)
@@ -1058,10 +1123,28 @@ def _detect_template_from_sheet(image_path: str, requested_template_id: str = ""
             ocr_txt = pytesseract.image_to_string(bc_roi).strip()
             m_ocr = re.search(r"EXAM_\d+_VER_[A-Za-z0-9]+(_SEAT_\d+)?", ocr_txt)
             if m_ocr:
-                detected_code = m_ocr.group(0)
-                logger.info("Auto-detected exam barcode via OCR fallback: %s", detected_code)
+                detected_barcode = m_ocr.group(0)
+                found_codes.append((detected_barcode, "OCR"))
+                logger.info("Auto-detected exam barcode via OCR fallback: %s", detected_barcode)
         except Exception as ocr_err:
             logger.debug("OCR barcode fallback error: %s", ocr_err)
+
+    # اختيار الكود الأنسب للتعرف على القالب (detected_code)
+    for c, _ in found_codes:
+        if "EXAM_" in c:
+            detected_code = c
+            break
+    if not detected_code:
+        for c, _ in found_codes:
+            if "|" in c and "YE-MOE" not in c:
+                detected_code = c
+                break
+    if not detected_code and detected_barcode and detected_barcode not in ("41848501164148", "YE-MOE-1444-418485-SUB1"):
+        detected_code = detected_barcode
+    if not detected_code and detected_qr and detected_qr not in ("41848501164148", "YE-MOE-1444-418485-SUB1"):
+        detected_code = detected_qr
+    if not detected_code:
+        detected_code = detected_barcode or detected_qr or (found_codes[0][0] if found_codes else None)
 
     # ── 3. التحقق الصارم (Strict Verification) ─────────────────────────
     # رفض أي ورقة لا تحتوي على باركود أو رمز QR معتمد ومسجل رسمياً بالنظام
@@ -1198,10 +1281,43 @@ def _detect_template_from_sheet(image_path: str, requested_template_id: str = ""
                 logger.debug("Error resolving exam QR: %s", qr_err)
                 return None, detected_code, 0
 
-    # ── 3.3 التحقق مما إذا كان الباركود يطابق قالباً مسجلاً في النظام ──
+    # ── 3.3 مطابقة رقم جلوس طالب مسجل في النظام ──
+    try:
+        from exams.models.StudentExamRegistration import StudentExamRegistration
+        clean_seat = str(detected_code).strip() if detected_code else ""
+        if clean_seat and clean_seat.isdigit():
+            reg_match = StudentExamRegistration.objects.filter(seatNumber=clean_seat, is_deleted=False).select_related('examVersion__exam').first()
+            if reg_match and reg_match.examVersion:
+                ex_obj = reg_match.examVersion.exam
+                v_match = reg_match.examVersion
+                v_q_cnt = v_match.question_orders.filter(is_deleted=False).count()
+                if v_q_cnt > 0:
+                    tpl_match = None
+                    for tpl in active_templates:
+                        t_td = tpl.template_data or {}
+                        t_qs = (
+                            t_td.get("questions", {}).get("metadata", {}).get("num_questions") or
+                            len(t_td.get("mcq_questions", [])) or
+                            getattr(tpl, "total_mcq", None)
+                        )
+                        if (t_qs == v_q_cnt or f"({v_q_cnt} سؤال)" in tpl.name or f"({v_q_cnt}سؤال)" in tpl.name):
+                            if not tpl_match or (ex_obj.title and ex_obj.title in tpl.name):
+                                tpl_match = tpl
+                                if ex_obj.title and ex_obj.title in tpl.name:
+                                    break
+                    if not tpl_match and active_templates:
+                        tpl_match = active_templates[0]
+                    if tpl_match:
+                        logger.info("Auto-bound sheet via student seat %s to template: %s (%d Qs)", clean_seat, tpl_match.name, v_q_cnt)
+                        return _make_ret(tpl_match, detected_code, v_q_cnt)
+    except Exception as reg_err:
+        logger.debug("Error checking StudentExamRegistration in detect: %s", reg_err)
+
+    # ── 3.4 التحقق مما إذا كان الباركود يطابق قالباً مسجلاً في النظام ──
     is_generic_ministry_code = (
         detected_code in ("41848501164148", "YE-MOE-1444-418485-SUB1") or
-        ("YE-MOE" in detected_code or "418485" in detected_code)
+        ("YE-MOE" in detected_code or "418485" in detected_code) or
+        (detected_code and detected_code.isdigit() and len(detected_code) <= 10)
     )
 
     if not is_generic_ministry_code:
@@ -1218,11 +1334,11 @@ def _detect_template_from_sheet(image_path: str, requested_template_id: str = ""
                 len(match_obj.template_data.get("mcq_questions", [])) or 50
             )
             logger.info("Auto-detected custom template by unique barcode: %s (%d Qs)", match_obj.name, q_cnt)
-            return match_obj, detected_code, q_cnt
+            return _make_ret(match_obj, detected_code, q_cnt)
         else:
             # الباركود موجود لكنه غير مسجل في أي قالب أو اختبار معتمد في هذا النظام!
             logger.warning("التحقق الصارم: الباركود '%s' غير مسجل في أي قالب أو اختبار في هذا النظام. تم رفض الورقة.", detected_code)
-            return None, detected_code, 0
+            return _make_ret(None, detected_code, 0)
 
     # ── 4. فحص هيئة وأبعاد الورقة وتصحيح التدوير (A4 طولي مقابل A5 عرضي) ───────────
     is_portrait = h > w * 1.15
@@ -1569,9 +1685,16 @@ def _grade_with_template(image_path: str, template_id: str, answer_key: dict, dp
         from django.db.models import Q
 
         # فحص وتحليل بصري مسبق لتحديد كثافة الأسئلة في الورقة بدقة (40 vs 50 vs 60 vs 180)
-        detected_db_obj, detected_code, detected_qs = _detect_template_from_sheet(
+        detect_res = _detect_template_from_sheet(
             image_path, template_id, original_filename=original_filename or os.path.basename(image_path)
         )
+        t_detect_end = time.time()
+        qr_detect_ms = round((t_detect_end - t0) * 1000, 1)
+        detected_db_obj = detect_res[0]
+        detected_code = detect_res[1]
+        detected_qs = detect_res[2]
+        detected_barcode = getattr(detect_res, 'barcode', '') or (detected_code if detected_code and "EXAM_" not in detected_code and "|" not in detected_code else "")
+        detected_qr = getattr(detect_res, 'qr', '')
         switched_notice = ""
 
         # هل يُطلب التعرف التلقائي الذكي؟
@@ -1706,6 +1829,7 @@ def _grade_with_template(image_path: str, template_id: str, answer_key: dict, dp
     engine = OpenCVOMREngine()
 
     marks_by_q = {str(k): float(v) for k, v in (marks_map or {}).items()}
+    t_engine_start = time.time()
     engine_result = engine._process(
         input_data={"image_path": image_path},
         context={
@@ -1718,6 +1842,8 @@ def _grade_with_template(image_path: str, template_id: str, answer_key: dict, dp
             },
         },
     )
+    t_engine_end = time.time()
+    engine_ms = round((t_engine_end - t_engine_start) * 1000, 1)
 
     elapsed_ms = (time.time() - t0) * 1000
 
@@ -1727,16 +1853,35 @@ def _grade_with_template(image_path: str, template_id: str, answer_key: dict, dp
     scan_dpi_used = data.get("detected_dpi", effective_dpi)
     aligned_img = data.pop("aligned_image", img)
 
+    t_render_start = time.time()
     # رسم الصورة المُعلَّقة
     annotated = _draw_template_annotated(aligned_img, questions_raw, template, scan_dpi_used)
-    _, buf = cv2.imencode('.png', annotated)
+    # تحسين سرعة العرض والترميز: ضبط الدقة للعرض وترميز JPEG فائق السرعة بدلاً من PNG الضخم (50MB -> 700KB)
+    h_a, w_a = annotated.shape[:2]
+    if max(h_a, w_a) > 2048:
+        scale_a = 2048.0 / max(h_a, w_a)
+        annotated_display = cv2.resize(annotated, (int(w_a * scale_a), int(h_a * scale_a)), interpolation=cv2.INTER_AREA)
+    else:
+        annotated_display = annotated
+    _, buf = cv2.imencode('.jpg', annotated_display, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    rendering_ms = round((time.time() - t_render_start) * 1000, 1)
+
+    engine_timings = data.get("timings", {})
+    timings = {
+        "qr_detect_ms": qr_detect_ms,
+        "engine_ms": engine_ms,
+        "alignment_ms": engine_timings.get("alignment_ms", 0.0),
+        "ai_inference_ms": engine_timings.get("grid_and_ai_ms") or engine_timings.get("ai_inference_ms", 0.0),
+        "rendering_ms": rendering_ms,
+        "total_ms": round((time.time() - t0) * 1000, 1),
+    }
 
     total_questions = data.get("total_questions", len(questions_raw))
     total_answered = sum(1 for q in questions_raw if q.get("marked_choice"))
     total_correct = sum(1 for q in questions_raw if q.get("is_correct"))
 
-    barcode_val = detected_code or ""
-    qr_val = ""
+    barcode_val = detected_barcode or detected_code or ""
+    qr_val = detected_qr or ""
     student_info = {}
     if db_obj and isinstance(db_obj.template_data, dict):
         td = db_obj.template_data
@@ -1757,6 +1902,7 @@ def _grade_with_template(image_path: str, template_id: str, answer_key: dict, dp
         "score_percent":   score_pct,
         "ai_corrections":  data.get("ambiguous_count", 0),
         "processing_ms":   round(elapsed_ms, 1),
+        "timings":         timings,
         "questions":       questions_raw,
         "annotated_image": buf.tobytes(),
         "engine_used":     "template_driven",

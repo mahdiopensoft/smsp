@@ -129,8 +129,8 @@ def grade_sheet(image_path: str, answer_key: dict = None, dpi: int = DPI, use_ai
     ai_used = 0
     if use_ai:
         try:
-            from omr.providers.ai_verification import AIBubbleVerifier
-            verifier = AIBubbleVerifier()
+            from omr.providers.ai_verification import get_ai_verifier
+            verifier = get_ai_verifier()
             uncertain = {'half_filled', 'crossed'}
             for q in range(1, 181):
                 for ch in CHOICES:

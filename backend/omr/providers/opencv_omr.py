@@ -30,6 +30,7 @@ the AI verification layer runs after this via the Verification Engine.
 
 import logging
 import os
+import time
 import cv2
 import numpy as np
 
@@ -71,8 +72,8 @@ class OpenCVOMREngine(BaseEngine):
     @property
     def ai_verifier(self):
         if self._ai_verifier is None:
-            from omr.providers.ai_verification import AIBubbleVerifier
-            self._ai_verifier = AIBubbleVerifier()
+            from omr.providers.ai_verification import get_ai_verifier
+            self._ai_verifier = get_ai_verifier()
         return self._ai_verifier
 
     @property
@@ -318,15 +319,16 @@ class OpenCVOMREngine(BaseEngine):
             scan_dpi = template.get("expected_scan_dpi", 300)
 
         # Optical fiducial alignment
+        t_align_0 = time.time()
         image = self._align_image(image, template, scan_dpi)
+        t_align_ms = round((time.time() - t_align_0) * 1000, 1)
 
+        t_scan_0 = time.time()
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image.copy()
         
         # Calculate block size dynamically based on DPI to avoid hollowing out solid bubble centers
-        # The block size must be significantly larger than the bubble size (which is ~53px at 300 DPI)
-        block_size = int(scan_dpi / 2)
-        if block_size % 2 == 0:
-            block_size += 1
+        # Must be wider than the physical bubble diameter without inducing massive CPU 2D convolution lag
+        block_size = min(int(scan_dpi / 6) | 1, 101)
         block_size = max(block_size, 31)
         
         binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, block_size, 8)
@@ -371,6 +373,7 @@ class OpenCVOMREngine(BaseEngine):
 
         total_score = round(sum(q.get("marks_awarded", 0.0) for q in question_results), 2)
         max_score = round(sum(q.get("max_mark", marks_per_q) for q in question_results), 2)
+        t_scan_ms = round((time.time() - t_scan_0) * 1000, 1)
         return EngineResult(
             engine_name=self.engine_name, 
             status="success", 
@@ -385,6 +388,10 @@ class OpenCVOMREngine(BaseEngine):
                 "ambiguous_count": total_ambiguous,
                 "detected_dpi": scan_dpi,
                 "aligned_image": image,
+                "timings": {
+                    "alignment_ms": t_align_ms,
+                    "grid_and_ai_ms": t_scan_ms,
+                },
             }, 
             provider_used="opencv"
         )
@@ -519,15 +526,33 @@ class OpenCVOMREngine(BaseEngine):
             for key, pred in zip(crop_keys, predictions):
                 classical_lbl = classical_results.get(key, "empty")
                 d_val = darkness_values.get(key, 0.0)
+                pred_lbl = pred.get("label", "empty")
+                pred_conf = float(pred.get("confidence", 0.0))
 
-                # Safeguard: Never downgrade a high-density ink bubble (>=filled_threshold) to empty
-                if d_val >= filled_threshold and pred["label"] == "empty":
+                # Safeguard 1: If AI returned unknown/failed or low confidence, anchor to physical ink density
+                if pred_lbl in ["unknown", "unclassified"] or pred_conf < 0.25:
+                    if d_val >= filled_threshold:
+                        ai_lbl = "filled"
+                        pred["label"] = "filled"
+                        pred["confidence"] = max(0.85, round(min(0.99, d_val * 2.5), 2))
+                    elif d_val <= empty_threshold:
+                        ai_lbl = "empty"
+                        pred["label"] = "empty"
+                        pred["confidence"] = 0.95
+                    else:
+                        ai_lbl = classical_lbl
+                        pred["label"] = classical_lbl
+                        pred["confidence"] = 0.70
+                # Safeguard 2: Never downgrade a high-density ink bubble (>=filled_threshold) to empty
+                elif d_val >= filled_threshold and pred_lbl == "empty":
                     ai_lbl = classical_lbl if classical_lbl != "empty" else "filled"
-                # Safeguard: Never upgrade a clean white bubble (<=empty_threshold) to filled
-                elif d_val <= empty_threshold and pred["label"] in ["filled", "crossed"]:
+                    pred["confidence"] = max(pred_conf, 0.85)
+                # Safeguard 3: Never upgrade a clean white bubble (<=empty_threshold) to filled
+                elif d_val <= empty_threshold and pred_lbl in ["filled", "crossed"]:
                     ai_lbl = "empty"
+                    pred["confidence"] = 0.95
                 else:
-                    ai_lbl = pred["label"]
+                    ai_lbl = pred_lbl
 
                 ai_results[key]   = ai_lbl
                 ai_conf_data[key] = pred
