@@ -448,32 +448,32 @@
                 </v-chip>
               </div>
 
-              <!-- بطاقات تفاصيل المظروف والأوراق في سطر منظم ومتناسق -->
-              <div class="d-flex align-center justify-center flex-wrap gap-2.5 mb-4">
-                <!-- 1. العدد: [الأيقونة] ثم [التسمية] ثم [القيمة] -->
-                <div class="metadata-badge d-flex align-center gap-1.5 px-3 py-1.5 rounded-lg">
-                  <v-icon size="16" color="primary">mdi-file-document-multiple-outline</v-icon>
+              <!-- بطاقات تفاصيل المظروف والأوراق في سطر منظم ومتناسق ومريح بصرياً -->
+              <div class="d-flex align-center justify-center flex-wrap ga-2 gap-2 mb-4">
+                <!-- 1. العدد: [الأيقونة] ثم [التسمية :] ثم مسافة ثم [القيمة] -->
+                <div class="metadata-badge px-3 py-1 rounded-lg">
+                  <v-icon size="16" color="primary" class="meta-icon">mdi-file-document-multiple-outline</v-icon>
                   <span class="meta-label">العدد:</span>
                   <span class="meta-value text-primary font-weight-bold">{{ batchFiles.length }} ورقة</span>
                 </div>
 
-                <!-- 2. الحجم: [الأيقونة] ثم [التسمية] ثم [القيمة] -->
-                <div class="metadata-badge d-flex align-center gap-1.5 px-3 py-1.5 rounded-lg">
-                  <v-icon size="16" class="text-medium-emphasis">mdi-database-outline</v-icon>
+                <!-- 2. الحجم: [الأيقونة] ثم [التسمية :] ثم مسافة ثم [القيمة] -->
+                <div class="metadata-badge px-3 py-1 rounded-lg">
+                  <v-icon size="16" class="meta-icon text-medium-emphasis">mdi-database-outline</v-icon>
                   <span class="meta-label">الحجم:</span>
                   <span class="meta-value font-mono">{{ totalBatchSizeFormatted }}</span>
                 </div>
 
-                <!-- 3. المظروف: [الأيقونة] ثم [التسمية] ثم [القيمة] -->
-                <div v-if="currentEnvelope.envelopeCode" class="metadata-badge d-flex align-center gap-1.5 px-3 py-1.5 rounded-lg">
-                  <v-icon size="16" class="text-medium-emphasis">mdi-barcode</v-icon>
+                <!-- 3. المظروف: [الأيقونة] ثم [التسمية :] ثم مسافة ثم [القيمة] -->
+                <div v-if="currentEnvelope.envelopeCode" class="metadata-badge px-3 py-1 rounded-lg">
+                  <v-icon size="16" class="meta-icon text-medium-emphasis">mdi-barcode</v-icon>
                   <span class="meta-label">المظروف:</span>
                   <span class="meta-value font-mono">{{ currentEnvelope.envelopeCode }}</span>
                 </div>
 
-                <!-- 4. القاعة: [الأيقونة] ثم [التسمية] ثم [القيمة] -->
-                <div v-if="currentEnvelope.hallNumber" class="metadata-badge d-flex align-center gap-1.5 px-3 py-1.5 rounded-lg">
-                  <v-icon size="16" class="text-medium-emphasis">mdi-map-marker-outline</v-icon>
+                <!-- 4. القاعة: [الأيقونة] ثم [التسمية :] ثم مسافة ثم [القيمة] -->
+                <div v-if="currentEnvelope.hallNumber" class="metadata-badge px-3 py-1 rounded-lg">
+                  <v-icon size="16" class="meta-icon text-medium-emphasis">mdi-map-marker-outline</v-icon>
                   <span class="meta-label">القاعة:</span>
                   <span class="meta-value">{{ currentEnvelope.hallNumber }}</span>
                 </div>
@@ -2776,13 +2776,25 @@ export default {
 
 /* ── Metadata Badges (Soft, Modern, RTL Aligned) ───────────── */
 .metadata-badge {
-  background: rgba(var(--v-theme-surface-variant), 0.28);
-  border: 1px solid rgba(var(--v-border-color), 0.1);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: rgba(var(--v-theme-surface-variant), 0.16);
+  border: 1px solid rgba(var(--v-border-color), 0.12);
+  border-radius: 8px;
+  line-height: 1.2;
+  white-space: nowrap;
   transition: all 0.2s ease;
 }
 
 .metadata-badge:hover {
-  background: rgba(var(--v-theme-surface-variant), 0.42);
+  background: rgba(var(--v-theme-surface-variant), 0.28);
+}
+
+.metadata-badge .meta-icon {
+  flex-shrink: 0;
+  margin-inline-end: 4px;
 }
 
 .metadata-badge .meta-label {
@@ -2790,6 +2802,7 @@ export default {
   color: rgba(var(--v-theme-on-surface), 0.6);
   font-weight: 400;
   white-space: nowrap;
+  margin-inline-end: 5px;
 }
 
 .metadata-badge .meta-value {
