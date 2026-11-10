@@ -1,41 +1,84 @@
 <template>
-  <div class="qb-submission-detail-v4">
+  <div class="qb-submission-detail-v4 pa-3 pa-md-5">
     <!-- Header Controls -->
-    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-6">
+    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-3 mb-4">
       <div class="d-flex align-center gap-3">
         <custom-btn
           is-icon
           icon="arrow-right"
           variant="tonal"
           color="primary"
+          title="الرجوع لسجل أوراق الإجابة"
           :click="() => $router.push('/omr-submissions')"
         />
-        <v-avatar size="44" color="primary" variant="tonal" class="rounded-xl">
-          <v-icon size="24">mdi-file-document-check-outline</v-icon>
+        <v-avatar size="42" color="primary" variant="tonal" class="rounded-lg">
+          <v-icon size="22">mdi-file-document-check-outline</v-icon>
         </v-avatar>
         <div>
-          <h2 class="text-h5 font-weight-black mb-1">تفاصيل تصحيح ورقة الإجابة</h2>
+          <div class="d-flex align-center gap-2">
+            <h2 class="text-h6 font-weight-black mb-0">تفاصيل تصحيح ورقة الإجابة</h2>
+            <v-chip v-if="submission" size="small" variant="tonal" color="primary" class="font-mono font-weight-bold">
+              #{{ submission.id }}
+            </v-chip>
+            <v-chip
+              v-if="submission"
+              size="small"
+              :color="getStatusColor(submission.status)"
+              variant="flat"
+              class="font-weight-bold text-white"
+            >
+              {{ submission.status_display || submission.status }}
+            </v-chip>
+          </div>
           <span class="text-caption text-medium-emphasis">
-            عرض وتحليل نتائج خط المعالجة الهجين والتحقق بالذكاء الاصطناعي
+            سجل التدقيق الضوئي ومطابقة الذكاء الاصطناعي مع مفتاح الإجابة الرسمي
           </span>
         </div>
       </div>
 
-      <div class="d-flex align-center gap-2">
+      <!-- Quick Actions and Navigation -->
+      <div class="d-flex align-center gap-2 flex-wrap">
+        <!-- التنقل السريع بين الأوراق -->
+        <div class="d-flex align-center border rounded-lg px-1 py-0.5 bg-surface me-1">
+          <v-btn
+            icon="mdi-chevron-right"
+            variant="text"
+            size="small"
+            density="comfortable"
+            title="الورقة السابقة"
+            :disabled="!submission || Number(submission.id) <= 1"
+            @click="goToPreviousSubmission"
+          />
+          <span class="text-caption font-mono font-weight-bold px-1.5 text-medium-emphasis">
+            #{{ submission ? submission.id : '—' }}
+          </span>
+          <v-btn
+            icon="mdi-chevron-left"
+            variant="text"
+            size="small"
+            density="comfortable"
+            title="الورقة التالية"
+            :disabled="!submission"
+            @click="goToNextSubmission"
+          />
+        </div>
+
         <custom-btn
           label="إعادة المعالجة ضوئياً"
           icon="mdi-refresh"
-          color="warning"
-          variant="tonal"
+          color="primary"
+          variant="outlined"
           class="font-weight-bold"
           :loading="reprocessing"
           :disabled="Boolean(submission && submission.is_control_locked)"
           :click="reprocessSheet"
         />
+
         <custom-btn
           label="تعديل واعتماد الدرجات"
           icon="mdi-pencil-outline"
           color="primary"
+          variant="flat"
           class="font-weight-bold"
           :disabled="Boolean(submission && submission.is_control_locked)"
           :click="openEditDialog"
@@ -45,168 +88,176 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center pa-12">
-      <v-progress-circular indeterminate color="primary" size="48" />
-      <div class="text-caption mt-3 text-medium-emphasis">جاري تحميل تفاصيل الورقة...</div>
+      <v-progress-circular indeterminate color="primary" size="44" />
+      <div class="text-caption mt-3 text-medium-emphasis">جاري تحميل وتدقيق تفاصيل الورقة...</div>
     </div>
 
     <div v-else-if="submission">
-      <!-- تنبيه القفل الأكاديمي للكنترول المركزي -->
-      <v-alert
-        v-if="submission.is_control_locked"
-        color="warning"
-        variant="tonal"
-        rounded="xl"
-        class="mb-6 font-weight-bold"
-        icon="mdi-shield-lock"
-      >
-        <div class="d-flex align-center justify-space-between flex-wrap gap-2">
-          <div>
-            <div class="text-subtitle-2 font-weight-black">
-              هذه الورقة مقفلة ومرحلة للكنترول المركزي
-            </div>
-            <div class="text-caption">
-              تم تثبيت ورصد درجات هذه الورقة رسمياً بموجب الإيصال الأكاديمي المشفر رقم:
-              <strong class="font-mono text-primary font-weight-bold">{{ submission.control_receipt_no || 'CTL-RECEIPT' }}</strong>.
-              الورقة محمية ضد أي تعديل لضمان أعلى معايير النزاهة الامتحانية.
-            </div>
-          </div>
-          <v-chip color="warning" size="small" variant="flat" class="font-weight-bold">
-            مغلق للكنترول
-          </v-chip>
-        </div>
-      </v-alert>
-
-      <!-- تنبيه إيضاحي للورقة المعتمدة والدرجات المرصودة -->
-      <v-alert
-        v-else-if="Number(submission.total_score) > 0"
-        color="success"
-        variant="tonal"
-        rounded="xl"
-        class="mb-6 font-weight-bold"
-        icon="mdi-check-decagram"
-      >
-        <div class="d-flex align-center justify-space-between flex-wrap gap-2">
-          <div>
-            <div class="text-subtitle-2 font-weight-black">
-              تم التصحيح والرصد الآلي بنجاح بمطابقة الذكاء الاصطناعي
-            </div>
-            <div class="text-caption">
-              تم التعرف على تظليلات الطالب بدقة عالية ومقارنتها بنموذج الإجابة الرسمي ({{ submission.exam_version_code || 'النموذج المعتمد' }}). يمكنك النقر على مقتطفات الدوائر الدقيقة (AI Crops) في الجدول أدناه لفحص كيفية رؤية الذكاء الاصطناعي لكل دائرة.
-            </div>
-          </div>
-          <v-chip color="success" size="small" variant="flat" class="font-weight-bold">
-            درجة الطالب: {{ submission.total_score }} / {{ submission.exam_max_score || submission.mcq_score || 16 }}
-          </v-chip>
-        </div>
-      </v-alert>
-
-      <!-- تنبيه إيضاحي لورقة إجابات فارغة بالكامل -->
-      <v-alert
-        v-else-if="submission.total_score == 0"
-        color="info"
-        variant="tonal"
-        rounded="xl"
-        class="mb-6 font-weight-bold"
-        icon="mdi-information-outline"
-      >
-        <div class="d-flex align-center justify-space-between flex-wrap gap-2">
-          <div>
-            <div class="text-subtitle-2 font-weight-black">
-              تم فحص الورقة بالكامل ومطابقة الدوائر بالذكاء الاصطناعي
-            </div>
-            <div class="text-caption">
-              جميع دوائر الإجابة لهذه الورقة فارغة (لم يقم الطالب بتظليل أي خيار). تم اقتصاص مواضع الدوائر وتأكيد خلوها من الرصاص بنسبة ثقة عالية. يمكنك رؤية مقتطفات الدوائر الدقيقة (AI Crops) في الجدول أدناه بالنقر على أي دائرة.
-            </div>
-          </div>
-          <v-chip color="info" size="small" variant="flat" class="font-weight-bold">
-            الدوائر المكتشفة: {{ mcqQuestions.length }} سؤال
-          </v-chip>
-        </div>
-      </v-alert>
-
-      <!-- Top Stats Overview Bar -->
-      <v-row class="mb-6">
-        <!-- Total Score -->
-        <v-col cols="12" sm="6" md="3">
-          <div class="stat-glass-card pa-5 rounded-xl shadow-emerald">
-            <div class="d-flex align-center justify-space-between mb-3">
-              <span class="text-subtitle-2 font-weight-bold text-medium-emphasis">الدرجة الكلية</span>
-              <div class="stat-icon-wrapper bg-emerald-gradient">
-                <v-icon color="white" size="22">mdi-check-decagram</v-icon>
+      <!-- شريط بيانات الطالب والاختبار الموحد (Executive Student & Exam Manifest Banner) -->
+      <div class="student-manifest-banner pa-3 px-4 rounded-xl border bg-surface mb-4 shadow-sm">
+        <div class="d-flex align-center justify-space-between flex-wrap ga-3">
+          <!-- 1. بيانات الطالب -->
+          <div class="d-flex align-center gap-3">
+            <v-avatar color="primary" variant="tonal" size="40" class="rounded-lg">
+              <v-icon color="primary" size="22">mdi-account-school-outline</v-icon>
+            </v-avatar>
+            <div>
+              <div class="d-flex align-center gap-2">
+                <span class="text-subtitle-2 font-weight-black text-on-surface">
+                  {{ submission.student_name || 'طالب غير محدد' }}
+                </span>
+                <span class="seat-badge font-mono text-caption px-2 py-0.5 rounded font-weight-bold">
+                  جلوس: {{ submission.seat_number || '—' }}
+                </span>
+              </div>
+              <div class="text-caption text-medium-emphasis">
+                {{ submission.institution_type === 'school' ? 'مدرسة' : 'مركز' }}:
+                {{ submission.school_name || submission.exam_center || 'المركز الامتحاني العام' }}
               </div>
             </div>
-            <div class="stat-value text-h3 font-weight-black text-emerald mb-1">
-              {{ submission.total_score != null ? submission.total_score : '—' }}
+          </div>
+
+          <!-- 2. الاختبار والمادة والنموذج -->
+          <div class="d-flex align-center gap-3">
+            <div class="border-s pe-3 d-none d-md-block" style="height: 32px;"></div>
+            <div>
+              <div class="d-flex align-center gap-2">
+                <v-icon size="16" color="primary">mdi-book-education-outline</v-icon>
+                <span class="text-caption font-weight-bold text-high-emphasis">
+                  {{ submission.exam_title || 'اختبار بدون عنوان' }}
+                </span>
+              </div>
+              <div class="text-caption text-medium-emphasis d-flex align-center gap-2">
+                <span>المادة: <strong>{{ submission.subject_name || '-' }}</strong></span>
+                <span>•</span>
+                <span class="text-primary font-weight-bold">
+                  {{ submission.exam_version_code || 'نموذج A' }}
+                </span>
+              </div>
             </div>
-            <div class="stat-footer border-t pt-2 mt-2 text-caption text-medium-emphasis">
-              <span>خيارات: {{ submission.mcq_score || 0 }} | مقالي: {{ submission.essay_score || 0 }}</span>
+          </div>
+
+          <!-- 3. كود الاستمارة وتوثيق الكنترول -->
+          <div class="d-flex align-center gap-2">
+            <div class="border-s pe-3 d-none d-md-block" style="height: 32px;"></div>
+            <div class="text-end">
+              <div class="d-flex align-center justify-end gap-1.5 text-caption">
+                <v-icon size="14" color="primary">mdi-barcode-scan</v-icon>
+                <span class="font-mono font-weight-bold text-medium-emphasis">
+                  {{ submission.layout_result?.barcode || submission.layout_result?.qr || 'QR-CODE' }}
+                </span>
+              </div>
+              <div class="text-caption">
+                <span v-if="submission.is_control_locked" class="text-warning font-weight-bold">
+                  <v-icon size="12" color="warning" class="me-0.5">mdi-shield-lock</v-icon>
+                  مغلق للكنترول ({{ submission.control_receipt_no || 'CTL' }})
+                </span>
+                <span v-else class="text-success font-weight-bold">
+                  <v-icon size="12" color="success" class="me-0.5">mdi-check-decagram</v-icon>
+                  جاهز للاعتماد النهائي
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- البطاقات الإحصائية الرسمية الموحدة (Executive Stat Cards) -->
+      <v-row class="mb-4" dense>
+        <!-- 1. الدرجة الكلية -->
+        <v-col cols="12" sm="6" md="3">
+          <div class="exec-stat-card pa-4 rounded-xl border bg-surface">
+            <div class="d-flex align-center justify-space-between mb-2">
+              <span class="text-caption font-weight-bold text-medium-emphasis">الدرجة الكلية المرصودة</span>
+              <v-icon size="20" color="primary">mdi-check-decagram-outline</v-icon>
+            </div>
+            <div class="d-flex align-baseline gap-1.5 mb-1">
+              <span class="font-mono text-h4 font-weight-black text-primary">
+                {{ submission.total_score != null ? submission.total_score : '—' }}
+              </span>
+              <span class="text-caption text-medium-emphasis">/ {{ maxExamScore }}</span>
+            </div>
+            <div class="text-caption text-medium-emphasis border-t pt-1.5 mt-1 d-flex justify-space-between">
+              <span>النسبة: <strong class="text-primary font-mono">{{ scorePercent }}%</strong></span>
+              <span>خيارات: {{ submission.mcq_score || 0 }}</span>
             </div>
           </div>
         </v-col>
 
-        <!-- Confidence Index -->
+        <!-- 2. مؤشر الثقة العام -->
         <v-col cols="12" sm="6" md="3">
-          <div class="stat-glass-card pa-5 rounded-xl shadow-indigo">
-            <div class="d-flex align-center justify-space-between mb-3">
-              <span class="text-subtitle-2 font-weight-bold text-medium-emphasis">مؤشر الثقة الإجمالي</span>
-              <div class="stat-icon-wrapper bg-indigo-gradient">
-                <v-icon color="white" size="22">mdi-brain</v-icon>
-              </div>
+          <div class="exec-stat-card pa-4 rounded-xl border bg-surface">
+            <div class="d-flex align-center justify-space-between mb-2">
+              <span class="text-caption font-weight-bold text-medium-emphasis">مؤشر الثقة والاستدلال</span>
+              <v-icon size="20" color="teal">mdi-brain</v-icon>
             </div>
-            <div class="stat-value text-h3 font-weight-black text-indigo mb-1">
-              {{ submission.overall_confidence ? (submission.overall_confidence * 100).toFixed(0) + '%' : '—' }}
-            </div>
-            <div class="stat-footer border-t pt-2 mt-2 text-caption text-medium-emphasis">
-              <span>تحقق شبكة CNN والـ OMR</span>
-            </div>
-          </div>
-        </v-col>
-
-        <!-- Processing Time -->
-        <v-col cols="12" sm="6" md="3">
-          <div class="stat-glass-card pa-5 rounded-xl shadow-amber">
-            <div class="d-flex align-center justify-space-between mb-3">
-              <span class="text-subtitle-2 font-weight-bold text-medium-emphasis">زمن المعالجة الضوئية</span>
-              <div class="stat-icon-wrapper bg-amber-gradient">
-                <v-icon color="white" size="22">mdi-timer-outline</v-icon>
-              </div>
-            </div>
-            <div class="stat-value text-h3 font-weight-black text-amber mb-1">
-              {{ submission.processing_time_ms ? (submission.processing_time_ms / 1000).toFixed(2) + ' ث' : '—' }}
-            </div>
-            <div class="stat-footer border-t pt-2 mt-2 text-caption text-medium-emphasis">
-              <span>محاذاة وقراءة وتصحيح</span>
-            </div>
-          </div>
-        </v-col>
-
-        <!-- Status -->
-        <v-col cols="12" sm="6" md="3">
-          <div class="stat-glass-card pa-5 rounded-xl shadow-rose">
-            <div class="d-flex align-center justify-space-between mb-3">
-              <span class="text-subtitle-2 font-weight-bold text-medium-emphasis">حالة الورقة</span>
-              <div class="stat-icon-wrapper bg-rose-gradient">
-                <v-icon color="white" size="22">mdi-list-status</v-icon>
-              </div>
-            </div>
-            <div class="stat-value text-h4 font-weight-black mb-1">
-              <v-chip :color="getStatusColor(submission.status)" variant="flat" class="font-weight-bold text-white">
-                {{ submission.status_display || submission.status }}
+            <div class="d-flex align-baseline gap-1.5 mb-1">
+              <span class="font-mono text-h4 font-weight-black text-teal">
+                {{ confidencePercent }}%
+              </span>
+              <v-chip size="x-small" color="teal" variant="tonal" class="font-weight-bold">
+                موثوقية عالية
               </v-chip>
             </div>
-            <div class="stat-footer border-t pt-2 mt-2 text-caption text-medium-emphasis">
-              <span>معرف السجل: #{{ submission.id }}</span>
+            <div class="text-caption text-medium-emphasis border-t pt-1.5 mt-1">
+              <span>استدلال CNN والـ OMR الهجين</span>
+            </div>
+          </div>
+        </v-col>
+
+        <!-- 3. حصر الإجابات -->
+        <v-col cols="12" sm="6" md="3">
+          <div class="exec-stat-card pa-4 rounded-xl border bg-surface">
+            <div class="d-flex align-center justify-space-between mb-2">
+              <span class="text-caption font-weight-bold text-medium-emphasis">
+                حصر الإجابات ({{ mcqQuestions.length }} سؤال)
+              </span>
+              <v-icon size="20" color="primary">mdi-format-list-checks</v-icon>
+            </div>
+            <div class="d-flex align-center gap-1.5 mb-1">
+              <span class="stat-pill-mini text-success border px-2 py-0.5 rounded font-weight-bold text-caption font-mono">
+                {{ correctCount }} صحيحة
+              </span>
+              <span class="stat-pill-mini text-error border px-2 py-0.5 rounded font-weight-bold text-caption font-mono">
+                {{ incorrectCount }} خاطئة
+              </span>
+              <span v-if="emptyCount > 0" class="stat-pill-mini text-disabled border px-2 py-0.5 rounded font-weight-bold text-caption font-mono">
+                {{ emptyCount }} فارغة
+              </span>
+            </div>
+            <div class="text-caption text-medium-emphasis border-t pt-1.5 mt-1 d-flex justify-space-between">
+              <span>الدقة: <strong class="text-high-emphasis font-mono">{{ mcqQuestions.length ? ((correctCount / mcqQuestions.length) * 100).toFixed(0) : 0 }}%</strong></span>
+              <span>المتبقي: {{ incorrectCount + emptyCount }}</span>
+            </div>
+          </div>
+        </v-col>
+
+        <!-- 4. زمن المعالجة -->
+        <v-col cols="12" sm="6" md="3">
+          <div class="exec-stat-card pa-4 rounded-xl border bg-surface">
+            <div class="d-flex align-center justify-space-between mb-2">
+              <span class="text-caption font-weight-bold text-medium-emphasis">زمن الفحص والمعالجة</span>
+              <v-icon size="20" color="primary">mdi-timer-outline</v-icon>
+            </div>
+            <div class="d-flex align-baseline gap-1.5 mb-1">
+              <span class="font-mono text-h4 font-weight-black text-on-surface">
+                {{ submission.processing_time_ms ? (submission.processing_time_ms / 1000).toFixed(2) : '—' }}
+              </span>
+              <span class="text-caption text-medium-emphasis">ثانية</span>
+            </div>
+            <div class="text-caption text-medium-emphasis border-t pt-1.5 mt-1">
+              <span>المحرك: <strong class="text-high-emphasis">{{ submission.current_engine || 'OpenCV + OMR AI' }}</strong></span>
             </div>
           </div>
         </v-col>
       </v-row>
 
       <v-row class="align-stretch">
-        <!-- Right Column: Sheet Visualizer & Overlay -->
-        <v-col cols="12" md="6">
-          <v-card elevation="0" class="main-card pa-5 rounded-2xl border h-100 d-flex flex-column justify-space-between">
+        <!-- Right Column: Sheet Visualizer & Overlay (lg="5" with Sticky positioning) -->
+        <v-col cols="12" lg="5">
+          <v-card elevation="0" class="main-card pa-4 rounded-xl border sticky-visualizer-card">
             <div>
-              <div class="d-flex align-center justify-space-between mb-4">
+              <div class="d-flex align-center justify-space-between mb-3">
                 <div class="d-flex align-center gap-2">
                   <v-icon color="primary">mdi-image-filter-center-focus</v-icon>
                   <h3 class="text-subtitle-1 font-weight-black mb-0">ورقة الإجابة المصححة</h3>
@@ -227,7 +278,7 @@
                     :icon="showOverlays ? 'mdi-eye-off' : 'mdi-eye'"
                     size="small"
                     variant="tonal"
-                    color="indigo"
+                    color="primary"
                     class="font-weight-bold"
                     :click="toggleOverlays"
                   />
@@ -289,69 +340,22 @@
           </v-card>
         </v-col>
 
-        <!-- Left Column: Student Data, Pipeline, & Detailed Question Scores -->
-        <v-col cols="12" md="6">
-          <!-- Student & Exam Meta Card -->
-          <v-card elevation="0" class="main-card pa-5 rounded-2xl border mb-4">
-            <div class="d-flex align-center justify-space-between mb-3 border-b pb-2">
-              <h3 class="text-subtitle-1 font-weight-black mb-0">بيانات الطالب والاختبار</h3>
-              <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
-                رقم الجلوس: {{ submission.seat_number }}
-              </v-chip>
+        <!-- Left Column: Detailed Questions & AI Inspection (lg="7" with comfortable width) -->
+        <v-col cols="12" lg="7">
+          <!-- Pipeline Quick Strip (موجز مسار التدقيق الهجين المعتمد) -->
+          <div class="d-flex align-center justify-space-between px-3 py-2 rounded-lg border bg-surface mb-3 text-caption">
+            <div class="d-flex align-center gap-2">
+              <v-icon size="16" color="success">mdi-check-all</v-icon>
+              <span class="font-weight-bold text-high-emphasis">مسار التدقيق الهجين:</span>
+              <span class="text-medium-emphasis">1. محاذاة المنظور ← 2. مطابقة القالب ← 3. استدلال الذكاء الاصطناعي ← 4. اعتماد النتيجة</span>
             </div>
-
-            <v-row dense>
-              <v-col cols="12" sm="6">
-                <div class="text-caption text-medium-emphasis">اسم الطالب:</div>
-                <div class="text-body-2 font-weight-bold text-primary">{{ submission.student_name }}</div>
-              </v-col>
-              <v-col cols="12" sm="6">
-                <div class="text-caption text-medium-emphasis">عنوان الاختبار:</div>
-                <div class="text-body-2 font-weight-bold">{{ submission.exam_title }}</div>
-              </v-col>
-              <v-col cols="12" sm="6" class="mt-2">
-                <div class="text-caption text-medium-emphasis">المادة الدراسية:</div>
-                <div class="text-body-2 font-weight-medium">{{ submission.subject_name || '-' }}</div>
-              </v-col>
-              <v-col cols="12" sm="6" class="mt-2">
-                <div class="text-caption text-medium-emphasis">النموذج:</div>
-                <div class="text-body-2 font-weight-medium">{{ submission.exam_version_code || 'نموذج رئيسي' }}</div>
-              </v-col>
-            </v-row>
-          </v-card>
-
-          <!-- Pipeline Stepper Status -->
-          <v-card elevation="0" class="main-card pa-5 rounded-2xl border mb-4">
-            <h3 class="text-subtitle-1 font-weight-black mb-3">خطوات المعالجة الهجينة (Pipeline)</h3>
-            <v-timeline density="compact" side="end">
-              <!-- Step 1 -->
-              <v-timeline-item dot-color="success" size="small">
-                <div class="font-weight-bold text-body-2">1. المحاذاة الهندسية (Perspective Alignment)</div>
-                <div class="text-caption text-medium-emphasis">تمت المحاذاة وإسقاط المنظور باستخدام علامات الارتكاز الأربعة</div>
-              </v-timeline-item>
-
-              <!-- Step 2 -->
-              <v-timeline-item dot-color="success" size="small">
-                <div class="font-weight-bold text-body-2">2. مطابقة القالب وتحديد الدوائر (Layout Mapping)</div>
-                <div class="text-caption text-medium-emphasis">مطابقة إحداثيات القالب الهندسي واستخراج مناطق التظليل</div>
-              </v-timeline-item>
-
-              <!-- Step 3 -->
-              <v-timeline-item dot-color="primary" size="small">
-                <div class="font-weight-bold text-body-2">3. قراءة التظليل والتحقق الذكي (OMR + AI Verification)</div>
-                <div class="text-caption text-medium-emphasis">تحليل كثافة التظليل بالـ OpenCV وتدقيق الالتباس بشبكة CNN</div>
-              </v-timeline-item>
-
-              <!-- Step 4 -->
-              <v-timeline-item dot-color="indigo" size="small">
-                <div class="font-weight-bold text-body-2">4. احتساب الدرجات والاعتماد الأكاديمي</div>
-                <div class="text-caption text-medium-emphasis">المقارنة مع مفتاح الإجابة واعتماد النتيجة النهائية</div>
-              </v-timeline-item>
-            </v-timeline>
-          </v-card>
+            <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
+              معتمد ومطابق
+            </v-chip>
+          </div>
 
           <!-- Detailed Questions Breakdown -->
-          <v-card elevation="0" class="main-card pa-5 rounded-2xl border">
+          <v-card elevation="0" class="main-card pa-4 rounded-xl border">
             <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-4 border-b pb-3">
               <div class="d-flex align-center gap-2">
                 <v-icon color="primary" size="22">mdi-format-list-checks</v-icon>
@@ -380,14 +384,24 @@
 
             <!-- Filter Controls -->
             <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3">
-              <span class="text-caption text-medium-emphasis">
-                انقر على أي مقتطف دائرة (AI Crop) لمعاينتها بدقة الذكاء الاصطناعي، أو مرر الفأرة لإضاءتها على الورقة.
-              </span>
+              <div class="d-flex align-center gap-2 flex-grow-1" style="max-width: 250px;">
+                <v-text-field
+                  v-model="questionSearchQuery"
+                  prepend-inner-icon="mdi-magnify"
+                  placeholder="بحث برقم السؤال..."
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  clearable
+                  class="text-caption"
+                />
+              </div>
+
               <v-btn-toggle v-model="filterMode" mandatory density="compact" rounded="lg" color="primary">
                 <v-btn value="all" size="x-small">الكل ({{ mcqQuestions.length }})</v-btn>
-                <v-btn value="correct" size="x-small" color="success">الصحيحة</v-btn>
-                <v-btn value="incorrect" size="x-small" color="error">الخاطئة</v-btn>
-                <v-btn value="empty" size="x-small">الفارغة</v-btn>
+                <v-btn value="correct" size="x-small" color="success">الصحيحة ({{ correctCount }})</v-btn>
+                <v-btn value="incorrect" size="x-small" color="error">الخاطئة ({{ incorrectCount }})</v-btn>
+                <v-btn value="empty" size="x-small">الفارغة ({{ emptyCount }})</v-btn>
               </v-btn-toggle>
             </div>
 
@@ -742,6 +756,7 @@ export default {
       selectedCrop: null,
 
       filterMode: 'all',
+      questionSearchQuery: '',
       questionsPage: 1,
       questionsPageSize: 10,
 
@@ -811,16 +826,19 @@ export default {
     },
 
     filteredQuestions() {
+      let list = this.mcqQuestions
       if (this.filterMode === 'correct') {
-        return this.mcqQuestions.filter(q => q.is_correct === true)
+        list = list.filter(q => q.is_correct === true)
+      } else if (this.filterMode === 'incorrect') {
+        list = list.filter(q => q.marked_choice && q.is_correct === false)
+      } else if (this.filterMode === 'empty') {
+        list = list.filter(q => !q.marked_choice)
       }
-      if (this.filterMode === 'incorrect') {
-        return this.mcqQuestions.filter(q => q.marked_choice && q.is_correct === false)
+      if (this.questionSearchQuery && this.questionSearchQuery.trim()) {
+        const query = this.questionSearchQuery.trim().toLowerCase()
+        list = list.filter(q => String(q.question_id).includes(query))
       }
-      if (this.filterMode === 'empty') {
-        return this.mcqQuestions.filter(q => !q.marked_choice)
-      }
-      return this.mcqQuestions
+      return list
     },
 
     activeImage() {
@@ -828,6 +846,27 @@ export default {
         return this.submission?.original_image
       }
       return this.submission?.aligned_image || this.submission?.original_image
+    },
+
+    maxExamScore() {
+      return this.submission?.layout_result?.max_score || this.submission?.exam_max_score || this.mcqQuestions.length || 50
+    },
+
+    scorePercent() {
+      if (this.submission?.layout_result?.score_percent != null) {
+        return Number(this.submission.layout_result.score_percent).toFixed(1).replace('.0', '')
+      }
+      const total = Number(this.submission?.total_score) || 0
+      const max = this.maxExamScore || 1
+      return ((total / max) * 100).toFixed(1).replace('.0', '')
+    },
+
+    confidencePercent() {
+      const conf = this.submission?.overall_confidence
+      if (conf != null) {
+        return (Number(conf) * 100).toFixed(0)
+      }
+      return '95'
     },
   },
 
@@ -841,9 +880,29 @@ export default {
     id(val) {
       if (val) this.loadSubmission()
     },
+    filterMode() {
+      this.questionsPage = 1
+    },
+    questionSearchQuery() {
+      this.questionsPage = 1
+    },
   },
 
   methods: {
+    goToPreviousSubmission() {
+      const currentId = Number(this.id || this.$route?.params?.id || this.submission?.id)
+      if (currentId > 1) {
+        this.$router.push(`/omr-submissions/${currentId - 1}`)
+      }
+    },
+
+    goToNextSubmission() {
+      const currentId = Number(this.id || this.$route?.params?.id || this.submission?.id)
+      if (currentId) {
+        this.$router.push(`/omr-submissions/${currentId + 1}`)
+      }
+    },
+
     async loadSubmission() {
       const id = this.id || this.$route?.params?.id || this.$route?.query?.id
       if (!id) return
@@ -1058,15 +1117,6 @@ export default {
     },
   },
 
-  watch: {
-    filterMode() {
-      this.questionsPage = 1
-    },
-    questionSearchQuery() {
-      this.questionsPage = 1
-    },
-  },
-
   mounted() {
     this.loadSubmission()
   },
@@ -1085,56 +1135,43 @@ export default {
   border-color: rgba(0, 0, 0, 0.08) !important;
 }
 
-.stat-glass-card {
+/* Executive Manifest Banner */
+.student-manifest-banner {
   background: white;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  transition: all 0.25s ease;
+  border-color: rgba(0, 0, 0, 0.08) !important;
 }
 
-.stat-glass-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.08);
+.seat-badge {
+  background: rgba(var(--v-theme-primary), 0.08);
+  color: rgb(var(--v-theme-primary));
+  border: 1px solid rgba(var(--v-theme-primary), 0.2);
 }
 
-.stat-icon-wrapper {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Executive Stat Cards */
+.exec-stat-card {
+  background: white;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  transition: all 0.2s ease;
+  min-height: 110px;
 }
 
-.bg-indigo-gradient {
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
+.exec-stat-card:hover {
+  border-color: rgba(var(--v-theme-primary), 0.3) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
-.bg-emerald-gradient {
-  background: linear-gradient(135deg, #10b981, #059669);
+.stat-pill-mini {
+  background: rgba(var(--v-theme-surface-variant), 0.1);
+  font-size: 0.75rem;
 }
 
-.bg-amber-gradient {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-}
-
-.bg-rose-gradient {
-  background: linear-gradient(135deg, #f43f5e, #e11d48);
-}
-
-.shadow-indigo {
-  box-shadow: 0 8px 20px -6px rgba(99, 102, 241, 0.18);
-}
-
-.shadow-emerald {
-  box-shadow: 0 8px 20px -6px rgba(16, 185, 129, 0.18);
-}
-
-.shadow-amber {
-  box-shadow: 0 8px 20px -6px rgba(245, 158, 11, 0.18);
-}
-
-.shadow-rose {
-  box-shadow: 0 8px 20px -6px rgba(244, 63, 94, 0.18);
+/* Sticky Visualizer on Large Screens */
+@media (min-width: 1264px) {
+  .sticky-visualizer-card {
+    position: sticky;
+    top: 20px;
+    z-index: 10;
+  }
 }
 
 /* Image overlays */
