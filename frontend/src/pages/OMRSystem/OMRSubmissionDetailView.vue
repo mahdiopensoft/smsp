@@ -128,77 +128,27 @@
       <!-- Integrated Audit & Filter Strip (شريط التدقيق الإحصائي والتصفية الموحد) -->
       <div class="audit-toolbar-strip pa-2.5 px-4 rounded-xl border bg-surface mb-4">
         <div class="d-flex align-center justify-space-between flex-wrap gap-3">
-          <!-- Right side: Score & Statistics -->
-          <div class="d-flex align-center gap-3 flex-wrap">
-            <!-- Official Score -->
-            <div class="d-flex align-center gap-2">
-              <v-avatar size="32" color="primary" variant="tonal" class="rounded-lg flex-shrink-0">
-                <v-icon size="18" color="primary">mdi-star-check-outline</v-icon>
-              </v-avatar>
-              <div class="d-flex align-baseline gap-1">
-                <span class="text-caption text-medium-emphasis">الدرجة:</span>
-                <span class="d-inline-flex align-baseline gap-1" dir="ltr">
-                  <span class="font-mono font-weight-black text-body-1 text-primary">
-                    {{ submission.total_score != null ? submission.total_score : '—' }}
-                  </span>
-                  <span class="text-caption text-medium-emphasis">/ {{ maxExamScore }}</span>
+          <!-- Right side: Score Metric -->
+          <div class="d-flex align-center gap-2">
+            <v-avatar size="32" color="primary" variant="tonal" class="rounded-lg flex-shrink-0">
+              <v-icon size="18" color="primary">mdi-star-check-outline</v-icon>
+            </v-avatar>
+            <div class="d-flex align-baseline gap-1">
+              <span class="text-caption text-medium-emphasis">الدرجة الكلية:</span>
+              <span class="d-inline-flex align-baseline gap-1" dir="ltr">
+                <span class="font-mono font-weight-black text-body-1 text-primary">
+                  {{ submission.total_score != null ? submission.total_score : '—' }}
                 </span>
-                <v-chip size="x-small" color="primary" variant="tonal" class="font-mono font-weight-bold ms-1" dir="ltr">
-                  {{ scorePercent }}%
-                </v-chip>
-              </div>
-            </div>
-
-            <div class="border-s d-none d-sm-block" style="height: 24px;"></div>
-
-            <!-- Answer Breakdown Badges -->
-            <div class="d-flex align-center gap-1.5 flex-wrap">
-              <v-chip size="small" color="success" variant="tonal" class="font-weight-bold">
-                <v-icon start size="14">mdi-check-circle</v-icon>
-                <bdi>{{ correctCount }} صحيحة</bdi>
-              </v-chip>
-              <v-chip size="small" color="error" variant="tonal" class="font-weight-bold">
-                <v-icon start size="14">mdi-close-circle</v-icon>
-                <bdi>{{ incorrectCount }} خاطئة</bdi>
-              </v-chip>
-              <v-chip v-if="emptyCount > 0" size="small" color="grey-darken-1" variant="tonal" class="font-weight-bold">
-                <v-icon start size="14">mdi-circle-outline</v-icon>
-                <bdi>{{ emptyCount }} فارغة</bdi>
-              </v-chip>
-            </div>
-
-            <div class="border-s d-none d-md-block" style="height: 24px;"></div>
-
-            <!-- Confidence & Processing Speed -->
-            <div class="d-flex align-center gap-2 text-caption text-medium-emphasis">
-              <v-chip size="small" color="teal" variant="tonal" class="font-weight-bold">
-                <v-icon start size="14">mdi-brain</v-icon>
-                <span>ثقة</span>
-                <span class="font-mono ms-1" dir="ltr">{{ confidencePercent }}%</span>
-              </v-chip>
-              <span class="d-none d-lg-inline-flex align-center font-mono" dir="ltr">
-                <v-icon size="14" class="me-1">mdi-timer-outline</v-icon>
-                <span>{{ submission.processing_time_ms ? (submission.processing_time_ms / 1000).toFixed(2) : '—' }}s</span>
+                <span class="text-caption text-medium-emphasis">/ {{ maxExamScore }}</span>
               </span>
+              <v-chip size="x-small" color="primary" variant="tonal" class="font-mono font-weight-bold ms-1" dir="ltr">
+                {{ scorePercent }}%
+              </v-chip>
             </div>
           </div>
 
-          <!-- Left side: Fast Filter & Search -->
+          <!-- Left side: Filter Mode Toggles -->
           <div class="d-flex align-center gap-2 flex-wrap ms-auto">
-            <!-- Question Search -->
-            <v-text-field
-              v-model="questionSearchQuery"
-              prepend-inner-icon="mdi-magnify"
-              placeholder="بحث برقم السؤال..."
-              variant="outlined"
-              density="compact"
-              hide-details
-              clearable
-              style="width: 160px;"
-              class="text-caption"
-            />
-
-            <!-- Filter Mode Toggles -->
             <v-btn-toggle v-model="filterMode" mandatory density="compact" rounded="lg" color="primary">
               <v-btn value="all" size="x-small">الكل ({{ mcqQuestions.length }})</v-btn>
               <v-btn value="correct" size="x-small" color="success">الصحيحة ({{ correctCount }})</v-btn>
@@ -1033,7 +983,8 @@ export default {
     async getQuestionsData(params = {}) {
       const p = params?.params || params || {}
       if (p.page) this.questionsPage = Number(p.page) || 1
-      if (p.page_size) this.questionsPageSize = Number(p.page_size) || 10
+      if (p.page_size) this.questionsPageSize = Number(p.page_size) || 25
+      if (p.search !== undefined) this.questionSearchQuery = p.search || ''
       return this.questionsTableItems
     },
   },
