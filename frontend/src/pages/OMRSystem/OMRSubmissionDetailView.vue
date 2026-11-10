@@ -1,91 +1,5 @@
 <template>
   <div class="qb-submission-detail-v4 pa-3 pa-md-5">
-    <!-- Header Controls -->
-    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-3 mb-4">
-      <div class="d-flex align-center gap-3">
-        <custom-btn
-          is-icon
-          icon="arrow-right"
-          variant="tonal"
-          color="primary"
-          title="الرجوع لسجل أوراق الإجابة"
-          :click="() => $router.push('/omr-submissions')"
-        />
-        <v-avatar size="42" color="primary" variant="tonal" class="rounded-lg">
-          <v-icon size="22">mdi-file-document-check-outline</v-icon>
-        </v-avatar>
-        <div>
-          <div class="d-flex align-center gap-2">
-            <h2 class="text-h6 font-weight-black mb-0">تفاصيل تصحيح ورقة الإجابة</h2>
-            <v-chip v-if="submission" size="small" variant="tonal" color="primary" class="font-mono font-weight-bold">
-              #{{ submission.id }}
-            </v-chip>
-            <v-chip
-              v-if="submission"
-              size="small"
-              :color="getStatusColor(submission.status)"
-              variant="flat"
-              class="font-weight-bold text-white"
-            >
-              {{ submission.status_display || submission.status }}
-            </v-chip>
-          </div>
-          <span class="text-caption text-medium-emphasis">
-            سجل التدقيق الضوئي ومطابقة الذكاء الاصطناعي مع مفتاح الإجابة الرسمي
-          </span>
-        </div>
-      </div>
-
-      <!-- Quick Actions and Navigation -->
-      <div class="d-flex align-center gap-2 flex-wrap">
-        <!-- التنقل السريع بين الأوراق -->
-        <div class="d-flex align-center border rounded-lg px-1 py-0.5 bg-surface me-1">
-          <v-btn
-            icon="mdi-chevron-right"
-            variant="text"
-            size="small"
-            density="comfortable"
-            title="الورقة السابقة"
-            :disabled="!submission || Number(submission.id) <= 1"
-            @click="goToPreviousSubmission"
-          />
-          <span class="text-caption font-mono font-weight-bold px-1.5 text-medium-emphasis">
-            #{{ submission ? submission.id : '—' }}
-          </span>
-          <v-btn
-            icon="mdi-chevron-left"
-            variant="text"
-            size="small"
-            density="comfortable"
-            title="الورقة التالية"
-            :disabled="!submission"
-            @click="goToNextSubmission"
-          />
-        </div>
-
-        <custom-btn
-          label="إعادة المعالجة ضوئياً"
-          icon="mdi-refresh"
-          color="primary"
-          variant="outlined"
-          class="font-weight-bold"
-          :loading="reprocessing"
-          :disabled="Boolean(submission && submission.is_control_locked)"
-          :click="reprocessSheet"
-        />
-
-        <custom-btn
-          label="تعديل واعتماد الدرجات"
-          icon="mdi-pencil-outline"
-          color="primary"
-          variant="flat"
-          class="font-weight-bold"
-          :disabled="Boolean(submission && submission.is_control_locked)"
-          :click="openEditDialog"
-        />
-      </div>
-    </div>
-
     <!-- Loading State -->
     <div v-if="loading" class="text-center pa-12">
       <v-progress-circular indeterminate color="primary" size="44" />
@@ -93,165 +7,209 @@
     </div>
 
     <div v-else-if="submission">
-      <!-- شريط بيانات الطالب والاختبار الموحد (Executive Student & Exam Manifest Banner) -->
-      <div class="student-manifest-banner pa-3 px-4 rounded-xl border bg-surface mb-4 shadow-sm">
-        <div class="d-flex align-center justify-space-between flex-wrap ga-3">
-          <!-- 1. بيانات الطالب -->
+      <!-- Master Executive Header Card (شريط الترويسة والبيانات المعتمدة الموحد) -->
+      <div class="header-master-card pa-3 px-4 rounded-xl border bg-surface mb-3">
+        <div class="d-flex flex-column flex-lg-row align-start align-lg-center justify-space-between gap-3">
+          <!-- Right: Back Arrow + Approved Primary Avatar + Student & Exam Manifest -->
           <div class="d-flex align-center gap-3">
-            <v-avatar color="primary" variant="tonal" size="40" class="rounded-lg">
-              <v-icon color="primary" size="22">mdi-account-school-outline</v-icon>
+            <custom-btn
+              is-icon
+              icon="arrow-right"
+              variant="tonal"
+              color="primary"
+              title="الرجوع لسجل أوراق الإجابة"
+              :click="() => $router.push('/omr-submissions')"
+            />
+            <v-avatar size="44" color="primary" variant="tonal" class="rounded-lg flex-shrink-0">
+              <v-icon size="24" color="primary">mdi-account-school-outline</v-icon>
             </v-avatar>
             <div>
-              <div class="d-flex align-center gap-2">
-                <span class="text-subtitle-2 font-weight-black text-on-surface">
-                  {{ submission.student_name || 'طالب غير محدد' }}
-                </span>
+              <div class="d-flex align-center gap-2 flex-wrap">
+                <h1 class="text-subtitle-1 font-weight-black text-on-surface mb-0">
+                  {{ submission.student_name || 'طالب غير محدد (تعذر قراءة الباركود)' }}
+                </h1>
                 <span class="seat-badge font-mono text-caption px-2 py-0.5 rounded font-weight-bold">
-                  جلوس: {{ submission.seat_number || '—' }}
+                  جلوس: <bdi>{{ submission.seat_number || '—' }}</bdi>
                 </span>
+                <v-chip size="x-small" variant="tonal" color="primary" class="font-mono font-weight-bold">
+                  #{{ submission.id }}
+                </v-chip>
               </div>
-              <div class="text-caption text-medium-emphasis">
-                {{ submission.institution_type === 'school' ? 'مدرسة' : 'مركز' }}:
-                {{ submission.school_name || submission.exam_center || 'المركز الامتحاني العام' }}
-              </div>
-            </div>
-          </div>
-
-          <!-- 2. الاختبار والمادة والنموذج -->
-          <div class="d-flex align-center gap-3">
-            <div class="border-s pe-3 d-none d-md-block" style="height: 32px;"></div>
-            <div>
-              <div class="d-flex align-center gap-2">
-                <v-icon size="16" color="primary">mdi-book-education-outline</v-icon>
-                <span class="text-caption font-weight-bold text-high-emphasis">
-                  {{ submission.exam_title || 'اختبار بدون عنوان' }}
+              <div class="text-caption text-medium-emphasis d-flex align-center gap-2 mt-0.5 flex-wrap">
+                <span>
+                  {{ submission.institution_type === 'school' ? 'مدرسة' : 'مركز' }}:
+                  {{ submission.school_name || submission.exam_center || 'المركز الامتحاني العام' }}
                 </span>
-              </div>
-              <div class="text-caption text-medium-emphasis d-flex align-center gap-2">
-                <span>المادة: <strong>{{ submission.subject_name || '-' }}</strong></span>
                 <span>•</span>
                 <span class="text-primary font-weight-bold">
+                  {{ submission.subject_name || submission.exam_title || 'مادة الاختبار' }}
+                </span>
+                <span>•</span>
+                <span class="font-weight-bold">
                   {{ submission.exam_version_code || 'نموذج A' }}
                 </span>
+                <template v-if="submission.layout_result?.barcode || submission.layout_result?.qr">
+                  <span>•</span>
+                  <span class="font-mono text-medium-emphasis d-inline-flex align-center">
+                    <v-icon size="13" class="me-1">mdi-barcode-scan</v-icon>
+                    <bdi>{{ submission.layout_result?.barcode || submission.layout_result?.qr }}</bdi>
+                  </span>
+                </template>
               </div>
             </div>
           </div>
 
-          <!-- 3. كود الاستمارة وتوثيق الكنترول -->
-          <div class="d-flex align-center gap-2">
-            <div class="border-s pe-3 d-none d-md-block" style="height: 32px;"></div>
-            <div class="text-end">
-              <div class="d-flex align-center justify-end gap-1.5 text-caption">
-                <v-icon size="14" color="primary">mdi-barcode-scan</v-icon>
-                <span class="font-mono font-weight-bold text-medium-emphasis">
-                  {{ submission.layout_result?.barcode || submission.layout_result?.qr || 'QR-CODE' }}
-                </span>
-              </div>
-              <div class="text-caption">
-                <span v-if="submission.is_control_locked" class="text-warning font-weight-bold">
-                  <v-icon size="12" color="warning" class="me-0.5">mdi-shield-lock</v-icon>
-                  مغلق للكنترول ({{ submission.control_receipt_no || 'CTL' }})
-                </span>
-                <span v-else class="text-success font-weight-bold">
-                  <v-icon size="12" color="success" class="me-0.5">mdi-check-decagram</v-icon>
-                  جاهز للاعتماد النهائي
-                </span>
-              </div>
+          <!-- Left: Submission Status + Quick Navigation + Primary Actions -->
+          <div class="d-flex align-center gap-2 flex-wrap ms-auto ms-lg-0">
+            <!-- Submission Status Badge -->
+            <v-chip
+              size="small"
+              :color="getStatusColor(submission.status)"
+              variant="flat"
+              class="font-weight-bold text-white"
+            >
+              <v-icon start size="14">
+                {{ submission.is_control_locked ? 'mdi-shield-lock' : (submission.status === 'completed' || submission.status === 'reviewed' ? 'mdi-check-decagram' : 'mdi-alert-circle-outline') }}
+              </v-icon>
+              {{ submission.status_display || submission.status }}
+            </v-chip>
+
+            <!-- Sheet Pagination Between Submissions -->
+            <div class="d-flex align-center border rounded-lg px-1 py-0.5 bg-surface">
+              <v-btn
+                icon="mdi-chevron-right"
+                variant="text"
+                size="small"
+                density="comfortable"
+                title="الورقة السابقة"
+                :disabled="!submission || Number(submission.id) <= 1"
+                @click="goToPreviousSubmission"
+              />
+              <span class="text-caption font-mono font-weight-bold px-1 text-medium-emphasis">
+                <bdi>#{{ submission ? submission.id : '—' }}</bdi>
+              </span>
+              <v-btn
+                icon="mdi-chevron-left"
+                variant="text"
+                size="small"
+                density="comfortable"
+                title="الورقة التالية"
+                :disabled="!submission"
+                @click="goToNextSubmission"
+              />
             </div>
+
+            <!-- Reprocess Button -->
+            <custom-btn
+              label="إعادة المعالجة ضوئياً"
+              icon="mdi-refresh"
+              color="primary"
+              variant="outlined"
+              class="font-weight-bold"
+              :loading="reprocessing"
+              :disabled="Boolean(submission && submission.is_control_locked)"
+              :click="reprocessSheet"
+            />
+
+            <!-- Edit / Approve Button -->
+            <custom-btn
+              label="تعديل واعتماد الدرجات"
+              icon="mdi-pencil-outline"
+              color="primary"
+              variant="flat"
+              class="font-weight-bold"
+              :disabled="Boolean(submission && submission.is_control_locked)"
+              :click="openEditDialog"
+            />
           </div>
         </div>
       </div>
 
-      <!-- البطاقات الإحصائية الرسمية الموحدة (Executive Stat Cards) -->
-      <v-row class="mb-4" dense>
-        <!-- 1. الدرجة الكلية -->
-        <v-col cols="12" sm="6" md="3">
-          <div class="exec-stat-card pa-4 rounded-xl border bg-surface">
-            <div class="d-flex align-center justify-space-between mb-2">
-              <span class="text-caption font-weight-bold text-medium-emphasis">الدرجة الكلية المرصودة</span>
-              <v-icon size="20" color="primary">mdi-check-decagram-outline</v-icon>
+      <!-- Integrated Audit & Filter Strip (شريط التدقيق الإحصائي والتصفية الموحد) -->
+      <div class="audit-toolbar-strip pa-2.5 px-4 rounded-xl border bg-surface mb-4">
+        <div class="d-flex align-center justify-space-between flex-wrap gap-3">
+          <!-- Right side: Score & Statistics -->
+          <div class="d-flex align-center gap-3 flex-wrap">
+            <!-- Official Score -->
+            <div class="d-flex align-center gap-2">
+              <v-avatar size="32" color="primary" variant="tonal" class="rounded-lg flex-shrink-0">
+                <v-icon size="18" color="primary">mdi-star-check-outline</v-icon>
+              </v-avatar>
+              <div class="d-flex align-baseline gap-1">
+                <span class="text-caption text-medium-emphasis">الدرجة:</span>
+                <span class="d-inline-flex align-baseline gap-1" dir="ltr">
+                  <span class="font-mono font-weight-black text-body-1 text-primary">
+                    {{ submission.total_score != null ? submission.total_score : '—' }}
+                  </span>
+                  <span class="text-caption text-medium-emphasis">/ {{ maxExamScore }}</span>
+                </span>
+                <v-chip size="x-small" color="primary" variant="tonal" class="font-mono font-weight-bold ms-1" dir="ltr">
+                  {{ scorePercent }}%
+                </v-chip>
+              </div>
             </div>
-            <div class="d-flex align-baseline gap-1.5 mb-1">
-              <span class="font-mono text-h4 font-weight-black text-primary">
-                {{ submission.total_score != null ? submission.total_score : '—' }}
-              </span>
-              <span class="text-caption text-medium-emphasis">/ {{ maxExamScore }}</span>
-            </div>
-            <div class="text-caption text-medium-emphasis border-t pt-1.5 mt-1 d-flex justify-space-between">
-              <span>النسبة: <strong class="text-primary font-mono">{{ scorePercent }}%</strong></span>
-              <span>خيارات: {{ submission.mcq_score || 0 }}</span>
-            </div>
-          </div>
-        </v-col>
 
-        <!-- 2. مؤشر الثقة العام -->
-        <v-col cols="12" sm="6" md="3">
-          <div class="exec-stat-card pa-4 rounded-xl border bg-surface">
-            <div class="d-flex align-center justify-space-between mb-2">
-              <span class="text-caption font-weight-bold text-medium-emphasis">مؤشر الثقة والاستدلال</span>
-              <v-icon size="20" color="teal">mdi-brain</v-icon>
-            </div>
-            <div class="d-flex align-baseline gap-1.5 mb-1">
-              <span class="font-mono text-h4 font-weight-black text-teal">
-                {{ confidencePercent }}%
-              </span>
-              <v-chip size="x-small" color="teal" variant="tonal" class="font-weight-bold">
-                موثوقية عالية
+            <div class="border-s d-none d-sm-block" style="height: 24px;"></div>
+
+            <!-- Answer Breakdown Badges -->
+            <div class="d-flex align-center gap-1.5 flex-wrap">
+              <v-chip size="small" color="success" variant="tonal" class="font-weight-bold">
+                <v-icon start size="14">mdi-check-circle</v-icon>
+                <bdi>{{ correctCount }} صحيحة</bdi>
+              </v-chip>
+              <v-chip size="small" color="error" variant="tonal" class="font-weight-bold">
+                <v-icon start size="14">mdi-close-circle</v-icon>
+                <bdi>{{ incorrectCount }} خاطئة</bdi>
+              </v-chip>
+              <v-chip v-if="emptyCount > 0" size="small" color="grey-darken-1" variant="tonal" class="font-weight-bold">
+                <v-icon start size="14">mdi-circle-outline</v-icon>
+                <bdi>{{ emptyCount }} فارغة</bdi>
               </v-chip>
             </div>
-            <div class="text-caption text-medium-emphasis border-t pt-1.5 mt-1">
-              <span>استدلال CNN والـ OMR الهجين</span>
+
+            <div class="border-s d-none d-md-block" style="height: 24px;"></div>
+
+            <!-- Confidence & Processing Speed -->
+            <div class="d-flex align-center gap-2 text-caption text-medium-emphasis">
+              <v-chip size="small" color="teal" variant="tonal" class="font-weight-bold">
+                <v-icon start size="14">mdi-brain</v-icon>
+                <span>ثقة</span>
+                <span class="font-mono ms-1" dir="ltr">{{ confidencePercent }}%</span>
+              </v-chip>
+              <span class="d-none d-lg-inline-flex align-center font-mono" dir="ltr">
+                <v-icon size="14" class="me-1">mdi-timer-outline</v-icon>
+                <span>{{ submission.processing_time_ms ? (submission.processing_time_ms / 1000).toFixed(2) : '—' }}s</span>
+              </span>
             </div>
           </div>
-        </v-col>
 
-        <!-- 3. حصر الإجابات -->
-        <v-col cols="12" sm="6" md="3">
-          <div class="exec-stat-card pa-4 rounded-xl border bg-surface">
-            <div class="d-flex align-center justify-space-between mb-2">
-              <span class="text-caption font-weight-bold text-medium-emphasis">
-                حصر الإجابات ({{ mcqQuestions.length }} سؤال)
-              </span>
-              <v-icon size="20" color="primary">mdi-format-list-checks</v-icon>
-            </div>
-            <div class="d-flex align-center gap-1.5 mb-1">
-              <span class="stat-pill-mini text-success border px-2 py-0.5 rounded font-weight-bold text-caption font-mono">
-                {{ correctCount }} صحيحة
-              </span>
-              <span class="stat-pill-mini text-error border px-2 py-0.5 rounded font-weight-bold text-caption font-mono">
-                {{ incorrectCount }} خاطئة
-              </span>
-              <span v-if="emptyCount > 0" class="stat-pill-mini text-disabled border px-2 py-0.5 rounded font-weight-bold text-caption font-mono">
-                {{ emptyCount }} فارغة
-              </span>
-            </div>
-            <div class="text-caption text-medium-emphasis border-t pt-1.5 mt-1 d-flex justify-space-between">
-              <span>الدقة: <strong class="text-high-emphasis font-mono">{{ mcqQuestions.length ? ((correctCount / mcqQuestions.length) * 100).toFixed(0) : 0 }}%</strong></span>
-              <span>المتبقي: {{ incorrectCount + emptyCount }}</span>
-            </div>
+          <!-- Left side: Fast Filter & Search -->
+          <div class="d-flex align-center gap-2 flex-wrap ms-auto">
+            <!-- Question Search -->
+            <v-text-field
+              v-model="questionSearchQuery"
+              prepend-inner-icon="mdi-magnify"
+              placeholder="بحث برقم السؤال..."
+              variant="outlined"
+              density="compact"
+              hide-details
+              clearable
+              style="width: 160px;"
+              class="text-caption"
+            />
+
+            <!-- Filter Mode Toggles -->
+            <v-btn-toggle v-model="filterMode" mandatory density="compact" rounded="lg" color="primary">
+              <v-btn value="all" size="x-small">الكل ({{ mcqQuestions.length }})</v-btn>
+              <v-btn value="correct" size="x-small" color="success">الصحيحة ({{ correctCount }})</v-btn>
+              <v-btn value="incorrect" size="x-small" color="error">الخاطئة ({{ incorrectCount }})</v-btn>
+              <v-btn v-if="emptyCount > 0" value="empty" size="x-small">الفارغة ({{ emptyCount }})</v-btn>
+            </v-btn-toggle>
           </div>
-        </v-col>
+        </div>
+      </div>
 
-        <!-- 4. زمن المعالجة -->
-        <v-col cols="12" sm="6" md="3">
-          <div class="exec-stat-card pa-4 rounded-xl border bg-surface">
-            <div class="d-flex align-center justify-space-between mb-2">
-              <span class="text-caption font-weight-bold text-medium-emphasis">زمن الفحص والمعالجة</span>
-              <v-icon size="20" color="primary">mdi-timer-outline</v-icon>
-            </div>
-            <div class="d-flex align-baseline gap-1.5 mb-1">
-              <span class="font-mono text-h4 font-weight-black text-on-surface">
-                {{ submission.processing_time_ms ? (submission.processing_time_ms / 1000).toFixed(2) : '—' }}
-              </span>
-              <span class="text-caption text-medium-emphasis">ثانية</span>
-            </div>
-            <div class="text-caption text-medium-emphasis border-t pt-1.5 mt-1">
-              <span>المحرك: <strong class="text-high-emphasis">{{ submission.current_engine || 'OpenCV + OMR AI' }}</strong></span>
-            </div>
-          </div>
-        </v-col>
-      </v-row>
-
+      <!-- Verification Workspace: Side-by-Side Split -->
       <v-row class="align-stretch">
         <!-- Right Column: Sheet Visualizer & Overlay (lg="5" with Sticky positioning) -->
         <v-col cols="12" lg="5">
@@ -259,7 +217,9 @@
             <div>
               <div class="d-flex align-center justify-space-between mb-3">
                 <div class="d-flex align-center gap-2">
-                  <v-icon color="primary">mdi-image-filter-center-focus</v-icon>
+                  <v-avatar size="34" color="primary" variant="tonal" class="rounded-lg">
+                    <v-icon size="20" color="primary">mdi-image-filter-center-focus</v-icon>
+                  </v-avatar>
                   <h3 class="text-subtitle-1 font-weight-black mb-0">ورقة الإجابة المصححة</h3>
                 </div>
 
@@ -340,72 +300,33 @@
           </v-card>
         </v-col>
 
-        <!-- Left Column: Detailed Questions & AI Inspection (lg="7" with comfortable width) -->
+        <!-- Left Column: Detailed Questions & AI Inspection (lg="7") -->
         <v-col cols="12" lg="7">
-          <!-- Pipeline Quick Strip (موجز مسار التدقيق الهجين المعتمد) -->
-          <div class="d-flex align-center justify-space-between px-3 py-2 rounded-lg border bg-surface mb-3 text-caption">
-            <div class="d-flex align-center gap-2">
-              <v-icon size="16" color="success">mdi-check-all</v-icon>
-              <span class="font-weight-bold text-high-emphasis">مسار التدقيق الهجين:</span>
-              <span class="text-medium-emphasis">1. محاذاة المنظور ← 2. مطابقة القالب ← 3. استدلال الذكاء الاصطناعي ← 4. اعتماد النتيجة</span>
-            </div>
-            <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
-              معتمد ومطابق
-            </v-chip>
-          </div>
-
-          <!-- Detailed Questions Breakdown -->
           <v-card elevation="0" class="main-card pa-4 rounded-xl border">
-            <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-4 border-b pb-3">
+            <!-- Questions Card Header -->
+            <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3 border-b pb-3">
               <div class="d-flex align-center gap-2">
-                <v-icon color="primary" size="22">mdi-format-list-checks</v-icon>
-                <h3 class="text-subtitle-1 font-weight-black mb-0">نتائج الأسئلة التفصيلية</h3>
+                <v-avatar size="34" color="primary" variant="tonal" class="rounded-lg">
+                  <v-icon size="20" color="primary">mdi-format-list-checks</v-icon>
+                </v-avatar>
+                <div>
+                  <h3 class="text-subtitle-1 font-weight-black mb-0">جدول تدقيق الأسئلة والذكاء الاصطناعي</h3>
+                  <span class="text-caption text-medium-emphasis">
+                    عرض {{ filteredQuestions.length }} من إجمالي {{ mcqQuestions.length }} سؤال
+                  </span>
+                </div>
+              </div>
+
+              <div class="d-flex align-center gap-2">
                 <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
-                  {{ mcqQuestions.length }} سؤال
-                </v-chip>
-              </div>
-
-              <!-- Quick Stats Summary -->
-              <div class="d-flex align-center gap-2 flex-wrap">
-                <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold">
-                  <v-icon start size="13">mdi-check-circle</v-icon>
-                  صحيحة: {{ correctCount }}
-                </v-chip>
-                <v-chip size="x-small" color="error" variant="tonal" class="font-weight-bold">
-                  <v-icon start size="13">mdi-close-circle</v-icon>
-                  خاطئة: {{ incorrectCount }}
-                </v-chip>
-                <v-chip size="x-small" color="grey-darken-1" variant="tonal" class="font-weight-bold">
-                  <v-icon start size="13">mdi-circle-outline</v-icon>
-                  فارغة: {{ emptyCount }}
+                  <v-icon start size="12">mdi-check-all</v-icon>
+                  استدلال YOLOv8 و CNN الهجين
                 </v-chip>
               </div>
             </div>
 
-            <!-- Filter Controls -->
-            <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3">
-              <div class="d-flex align-center gap-2 flex-grow-1" style="max-width: 250px;">
-                <v-text-field
-                  v-model="questionSearchQuery"
-                  prepend-inner-icon="mdi-magnify"
-                  placeholder="بحث برقم السؤال..."
-                  variant="outlined"
-                  density="compact"
-                  hide-details
-                  clearable
-                  class="text-caption"
-                />
-              </div>
-
-              <v-btn-toggle v-model="filterMode" mandatory density="compact" rounded="lg" color="primary">
-                <v-btn value="all" size="x-small">الكل ({{ mcqQuestions.length }})</v-btn>
-                <v-btn value="correct" size="x-small" color="success">الصحيحة ({{ correctCount }})</v-btn>
-                <v-btn value="incorrect" size="x-small" color="error">الخاطئة ({{ incorrectCount }})</v-btn>
-                <v-btn value="empty" size="x-small">الفارغة ({{ emptyCount }})</v-btn>
-              </v-btn-toggle>
-            </div>
-
-            <div class="main-card rounded-2xl overflow-hidden">
+            <!-- Table of Questions -->
+            <div class="main-card rounded-xl overflow-hidden">
               <custom-data-table
                 v-bind="{
                   items: questionsTableItems,
@@ -429,8 +350,8 @@
                       @mouseenter="hoveredQ = item.question_id"
                       @mouseleave="hoveredQ = null"
                     >
-                      <span class="font-weight-black text-body-2 text-primary bg-blue-lighten-5 px-3 py-1 rounded-pill border">
-                        سـ {{ item.question_id }}
+                      <span class="q-number-badge font-weight-black text-caption font-mono px-2.5 py-1 rounded-md">
+                        سـ <bdi>{{ item.question_id }}</bdi>
                       </span>
                     </div>
                   </template>
@@ -441,7 +362,7 @@
                       <v-chip
                         size="small"
                         variant="tonal"
-                        :color="isTrueFalseQ(item) ? 'teal' : 'indigo'"
+                        :color="isTrueFalseQ(item) ? 'teal' : 'primary'"
                         class="font-weight-bold px-2.5"
                       >
                         <v-icon start size="13">{{ isTrueFalseQ(item) ? 'mdi-check-all' : 'mdi-format-list-bulleted' }}</v-icon>
@@ -462,7 +383,7 @@
                         <v-icon start size="13">
                           {{ !item.marked_choice ? 'mdi-circle-outline' : item.is_correct ? 'mdi-check-circle' : 'mdi-close-circle' }}
                         </v-icon>
-                        {{ item.marked_choice ? formatChoiceLabel(item.marked_choice, item) : 'بدون إجابة (فارغ)' }}
+                        <bdi>{{ item.marked_choice ? formatChoiceLabel(item.marked_choice, item) : 'بدون إجابة (فارغ)' }}</bdi>
                       </v-chip>
                     </div>
                   </template>
@@ -472,19 +393,19 @@
                     <div class="text-center">
                       <v-chip
                         size="small"
-                        color="teal"
+                        color="primary"
                         variant="tonal"
                         class="font-weight-black px-3 border"
                       >
-                        <v-icon start size="13" color="teal">mdi-check-decagram-outline</v-icon>
-                        {{ formatChoiceLabel(item.correct_choice, item) }}
+                        <v-icon start size="13" color="primary">mdi-key-outline</v-icon>
+                        <bdi>{{ formatChoiceLabel(item.correct_choice, item) }}</bdi>
                       </v-chip>
                     </div>
                   </template>
 
                   <!-- الدرجة -->
                   <template v-else-if="key === 'score'">
-                    <div class="text-center font-weight-black text-body-2" :class="Number(item.marks_awarded) > 0 ? 'text-success' : 'text-medium-emphasis'">
+                    <div class="text-center font-weight-black font-mono text-body-2" :class="Number(item.marks_awarded) > 0 ? 'text-success' : 'text-medium-emphasis'" dir="ltr">
                       {{ item.marks_awarded != null ? Number(item.marks_awarded).toFixed(1).replace('.0', '') : '0' }} / {{ item.max_mark || 1 }}
                     </div>
                   </template>
@@ -531,10 +452,10 @@
                         size="x-small"
                         :color="(item.final_confidence || 1) >= 0.9 ? 'success' : 'warning'"
                         variant="tonal"
-                        class="font-weight-bold"
+                        class="font-weight-bold font-mono"
                       >
                         <v-icon start size="11">mdi-brain</v-icon>
-                        {{ ((item.final_confidence || 1) * 100).toFixed(0) }}%
+                        <bdi>{{ ((item.final_confidence || 1) * 100).toFixed(0) }}%</bdi>
                       </v-chip>
                     </div>
                   </template>
@@ -758,7 +679,7 @@ export default {
       filterMode: 'all',
       questionSearchQuery: '',
       questionsPage: 1,
-      questionsPageSize: 10,
+      questionsPageSize: 25,
 
       paperWidth: 210.0,
       paperHeight: 297.0,
@@ -1130,13 +1051,9 @@ export default {
   letter-spacing: 0;
 }
 
+.header-master-card,
+.audit-toolbar-strip,
 .main-card {
-  background: white;
-  border-color: rgba(0, 0, 0, 0.08) !important;
-}
-
-/* Executive Manifest Banner */
-.student-manifest-banner {
   background: white;
   border-color: rgba(0, 0, 0, 0.08) !important;
 }
@@ -1147,22 +1064,18 @@ export default {
   border: 1px solid rgba(var(--v-theme-primary), 0.2);
 }
 
-/* Executive Stat Cards */
-.exec-stat-card {
-  background: white;
-  border-color: rgba(0, 0, 0, 0.08) !important;
-  transition: all 0.2s ease;
-  min-height: 110px;
+.q-number-badge {
+  background: rgba(var(--v-theme-primary), 0.08);
+  color: rgb(var(--v-theme-primary));
+  border: 1px solid rgba(var(--v-theme-primary), 0.2);
+  display: inline-block;
+  min-width: 44px;
+  transition: all 0.15s ease;
 }
 
-.exec-stat-card:hover {
-  border-color: rgba(var(--v-theme-primary), 0.3) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-}
-
-.stat-pill-mini {
-  background: rgba(var(--v-theme-surface-variant), 0.1);
-  font-size: 0.75rem;
+.q-number-badge:hover {
+  background: rgba(var(--v-theme-primary), 0.16);
+  border-color: rgb(var(--v-theme-primary));
 }
 
 /* Sticky Visualizer on Large Screens */
