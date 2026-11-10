@@ -70,6 +70,19 @@
             إنشاء قالب
           </v-chip>
         </v-tab>
+
+        <v-tab value="scoring_settings" class="font-weight-black py-3 rounded-lg">
+          <v-icon start size="20">mdi-brain</v-icon>
+          إعدادات وسياسات الذكاء الاصطناعي والتصحيح
+          <v-chip
+            size="x-small"
+            color="indigo"
+            variant="tonal"
+            class="ms-2 font-weight-bold unified-tab-badge"
+          >
+            شامل
+          </v-chip>
+        </v-tab>
       </v-tabs>
     </v-card>
 
@@ -141,6 +154,18 @@
           <TemplateCanvas :config="config" @save="handleQuickSave" />
         </v-col>
       </v-row>
+    </div>
+
+    <!-- ── TAB 3: DEDICATED AI & GRADING POLICIES SCREEN ─────────── -->
+    <div v-else-if="pageMode === 'scoring_settings'">
+      <OMRAIScoringPolicyView
+        :config="config"
+        :saved-templates-list="savedTemplatesList"
+        :saved-db-id="savedDbId"
+        :is-saving="isSaving"
+        @save-template="handleQuickSave"
+        @load-template="loadTemplateForEditingKeepMode"
+      />
     </div>
 
     <!-- ── Preview Modal ─────────────────────────────────────────── -->
@@ -221,6 +246,7 @@ import StudentCardSettings from './panels/StudentCardSettings.vue'
 import SectionsManager from './panels/SectionsManager.vue'
 import CodesSettings from './panels/CodesSettings.vue'
 import DetectionSettings from './panels/DetectionSettings.vue'
+import OMRAIScoringPolicyView from './panels/OMRAIScoringPolicyView.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -267,6 +293,11 @@ function loadTemplateForEditing(t: any) {
   notify(`تم تحميل القالب «${t.name}» في المصمم بنجاح`)
 }
 
+function loadTemplateForEditingKeepMode(t: any) {
+  loadSavedTemplateState(t)
+  notify(`تم تحميل سياسات وإعدادات «${t.name}» بنجاح`)
+}
+
 function openPreviewModal(t: any) {
   previewingTemplate.value = t
   showPreviewModal.value = true
@@ -274,7 +305,7 @@ function openPreviewModal(t: any) {
 
 function goToScannerWithTemplate(id: number | string) {
   showPreviewModal.value = false
-  router.push({ path: '/omr-scanner-lab', query: { templateId: id } })
+  router.push({ path: '/omr-scanner', query: { template_id: id } })
 }
 
 function duplicateTemplate(t: any) {
@@ -337,7 +368,7 @@ const goToPrintForExam = () => {
 const goToScannerForExam = () => {
   if (linkedExam.value?.id) {
     router.push({
-      path: '/omr-scanner-lab',
+      path: '/omr-scanner',
       query: {
         exam_id: linkedExam.value.id,
         exam_code: linkedExam.value.uniqueCode,
@@ -345,7 +376,7 @@ const goToScannerForExam = () => {
       },
     })
   } else {
-    router.push('/omr-scanner-lab')
+    router.push('/omr-scanner')
   }
 }
 
@@ -353,6 +384,19 @@ onMounted(() => {
   fetchSavedTemplates()
   if (route.query.examId) {
     importExamById(Number(route.query.examId))
+  }
+  const qMode = String(route.query.mode || route.query.tab || '').toLowerCase()
+  if (['scoring', 'settings', 'ai', 'scoring_settings', 'policies'].includes(qMode)) {
+    pageMode.value = 'scoring_settings'
+  } else if (['designer', 'builder', 'create', 'new'].includes(qMode)) {
+    pageMode.value = 'designer'
+  } else if (qMode === 'library') {
+    pageMode.value = 'library'
+  } else if (route.path.includes('omr-template-builder') && !route.query.tab && !route.query.mode) {
+    // If navigating directly to the builder URL without specifying library tab, open designer
+    pageMode.value = 'designer'
+  } else if (route.path.includes('omr-settings')) {
+    pageMode.value = 'scoring_settings'
   }
 })
 

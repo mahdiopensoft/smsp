@@ -86,16 +86,6 @@
 
     <div class="d-flex align-center gap-2">
       <v-btn
-        color="primary"
-        size="small"
-        rounded="lg"
-        class="font-weight-bold"
-        prepend-icon="mdi-content-save"
-        @click="$emit('save')"
-      >
-        حفظ القالب
-      </v-btn>
-      <v-btn
         variant="tonal"
         color="indigo"
         size="small"

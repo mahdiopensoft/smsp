@@ -6,16 +6,36 @@
         getData,
         headers,
         editItem: (item: any) => $emit('edit', item),
-        create: () => $emit('create-new'),
       }"
+      :create="false"
       :search="true"
       :hasFilter="false"
       :log="false"
       :restore="false"
     >
+      <template v-slot:header-actions>
+        <v-btn
+          color="primary"
+          size="small"
+          class="rounded-lg font-weight-bold px-4"
+          style="height: 38px"
+          prepend-icon="mdi-plus"
+          @click="$emit('create-new')"
+        >
+          تصميم قالب جديد
+        </v-btn>
+      </template>
+
       <template v-slot:item-slot="{ item, key }">
+        <!-- Template ID -->
+        <template v-if="key === 'id'">
+          <v-chip size="small" color="primary" variant="tonal" class="font-weight-black">
+            #{{ item.id }}
+          </v-chip>
+        </template>
+
         <!-- Template Name and Subtitle -->
-        <template v-if="key === 'name'">
+        <template v-else-if="key === 'name'">
           <div class="d-flex align-center gap-3 py-1">
             <v-avatar size="36" color="primary" variant="tonal" class="rounded-lg">
               <v-icon size="20">mdi-file-document-edit-outline</v-icon>
@@ -77,7 +97,7 @@
             size="small"
             :color="item.is_active !== false ? 'success' : 'error'"
             variant="tonal"
-            class="font-weight-bold text-white"
+            class="font-weight-bold"
           >
             <v-icon start size="14">{{ item.is_active !== false ? 'mdi-check-circle' : 'mdi-close-circle' }}</v-icon>
             {{ item.is_active !== false ? 'مفعل' : 'معطل' }}

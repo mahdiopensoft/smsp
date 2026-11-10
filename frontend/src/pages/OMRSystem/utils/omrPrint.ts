@@ -303,9 +303,6 @@ export async function printOmrElement(
       <head>
         <meta charset="utf-8">
         <title>${options.title || 'وثيقة التصحيح OMR'}</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
         ${docStyles}
         <style>${headStyles}</style>
       </head>
@@ -572,9 +569,6 @@ export async function printOmrBatch(
       <head>
         <meta charset="utf-8">
         <title>${options.title || 'طباعة أوراق التظليل دفعة واحدة'}</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
         ${docStyles}
         <style>${headStyles}</style>
       </head>
@@ -678,8 +672,6 @@ export async function printOfficialQuestionPaper(
   const pageSize = isA3 ? 'A3 landscape' : 'A4 portrait'
   const isDocLtr = (cloned.getAttribute('dir') || '').toLowerCase() === 'ltr'
   const headStyles = `
-    @import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap');
-
     @page {
       size: ${pageSize};
       margin: 6mm 8mm !important;
@@ -1155,9 +1147,6 @@ export async function printOfficialQuestionPaper(
       <head>
         <meta charset="utf-8">
         <title>${options.title || 'ورقة_الأسئلة_الرسمية'}</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
         ${docStyles}
         <style>${headStyles}</style>
       </head>
@@ -1875,8 +1864,6 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
   }
 
   const headStyles = `
-    @import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap');
-
     @page {
       size: ${isA3 ? 'A3 landscape' : 'A4 portrait'};
       margin: 6mm 8mm !important;
@@ -2294,9 +2281,6 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
         <meta charset="utf-8">
         <base href="${window.location.origin}/">
         <title>${options.title || `حزمة_اختبار_${options.subjectName}_النموذج_${options.versionCode}`}</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
         ${docStyles}
         <style>${headStyles}</style>
       </head>

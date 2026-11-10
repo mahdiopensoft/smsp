@@ -2,42 +2,21 @@
   <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-6">
     <div class="d-flex align-center">
       <v-avatar size="44" color="primary" variant="tonal" class="me-3 rounded-xl">
-        <v-icon size="24">{{ pageMode === 'library' ? 'mdi-folder-multiple-outline' : 'mdi-tune-vertical' }}</v-icon>
+        <v-icon size="24">
+          {{ pageMode === 'library' ? 'mdi-folder-multiple-outline' : (pageMode === 'scoring_settings' ? 'mdi-brain' : 'mdi-tune-vertical') }}
+        </v-icon>
       </v-avatar>
       <div>
         <h1 class="text-h5 font-weight-black text-on-surface mb-0">
-          {{ pageMode === 'library' ? 'مكتبة قوالب التصحيح المعيارية' : 'مصمم القوالب الهندسية المعيارية' }}
+          {{ pageMode === 'library' ? 'مكتبة قوالب التصحيح المعيارية' : (pageMode === 'scoring_settings' ? 'إعدادات وسياسات الذكاء الاصطناعي والتصحيح' : 'مصمم القوالب الهندسية المعيارية') }}
         </h1>
         <p class="text-caption text-medium-emphasis mb-0">
-          {{ pageMode === 'library' ? 'استعراض وإدارة قوالب الامتحانات المعتمدة واستخدامها المباشر في التصحيح' : 'إنشاء وتخصيص وتوثيق أوراق الإجابة بدقة مليمترية معتمدة' }}
+          {{ pageMode === 'library' ? 'استعراض وإدارة قوالب الامتحانات المعتمدة واستخدامها المباشر في التصحيح' : (pageMode === 'scoring_settings' ? 'ضبط معايير الرؤية الحاسوبية ونماذج YOLOv8 والشبكات العصبية وقواعد احتساب الدرجات' : 'إنشاء وتخصيص وتوثيق أوراق الإجابة بدقة مليمترية معتمدة') }}
         </p>
       </div>
     </div>
 
     <div class="d-flex align-center gap-2 flex-wrap">
-      <v-btn
-        v-if="pageMode === 'designer'"
-        variant="tonal"
-        color="secondary"
-        rounded="lg"
-        class="font-weight-bold"
-        prepend-icon="mdi-arrow-right"
-        @click="$emit('switch-mode', 'library')"
-      >
-        العودة لمكتبة القوالب
-      </v-btn>
-
-      <v-btn
-        v-if="pageMode === 'library'"
-        color="primary"
-        rounded="lg"
-        class="font-weight-bold px-5"
-        prepend-icon="mdi-plus"
-        @click="$emit('create-new')"
-      >
-        تصميم قالب جديد
-      </v-btn>
-
       <template v-if="pageMode === 'designer'">
         <v-btn
           variant="tonal"
@@ -89,13 +68,13 @@
 
 <script setup lang="ts">
 defineProps<{
-  pageMode: 'library' | 'designer'
+  pageMode: 'library' | 'designer' | 'scoring_settings'
   savedDbId: number | string | null
   isSaving: boolean
 }>()
 
 defineEmits<{
-  (e: 'switch-mode', mode: 'library' | 'designer'): void
+  (e: 'switch-mode', mode: 'library' | 'designer' | 'scoring_settings'): void
   (e: 'create-new'): void
   (e: 'open-import'): void
   (e: 'reset'): void

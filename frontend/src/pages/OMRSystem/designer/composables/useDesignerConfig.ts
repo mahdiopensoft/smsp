@@ -231,7 +231,7 @@ export const DEFAULT_CONFIG = (): DesignerConfig => ({
 })
 
 export function useDesignerConfig() {
-  const pageMode = ref<'library' | 'designer'>('library')
+  const pageMode = ref<'library' | 'designer' | 'scoring_settings'>('library')
   const designerTab = ref<'layout' | 'student' | 'questions' | 'codes' | 'detection'>('layout')
   const savedDbId = ref<number | string | null>(null)
   const config = reactive<DesignerConfig>(DEFAULT_CONFIG())

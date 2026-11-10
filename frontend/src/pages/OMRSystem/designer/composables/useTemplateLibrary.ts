@@ -37,6 +37,7 @@ export function useTemplateLibrary(props: { templates: any[] }) {
   ]
 
   const headers = computed(() => [
+    { title: '#', key: 'id', sortable: true, align: 'center', width: '70px' },
     { title: 'اسم القالب والنموذج', key: 'name', sortable: true },
     { title: 'نوع القالب / المؤسسة', key: 'category', sortable: true },
     { title: 'عدد الأسئلة', key: 'total_mcq', sortable: true, align: 'center' },

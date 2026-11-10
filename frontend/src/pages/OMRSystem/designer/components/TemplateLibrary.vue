@@ -13,45 +13,6 @@
       @reset="resetFilters"
     />
 
-    <!-- ── View Switcher & Action Header ────────────────────────── -->
-    <div class="d-flex align-center justify-space-between mb-4 flex-wrap gap-2">
-      <div class="d-flex align-center gap-2">
-        <v-btn-toggle
-          v-model="viewMode"
-          mandatory
-          density="compact"
-          color="primary"
-          rounded="lg"
-          variant="outlined"
-        >
-          <v-btn value="table" class="font-weight-bold px-4">
-            <v-icon start size="18">mdi-table</v-icon>
-            عرض الجدول (نظام القوائم)
-          </v-btn>
-          <v-btn value="cards" class="font-weight-bold px-4">
-            <v-icon start size="18">mdi-view-grid-outline</v-icon>
-            عرض البطاقات المعمارية
-          </v-btn>
-        </v-btn-toggle>
-      </div>
-
-      <div class="d-flex align-center gap-2">
-        <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
-          <v-icon start size="14">mdi-file-document-check-outline</v-icon>
-          إجمالي القوالب: {{ templates.length }}
-        </v-chip>
-        <v-btn
-          color="primary"
-          rounded="lg"
-          class="font-weight-bold px-4"
-          prepend-icon="mdi-plus"
-          @click="emit('create-new')"
-        >
-          تصميم قالب جديد
-        </v-btn>
-      </div>
-    </div>
-
     <!-- ── Loading State ─────────────────────────────────────────── -->
     <div v-if="isLoading" class="py-16 text-center">
       <v-progress-circular indeterminate color="primary" size="48" width="4" />
@@ -79,8 +40,8 @@
       </div>
     </v-card>
 
-    <!-- ── 1. TABLE VIEW ─────────────────────────────────────────── -->
-    <div v-else-if="viewMode === 'table'">
+    <!-- ── TABLE VIEW (Direct Standard Data Table) ────────────────── -->
+    <div v-else>
       <TemplateTable
         :table-items="tableItems"
         :headers="headers"
@@ -102,28 +63,6 @@
       />
     </div>
 
-    <!-- ── 2. CARDS GRID VIEW ────────────────────────────────────── -->
-    <v-row v-else-if="viewMode === 'cards'">
-      <v-col
-        v-for="template in filteredTemplates"
-        :key="template.id"
-        cols="12"
-        sm="6"
-        md="4"
-        lg="3"
-      >
-        <TemplateCard
-          :template="template"
-          @edit="emit('edit', $event)"
-          @scan="emit('scan', $event)"
-          @preview="emit('preview', $event)"
-          @duplicate="emit('duplicate', $event)"
-          @print="emit('print', $event)"
-          @delete="confirmDeleteTemplate($event)"
-        />
-      </v-col>
-    </v-row>
-
     <!-- ── Delete Confirmation Dialog ────────────────────────────── -->
     <TemplateDeleteDialog
       v-model="showDeleteDialog"
@@ -135,7 +74,6 @@
 </template>
 
 <script setup lang="ts">
-import TemplateCard from './TemplateCard.vue'
 import TemplateFilters from './library/TemplateFilters.vue'
 import TemplateTable from './library/TemplateTable.vue'
 import TemplateDeleteDialog from './library/TemplateDeleteDialog.vue'
