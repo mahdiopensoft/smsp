@@ -1874,11 +1874,13 @@ export default {
       const rawQuestions = activePreviewSheet.value?.questions || activePreviewSheet.value?.omr_result || []
       const all = rawQuestions.map((q, idx) => {
         const qNum = q.question_number || q.question_id || q.q || (idx + 1)
-        const marked = q.marked_choice || q.marked || null
-        const correct = q.correct_choice || '—'
+        const marked = q.marked_choice || q.marked || q.final_marked_choice || q.candidate_choice || null
+        let correct = q.correct_choice || q.expected_choice || q.expected || '—'
+        if (correct === 'A' && (q.choices || []).includes('صح')) correct = 'صح'
+        else if (correct === 'B' && (q.choices || []).includes('خطأ')) correct = 'خطأ'
         const isMarked = Boolean(marked && marked !== 'لم يُجب (فارغ)' && marked !== 'فارغ')
         const isCorrect = q.is_correct ?? (isMarked && correct !== '—' && String(marked).trim().toUpperCase() === String(correct).trim().toUpperCase())
-        const score = q.score_awarded ?? q.marks_awarded ?? (isCorrect ? 1 : 0)
+        const score = q.score_awarded ?? q.marks_awarded ?? (isCorrect ? (q.assigned_weight || q.max_mark || 1) : 0)
 
         return {
           ...q,
@@ -1926,12 +1928,15 @@ export default {
       if (path.startsWith('http://') || path.startsWith('https://')) {
         try {
           const u = new URL(path)
-          if (u.pathname.startsWith('/media/')) {
-            finalUrl = u.pathname
-          }
+          finalUrl = u.pathname
         } catch (e) {}
-      } else {
-        finalUrl = path.startsWith('/') ? path : `/${path}`
+      }
+      if (!finalUrl.startsWith('/media/')) {
+        if (finalUrl.startsWith('media/')) {
+          finalUrl = `/${finalUrl}`
+        } else {
+          finalUrl = finalUrl.startsWith('/') ? `/media${finalUrl}` : `/media/${finalUrl}`
+        }
       }
 
       const token = localStorage.getItem('token') || sessionStorage.getItem('token') || localStorage.getItem('access_token')
@@ -2504,20 +2509,41 @@ export default {
     const openSheetPreview = async (sheet) => {
       let targetSheet = { ...sheet }
 
-      // إذا كانت قائمة الأسئلة فارغة وكان هناك معرف تسليم مسجل، جلب البيانات كاملة من السيرفر
-      if ((!targetSheet.questions || targetSheet.questions.length === 0) && targetSheet.id) {
+      // إذا كانت قائمة الأسئلة فارغة وكان هناك معرف تسليم أو رقم جلوس، جلب البيانات كاملة من السيرفر
+      if (!targetSheet.questions || targetSheet.questions.length === 0) {
         try {
-          const resp = await submissionsAPI.get(targetSheet.id)
-          const data = resp.data?.data || resp.data || {}
-          targetSheet.questions = data.omr_result || data.questions || []
-          targetSheet.image_url = targetSheet.image_url || data.original_image || ''
-          targetSheet.annotated_url = targetSheet.annotated_url || data.aligned_image || targetSheet.image_url
-          targetSheet.student_name = targetSheet.student_name || data.student_name
-          targetSheet.seat_number = targetSheet.seat_number || data.seat_number
-          targetSheet.model_code = targetSheet.model_code || data.exam_version_code || data.layout_result?.version_code || 'A'
-          targetSheet.score = targetSheet.score != null ? targetSheet.score : (data.total_score != null ? data.total_score : 0)
-          targetSheet.max_score = targetSheet.max_score || data.layout_result?.max_score || 50
-          targetSheet.percentage = targetSheet.percentage != null ? targetSheet.percentage : (data.layout_result?.score_percent || 0)
+          let data = null
+          const numId = Number(targetSheet.id)
+          if (!isNaN(numId) && numId > 0 && numId < 10000) {
+            try {
+              const resp = await submissionsAPI.get(numId)
+              data = resp.data?.data || resp.data
+            } catch (_) {}
+          }
+          if ((!data || !data.id) && targetSheet.seat_number && selectedExamId.value) {
+            const resp = await submissionsAPI.list({
+              exam: selectedExamId.value,
+              search: targetSheet.seat_number,
+            })
+            const results = resp.data?.results || (Array.isArray(resp.data) ? resp.data : [])
+            if (results.length > 0) {
+              const matched = results.find(s => String(s.seat_number).trim() === String(targetSheet.seat_number).trim()) || results[0]
+              const subDetail = await submissionsAPI.get(matched.id)
+              data = subDetail.data?.data || subDetail.data
+            }
+          }
+          if (data) {
+            targetSheet.id = data.id || targetSheet.id
+            targetSheet.questions = data.omr_result || data.questions || []
+            targetSheet.image_url = data.original_image || targetSheet.image_url || ''
+            targetSheet.annotated_url = data.aligned_image || targetSheet.annotated_url || targetSheet.image_url
+            targetSheet.student_name = data.student_name || targetSheet.student_name
+            targetSheet.seat_number = data.seat_number || targetSheet.seat_number
+            targetSheet.model_code = data.exam_version_code || data.layout_result?.version_code || targetSheet.model_code || 'A'
+            targetSheet.score = data.total_score != null ? data.total_score : (targetSheet.score != null ? targetSheet.score : 0)
+            targetSheet.max_score = data.layout_result?.max_score || targetSheet.max_score || 50
+            targetSheet.percentage = data.layout_result?.score_percent != null ? data.layout_result?.score_percent : (targetSheet.percentage || 0)
+          }
         } catch (e) {
           console.warn('Could not load detailed submission for preview:', e)
         }

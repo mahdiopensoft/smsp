@@ -84,4 +84,14 @@ export default defineConfig({
       ],
     },
   },
+  preview: {
+    port: settings.port,
+    host: '0.0.0.0',
+    proxy: {
+      '/media': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+      },
+    },
+  },
 });

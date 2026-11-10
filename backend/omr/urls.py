@@ -14,7 +14,10 @@ from omr.apis.OMRPrintRegistryMVS import OMRPrintRegistryMVS
 from omr.apis.OMRPrintOrderMVS import OMRPrintOrderMVS
 from omr.apis.OMRVerificationMVS import OMRVerificationMVS
 
-from omr.api import grade_sheet, get_result, get_annotated_image, detect_template_api, batch_scan_api
+from omr.api import (
+    grade_sheet, get_result, get_annotated_image, detect_template_api,
+    batch_scan_api, get_ai_metrics_api
+)
 
 router = DefaultRouter()
 
@@ -56,6 +59,7 @@ router.register(r'omr-question-results', OMRQuestionResultMVS, basename='omr-que
 urlpatterns = [
     # ─── Direct OpenCV/SVG OMR Engine Endpoints ──────────────────────────────
     path('detect-template/', detect_template_api, name='omr-detect-template'),
+    path('ai-metrics/', get_ai_metrics_api, name='omr-ai-metrics'),
     path('grade/', grade_sheet, name='omr-grade'),
     path('batch-scan/', batch_scan_api, name='omr-batch-scan'),
     path('results/<str:result_id>/', get_result, name='omr-result'),

@@ -100,6 +100,23 @@ export interface DesignerConfig {
     }
     tolerance_mm: number
   }
+  omr_config?: {
+    scoring?: {
+      wrong_answer_penalty: number
+      score_floor_mode: string
+      multi_one_correct_policy: string
+      multi_both_wrong_policy: string
+      crossed_choice_policy: string
+      erased_choice_policy: string
+      blank_answer_penalty: number
+      half_filled_policy: string
+    }
+    model?: {
+      yolo_conf: number
+      cnn_conf: number
+      enable_cnn_fallback: boolean
+    }
+  }
 }
 
 export const DEFAULT_CONFIG = (): DesignerConfig => ({
@@ -193,6 +210,23 @@ export const DEFAULT_CONFIG = (): DesignerConfig => ({
       empty_max: 28,
     },
     tolerance_mm: 1.0,
+  },
+  omr_config: {
+    scoring: {
+      wrong_answer_penalty: 0.0,
+      score_floor_mode: 'PER_QUESTION_ZERO',
+      multi_one_correct_policy: 'ZERO',
+      multi_both_wrong_policy: 'ZERO',
+      crossed_choice_policy: 'ACCEPT_FILLED',
+      erased_choice_policy: 'ACCEPT_FILLED',
+      blank_answer_penalty: 0.0,
+      half_filled_policy: 'FLAG_REVIEW',
+    },
+    model: {
+      yolo_conf: 0.35,
+      cnn_conf: 0.75,
+      enable_cnn_fallback: true,
+    },
   },
 })
 
@@ -326,6 +360,10 @@ export function useDesignerConfig() {
     if (td.footer) Object.assign(config.footer, td.footer)
     if (td.instructions) Object.assign(config.instructions, td.instructions)
     if (td.display_mode) config.display_mode = td.display_mode
+    if (td.detection) Object.assign(config.detection, td.detection)
+    if (td.omr_config) {
+      config.omr_config = JSON.parse(JSON.stringify(td.omr_config))
+    }
 
     config.template_id = td.template_id || t.template_id || (t.total_mcq === 50 ? 'YEMEN_MINISTRY_50' : 'CUSTOM')
     config.template_name = t.name || config.template_name

@@ -611,6 +611,15 @@ class SubmissionMVS(AllMVS):
 
                 # 3. إعادة التصحيح التلقائي بمفتاح النموذج الفعلي المعتمد وأوزان الأسئلة الحقيقية
                 from omr.providers.opencv_omr import normalize_choice
+                from omr.config import OMRConfig
+                from omr.grading_policy import evaluate_question_score
+                from templates_engine.models.ExamTemplate import ExamTemplate
+
+                tpl_id = grading_result.get("template_id")
+                active_template = ExamTemplate.objects.filter(id=tpl_id).first() if tpl_id and str(tpl_id).isdigit() else None
+                omr_conf = OMRConfig.from_template(active_template.template_data if active_template else None)
+                scoring_pol = omr_conf.scoring
+
                 actual_v_code = target_version.versionCode if target_version else 'A'
                 actual_version_tuple = versions_keys.get(actual_v_code)
                 actual_key = actual_version_tuple[1] if actual_version_tuple else default_answer_key
@@ -626,30 +635,39 @@ class SubmissionMVS(AllMVS):
                 for q_item in grading_result.get("questions", []):
                     q_num = str(q_item.get("question_id") or q_item.get("q") or 1)
                     marked = q_item.get("marked_choice") or q_item.get("marked")
+                    all_marked = q_item.get("all_marked_choices") or ([marked] if marked else [])
+                    b_state = q_item.get("bubble_state", "filled" if marked else "empty")
                     expected = actual_key.get(q_num)
                     assigned_mark = float(actual_marks.get(q_num, 1.0))
                     max_score_val += assigned_mark
 
+                    # Compute score via Academic Scoring Policy Engine
+                    decision = evaluate_question_score(
+                        marked_choice=marked,
+                        all_marked_choices=all_marked,
+                        bubble_state=b_state,
+                        correct_choice=expected,
+                        max_mark=assigned_mark,
+                        policy=scoring_pol
+                    )
+
                     q_item["correct_choice"] = expected
                     q_item["assigned_mark"] = assigned_mark
                     q_item["max_mark"] = assigned_mark
+                    q_item["is_correct"] = decision.is_correct
+                    q_item["score_awarded"] = decision.marks_awarded
+                    q_item["marks_awarded"] = decision.marks_awarded
+                    q_item["evaluation_status"] = decision.status_code
+                    q_item["evaluation_explanation"] = decision.explanation
+                    if decision.needs_review:
+                        q_item["needs_review"] = True
 
-                    if marked:
-                        if expected and normalize_choice(marked) == normalize_choice(expected):
-                            q_item["is_correct"] = True
-                            q_item["score_awarded"] = assigned_mark
-                            q_item["marks_awarded"] = assigned_mark
-                            score_val += assigned_mark
-                            total_c += 1
-                        else:
-                            q_item["is_correct"] = False
-                            q_item["score_awarded"] = 0.0
-                            q_item["marks_awarded"] = 0.0
-                            total_w += 1
-                    else:
-                        q_item["is_correct"] = False
-                        q_item["score_awarded"] = 0.0
-                        q_item["marks_awarded"] = 0.0
+                    score_val += decision.marks_awarded
+                    if decision.is_correct is True:
+                        total_c += 1
+                    elif decision.is_correct is False and marked:
+                        total_w += 1
+                    elif not marked:
                         total_empty += 1
 
                 score_val = round(score_val, 2)

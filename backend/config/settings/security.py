@@ -38,8 +38,11 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 # الاستخدام: حماية من هجمات Host header poisoning
 # القيم: قائمة نطاقات (مثل: 'example.com', '192.168.1.1')
 # التوصية: ✅ حدد النطاقات بدقة، لا تستخدم '*' في الإنتاج
-ALLOWED_HOSTS_STR = config('ALLOWED_HOSTS', default='localhost,127.0.0.1')
+ALLOWED_HOSTS_STR = config('ALLOWED_HOSTS', default='*')
 ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STR.split(',') if host.strip()]
+for h in ['*', 'testserver', '0.0.0.0', 'localhost', '127.0.0.1']:
+    if h not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(h)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

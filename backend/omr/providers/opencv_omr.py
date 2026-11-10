@@ -610,6 +610,7 @@ class OpenCVOMREngine(BaseEngine):
             "marked_choice":       marked_choice,
             "candidate_choice":    candidate_choice,
             "final_marked_choice": final_marked_choice,
+            "all_marked_choices":   [lbl for lbl, st in ai_results.items() if st in ("filled", "half_filled")],
             "correct_choice":      correct_choice,
             "is_correct":          is_correct,
             "marks_awarded":       round(marks_awarded, 2),

@@ -110,7 +110,10 @@
               </v-tab>
               <v-tab value="questions" class="font-weight-bold">الأسئلة</v-tab>
               <v-tab value="codes" class="font-weight-bold">الباركود</v-tab>
-              <v-tab value="detection" class="font-weight-bold">الذكاء الاصطناعي</v-tab>
+              <v-tab value="detection" class="font-weight-bold">
+                <v-icon start size="16">mdi-brain</v-icon>
+                الذكاء الاصطناعي والسياسات
+              </v-tab>
             </v-tabs>
 
             <v-window v-model="designerTab">
