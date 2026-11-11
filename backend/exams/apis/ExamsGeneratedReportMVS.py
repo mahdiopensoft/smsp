@@ -12,7 +12,7 @@ class ExamsGeneratedReportMVS(AllMVS):
     Used by: ExamsGeneratedReportView.vue
     """
     queryset = Exam.objects.filter(is_deleted=False).select_related(
-        'subject', 'class_track', 'governorate', 'directorate',
+        'subject', 'class_track__level', 'class_track__track', 'governorate', 'directorate',
         'approved_by', 'year',
     ).prefetch_related('versions').order_by('-created_at')
     serializer_class = ExamSerializer
@@ -61,7 +61,7 @@ class ExamsGeneratedReportMVS(AllMVS):
                 subject_name = exam.subject.name_ar or exam.subject.name_en or ''
             class_track_name = ''
             if exam.class_track:
-                class_track_name = exam.class_track.name_ar or exam.class_track.name_en or ''
+                class_track_name = getattr(exam.class_track, 'full_name', '') or getattr(exam.class_track, 'name_ar', '') or str(exam.class_track)
             year_name = ''
             if exam.year:
                 year_name = getattr(exam.year, 'name', '') or getattr(exam.year, 'name_ar', '') or str(exam.year)
