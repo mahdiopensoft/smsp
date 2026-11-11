@@ -2,28 +2,31 @@
   <div class="regional-report-page">
     <filter-fields label="خيارات تصفية التقرير الإقليمي والجغرافي" class="mb-4">
       <template #fields>
-        <v-col cols="12" md="2">
+        <!-- اختيار نوع المؤسسة التعليمية (مدارس / جامعات / معاهد) بدون خيار الكل -->
+        <v-col cols="12" sm="6" md="3">
           <v-select
-            v-model="filters.institution_type"
-            :items="[
-              { text: 'الكل', value: 'all' },
-              { text: 'مدارس فقط', value: 'school' },
-              { text: 'جامعات فقط', value: 'university' }
-            ]"
+            v-model="filterInstitutionType"
+            :items="institutionTypeOptions"
             item-title="text"
             item-value="value"
-            placeholder="نوع المؤسسة"
+            label="نوع المؤسسة التعليمية"
+            placeholder="اختر نوع المؤسسة"
             prepend-inner-icon="mdi-domain"
             hide-details
+            clearable
             density="compact"
             variant="outlined"
             @update:model-value="loadReport"
-          />
+          >
+            <template v-slot:item="{ props, item }">
+              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
+            </template>
+          </v-select>
         </v-col>
 
-        <v-col cols="12" md="2">
+        <v-col cols="12" sm="6" md="3">
           <v-select
-            v-model="filters.comparisonType"
+            v-model="filterComparisonType"
             :items="[
               { text: 'جميع المحافظات', value: 'all' },
               { text: 'المدن الرئيسية فقط', value: 'cities_only' },
@@ -31,6 +34,7 @@
             ]"
             item-title="text"
             item-value="value"
+            label="نطاق المقارنة"
             placeholder="نطاق المقارنة"
             hide-details
             density="compact"
@@ -38,10 +42,8 @@
           />
         </v-col>
 
-        <v-col cols="auto">
+        <v-col cols="auto" class="d-flex align-center gap-2 py-2">
           <custom-btn type="filter" :loading="loading" :click="loadReport" />
-        </v-col>
-        <v-col cols="auto">
           <custom-btn
             color="primary"
             variant="tonal"
@@ -82,10 +84,15 @@ import { reportsService } from '@/services/reportsService'
 const loading = ref(false)
 const allItems = ref([])
 
-const filters = ref({
-  institution_type: 'all',
-  comparisonType: 'all',
-})
+// خيارات نوع المؤسسة بدون "الكل"
+const filterInstitutionType = ref(null)
+const institutionTypeOptions = [
+  { text: 'تعليم مدرسي', value: 'school', icon: 'mdi-school' },
+  { text: 'تعليم جامعي', value: 'university', icon: 'mdi-domain' },
+  { text: 'معاهد وتدريب مهني', value: 'institute', icon: 'mdi-tools' },
+]
+
+const filterComparisonType = ref('all')
 
 const headers = [
   { title: '#', key: 'index', sortable: false, width: '60px' },
@@ -99,10 +106,10 @@ const headers = [
 ]
 
 const filteredItems = computed(() => {
-  if (filters.value.comparisonType === 'cities_only') {
+  if (filterComparisonType.value === 'cities_only') {
     return allItems.value.filter(g => !g.isRemote)
   }
-  if (filters.value.comparisonType === 'remote_only') {
+  if (filterComparisonType.value === 'remote_only') {
     return allItems.value.filter(g => g.isRemote)
   }
   return allItems.value
@@ -118,8 +125,8 @@ const loadReport = async () => {
   loading.value = true
   try {
     const params = {}
-    if (filters.value.institution_type !== 'all') {
-      params.institution_type = filters.value.institution_type
+    if (filterInstitutionType.value) {
+      params.institution_type = filterInstitutionType.value
     }
     const res = await reportsService.getRegionalReport(params)
     allItems.value = res.governorates || []
@@ -131,9 +138,16 @@ const loadReport = async () => {
 }
 
 const resetFilters = () => {
-  filters.value = { institution_type: 'all', comparisonType: 'all' }
+  filterInstitutionType.value = null
+  filterComparisonType.value = 'all'
   loadReport()
 }
 
 onMounted(loadReport)
 </script>
+
+<style scoped>
+.gap-2 {
+  gap: 8px;
+}
+</style>

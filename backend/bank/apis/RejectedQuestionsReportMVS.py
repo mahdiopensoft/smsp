@@ -15,6 +15,9 @@ class RejectedQuestionsReportMVS(AllMVS):
         'createdBy', 'reviewer', 'lesson',
         'lesson__unit', 'lesson__unit__semester_subject',
         'lesson__unit__semester_subject__fk_subject',
+        'lesson__unit__semester_subject__course',
+        'lesson__unit__semester_subject__fk_specialization',
+        'lesson__unit__semester_subject__fk_specialization__fk_college',
         'lesson__subject',
     ).order_by('-created_at')
     serializer_class = QuestionSerializer
@@ -26,21 +29,12 @@ class RejectedQuestionsReportMVS(AllMVS):
         if inst_type and inst_type != 'all':
             qs = qs.filter(institution_type=inst_type)
 
-        subject_id = request.query_params.get('subject')
-        college_id = request.query_params.get('college')
-        dept_id = request.query_params.get('department')
-        spec_id = request.query_params.get('specialization')
-        semester_subject_id = request.query_params.get('semester_subject')
-        author_id = request.query_params.get('author')
-        reviewer_id = request.query_params.get('reviewer')
-        date_from = request.query_params.get('date_from')
-        date_to = request.query_params.get('date_to')
+        # University Filters
+        college_id = request.query_params.get('college') or request.query_params.get('fk_college')
+        dept_id = request.query_params.get('department') or request.query_params.get('fk_department')
+        spec_id = request.query_params.get('specialization') or request.query_params.get('fk_specialization')
+        semester_subject_id = request.query_params.get('semester_subject') or request.query_params.get('fk_semester_subject')
 
-        if subject_id:
-            qs = qs.filter(
-                Q(lesson__subject_id=subject_id) |
-                Q(lesson__unit__semester_subject__fk_subject_id=subject_id)
-            )
         if college_id:
             qs = qs.filter(lesson__unit__semester_subject__fk_specialization__fk_college_id=college_id)
         if dept_id:
@@ -49,6 +43,36 @@ class RejectedQuestionsReportMVS(AllMVS):
             qs = qs.filter(lesson__unit__semester_subject__fk_specialization_id=spec_id)
         if semester_subject_id:
             qs = qs.filter(lesson__unit__semester_subject_id=semester_subject_id)
+
+        # Institute Filters
+        inst_field = request.query_params.get('field') or request.query_params.get('institute_field')
+        if inst_field:
+            qs = qs.filter(institution_type='institute')
+
+        # School Filters
+        stage_id = request.query_params.get('stage')
+        class_track_id = request.query_params.get('class_track')
+
+        # General Subject & Unit
+        subject_id = request.query_params.get('subject') or request.query_params.get('institute_subject')
+        unit_id = request.query_params.get('unit')
+
+        if subject_id:
+            qs = qs.filter(
+                Q(lesson__unit__semester_subject__fk_subject_id=subject_id) |
+                Q(lesson__subject_id=subject_id) |
+                Q(lesson__unit__semester_subject__course_id=subject_id)
+            )
+
+        if unit_id:
+            qs = qs.filter(lesson__unit_id=unit_id)
+
+        author_id = request.query_params.get('author')
+        reviewer_id = request.query_params.get('reviewer')
+        date_from = request.query_params.get('date_from')
+        date_to = request.query_params.get('date_to')
+        search = request.query_params.get('search')
+
         if author_id:
             qs = qs.filter(createdBy_id=author_id)
         if reviewer_id:
@@ -57,6 +81,12 @@ class RejectedQuestionsReportMVS(AllMVS):
             qs = qs.filter(created_at__date__gte=date_from)
         if date_to:
             qs = qs.filter(created_at__date__lte=date_to)
+        if search:
+            qs = qs.filter(
+                Q(content__icontains=search) |
+                Q(description__icontains=search) |
+                Q(rejectionReason__icontains=search)
+            )
 
         results = []
         for q in qs[:300]:

@@ -2,8 +2,30 @@
   <div class="exam-distribution-report-page">
     <filter-fields label="معايير التصفية والبحث في سجل توزيع وإرسال الاختبارات" class="mb-4">
       <template #fields>
+        <!-- اختيار نوع المؤسسة التعليمية (مدارس / جامعات / معاهد) بدون خيار الكل -->
+        <v-col cols="12" sm="6" md="3">
+          <v-select
+            v-model="filterInstitutionType"
+            :items="institutionTypeOptions"
+            item-title="text"
+            item-value="value"
+            label="نوع المؤسسة التعليمية"
+            placeholder="اختر نوع المؤسسة"
+            prepend-inner-icon="mdi-domain"
+            hide-details
+            clearable
+            density="compact"
+            variant="outlined"
+            @update:model-value="onInstitutionTypeChange"
+          >
+            <template v-slot:item="{ props, item }">
+              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
+            </template>
+          </v-select>
+        </v-col>
+
         <auto-list
-          v-model="filters.exam"
+          v-model="filterExam"
           name="Exam"
           placeholder="الاختبار"
           cols="2"
@@ -12,7 +34,7 @@
 
         <v-col cols="12" md="2">
           <v-select
-            v-model="filters.status"
+            v-model="filterStatus"
             :items="statusOptions"
             item-title="text"
             item-value="value"
@@ -25,7 +47,7 @@
 
         <v-col cols="12" md="2">
           <v-select
-            v-model="filters.delivery_mode"
+            v-model="filterDeliveryMode"
             :items="[
               { text: 'الكل', value: '' },
               { text: 'ورقي', value: 'printed_omr' },
@@ -41,32 +63,23 @@
           />
         </v-col>
 
-        <v-col cols="12" md="2">
-          <v-text-field
-            v-model="filters.date_from"
-            type="date"
-            label="من تاريخ الإرسال"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <!-- فلاتر التواريخ باستخدام CustomDate الموحد -->
+        <custom-date
+          v-model="filterDateFrom"
+          label="من تاريخ الإرسال"
+          cols="2"
+          hide-details
+        />
 
-        <v-col cols="12" md="2">
-          <v-text-field
-            v-model="filters.date_to"
-            type="date"
-            label="إلى تاريخ الإرسال"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <custom-date
+          v-model="filterDateTo"
+          label="إلى تاريخ الإرسال"
+          cols="2"
+          hide-details
+        />
 
-        <v-col cols="auto">
+        <v-col cols="auto" class="d-flex align-center gap-2 py-2">
           <custom-btn type="filter" :loading="loading" :click="applyFilters" />
-        </v-col>
-        <v-col cols="auto">
           <custom-btn
             color="primary"
             variant="tonal"
@@ -111,6 +124,20 @@ import { reportsService } from '@/services/reportsService'
 const loading = ref(false)
 const items = ref([])
 
+// خيارات نوع المؤسسة بدون "الكل"
+const filterInstitutionType = ref(null)
+const institutionTypeOptions = [
+  { text: 'تعليم مدرسي', value: 'school', icon: 'mdi-school' },
+  { text: 'تعليم جامعي', value: 'university', icon: 'mdi-domain' },
+  { text: 'معاهد وتدريب مهني', value: 'institute', icon: 'mdi-tools' },
+]
+
+const filterExam = ref(null)
+const filterStatus = ref('')
+const filterDeliveryMode = ref('')
+const filterDateFrom = ref(null)
+const filterDateTo = ref(null)
+
 const statusOptions = [
   { text: 'جميع الحالات', value: '' },
   { text: 'مسودة', value: 'draft' },
@@ -121,14 +148,6 @@ const statusOptions = [
   { text: 'مكتمل', value: 'completed' },
   { text: 'ملغي', value: 'cancelled' },
 ]
-
-const filters = ref({
-  exam: null,
-  status: '',
-  delivery_mode: '',
-  date_from: '',
-  date_to: '',
-})
 
 const headers = [
   { title: '#', key: 'index', sortable: false, width: '60px' },
@@ -179,13 +198,21 @@ const getDeliveryLabel = (mode) => {
   return map[mode] || mode
 }
 
+const onInstitutionTypeChange = () => {
+  filterExam.value = null
+  applyFilters()
+}
+
 const buildParams = () => {
   const p = {}
-  if (filters.value.exam) p.exam = filters.value.exam
-  if (filters.value.status) p.status = filters.value.status
-  if (filters.value.delivery_mode) p.delivery_mode = filters.value.delivery_mode
-  if (filters.value.date_from) p.date_from = filters.value.date_from
-  if (filters.value.date_to) p.date_to = filters.value.date_to
+  if (filterInstitutionType.value) {
+    p.institution_type = filterInstitutionType.value
+  }
+  if (filterExam.value) p.exam = filterExam.value
+  if (filterStatus.value) p.status = filterStatus.value
+  if (filterDeliveryMode.value) p.delivery_mode = filterDeliveryMode.value
+  if (filterDateFrom.value) p.date_from = filterDateFrom.value
+  if (filterDateTo.value) p.date_to = filterDateTo.value
   return p
 }
 
@@ -202,16 +229,20 @@ const applyFilters = async () => {
 }
 
 const resetFilters = () => {
-  filters.value = {
-    exam: null,
-    status: '',
-    delivery_mode: '',
-    date_from: '',
-    date_to: '',
-  }
+  filterInstitutionType.value = null
+  filterExam.value = null
+  filterStatus.value = ''
+  filterDeliveryMode.value = ''
+  filterDateFrom.value = null
+  filterDateTo.value = null
   applyFilters()
 }
 
 onMounted(applyFilters)
 </script>
 
+<style scoped>
+.gap-2 {
+  gap: 8px;
+}
+</style>

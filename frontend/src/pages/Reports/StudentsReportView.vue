@@ -2,53 +2,82 @@
   <div class="students-report-page">
     <filter-fields label="معايير التصفية والبحث في سجل الطلاب" class="mb-4">
       <template #fields>
-        <v-col cols="12" md="2">
+        <!-- اختيار نوع المؤسسة التعليمية (مدارس / جامعات / معاهد) بدون خيار الكل -->
+        <v-col cols="12" sm="6" md="3">
           <v-select
-            v-model="filters.institution_type"
-            :items="[
-              { text: 'الكل', value: 'all' },
-              { text: 'مدارس فقط', value: 'school' },
-              { text: 'جامعات فقط', value: 'university' }
-            ]"
+            v-model="filterInstitutionType"
+            :items="institutionTypeOptions"
             item-title="text"
             item-value="value"
-            placeholder="نوع المؤسسة"
+            label="نوع المؤسسة التعليمية"
+            placeholder="اختر نوع المؤسسة"
+            prepend-inner-icon="mdi-domain"
             hide-details
+            clearable
             density="compact"
             variant="outlined"
-          />
+            @update:model-value="onInstitutionTypeChange"
+          >
+            <template v-slot:item="{ props, item }">
+              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
+            </template>
+          </v-select>
         </v-col>
 
+        <!-- فلاتر هرمية حسب النوع -->
+        <template v-if="filterInstitutionType === 'school'">
+          <auto-list
+            v-model="filterStage"
+            name="Stage"
+            placeholder="المرحلة الدراسية"
+            cols="2"
+            :add="false"
+          />
+        </template>
+
+        <template v-if="filterInstitutionType === 'university'">
+          <auto-list
+            v-model="filterCollege"
+            name="College"
+            placeholder="الكلية الجامعية"
+            cols="2"
+            :add="false"
+          />
+        </template>
+
+        <template v-if="filterInstitutionType === 'institute'">
+          <auto-list
+            v-model="filterInstituteField"
+            name="InstituteField"
+            placeholder="المجال المهني"
+            cols="2"
+            :add="false"
+          />
+        </template>
+
+        <!-- فلاتر جغرافية عامة -->
         <auto-list
-          v-model="filters.governorate"
+          v-model="filterGovernorate"
           name="Governorate"
           placeholder="المحافظة"
           cols="2"
           :add="false"
-          @update:model-value="filters.directorate = null"
+          @update:model-value="filterDirectorate = null"
         />
 
         <auto-list
-          v-model="filters.directorate"
+          v-model="filterDirectorate"
           name="DirectorateByGovernorate"
-          :param="filters.governorate"
+          :param="filterGovernorate"
           placeholder="المديرية"
           cols="2"
           :add="false"
-          :disabled="!filters.governorate"
-        />
-
-        <auto-list
-          v-model="filters.stage"
-          name="Stage"
-          placeholder="المرحلة الدراسية"
-          cols="2"
-          :add="false"
+          :disabled="!filterGovernorate"
         />
 
         <v-col cols="12" md="3">
           <v-text-field
-            v-model="filters.search"
+            v-model="filterSearch"
             placeholder="بحث باسم الطالب أو الرقم الأكاديمي..."
             prepend-inner-icon="mdi-magnify"
             clearable
@@ -58,10 +87,8 @@
           />
         </v-col>
 
-        <v-col cols="auto">
+        <v-col cols="auto" class="d-flex align-center gap-2 py-2">
           <custom-btn type="filter" :loading="loading" :click="applyFilters" />
-        </v-col>
-        <v-col cols="auto">
           <custom-btn
             color="primary"
             variant="tonal"
@@ -103,13 +130,27 @@ import { reportsService } from '@/services/reportsService'
 const loading = ref(false)
 const items = ref([])
 
-const filters = ref({
-  institution_type: 'all',
-  governorate: null,
-  directorate: null,
-  stage: null,
-  search: '',
-})
+// خيارات نوع المؤسسة بدون "الكل"
+const filterInstitutionType = ref(null)
+const institutionTypeOptions = [
+  { text: 'تعليم مدرسي', value: 'school', icon: 'mdi-school' },
+  { text: 'تعليم جامعي', value: 'university', icon: 'mdi-domain' },
+  { text: 'معاهد وتدريب مهني', value: 'institute', icon: 'mdi-tools' },
+]
+
+const filterStage = ref(null)
+const filterCollege = ref(null)
+const filterInstituteField = ref(null)
+const filterGovernorate = ref(null)
+const filterDirectorate = ref(null)
+const filterSearch = ref('')
+
+const onInstitutionTypeChange = () => {
+  filterStage.value = null
+  filterCollege.value = null
+  filterInstituteField.value = null
+  applyFilters()
+}
 
 const headers = [
   { title: '#', key: 'index', sortable: false, width: '60px' },
@@ -125,13 +166,15 @@ const headers = [
 
 const buildParams = () => {
   const p = {}
-  if (filters.value.institution_type !== 'all') {
-    p.institution_type = filters.value.institution_type
+  if (filterInstitutionType.value) {
+    p.institution_type = filterInstitutionType.value
   }
-  if (filters.value.governorate) p.governorate = filters.value.governorate
-  if (filters.value.directorate) p.directorate = filters.value.directorate
-  if (filters.value.stage) p.stage = filters.value.stage
-  if (filters.value.search) p.search = filters.value.search
+  if (filterStage.value) p.stage = filterStage.value
+  if (filterCollege.value) p.college = filterCollege.value
+  if (filterInstituteField.value) p.field = filterInstituteField.value
+  if (filterGovernorate.value) p.governorate = filterGovernorate.value
+  if (filterDirectorate.value) p.directorate = filterDirectorate.value
+  if (filterSearch.value) p.search = filterSearch.value
   return p
 }
 
@@ -148,16 +191,21 @@ const applyFilters = async () => {
 }
 
 const resetFilters = () => {
-  filters.value = {
-    institution_type: 'all',
-    governorate: null,
-    directorate: null,
-    stage: null,
-    search: '',
-  }
+  filterInstitutionType.value = null
+  filterStage.value = null
+  filterCollege.value = null
+  filterInstituteField.value = null
+  filterGovernorate.value = null
+  filterDirectorate.value = null
+  filterSearch.value = ''
   applyFilters()
 }
 
 onMounted(applyFilters)
 </script>
 
+<style scoped>
+.gap-2 {
+  gap: 8px;
+}
+</style>

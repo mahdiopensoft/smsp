@@ -40,6 +40,12 @@ class QuestionsDetailReportMVS(AllMVS):
         dept_id = request.query_params.get('department')
         spec_id = request.query_params.get('specialization')
         semester_subject_id = request.query_params.get('semester_subject')
+        inst_field = request.query_params.get('field') or request.query_params.get('institute_field')
+        if inst_field:
+            qs = qs.filter(institution_type='institute')
+        inst_subject = request.query_params.get('institute_subject')
+        if inst_subject:
+            subject_id = inst_subject
         q_type = request.query_params.get('question_type')
         difficulty = request.query_params.get('difficulty')
         bloom_level = request.query_params.get('bloom_level')

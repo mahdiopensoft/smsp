@@ -2,28 +2,51 @@
   <div class="student-registrations-report-page">
     <filter-fields label="معايير التصفية والبحث في سجل تسجيلات الطلاب" class="mb-4">
       <template #fields>
+        <!-- اختيار نوع المؤسسة التعليمية (مدارس / جامعات / معاهد) بدون خيار الكل -->
+        <v-col cols="12" sm="6" md="3">
+          <v-select
+            v-model="filterInstitutionType"
+            :items="institutionTypeOptions"
+            item-title="text"
+            item-value="value"
+            label="نوع المؤسسة التعليمية"
+            placeholder="اختر نوع المؤسسة"
+            prepend-inner-icon="mdi-domain"
+            hide-details
+            clearable
+            density="compact"
+            variant="outlined"
+            @update:model-value="onInstitutionTypeChange"
+          >
+            <template v-slot:item="{ props, item }">
+              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
+            </template>
+          </v-select>
+        </v-col>
+
         <auto-list
-          v-model="filters.exam"
+          v-model="filterExam"
           name="Exam"
+          :param="examParam"
           placeholder="الاختبار"
           cols="2"
           :add="false"
-          @update:model-value="filters.version = null"
+          @update:model-value="filterVersion = null"
         />
 
         <auto-list
-          v-model="filters.version"
+          v-model="filterVersion"
           name="ExamVersionByExam"
-          :param="filters.exam"
+          :param="filterExam"
           placeholder="النموذج"
           cols="2"
           :add="false"
-          :disabled="!filters.exam"
+          :disabled="!filterExam"
         />
 
         <v-col cols="12" md="2">
           <v-select
-            v-model="filters.is_present"
+            v-model="filterIsPresent"
             :items="[
               { text: 'الكل', value: '' },
               { text: 'حاضر', value: 'true' },
@@ -40,7 +63,7 @@
 
         <v-col cols="12" md="2">
           <v-select
-            v-model="filters.is_printed"
+            v-model="filterIsPrinted"
             :items="[
               { text: 'الكل', value: '' },
               { text: 'مطبوع', value: 'true' },
@@ -57,7 +80,7 @@
 
         <v-col cols="12" md="3">
           <v-text-field
-            v-model="filters.search"
+            v-model="filterSearch"
             placeholder="بحث باسم الطالب أو رقم الجلوس..."
             prepend-inner-icon="mdi-magnify"
             clearable
@@ -67,10 +90,8 @@
           />
         </v-col>
 
-        <v-col cols="auto">
+        <v-col cols="auto" class="d-flex align-center gap-2 py-2">
           <custom-btn type="filter" :loading="loading" :click="applyFilters" />
-        </v-col>
-        <v-col cols="auto">
           <custom-btn
             color="primary"
             variant="tonal"
@@ -115,19 +136,36 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { reportsService } from '@/services/reportsService'
 
 const loading = ref(false)
 const items = ref([])
 
-const filters = ref({
-  exam: null,
-  version: null,
-  is_present: '',
-  is_printed: '',
-  search: '',
+// خيارات نوع المؤسسة بدون "الكل"
+const filterInstitutionType = ref(null)
+const institutionTypeOptions = [
+  { text: 'تعليم مدرسي', value: 'school', icon: 'mdi-school' },
+  { text: 'تعليم جامعي', value: 'university', icon: 'mdi-domain' },
+  { text: 'معاهد وتدريب مهني', value: 'institute', icon: 'mdi-tools' },
+]
+
+const filterExam = ref(null)
+const filterVersion = ref(null)
+const filterIsPresent = ref('')
+const filterIsPrinted = ref('')
+const filterSearch = ref('')
+
+const examParam = computed(() => {
+  if (filterInstitutionType.value) return { institution_type: filterInstitutionType.value }
+  return null
 })
+
+const onInstitutionTypeChange = () => {
+  filterExam.value = null
+  filterVersion.value = null
+  applyFilters()
+}
 
 const headers = [
   { title: '#', key: 'index', sortable: false, width: '60px' },
@@ -138,18 +176,22 @@ const headers = [
   { title: 'الاختبار', key: 'examTitle', sortable: true },
   { title: 'النموذج', key: 'versionCode', sortable: true, align: 'center' },
   { title: 'المادة', key: 'subject', sortable: true },
-  { title: 'حاضر؟', key: 'isPresent', sortable: true, align: 'center' },
-  { title: 'مطبوع؟', key: 'isPrinted', sortable: true, align: 'center' },
-  { title: 'تاريخ الطباعة', key: 'printedAt', sortable: true },
+  { title: 'الصف / التخصص', key: 'classTrack', sortable: true },
+  { title: 'حالة الحضور', key: 'isPresent', sortable: true, align: 'center' },
+  { title: 'حالة الطباعة', key: 'isPrinted', sortable: true, align: 'center' },
+  { title: 'تاريخ التسجيل', key: 'createdAt', sortable: true },
 ]
 
 const buildParams = () => {
   const p = {}
-  if (filters.value.exam) p.exam = filters.value.exam
-  if (filters.value.version) p.version = filters.value.version
-  if (filters.value.is_present !== '') p.is_present = filters.value.is_present
-  if (filters.value.is_printed !== '') p.is_printed = filters.value.is_printed
-  if (filters.value.search) p.search = filters.value.search
+  if (filterInstitutionType.value) {
+    p.institution_type = filterInstitutionType.value
+  }
+  if (filterExam.value) p.exam = filterExam.value
+  if (filterVersion.value) p.version = filterVersion.value
+  if (filterIsPresent.value !== '') p.is_present = filterIsPresent.value
+  if (filterIsPrinted.value !== '') p.is_printed = filterIsPrinted.value
+  if (filterSearch.value) p.search = filterSearch.value
   return p
 }
 
@@ -166,16 +208,20 @@ const applyFilters = async () => {
 }
 
 const resetFilters = () => {
-  filters.value = {
-    exam: null,
-    version: null,
-    is_present: '',
-    is_printed: '',
-    search: '',
-  }
+  filterInstitutionType.value = null
+  filterExam.value = null
+  filterVersion.value = null
+  filterIsPresent.value = ''
+  filterIsPrinted.value = ''
+  filterSearch.value = ''
   applyFilters()
 }
 
 onMounted(applyFilters)
 </script>
 
+<style scoped>
+.gap-2 {
+  gap: 8px;
+}
+</style>

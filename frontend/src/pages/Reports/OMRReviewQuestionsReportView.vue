@@ -2,28 +2,51 @@
   <div class="omr-review-questions-report-page">
     <filter-fields label="معايير التصفية والبحث في الأسئلة التي تحتاج مراجعة OMR" class="mb-4">
       <template #fields>
+        <!-- اختيار نوع المؤسسة التعليمية (مدارس / جامعات / معاهد) بدون خيار الكل -->
+        <v-col cols="12" sm="6" md="3">
+          <v-select
+            v-model="filterInstitutionType"
+            :items="institutionTypeOptions"
+            item-title="text"
+            item-value="value"
+            label="نوع المؤسسة التعليمية"
+            placeholder="اختر نوع المؤسسة"
+            prepend-inner-icon="mdi-domain"
+            hide-details
+            clearable
+            density="compact"
+            variant="outlined"
+            @update:model-value="onInstitutionTypeChange"
+          >
+            <template v-slot:item="{ props, item }">
+              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
+            </template>
+          </v-select>
+        </v-col>
+
         <auto-list
-          v-model="filters.exam"
+          v-model="filterExam"
           name="Exam"
+          :param="examParam"
           placeholder="الاختبار"
           cols="2"
           :add="false"
-          @update:model-value="filters.version = null"
+          @update:model-value="filterVersion = null"
         />
 
         <auto-list
-          v-model="filters.version"
+          v-model="filterVersion"
           name="ExamVersionByExam"
-          :param="filters.exam"
+          :param="filterExam"
           placeholder="النموذج"
           cols="2"
           :add="false"
-          :disabled="!filters.exam"
+          :disabled="!filterExam"
         />
 
         <v-col cols="12" md="2">
           <v-select
-            v-model="filters.review_priority"
+            v-model="filterReviewPriority"
             :items="[
               { text: 'جميع الأولويات', value: '' },
               { text: 'حرج', value: 'CRITICAL' },
@@ -42,7 +65,7 @@
 
         <v-col cols="12" md="2">
           <v-select
-            v-model="filters.bubble_state"
+            v-model="filterBubbleState"
             :items="[
               { text: 'جميع الحالات', value: '' },
               { text: 'ملتبس', value: 'ambiguous' },
@@ -61,7 +84,7 @@
 
         <v-col cols="12" md="2">
           <v-select
-            v-model="filters.is_manually_overridden"
+            v-model="filterIsManuallyOverridden"
             :items="[
               { text: 'الكل', value: '' },
               { text: 'معدّل يدوياً', value: 'true' },
@@ -76,10 +99,8 @@
           />
         </v-col>
 
-        <v-col cols="auto">
+        <v-col cols="auto" class="d-flex align-center gap-2 py-2">
           <custom-btn type="filter" :loading="loading" :click="applyFilters" />
-        </v-col>
-        <v-col cols="auto">
           <custom-btn
             color="primary"
             variant="tonal"
@@ -142,19 +163,36 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { reportsService } from '@/services/reportsService'
 
 const loading = ref(false)
 const items = ref([])
 
-const filters = ref({
-  exam: null,
-  version: null,
-  review_priority: '',
-  bubble_state: '',
-  is_manually_overridden: '',
+// خيارات نوع المؤسسة بدون "الكل"
+const filterInstitutionType = ref(null)
+const institutionTypeOptions = [
+  { text: 'تعليم مدرسي', value: 'school', icon: 'mdi-school' },
+  { text: 'تعليم جامعي', value: 'university', icon: 'mdi-domain' },
+  { text: 'معاهد وتدريب مهني', value: 'institute', icon: 'mdi-tools' },
+]
+
+const filterExam = ref(null)
+const filterVersion = ref(null)
+const filterReviewPriority = ref('')
+const filterBubbleState = ref('')
+const filterIsManuallyOverridden = ref('')
+
+const examParam = computed(() => {
+  if (filterInstitutionType.value) return { institution_type: filterInstitutionType.value }
+  return null
 })
+
+const onInstitutionTypeChange = () => {
+  filterExam.value = null
+  filterVersion.value = null
+  applyFilters()
+}
 
 const headers = [
   { title: '#', key: 'index', sortable: false, width: '60px' },
@@ -192,12 +230,15 @@ const getPriorityLabel = (priority) => {
 
 const buildParams = () => {
   const p = {}
-  if (filters.value.exam) p.exam = filters.value.exam
-  if (filters.value.version) p.version = filters.value.version
-  if (filters.value.review_priority) p.review_priority = filters.value.review_priority
-  if (filters.value.bubble_state) p.bubble_state = filters.value.bubble_state
-  if (filters.value.is_manually_overridden !== '') {
-    p.is_manually_overridden = filters.value.is_manually_overridden
+  if (filterInstitutionType.value) {
+    p.institution_type = filterInstitutionType.value
+  }
+  if (filterExam.value) p.exam = filterExam.value
+  if (filterVersion.value) p.version = filterVersion.value
+  if (filterReviewPriority.value) p.review_priority = filterReviewPriority.value
+  if (filterBubbleState.value) p.bubble_state = filterBubbleState.value
+  if (filterIsManuallyOverridden.value !== '') {
+    p.is_manually_overridden = filterIsManuallyOverridden.value
   }
   return p
 }
@@ -215,16 +256,20 @@ const applyFilters = async () => {
 }
 
 const resetFilters = () => {
-  filters.value = {
-    exam: null,
-    version: null,
-    review_priority: '',
-    bubble_state: '',
-    is_manually_overridden: '',
-  }
+  filterInstitutionType.value = null
+  filterExam.value = null
+  filterVersion.value = null
+  filterReviewPriority.value = ''
+  filterBubbleState.value = ''
+  filterIsManuallyOverridden.value = ''
   applyFilters()
 }
 
 onMounted(applyFilters)
 </script>
 
+<style scoped>
+.gap-2 {
+  gap: 8px;
+}
+</style>

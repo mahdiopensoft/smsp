@@ -51,10 +51,8 @@ class BankStatusReportMVS(AllMVS):
         subject_id = request.query_params.get('subject')
 
         # Filter by institution type
-        if institution_type == 'school':
-            qs = qs.none()
-        elif institution_type == 'university':
-            qs = qs.filter(lesson__unit__semester_subject__isnull=False)
+        if institution_type in ['school', 'university', 'institute']:
+            qs = qs.filter(institution_type=institution_type)
 
         # University filters
         if college_id:
