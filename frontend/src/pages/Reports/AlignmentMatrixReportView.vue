@@ -1,540 +1,379 @@
 <template>
-  <div class="qb-alignment-matrix-page-v4">
-    <!-- Header Controls -->
-    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-6">
-      <div>
-        <h2 class="text-h5 font-weight-black mb-1">مصفوفة المواءمة الأكاديمية (CLO Alignment Matrix)</h2>
-        <span class="text-caption text-medium-emphasis">
-          ربط مخرجات التعلم بالأسئلة المعتمدة والمستويات المعرفية (متطلبات الاعتماد الأكاديمي ABET / NCAAA)
-        </span>
-      </div>
-
-      <div class="d-flex align-center gap-3">
-        <custom-btn
-          label="طباعة تقرير المواءمة"
-          icon="mdi-printer"
-          color="primary"
-          variant="tonal"
-          class="font-weight-bold px-5"
-          :click="printReport"
-        />
-      </div>
-    </div>
-
-    <!-- Filters Control Bar (Theme Compatible) -->
-    <filter-fields label="تحديد المقرر الدراسي والوحدة للتقرير (مدرسي / جامعي)" class="main-card border-0 pa-5 rounded-2xl mb-6">
-      <v-row dense class="align-center">
-        <!-- Institution Type Filter -->
-        <v-col cols="12" md="2">
+  <div class="alignment-matrix-report-page">
+    <filter-fields label="معايير تصفية مصفوفة المواءمة (CLOs)" class="mb-4">
+      <template #fields>
+        <!-- اختيار نوع المؤسسة التعليمية (مدارس / جامعات / معاهد) بدون خيار الكل -->
+        <v-col cols="12" sm="6" :md="filterInstitutionType ? 3 : 4">
           <v-select
             v-model="filterInstitutionType"
-            :items="[
-              { title: '🏫 الكل (مدارس وجامعات)', value: 'all' },
-              { title: '🏫 التعليم المدرسي فقط', value: 'school' },
-              { title: '🎓 التعليم الجامعي فقط', value: 'university' }
-            ]"
-            label="نوع المنشأة"
-            variant="outlined"
-            density="comfortable"
+            :items="institutionTypeOptions"
+            item-title="text"
+            item-value="value"
+            label="نوع المؤسسة التعليمية"
+            placeholder="اختر نوع المؤسسة"
+            prepend-inner-icon="mdi-domain"
             hide-details
-            rounded="lg"
-            class="mb-6"
+            clearable
+            density="compact"
+            variant="outlined"
             @update:model-value="onInstitutionTypeChange"
-          />
+          >
+            <template v-slot:item="{ props, item }">
+              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
+            </template>
+          </v-select>
         </v-col>
 
-        <!-- School Filters -->
-        <template v-if="filterInstitutionType !== 'university'">
-          <!-- Stage Filter -->
-          <auto-list
-            v-model="filterStage"
-            name="Stage"
-            placeholder="المرحلة الدراسية"
-            cols="2"
-            :add="false"
-            @update:model-value="onStageChange"
-          />
+        <!-- الظهور مشروط باختيار نوع المؤسسة -->
+        <template v-if="filterInstitutionType">
+          <!-- 🏫 فلاتر المدارس -->
+          <template v-if="filterInstitutionType === 'school'">
+            <auto-list
+              v-model="filterStage"
+              name="Stage"
+              placeholder="المرحلة الدراسية"
+              cols="2"
+              :add="false"
+              @update:model-value="onStageChange"
+            />
+            <auto-list
+              v-model="filterClassTrack"
+              name="ClassTrackByStage"
+              :param="filterStage"
+              placeholder="الصف والمسار"
+              cols="2"
+              :add="false"
+              :disabled="!filterStage"
+              @update:model-value="onClassTrackChange"
+            />
+            <auto-list
+              v-model="filterSubject"
+              name="Subject"
+              :param="subjectFilterParam"
+              placeholder="المادة الدراسية"
+              cols="2"
+              :add="false"
+              @update:model-value="onSubjectChange"
+            />
+          </template>
 
-          <!-- ClassTrack Filter (الصف والمسار) -->
-          <auto-list
-            v-model="filterClassTrack"
-            name="ClassTrackByStage"
-            :param="filterStage"
-            placeholder="الصف والمسار"
-            cols="2"
-            :add="false"
-            :disabled="!filterStage"
-          />
+          <!-- 🎓 فلاتر الجامعات -->
+          <template v-if="filterInstitutionType === 'university'">
+            <auto-list
+              v-model="filterCollege"
+              name="College"
+              placeholder="الكلية الجامعية"
+              cols="2"
+              :add="false"
+              @update:model-value="onCollegeChange"
+            />
+            <auto-list
+              v-model="filterDepartment"
+              name="DepartmentByCollege"
+              :param="filterCollege"
+              placeholder="القسم الأكاديمي"
+              cols="2"
+              :add="false"
+              :disabled="!filterCollege"
+              @update:model-value="onDepartmentChange"
+            />
+            <auto-list
+              v-model="filterSpecialization"
+              name="Specialization"
+              :param="filterDepartment"
+              placeholder="التخصص والبرنامج"
+              cols="2"
+              :add="false"
+              :disabled="!filterDepartment"
+              @update:model-value="onSpecializationChange"
+            />
+            <auto-list
+              v-model="filterSemesterSubject"
+              name="SemesterSubject"
+              :param="filterSpecialization"
+              placeholder="المقرر الجامعي"
+              cols="2"
+              :add="false"
+              :disabled="!filterSpecialization"
+              @update:model-value="onSemesterSubjectChange"
+            />
+          </template>
 
-          <!-- Subject Filter -->
-          <auto-list
-            v-model="selectedSubjectId"
-            name="Subject"
-            placeholder="المادة الدراسية"
-            cols="2"
-            :add="false"
-          />
+          <!-- 🏢 فلاتر المعاهد والتدريب المهني -->
+          <template v-if="filterInstitutionType === 'institute'">
+            <auto-list
+              v-model="filterInstituteField"
+              name="InstituteField"
+              placeholder="المجال المهني / التقني"
+              cols="2"
+              :add="false"
+              @update:model-value="onInstituteFieldChange"
+            />
+            <auto-list
+              v-model="filterInstituteEducationSystem"
+              name="InstituteEducationSystem"
+              :param="filterInstituteField"
+              placeholder="نظام التعليم والتدريب"
+              cols="2"
+              :add="false"
+              :disabled="!filterInstituteField"
+              @update:model-value="onInstituteEducationSystemChange"
+            />
+            <auto-list
+              v-model="filterInstituteSpecialization"
+              name="InstituteSpecialization"
+              :param="instituteSpecParam"
+              placeholder="التخصص المهني"
+              cols="2"
+              :add="false"
+              :disabled="!filterInstituteEducationSystem"
+              @update:model-value="onInstituteSpecializationChange"
+            />
+            <auto-list
+              v-model="filterInstituteSubject"
+              name="InstituteSubject"
+              :param="instituteSubjectParam"
+              placeholder="المادة الدراسية للمعهد"
+              cols="2"
+              :add="false"
+              @update:model-value="onInstituteSubjectChange"
+            />
+          </template>
         </template>
 
-        <!-- University Filters -->
-        <template v-if="filterInstitutionType !== 'school'">
-          <auto-list
-            v-model="filterCollege"
-            name="College"
-            placeholder="الكلية"
-            :add="false"
-            cols="2"
-            @update:model-value="onCollegeChange"
-          />
-
-          <auto-list
-            v-model="filterDepartment"
-            name="DepartmentByCollege"
-            :param="filterCollege"
-            placeholder="القسم الأكاديمي"
-            :add="false"
-            cols="2"
-            :disabled="!filterCollege"
-          />
-
-          <auto-list
-            v-model="filterSpecialization"
-            name="Specialization"
-            placeholder="التخصص الجامعي"
-            :add="false"
-            cols="2"
-          />
-
-          <auto-list
-            v-model="filterSemesterSubject"
-            name="SemesterSubject"
-            placeholder="المقرر الجامعي"
-            :add="false"
-            cols="2"
-          />
-        </template>
-
-        <!-- Search Query -->
-        <v-col cols="12" sm="6" md="3">
+        <v-col cols="12" md="2">
           <v-text-field
-            v-model="searchQuery"
-            placeholder="بحث برمز أو وصف المخرج (CLO)..."
+            v-model="filterSearch"
+            placeholder="بحث برمز CLO أو الوصف..."
             prepend-inner-icon="mdi-magnify"
             clearable
             density="compact"
             variant="outlined"
-            class="mb-6"
             hide-details
           />
         </v-col>
 
-        <!-- Filter Actions -->
-        <v-col cols="12" sm="6" md="3" class="d-flex align-center gap-2">
+        <v-col cols="auto" class="d-flex align-center gap-2 py-2">
+          <custom-btn type="filter" :loading="loading" :click="applyFilters" />
           <custom-btn
-            type="show"
-            label="تحديث التقرير"
             color="primary"
-            class="font-weight-bold flex-grow-1 mb-6"
-            :click="loadMatrixReport"
-          />
-          <custom-btn
-            type="cancel_filter"
-            :click="resetFilters"
             variant="tonal"
-            color="error"
-            label="تفريغ"
-            class="font-weight-bold mb-6"
+            :click="resetFilters"
+            label="إعادة ضبط"
+            icon="mdi-refresh"
           />
         </v-col>
-      </v-row>
+      </template>
     </filter-fields>
 
-    <!-- Summary Metric Cards (Calculated directly on Backend) -->
-    <v-row v-if="reportData" class="mb-6">
-      <!-- Total CLOs -->
-      <v-col cols="12" sm="6" md="3">
-        <div class="stat-glass-card shadow-indigo pa-5 rounded-xl">
-          <div class="d-flex align-center justify-space-between mb-3">
-            <div class="stat-value text-h3 font-weight-black text-indigo">
-              {{ reportData.total_clos || 0 }}
-            </div>
-            <div class="stat-icon-wrapper bg-indigo-gradient">
-              <v-icon size="24" color="white">mdi-target</v-icon>
-            </div>
-          </div>
-          <div class="stat-label text-subtitle-2 font-weight-bold text-medium-emphasis">
-            إجمالي مخرجات التعلم (CLOs)
-          </div>
-          <div class="stat-footer mt-2 pt-2 border-t border-slate-100 text-caption text-medium-emphasis">
-            المسجلة في هذا المقرر
-          </div>
-        </div>
-      </v-col>
-
-      <!-- Coverage Rate -->
-      <v-col cols="12" sm="6" md="3">
-        <div class="stat-glass-card shadow-emerald pa-5 rounded-xl">
-          <div class="d-flex align-center justify-space-between mb-3">
-            <div class="stat-value text-h3 font-weight-black text-emerald">
-              {{ reportData.coverage_rate_percentage || 0 }}%
-            </div>
-            <div class="stat-icon-wrapper bg-emerald-gradient">
-              <v-icon size="24" color="white">mdi-chart-arc</v-icon>
-            </div>
-          </div>
-          <div class="stat-label text-subtitle-2 font-weight-bold text-medium-emphasis">
-            نسبة تغطية المخرجات
-          </div>
-          <div class="stat-footer mt-2 pt-2 border-t border-slate-100 text-caption text-medium-emphasis">
-            بأسئلة معتمدة جاهزة للاختبار
-          </div>
-        </div>
-      </v-col>
-
-      <!-- Uncovered CLOs (Gaps) -->
-      <v-col cols="12" sm="6" md="3">
-        <div class="stat-glass-card shadow-rose pa-5 rounded-xl">
-          <div class="d-flex align-center justify-space-between mb-3">
-            <div class="stat-value text-h3 font-weight-black text-rose">
-              {{ reportData.uncovered_clos || 0 }}
-            </div>
-            <div class="stat-icon-wrapper bg-rose-gradient">
-              <v-icon size="24" color="white">mdi-alert-octagon-outline</v-icon>
-            </div>
-          </div>
-          <div class="stat-label text-subtitle-2 font-weight-bold text-medium-emphasis">
-            مخرجات غير مغطاة (فجوات)
-          </div>
-          <div class="stat-footer mt-2 pt-2 border-t border-slate-100 text-caption text-medium-emphasis">
-            <span class="text-rose font-weight-bold">تتطلب تأليف أسئلة فوراً</span>
-          </div>
-        </div>
-      </v-col>
-
-      <!-- Total Approved Questions -->
-      <v-col cols="12" sm="6" md="3">
-        <div class="stat-glass-card shadow-teal pa-5 rounded-xl">
-          <div class="d-flex align-center justify-space-between mb-3">
-            <div class="stat-value text-h3 font-weight-black text-teal">
-              {{ reportData.total_approved_questions || 0 }}
-            </div>
-            <div class="stat-icon-wrapper bg-teal-gradient">
-              <v-icon size="24" color="white">mdi-database-check-outline</v-icon>
-            </div>
-          </div>
-          <div class="stat-label text-subtitle-2 font-weight-bold text-medium-emphasis">
-            إجمالي الأسئلة المعتمدة
-          </div>
-          <div class="stat-footer mt-2 pt-2 border-t border-slate-100 text-caption text-medium-emphasis">
-            المرتبطة بالمخرجات
-          </div>
-        </div>
-      </v-col>
-    </v-row>
-
-    <!-- Matrix Custom Data Table -->
-    <div class="main-card rounded-2xl overflow-hidden mb-8">
+    <CustomCard elevation="0" class="rounded-xl overflow-hidden">
       <custom-data-table
+        :items="items"
         :headers="headers"
-        :items="tableItems"
-        :getData="getData"
-        :customLoading="loading"
-        class="bg-transparent"
+        :loading="loading"
         :hasFilter="false"
-        :log="false"
-        :restore="false"
+        hover
       >
-        <template v-slot:item-slot="{ item, key }">
-          <!-- Institution Type -->
-          <template v-if="key === 'institutionType'">
-            <v-chip
-              size="x-small"
-              :color="item.institutionType === 'university' ? 'primary' : 'secondary'"
-              variant="tonal"
-              class="font-weight-bold"
-            >
-              <v-icon size="12" start>{{ item.institutionType === 'university' ? 'mdi-school' : 'mdi-domain' }}</v-icon>
-              {{ item.institutionType === 'university' ? 'جامعي' : 'مدرسي' }}
-            </v-chip>
-          </template>
-
-          <!-- CLO Code -->
-          <template v-else-if="key === 'code'">
-            <v-chip color="primary" size="small" variant="tonal" class="font-weight-bold text-white">
-              {{ item.code }}
-            </v-chip>
-          </template>
-
-          <!-- CLO Description -->
-          <template v-else-if="key === 'name_ar'">
-            <div class="font-weight-medium text-body-2">{{ item.name_ar }}</div>
-          </template>
-
-          <!-- Unit Name -->
-          <template v-else-if="key === 'unit_name'">
-            <v-chip v-if="item.unit_name" size="small" variant="tonal" color="indigo" class="font-weight-medium">
-              {{ item.unit_name }}
-            </v-chip>
-            <span v-else class="text-caption text-medium-emphasis">-</span>
-          </template>
-
-          <!-- Questions Count -->
-          <template v-else-if="key === 'questions_count'">
-            <span class="text-body-1 font-weight-black" :class="item.questions_count === 0 ? 'text-error' : 'text-primary'">
-              {{ item.questions_count }}
-            </span>
-          </template>
-
-          <!-- Coverage Status -->
-          <template v-else-if="key === 'coverage_status'">
-            <v-chip
-              :color="item.coverage_color"
-              size="small"
-              variant="tonal"
-              class="font-weight-bold text-white"
-            >
-              <v-icon start size="14">
-                {{ item.questions_count === 0 ? 'mdi-close-circle' : (item.questions_count < 3 ? 'mdi-alert' : 'mdi-check-circle') }}
-              </v-icon>
-              {{ item.coverage_status }}
-            </v-chip>
-          </template>
-
-          <!-- Bloom Taxonomy Breakdown -->
-          <template v-else-if="key === 'bloom_breakdown'">
-            <div class="d-flex align-center justify-center flex-wrap gap-1">
-              <v-tooltip text="تذكر" location="top">
-                <template #activator="{ props }">
-                  <v-chip v-bind="props" size="x-small" color="blue" variant="tonal">
-                    تذكر: {{ item.bloom_breakdown?.remember || 0 }}
-                  </v-chip>
-                </template>
-              </v-tooltip>
-              <v-tooltip text="فهم" location="top">
-                <template #activator="{ props }">
-                  <v-chip v-bind="props" size="x-small" color="teal" variant="tonal">
-                    فهم: {{ item.bloom_breakdown?.understand || 0 }}
-                  </v-chip>
-                </template>
-              </v-tooltip>
-              <v-tooltip text="تطبيق" location="top">
-                <template #activator="{ props }">
-                  <v-chip v-bind="props" size="x-small" color="purple" variant="tonal">
-                    تطبيق: {{ item.bloom_breakdown?.apply || 0 }}
-                  </v-chip>
-                </template>
-              </v-tooltip>
-              <v-tooltip text="تحليل" location="top">
-                <template #activator="{ props }">
-                  <v-chip v-bind="props" size="x-small" color="amber" variant="tonal">
-                    تحليل: {{ item.bloom_breakdown?.analyze || 0 }}
-                  </v-chip>
-                </template>
-              </v-tooltip>
-            </div>
-          </template>
-
-          <!-- Difficulty Breakdown -->
-          <template v-else-if="key === 'difficulty_breakdown'">
-            <div class="d-flex align-center justify-center gap-1">
-              <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold">
-                سهل: {{ item.difficulty_breakdown?.easy || 0 }}
-              </v-chip>
-              <v-chip size="x-small" color="warning" variant="tonal" class="font-weight-bold">
-                متوسط: {{ item.difficulty_breakdown?.medium || 0 }}
-              </v-chip>
-              <v-chip size="x-small" color="error" variant="tonal" class="font-weight-bold">
-                صعب: {{ item.difficulty_breakdown?.hard || 0 }}
-              </v-chip>
-            </div>
-          </template>
+        <template #item.index="{ index }">{{ index + 1 }}</template>
+        <template #item.coverage_status="{ item }">
+          <v-chip
+            :color="item.coverage_color || 'primary'"
+            size="small"
+            variant="tonal"
+          >
+            {{ item.coverage_status }}
+          </v-chip>
         </template>
       </custom-data-table>
-    </div>
+    </CustomCard>
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, onMounted } from 'vue'
 import { reportsService } from '@/services/reportsService'
 
-export default {
-  name: 'AlignmentMatrixReportView',
+const loading = ref(false)
+const items = ref([])
 
-  data() {
-    return {
-      loading: false,
-      filterInstitutionType: 'all',
-      filterStage: null,
-      filterClassTrack: null,
-      selectedSubjectId: null,
-      filterCollege: null,
-      filterDepartment: null,
-      filterSpecialization: null,
-      filterSemesterSubject: null,
-      searchQuery: '',
-      reportData: null,
-      tableItems: { results: [], pagination: {} },
-    }
-  },
+// خيارات نوع المؤسسة بدون "الكل"
+const filterInstitutionType = ref(null)
+const institutionTypeOptions = [
+  { text: 'تعليم مدرسي', value: 'school', icon: 'mdi-school' },
+  { text: 'تعليم جامعي', value: 'university', icon: 'mdi-domain' },
+  { text: 'معاهد وتدريب مهني', value: 'institute', icon: 'mdi-tools' },
+]
 
-  computed: {
-    headers() {
-      return [
-        { title: "النوع", key: "institutionType", sortable: true, width: "100px" },
-        { title: "رمز المخرج", key: "code", sortable: true, width: "130px" },
-        { title: "وصف مخرج التعلم (CLO)", key: "name_ar", sortable: true },
-        { title: this.filterInstitutionType === 'university' ? "المقرر / الوحدة" : "الوحدة الدراسية", key: "unit_name", sortable: true },
-        { title: "الأسئلة المتاحة", key: "questions_count", sortable: true, align: "center", width: "130px" },
-        { title: "حالة التغطية", key: "coverage_status", sortable: true, align: "center", width: "160px" },
-        { title: "توزيع مستويات بلوم", key: "bloom_breakdown", sortable: false, align: "center" },
-        { title: "توزيع الصعوبة", key: "difficulty_breakdown", sortable: false, align: "center" },
-      ]
-    }
-  },
+// فلاتر المدارس
+const filterStage = ref(null)
+const filterClassTrack = ref(null)
 
-  methods: {
-    onInstitutionTypeChange() {
-      this.filterStage = null
-      this.filterClassTrack = null
-      this.selectedSubjectId = null
-      this.filterCollege = null
-      this.filterDepartment = null
-      this.filterSpecialization = null
-      this.filterSemesterSubject = null
-      this.loadMatrixReport()
-    },
+// فلاتر الجامعات
+const filterCollege = ref(null)
+const filterDepartment = ref(null)
+const filterSpecialization = ref(null)
+const filterSemesterSubject = ref(null)
 
-    onStageChange() {
-      this.filterClassTrack = null
-    },
+// فلاتر المعاهد
+const filterInstituteField = ref(null)
+const filterInstituteEducationSystem = ref(null)
+const filterInstituteSpecialization = ref(null)
+const filterInstituteSubject = ref(null)
 
-    onCollegeChange() {
-      this.filterDepartment = null
-    },
+// فلاتر عامة
+const filterSubject = ref(null)
+const filterSearch = ref('')
 
-    async getData(params = {}) {
-      this.loading = true
-      try {
-        const queryParams = {
-          ...params,
-          institution_type: this.filterInstitutionType !== 'all' ? this.filterInstitutionType : undefined,
-          college: this.filterCollege || undefined,
-          department: this.filterDepartment || undefined,
-          specialization: this.filterSpecialization || undefined,
-          semester_subject: this.filterSemesterSubject || undefined,
-          stage: this.filterStage || undefined,
-          class_track: this.filterClassTrack || undefined,
-          subject_id: this.selectedSubjectId || undefined,
-          search: this.searchQuery || undefined,
-        }
-        const data = await reportsService.getAlignmentMatrixReport(queryParams)
-        this.reportData = data
-        if (!this.selectedSubjectId && !this.filterSemesterSubject && data.subject_id) {
-          if (this.filterInstitutionType === 'university') {
-            this.filterSemesterSubject = data.subject_id
-          } else {
-            this.selectedSubjectId = data.subject_id
-          }
-        }
-        const clos = data.clos || []
-        this.tableItems = {
-          results: clos,
-          pagination: { count: clos.length, total: clos.length },
-        }
-      } catch (err) {
-        console.error('Error loading alignment matrix:', err)
-      } finally {
-        this.loading = false
-      }
-    },
+const subjectFilterParam = computed(() => {
+  const p = {}
+  if (filterInstitutionType.value) p.institution_type = filterInstitutionType.value
+  if (filterClassTrack.value) p.class_track = filterClassTrack.value
+  else if (filterStage.value) p.stage = filterStage.value
+  return Object.keys(p).length ? p : null
+})
 
-    async loadMatrixReport() {
-      await this.getData()
-    },
+const instituteSpecParam = computed(() => {
+  const p = {}
+  if (filterInstituteField.value) p.field = filterInstituteField.value
+  if (filterInstituteEducationSystem.value) p.education_system = filterInstituteEducationSystem.value
+  return Object.keys(p).length ? p : null
+})
 
-    onSubjectChange() {
-      this.loadMatrixReport()
-    },
+const instituteSubjectParam = computed(() => {
+  if (filterInstituteField.value) return { field: filterInstituteField.value }
+  return null
+})
 
-    resetFilters() {
-      this.filterInstitutionType = 'all'
-      this.filterStage = null
-      this.filterClassTrack = null
-      this.selectedSubjectId = null
-      this.filterCollege = null
-      this.filterDepartment = null
-      this.filterSpecialization = null
-      this.filterSemesterSubject = null
-      this.searchQuery = ''
-      this.loadMatrixReport()
-    },
-
-    printReport() {
-      window.print()
-    },
-  },
-
-  mounted() {
-    this.loadMatrixReport()
-  },
+const onInstitutionTypeChange = () => {
+  filterStage.value = null
+  filterClassTrack.value = null
+  filterCollege.value = null
+  filterDepartment.value = null
+  filterSpecialization.value = null
+  filterSemesterSubject.value = null
+  filterInstituteField.value = null
+  filterInstituteEducationSystem.value = null
+  filterInstituteSpecialization.value = null
+  filterInstituteSubject.value = null
+  filterSubject.value = null
+  applyFilters()
 }
+
+const onStageChange = () => {
+  filterClassTrack.value = null
+  filterSubject.value = null
+}
+
+const onClassTrackChange = () => {
+  filterSubject.value = null
+}
+
+const onSubjectChange = () => {}
+
+const onCollegeChange = () => {
+  filterDepartment.value = null
+  filterSpecialization.value = null
+  filterSemesterSubject.value = null
+}
+
+const onDepartmentChange = () => {
+  filterSpecialization.value = null
+  filterSemesterSubject.value = null
+}
+
+const onSpecializationChange = () => {
+  filterSemesterSubject.value = null
+}
+
+const onSemesterSubjectChange = () => {}
+
+const onInstituteFieldChange = () => {
+  filterInstituteEducationSystem.value = null
+  filterInstituteSpecialization.value = null
+  filterInstituteSubject.value = null
+}
+
+const onInstituteEducationSystemChange = () => {
+  filterInstituteSpecialization.value = null
+  filterInstituteSubject.value = null
+}
+
+const onInstituteSpecializationChange = () => {
+  filterInstituteSubject.value = null
+}
+
+const onInstituteSubjectChange = () => {}
+
+const headers = [
+  { title: '#', key: 'index', sortable: false, width: '60px' },
+  { title: 'نوع المؤسسة', key: 'institutionType', sortable: true, align: 'center', width: '100px' },
+  { title: 'رمز المخرج', key: 'code', sortable: true, width: '130px' },
+  { title: 'وصف مخرج التعلم (CLO)', key: 'name_ar', sortable: true },
+  { title: 'الوحدة الدراسية', key: 'unit_name', sortable: true },
+  { title: 'الأسئلة المتاحة', key: 'questions_count', sortable: true, align: 'center', width: '130px' },
+  { title: 'حالة التغطية', key: 'coverage_status', sortable: true, align: 'center', width: '160px' },
+]
+
+const buildParams = () => {
+  const p = {}
+  if (filterInstitutionType.value) {
+    p.institution_type = filterInstitutionType.value
+  }
+
+  if (filterInstitutionType.value === 'school') {
+    if (filterStage.value) p.stage = filterStage.value
+    if (filterClassTrack.value) p.class_track = filterClassTrack.value
+    if (filterSubject.value) p.subject_id = filterSubject.value
+  } else if (filterInstitutionType.value === 'university') {
+    if (filterCollege.value) p.college = filterCollege.value
+    if (filterDepartment.value) p.department = filterDepartment.value
+    if (filterSpecialization.value) p.specialization = filterSpecialization.value
+    if (filterSemesterSubject.value) p.semester_subject = filterSemesterSubject.value
+  } else if (filterInstitutionType.value === 'institute') {
+    if (filterInstituteField.value) p.field = filterInstituteField.value
+    if (filterInstituteEducationSystem.value) p.education_system = filterInstituteEducationSystem.value
+    if (filterInstituteSpecialization.value) p.specialization = filterInstituteSpecialization.value
+    if (filterInstituteSubject.value) p.subject_id = filterInstituteSubject.value
+  }
+
+  if (filterSearch.value) p.search = filterSearch.value
+  return p
+}
+
+const applyFilters = async () => {
+  loading.value = true
+  try {
+    const res = await reportsService.getAlignmentMatrixReport(buildParams())
+    items.value = res.clos || []
+  } catch (e) {
+    console.error(e)
+  } finally {
+    loading.value = false
+  }
+}
+
+const resetFilters = () => {
+  filterInstitutionType.value = null
+  filterStage.value = null
+  filterClassTrack.value = null
+  filterCollege.value = null
+  filterDepartment.value = null
+  filterSpecialization.value = null
+  filterSemesterSubject.value = null
+  filterInstituteField.value = null
+  filterInstituteEducationSystem.value = null
+  filterInstituteSpecialization.value = null
+  filterInstituteSubject.value = null
+  filterSubject.value = null
+  filterSearch.value = ''
+  applyFilters()
+}
+
+onMounted(applyFilters)
 </script>
 
 <style scoped>
-.main-card {
-  background: white;
-  border-color: rgba(0, 0, 0, 0.08) !important;
-}
-
-.stat-glass-card {
-  background: white;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  transition: all 0.25s ease;
-}
-
-.stat-glass-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.08);
-}
-
-.stat-icon-wrapper {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bg-indigo-gradient {
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-}
-
-.bg-emerald-gradient {
-  background: linear-gradient(135deg, #10b981, #059669);
-}
-
-.bg-rose-gradient {
-  background: linear-gradient(135deg, #f43f5e, #e11d48);
-}
-
-.bg-teal-gradient {
-  background: linear-gradient(135deg, #14b8a6, #0d9488);
-}
-
-.shadow-indigo {
-  box-shadow: 0 8px 20px -6px rgba(99, 102, 241, 0.18);
-}
-
-.shadow-emerald {
-  box-shadow: 0 8px 20px -6px rgba(16, 185, 129, 0.18);
-}
-
-.shadow-rose {
-  box-shadow: 0 8px 20px -6px rgba(244, 63, 94, 0.18);
-}
-
-.shadow-teal {
-  box-shadow: 0 8px 20px -6px rgba(20, 184, 166, 0.18);
+.gap-2 {
+  gap: 8px;
 }
 </style>

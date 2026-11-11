@@ -3,6 +3,8 @@ from rest_framework.routers import DefaultRouter
 
 from omr.apis.OMRSheetResultMVS import OMRSheetResultMVS
 from omr.apis.OMRQuestionResultMVS import OMRQuestionResultMVS
+from omr.apis.OMRResultsReportMVS import OMRResultsReportMVS
+from omr.apis.OMRReviewQuestionsReportMVS import OMRReviewQuestionsReportMVS
 from omr.apis.OMRHumanReviewMVS import OMRHumanReviewMVS
 from omr.apis.OMRFullExtractionMVS import OMRFullExtractionMVS
 from omr.apis.OMRScannerLabMVS import OMRScannerLabMVS
@@ -55,6 +57,8 @@ router.register(r'verification', OMRVerificationMVS, basename='verification')
 # Standard Tables
 router.register(r'omr-sheet-results', OMRSheetResultMVS, basename='omr-sheet-result')
 router.register(r'omr-question-results', OMRQuestionResultMVS, basename='omr-question-result')
+router.register(r'omr-results-report', OMRResultsReportMVS, basename='omr-results-report')
+router.register(r'omr-review-questions-report', OMRReviewQuestionsReportMVS, basename='omr-review-questions-report')
 
 urlpatterns = [
     # ─── Direct OpenCV/SVG OMR Engine Endpoints ──────────────────────────────

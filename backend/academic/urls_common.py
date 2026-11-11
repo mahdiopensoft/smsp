@@ -10,6 +10,7 @@ from academic.apis.common.LessonMVS import LessonMVS
 from academic.apis.common.LearningOutcomeMVS import LearningOutcomeMVS
 from academic.apis.common.ExamPeriodMVS import ExamPeriodMVS
 from academic.apis.common.StudentMVS import StudentMVS
+from academic.apis.common.StudentsReportMVS import StudentsReportMVS
 
 router_common = DefaultRouter()
 
@@ -28,3 +29,4 @@ router_common.register(r'exam-periods', ExamPeriodMVS, basename='exam-period')
 
 # الطلاب (Students)
 router_common.register(r'students', StudentMVS, basename='student')
+router_common.register(r'students-report', StudentsReportMVS, basename='students-report')

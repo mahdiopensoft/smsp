@@ -12,6 +12,10 @@ from exams.apis.ExamCreateMVS import ExamCreateMVS
 from exams.apis.ExamModelsMVS import ExamModelsMVS
 from exams.apis.ExamArchiveMVS import ExamArchiveMVS
 from exams.apis.ExamQualityReportMVS import ExamQualityReportMVS
+from exams.apis.ExamsGeneratedReportMVS import ExamsGeneratedReportMVS
+from exams.apis.ExamDistributionReportMVS import ExamDistributionReportMVS
+from exams.apis.CurriculumExclusionsReportMVS import CurriculumExclusionsReportMVS
+from exams.apis.StudentRegistrationsReportMVS import StudentRegistrationsReportMVS
 from exams.apis.TableOfSpecificationsMVS import TableOfSpecificationsMVS
 
 router = DefaultRouter()
@@ -28,6 +32,12 @@ router.register(r'exam-archive', ExamArchiveMVS, basename='exam-archive')
 
 # 4. شاشة تقرير جودة وأوراق الاختبار (Exam Quality & Papers Report Screen)
 router.register(r'exam-quality-report', ExamQualityReportMVS, basename='exam-quality-report')
+
+# تقارير الاختبارات الإضافية
+router.register(r'exams-generated-report', ExamsGeneratedReportMVS, basename='exams-generated-report')
+router.register(r'exam-distribution-report', ExamDistributionReportMVS, basename='exam-distribution-report')
+router.register(r'curriculum-exclusions-report', CurriculumExclusionsReportMVS, basename='curriculum-exclusions-report')
+router.register(r'student-registrations-report', StudentRegistrationsReportMVS, basename='student-registrations-report')
 
 # 5. شاشة جدول المواصفات (Table of Specifications Screen)
 router.register(r'table-of-specifications', TableOfSpecificationsMVS, basename='table-of-specifications')

@@ -50,6 +50,14 @@ class AuthorsReportMVS(AllMVS):
         spec_id = request.query_params.get('specialization') or request.query_params.get('fk_specialization')
         semester_subject_id = request.query_params.get('semester_subject') or request.query_params.get('semester_subject_id')
 
+        # Institute Filters
+        inst_field = request.query_params.get('field') or request.query_params.get('institute_field')
+        if inst_field:
+            qs = qs.filter(institution_type='institute')
+        inst_subject = request.query_params.get('institute_subject')
+        if inst_subject:
+            subject_id = inst_subject
+
         if subject_id:
             qs = qs.filter(
                 Q(lesson__unit__semester_subject__fk_subject_id=subject_id) |

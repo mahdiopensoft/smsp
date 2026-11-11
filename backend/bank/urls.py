@@ -12,6 +12,8 @@ from bank.apis.QuestionReviewMVS import QuestionReviewMVS
 from bank.apis.DashboardMVS import DashboardMVS
 from bank.apis.AuthorsReportMVS import AuthorsReportMVS
 from bank.apis.BankStatusReportMVS import BankStatusReportMVS
+from bank.apis.QuestionsDetailReportMVS import QuestionsDetailReportMVS
+from bank.apis.RejectedQuestionsReportMVS import RejectedQuestionsReportMVS
 from bank.apis.AuditLogMVS import AuditLogMVS
 from bank.apis.AnswerMVS import AnswerMVS
 
@@ -44,6 +46,10 @@ router.register(r'authors-report', AuthorsReportMVS, basename='authors-report')
 
 # 9. شاشة تقرير حالة البنك والمستويات (Bank Status Report Screen)
 router.register(r'bank-status-report', BankStatusReportMVS, basename='bank-status-report')
+
+# تقارير بنك الأسئلة الإضافية
+router.register(r'questions-detail-report', QuestionsDetailReportMVS, basename='questions-detail-report')
+router.register(r'rejected-questions-report', RejectedQuestionsReportMVS, basename='rejected-questions-report')
 
 # 10. سجل الرقابة والتدقيق (Audit Logs)
 router.register(r'audit-logs', AuditLogMVS, basename='audit-log')

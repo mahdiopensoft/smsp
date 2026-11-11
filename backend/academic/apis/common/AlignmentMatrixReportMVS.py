@@ -9,13 +9,14 @@ from academic.models.universities.UniversitySemesterSubject import UniversitySem
 from academic.models.universities.UniversityUnit import UniversityUnit as Unit
 from bank.models.Question import Question
 
+
 class AlignmentMatrixReportMVS(AllMVS):
     """
     Dedicated ModelViewSet for Course Learning Outcomes (CLO) Alignment Matrix Report.
     Endpoint: /api/academic/alignment-matrix-report/
     Used by: AlignmentMatrixReportView.vue
     Required for: ABET / NCAAA Academic Quality & Accreditation Audits.
-    Supports both University (SemesterSubject/Specialization) and School (Subject/ClassTrack).
+    Supports University (SemesterSubject/Specialization) learning outcomes.
     """
     queryset = LearningOutcome.objects.select_related('unit').all()
 
@@ -23,18 +24,6 @@ class AlignmentMatrixReportMVS(AllMVS):
     def matrix(self, request):
         """
         Calculates CLO alignment matrix for a specific subject, semester subject, or unit.
-        Query Params:
-            institution_type: str ('school', 'university', 'all')
-            college: int (optional)
-            department: int (optional)
-            specialization: int (optional)
-            semester_subject: int (optional)
-            subject_id: int (optional)
-            stage: int (optional)
-            level: int (optional)
-            class_track: int (optional)
-            unit_id: int (optional)
-            search: str (optional)
         """
         institution_type = request.query_params.get('institution_type')
         college_id = request.query_params.get('college')
@@ -44,21 +33,13 @@ class AlignmentMatrixReportMVS(AllMVS):
 
         subject_id = request.query_params.get('subject_id') or request.query_params.get('subject')
         unit_id = request.query_params.get('unit_id') or request.query_params.get('unit')
-        stage_id = request.query_params.get('stage')
-        level_id = request.query_params.get('level')
-        class_track_id = request.query_params.get('class_track') or request.query_params.get('class_track_id')
         search = request.query_params.get('search')
 
-        # If no subject specified, pick first subject / semester_subject based on institution_type
-        if not subject_id and not semester_subject_id and not stage_id and not level_id and not college_id:
-            if institution_type == 'university':
-                first_sem = SemesterSubject.objects.filter(is_deleted=False).select_related('course', 'fk_subject', 'fk_specialization').first()
-                if first_sem:
-                    semester_subject_id = first_sem.id
-            else:
-                first_subject = Subject.objects.filter(is_active=True).first()
-                if first_subject:
-                    subject_id = first_subject.id
+        # If no subject specified, pick first subject / semester_subject
+        if not subject_id and not semester_subject_id and not college_id:
+            first_sem = SemesterSubject.objects.filter(is_deleted=False).select_related('course', 'fk_subject', 'fk_specialization').first()
+            if first_sem:
+                semester_subject_id = first_sem.id
 
         # Determine subject / course display name
         subject_name = "مادة / مقرر عام"
@@ -76,7 +57,6 @@ class AlignmentMatrixReportMVS(AllMVS):
                 subj = Subject.objects.get(id=subject_id)
                 subject_name = getattr(subj, 'name_ar', None) or getattr(subj, 'name_en', None) or str(subj)
             except Subject.DoesNotExist:
-                # Check if it was a semester subject ID
                 try:
                     ss = SemesterSubject.objects.select_related('course', 'fk_subject', 'fk_specialization').get(id=subject_id)
                     course_title = ss.course.name_ar if ss.course else (ss.fk_subject.name_ar if ss.fk_subject else f"مقرر #{ss.id}")
@@ -88,23 +68,20 @@ class AlignmentMatrixReportMVS(AllMVS):
 
         # Filter learning outcomes
         los_qs = LearningOutcome.objects.all().select_related(
+            'unit',
+            'unit__semester_subject',
             'unit__semester_subject__fk_subject',
             'unit__semester_subject__course',
             'unit__semester_subject__fk_specialization__fk_college',
-            'unit__class_subject__subject',
-            'unit__class_subject__class_track__level__stage',
             'subject'
         )
 
-        # Institution type filter
-        if institution_type == 'university':
-            los_qs = los_qs.filter(unit__semester_subject__isnull=False)
-        elif institution_type == 'school':
-            los_qs = los_qs.filter(unit__class_subject__isnull=False)
-
         # University filters
         if semester_subject_id:
-            los_qs = los_qs.filter(unit__semester_subject_id=semester_subject_id)
+            los_qs = los_qs.filter(
+                Q(unit__semester_subject_id=semester_subject_id) |
+                Q(subject_id=semester_subject_id)
+            )
         if specialization_id:
             los_qs = los_qs.filter(unit__semester_subject__fk_specialization_id=specialization_id)
         if department_id:
@@ -112,23 +89,12 @@ class AlignmentMatrixReportMVS(AllMVS):
         if college_id:
             los_qs = los_qs.filter(unit__semester_subject__fk_specialization__fk_college_id=college_id)
 
-        # School filters
         if subject_id and not semester_subject_id:
             los_qs = los_qs.filter(
-                Q(unit__class_subject__subject_id=subject_id) |
                 Q(subject_id=subject_id) |
                 Q(unit__semester_subject__fk_subject_id=subject_id) |
                 Q(unit__semester_subject_id=subject_id)
             )
-
-        if stage_id:
-            los_qs = los_qs.filter(unit__class_subject__class_track__level__stage_id=stage_id)
-
-        if level_id:
-            los_qs = los_qs.filter(unit__class_subject__class_track__level_id=level_id)
-
-        if class_track_id:
-            los_qs = los_qs.filter(unit__class_subject__class_track_id=class_track_id)
 
         if unit_id:
             los_qs = los_qs.filter(unit_id=unit_id)
@@ -144,7 +110,6 @@ class AlignmentMatrixReportMVS(AllMVS):
         uncovered_clos = 0
 
         for lo in los_qs[:150]:
-            # Questions attached to this LO
             questions = Question.objects.filter(
                 learningOutcome=lo,
                 status=Question.StatusChoices.APPROVED
@@ -163,7 +128,6 @@ class AlignmentMatrixReportMVS(AllMVS):
                 coverage_status = 'تغطية كافية'
                 coverage_color = 'success'
 
-            # Bloom taxonomy breakdown
             bloom_counts = {
                 'remember': questions.filter(bloomLevel='تذكر').count(),
                 'understand': questions.filter(bloomLevel='فهم').count(),
@@ -173,7 +137,6 @@ class AlignmentMatrixReportMVS(AllMVS):
                 'create': questions.filter(bloomLevel='ابتكار').count(),
             }
 
-            # Difficulty breakdown
             difficulty_counts = {
                 'easy': questions.filter(difficulty=1).count(),
                 'medium': questions.filter(difficulty=2).count(),
