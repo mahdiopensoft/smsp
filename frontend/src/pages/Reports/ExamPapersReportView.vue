@@ -1,12 +1,10 @@
 <template>
-  <div class="qb-exam-papers-report-v4">
-    <!-- Filters Section -->
-    <filter-fields :label="'معايير التصفية والتقرير'" class="mb-4">
+  <div class="exam-papers-report-page">
+    <filter-fields label="معايير التصفية والتقرير" class="mb-4">
       <template #fields>
-        <!-- Institution Type Selector (مدارس / جامعات / الكل) -->
-        <v-col cols="12" sm="6" md="2">
+        <v-col cols="12" md="2">
           <v-select
-            v-model="filterInstitutionType"
+            v-model="filters.institution_type"
             :items="institutionTypeOptions"
             item-title="text"
             item-value="value"
@@ -15,105 +13,112 @@
             hide-details
             density="compact"
             variant="outlined"
-            class="mb-6"
             @update:model-value="onInstitutionTypeChange"
           />
         </v-col>
 
-        <!-- 🏫 School Filters -->
-        <template v-if="filterInstitutionType === 'school'">
-          <!-- Stage Filter -->
+        <template v-if="filters.institution_type !== 'university'">
           <auto-list
-            v-model="filter_fields.stageId"
+            v-model="filters.stageId"
             name="Stage"
             placeholder="المرحلة الدراسية"
             cols="2"
             :add="false"
-            @update:model-value="onStageChange"
+            @update:model-value="filters.classTrackId = null"
           />
-
-          <!-- ClassTrack Filter (الصف والمسار) -->
           <auto-list
-            v-model="filter_fields.classTrackId"
+            v-model="filters.classTrackId"
             name="ClassTrackByStage"
-            :param="filter_fields.stageId"
+            :param="filters.stageId"
             placeholder="الصف والمسار"
             cols="2"
             :add="false"
-            :disabled="!filter_fields.stageId"
+            :disabled="!filters.stageId"
+          />
+          <auto-list
+            v-model="filters.subjectId"
+            name="Subject"
+            placeholder="المادة الدراسية"
+            cols="2"
+            :add="false"
           />
         </template>
 
-        <!-- 🎓 University Filters -->
-        <template v-if="filterInstitutionType === 'university'">
+        <template v-if="filters.institution_type !== 'school'">
           <auto-list
-            v-model="filter_fields.college"
+            v-model="filters.college"
             name="College"
-            placeholder="الكلية الجامعية"
+            placeholder="الكلية"
             cols="2"
             :add="false"
-            @update:model-value="onCollegeChange"
+            @update:model-value="filters.department = null; filters.specialization = null; filters.semesterSubject = null"
           />
           <auto-list
-            v-model="filter_fields.department"
+            v-model="filters.department"
             name="DepartmentByCollege"
-            :param="filter_fields.college"
-            placeholder="القسم الأكاديمي"
+            :param="filters.college"
+            placeholder="القسم"
             cols="2"
             :add="false"
-            :disabled="!filter_fields.college"
-            @update:model-value="filter_fields.specialization = null"
+            :disabled="!filters.college"
+            @update:model-value="filters.specialization = null; filters.semesterSubject = null"
           />
           <auto-list
-            v-model="filter_fields.specialization"
+            v-model="filters.specialization"
             name="Specialization"
-            :param="filter_fields.department"
-            placeholder="التخصص والبرنامج"
+            :param="filters.department"
+            placeholder="التخصص"
             cols="2"
             :add="false"
-            :disabled="!filter_fields.department"
+            :disabled="!filters.department"
+            @update:model-value="filters.semesterSubject = null"
           />
           <auto-list
-            v-model="filter_fields.semesterSubject"
+            v-model="filters.semesterSubject"
             name="SemesterSubject"
-            :param="filter_fields.specialization"
-            placeholder="مقرر الفصل الجامعي"
+            :param="filters.specialization"
+            placeholder="المقرر الجامعي"
             cols="2"
             :add="false"
+            :disabled="!filters.specialization"
           />
         </template>
 
-        <!-- Subject Filter (Schools only) -->
         <auto-list
-          v-if="filterInstitutionType !== 'university'"
-          v-model="filter_fields.subjectId"
-          name="Subject"
-          placeholder="المادة الدراسية"
-          cols="2"
-          :add="false"
-        />
-
-        <!-- Exam Filter -->
-        <auto-list
-          v-model="filter_fields.examId"
+          v-model="filters.examId"
           name="Exam"
-          :param="examFilterParam"
-          :key="JSON.stringify(examFilterParam)"
+          :param="examParam"
+          :key="JSON.stringify(examParam)"
           placeholder="الاختبار المستهدف"
           cols="2"
           :add="false"
         />
 
-        <!-- Search Query -->
-        <v-col cols="12" sm="6" md="2">
+        <v-col cols="12" md="2">
+          <v-select
+            v-model="filters.is_present"
+            :items="[
+              { text: 'الكل', value: '' },
+              { text: 'حاضر', value: 'true' },
+              { text: 'غائب', value: 'false' }
+            ]"
+            item-title="text"
+            item-value="value"
+            placeholder="حالة الحضور"
+            hide-details
+            density="compact"
+            variant="outlined"
+          />
+        </v-col>
+
+        <v-col cols="12" md="2">
           <v-text-field
-            v-model="filter_fields.search"
-            :placeholder="filterInstitutionType === 'university' ? 'بحث باسم الطالب أو الرقم الأكاديمي...' : 'بحث باسم الطالب أو رقم الجلوس...'"
+            v-model="filters.search"
+            placeholder="بحث باسم الطالب أو رقم الجلوس..."
             prepend-inner-icon="mdi-magnify"
             clearable
             density="compact"
             variant="outlined"
-            class="mb-6"
             hide-details
           />
         </v-col>
@@ -126,7 +131,6 @@
             color="primary"
             variant="tonal"
             :click="resetFilters"
-            class="font-weight-bold rounded-lg px-6"
             label="إعادة ضبط"
             icon="mdi-refresh"
           />
@@ -134,94 +138,26 @@
       </template>
     </filter-fields>
 
-    <!-- Data Table -->
-    <CustomCard class="glass-card rounded-xl overflow-hidden" elevation="0">
+    <CustomCard elevation="0" class="rounded-xl overflow-hidden">
       <custom-data-table
-        ref="table"
-        v-bind="{
-          items: filteredPapers,
-          headers,
-        }"
-        hover
-        class="bg-transparent"
-        :items-per-page="15"
+        :items="items"
+        :headers="headers"
+        :loading="loading"
         :hasFilter="false"
-        :log="false"
-        :restore="false"
-        :customLoading="loading"
+        hover
       >
-        <!-- Student Name -->
-        <template v-slot:item.studentName="{ item }">
-          <div class="d-flex align-center py-2">
-            <v-avatar size="36" color="primary" variant="tonal" class="me-3 font-weight-bold">
-              <v-icon size="20">mdi-account</v-icon>
-            </v-avatar>
-            <div>
-              <div class="font-weight-bold text-body-1">{{ item.studentName }}</div>
-              <div class="text-caption text-medium-emphasis" v-if="item.governorateName">
-                <v-icon size="12" class="me-1">mdi-map-marker</v-icon>{{ item.governorateName }}
-              </div>
-            </div>
-          </div>
-        </template>
-
-        <!-- Student Code -->
-        <template v-slot:item.studentCode="{ item }">
-          <v-chip size="small" variant="outlined" color="primary" class="font-weight-bold font-mono">
-            {{ item.studentCode || 'غير محدد' }}
+        <template #item.index="{ index }">{{ index + 1 }}</template>
+        <template #item.isPresent="{ item }">
+          <v-chip
+            :color="item.isPresent ? 'success' : 'error'"
+            size="small"
+            variant="tonal"
+          >
+            {{ item.isPresent ? 'حاضر' : 'غائب' }}
           </v-chip>
         </template>
-
-        <!-- Version / Model -->
-        <template v-slot:item.versionLabel="{ item }">
-          <v-chip size="small" :color="getVersionColor(item.versionLabel)" variant="tonal" class="font-weight-bold px-3">
-            نموذج {{ item.versionLabel }}
-          </v-chip>
-        </template>
-
-        <!-- Academic Info -->
-        <template v-slot:item.academicInfo="{ item }">
-          <div>
-            <div class="font-weight-bold text-primary">{{ item.subjectName }}</div>
-            <div class="text-caption text-medium-emphasis">{{ item.levelName }} - {{ item.branchName }}</div>
-          </div>
-        </template>
-
-        <!-- Exam Title -->
-        <template v-slot:item.examTitle="{ item }">
-          <div class="d-flex align-center gap-1.5 flex-wrap">
-            <v-chip
-              size="x-small"
-              :color="item.institutionType === 'university' ? 'deep-purple' : 'teal'"
-              variant="tonal"
-              class="font-weight-bold"
-            >
-              {{ item.institutionType === 'university' ? '🎓 جامعي' : '🏫 مدرسي' }}
-            </v-chip>
-            <span class="font-weight-medium">{{ item.examTitle }}</span>
-          </div>
-        </template>
-
-        <!-- Questions Count -->
-        <template v-slot:item.totalQuestions="{ item }">
-          <v-chip color="indigo" variant="tonal" size="small" class="font-weight-bold px-3">
-            {{ item.totalQuestions }} سؤال
-          </v-chip>
-        </template>
-
-        <!-- Total Marks -->
-        <template v-slot:item.totalMarks="{ item }">
-          <v-chip color="emerald" variant="tonal" size="small" class="font-weight-bold px-3 text-success">
-            {{ item.totalMarks }} درجة
-          </v-chip>
-        </template>
-
-        <!-- Barcode -->
-        <template v-slot:item.barcodeHash="{ item }">
-          <div class="d-flex align-center font-mono text-caption text-medium-emphasis">
-            <v-icon size="16" class="me-1">mdi-barcode</v-icon>
-            <span>{{ item.barcodeHash ? item.barcodeHash.substring(0, 12) + '...' : '-' }}</span>
-          </div>
+        <template #item.barcodeHash="{ item }">
+          <code class="text-caption font-mono">{{ item.barcodeHash }}</code>
         </template>
       </custom-data-table>
     </CustomCard>
@@ -229,160 +165,114 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { reportsService } from '@/services/reportsService'
 
 const loading = ref(false)
-const studentPapers = ref([])
+const items = ref([])
 
-// ──────────────────────────────────────────────────
-// INSTITUTION & FILTERS STATE
-// ──────────────────────────────────────────────────
-const filterInstitutionType = ref('all')
 const institutionTypeOptions = [
-  { text: "الكل (مدارس وجامعات)", value: "all" },
-  { text: "🏫 مدارس فقط", value: "school" },
-  { text: "🎓 جامعات فقط", value: "university" },
+  { text: 'الكل (مدارس وجامعات)', value: 'all' },
+  { text: 'مدارس فقط', value: 'school' },
+  { text: 'جامعات فقط', value: 'university' },
 ]
 
-const filter_fields = ref({
+const filters = ref({
+  institution_type: 'all',
   stageId: null,
   classTrackId: null,
+  subjectId: null,
   college: null,
   department: null,
   specialization: null,
   semesterSubject: null,
-  subjectId: null,
   examId: null,
+  is_present: '',
   search: '',
 })
 
+const headers = [
+  { title: '#', key: 'index', sortable: false, width: '60px' },
+  { title: 'اسم الطالب', key: 'studentName', sortable: true },
+  { title: 'رقم الجلوس / الرقم الأكاديمي', key: 'studentCode', sortable: true },
+  { title: 'الاختبار', key: 'examTitle', sortable: true },
+  { title: 'النموذج', key: 'versionLabel', sortable: true, align: 'center' },
+  { title: 'المادة والصف', key: 'academicInfo', sortable: false },
+  { title: 'عدد الأسئلة', key: 'totalQuestions', sortable: true, align: 'center' },
+  { title: 'الدرجة الكلية', key: 'totalMarks', sortable: true, align: 'center' },
+  { title: 'حاضر؟', key: 'isPresent', sortable: true, align: 'center' },
+  { title: 'الباركود', key: 'barcodeHash', sortable: false },
+]
+
+const examParam = computed(() => {
+  const p = {}
+  if (filters.value.institution_type && filters.value.institution_type !== 'all') {
+    p.institution_type = filters.value.institution_type
+  }
+  if (filters.value.stageId) p.stage = filters.value.stageId
+  if (filters.value.classTrackId) p.class_track = filters.value.classTrackId
+  if (filters.value.college) p.college = filters.value.college
+  return Object.keys(p).length ? p : null
+})
+
 const onInstitutionTypeChange = () => {
-  filter_fields.value.stageId = null
-  filter_fields.value.classTrackId = null
-  filter_fields.value.college = null
-  filter_fields.value.department = null
-  filter_fields.value.specialization = null
-  filter_fields.value.semesterSubject = null
-  filter_fields.value.subjectId = null
-  filter_fields.value.examId = null
+  filters.value.stageId = null
+  filters.value.classTrackId = null
+  filters.value.subjectId = null
+  filters.value.college = null
+  filters.value.department = null
+  filters.value.specialization = null
+  filters.value.semesterSubject = null
+  filters.value.examId = null
   applyFilters()
 }
 
-const onStageChange = () => {
-  filter_fields.value.classTrackId = null
-}
-
-const onCollegeChange = () => {
-  filter_fields.value.department = null
-  filter_fields.value.specialization = null
-  filter_fields.value.semesterSubject = null
-}
-
-const examFilterParam = computed(() => {
-  if (filterInstitutionType.value === 'university') {
-    const p = { institution_type: 'university' }
-    if (filter_fields.value.college) p.college = filter_fields.value.college
-    if (filter_fields.value.department) p.department = filter_fields.value.department
-    if (filter_fields.value.specialization) p.specialization = filter_fields.value.specialization
-    if (filter_fields.value.semesterSubject) p.semester_subject = filter_fields.value.semesterSubject
-    return p
-  } else if (filterInstitutionType.value === 'school') {
-    const p = { institution_type: 'school' }
-    if (filter_fields.value.stageId) p.stage = filter_fields.value.stageId
-    if (filter_fields.value.classTrackId) p.class_track = filter_fields.value.classTrackId
-    if (filter_fields.value.subjectId) p.subject = filter_fields.value.subjectId
-    return p
+const buildParams = () => {
+  const p = {}
+  if (filters.value.institution_type && filters.value.institution_type !== 'all') {
+    p.institution_type = filters.value.institution_type
   }
-  return filter_fields.value.subjectId ? filter_fields.value.subjectId : null
-})
+  if (filters.value.stageId) p.stageId = filters.value.stageId
+  if (filters.value.classTrackId) p.classTrackId = filters.value.classTrackId
+  if (filters.value.subjectId) p.subjectId = filters.value.subjectId
+  if (filters.value.college) p.college = filters.value.college
+  if (filters.value.department) p.department = filters.value.department
+  if (filters.value.specialization) p.specialization = filters.value.specialization
+  if (filters.value.semesterSubject) p.semester_subject = filters.value.semesterSubject
+  if (filters.value.examId) p.examId = filters.value.examId
+  if (filters.value.is_present !== '') p.is_present = filters.value.is_present
+  if (filters.value.search) p.search = filters.value.search
+  return p
+}
 
 const applyFilters = async () => {
   loading.value = true
   try {
-    const params = {}
-    if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
-      params.institution_type = filterInstitutionType.value
-    }
-    if (filter_fields.value.stageId) params.stageId = filter_fields.value.stageId
-    if (filter_fields.value.classTrackId) params.classTrackId = filter_fields.value.classTrackId
-    if (filter_fields.value.college) params.college = filter_fields.value.college
-    if (filter_fields.value.department) params.department = filter_fields.value.department
-    if (filter_fields.value.specialization) params.specialization = filter_fields.value.specialization
-    if (filter_fields.value.semesterSubject) params.semester_subject = filter_fields.value.semesterSubject
-    if (filter_fields.value.subjectId) params.subjectId = filter_fields.value.subjectId
-    if (filter_fields.value.examId) params.examId = filter_fields.value.examId
-    if (filter_fields.value.search) params.search = filter_fields.value.search
-
-    const res = await reportsService.getExamQualityReport(params)
-    studentPapers.value = res.results || (Array.isArray(res) ? res : [])
-  } catch (err) {
-    console.error('Error loading exam papers report data:', err)
+    const res = await reportsService.getExamQualityReport(buildParams())
+    items.value = res.results || (Array.isArray(res) ? res : [])
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }
 }
 
-const resetFilters = async () => {
-  filterInstitutionType.value = 'all'
-  filter_fields.value = {
+const resetFilters = () => {
+  filters.value = {
+    institution_type: 'all',
     stageId: null,
     classTrackId: null,
+    subjectId: null,
     college: null,
     department: null,
     specialization: null,
     semesterSubject: null,
-    subjectId: null,
     examId: null,
+    is_present: '',
     search: '',
   }
-  await applyFilters()
+  applyFilters()
 }
 
-// Filtered items for DataTable
-const filteredPapers = computed(() => {
-  return studentPapers.value
-})
-
-// Table Headers (Dynamic by Institution Type)
-const headers = computed(() => {
-  const isUniv = filterInstitutionType.value === 'university'
-  return [
-    { title: 'اسم الطالب', key: 'studentName', sortable: true },
-    { title: isUniv ? 'الرقم الأكاديمي' : 'رقم الجلوس', key: 'studentCode', sortable: true },
-    { title: 'النموذج', key: 'versionLabel', sortable: true },
-    { title: isUniv ? 'المقرر والتخصص' : 'المادة والصف', key: 'academicInfo', sortable: false },
-    { title: 'الاختبار', key: 'examTitle', sortable: true },
-    { title: 'عدد الأسئلة', key: 'totalQuestions', sortable: true },
-    { title: 'الدرجة الكلية', key: 'totalMarks', sortable: true },
-    { title: 'الباركود', key: 'barcodeHash', sortable: false },
-  ]
-})
-
-// Version badge colors
-const getVersionColor = (label) => {
-  const map = { A: 'indigo', B: 'purple', C: 'amber', D: 'teal', 'أ': 'indigo', 'ب': 'purple', 'ج': 'amber', 'د': 'teal' }
-  return map[label] || 'primary'
-}
-
-// Backend Data Fetching
-onMounted(async () => {
-  await applyFilters()
-})
+onMounted(applyFilters)
 </script>
-
-<style scoped>
-.qb-exam-papers-report-v4 {
-  color: rgb(var(--v-theme-on-surface));
-}
-
-.glass-card {
-  background: rgb(var(--v-theme-surface)) !important;
-  border: 1px solid rgba(var(--v-border-color), 0.12) !important;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-}
-
-.font-mono {
-  font-family: monospace;
-}
-</style>
