@@ -1,0 +1,102 @@
+/* 
+  Global Button Overrides
+  Based on Flat Design 2.0 Principles
+*/
+
+.v-btn {
+  font-family: var(--font-family-sans) !important;
+  text-transform: capitalize !important;
+  letter-spacing: 0.0269rem !important;
+  font-weight: var(--font-weight-medium) !important;
+  transition: all 0.135s ease !important;
+}
+
+/* Default Size */
+.v-btn:not(.v-btn--icon).v-btn--size-default {
+  font-size: var(--font-size-base) !important; /* 15px */
+  line-height: 1.125rem !important;
+  padding-inline: 1.25rem !important;
+  min-height: 38px !important;
+  border-radius: 6px !important;
+}
+
+/* Small Size */
+.v-btn:not(.v-btn--icon).v-btn--size-small {
+  border-radius: 4px !important;
+  padding-inline: 0.75rem !important;
+  line-height: 1.125rem !important;
+  font-size: var(--font-size-sm) !important;
+}
+
+/* Large Size */
+.v-btn:not(.v-btn--icon).v-btn--size-large {
+  border-radius: 8px !important;
+  padding-inline: 1.5rem !important;
+  line-height: 1.625rem !important;
+  min-height: 48px !important;
+  font-size: var(--font-size-lg) !important;
+}
+
+/* Icon Buttons - Small */
+.v-btn--icon.v-btn--size-small {
+  height: 2.125rem !important; /* 34px */
+  width: 2.125rem !important;
+  border-radius: 4px !important;
+}
+
+.v-btn--icon.v-btn--size-small .v-icon {
+  font-size: 1.25rem !important;
+}
+
+/* Icon Buttons - Default */
+.v-btn--icon.v-btn--size-default {
+  height: 2.375rem !important; /* 38px */
+  width: 2.375rem !important;
+  border-radius: 6px !important;
+}
+
+/* Focus State (Accessibility & Glow) */
+.v-btn:focus-visible {
+  box-shadow: var(--shadow-glow-primary) !important;
+  outline: none !important;
+  z-index: 2;
+}
+
+/* Hover State - Flat Design 2.0 Principles */
+.v-btn:hover:not(.v-btn--disabled, .v-btn--loading) {
+  filter: brightness(0.92); /* Clean darkening effect without gradients */
+  transform: translateY(-1px); /* Very subtle lift */
+}
+
+/* Shadow for Depth (Elevated/Flat) - Soft Depth */
+.v-btn--variant-elevated,
+.v-btn--variant-flat {
+  box-shadow: var(--shadow-xs) !important;
+}
+
+.v-btn--variant-elevated:hover:not(.v-btn--disabled, .v-btn--loading),
+.v-btn--variant-flat:hover:not(.v-btn--disabled, .v-btn--loading) {
+  box-shadow: var(--shadow-sm) !important; /* Soft, subtle lift */
+}
+
+/* Active State (Tactile Feedback) */
+.v-btn:active:not(.v-btn--disabled, .v-btn--loading) {
+  transform: translateY(0) scale(0.98);
+  filter: brightness(0.88);
+  transition: all 0.05s ease !important;
+}
+
+/* Disabled State */
+.v-btn--disabled {
+  opacity: 0.45 !important;
+  filter: grayscale(0.2);
+}
+
+/* Spacing between prepended/appended icons and text */
+.v-btn__prepend {
+  margin-inline-end: 0.375rem !important;
+}
+
+.v-btn__append {
+  margin-inline-start: 0.375rem !important;
+}

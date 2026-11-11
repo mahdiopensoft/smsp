@@ -1,0 +1,345 @@
+/*
+  ═══════════════════════════════════════════════════════════════
+  Sidebar — THE MASTERPIECE EDITION (Ultra-High-End)
+  ═══════════════════════════════════════════════════════════════
+  
+  Design Philosophy: "Precision meets Artistry"
+  ───────────────────────────────────────────
+  • Spatial Harmony:  8px grid system, golden-ratio padding
+  • Visual Texture:   Subtle gradients, micro-borders, glassmorphism
+  • Typography:       Inter-style crispness (-0.01em letter-spacing)
+  • Interaction:      Cubic-bezier(0.2, 0, 0, 1) high-end easing
+*/
+
+/* ══════════════════════════════════════════════════════
+   1. The Shell (Drawer Surface)
+══════════════════════════════════════════════════════ */
+.sneat-sidebar.v-navigation-drawer {
+  background: linear-gradient(
+    180deg,
+    rgb(var(--v-theme-surface)) 0%,
+    rgba(var(--v-theme-surface), 0.98) 100%
+  ) !important;
+  border-inline-end: 1px solid rgba(var(--v-border-color), 0.05) !important;
+  /* Cinematic Depth Shadow */
+  box-shadow: 10px 0 30px -15px rgba(0, 0, 0, 0.05) !important;
+  transition:
+    transform 0.3s ease,
+    width 0.3s ease !important;
+  will-change: transform, width;
+  /* Drawer shell stays clean, internal card handles scroll */
+  overflow: hidden !important;
+}
+.sidebar-nav-card {
+  height: calc(100vh - 84px) !important;
+  overflow-y: auto !important;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ══════════════════════════════════════════════════════
+   2. Brand Architecture (ZONE 1)
+══════════════════════════════════════════════════════ */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  height: 76px;
+  margin-bottom: 8px;
+  position: relative;
+}
+
+/* Subtle separator for brand zone */
+.sidebar-brand::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 1.5rem;
+  right: 1.5rem;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(var(--v-border-color), 0.08) 0%,
+    transparent 100%
+  );
+}
+
+.sidebar-brand .app-logo,
+.sidebar-brand a {
+  display: flex;
+  align-items: center;
+  column-gap: 1rem;
+  text-decoration: none;
+}
+
+.sidebar-brand .app-logo-title {
+  font-size: 1.25rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.025em;
+  color: rgba(var(--v-theme-on-surface), 0.95);
+  background: linear-gradient(
+    135deg,
+    rgba(var(--v-theme-on-surface), 1) 0%,
+    rgba(var(--v-theme-on-surface), 0.7) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.sidebar-search-container {
+  padding: 16px 12px 20px; /* Aligned with v-list padding */
+}
+
+.sidebar-search-wrapper {
+  display: flex;
+  align-items: center;
+  background: rgba(var(--v-theme-on-surface), 0.04) !important;
+  border: 1px solid rgba(var(--v-border-color), 0.08) !important;
+  border-radius: 5px;
+  padding: 0 12px;
+  height: 44px; /* Matched with v-list-item height */
+  position: relative;
+  transition: all 0.2s ease;
+  cursor: text;
+}
+
+.sidebar-search-wrapper:hover {
+  background: rgba(var(--v-theme-on-surface), 0.06) !important;
+  border-color: rgba(var(--v-border-color), 0.15) !important;
+}
+
+.sidebar-search-wrapper:focus-within {
+  background: rgb(var(--v-theme-surface)) !important;
+  border-color: rgb(var(--v-theme-primary)) !important;
+  box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.12) !important;
+}
+
+.sidebar-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(var(--v-theme-on-surface), 0.8);
+  padding: 0 10px;
+  width: 100%;
+}
+
+.sidebar-search-wrapper:focus-within .search-icon {
+  color: rgb(var(--v-theme-primary));
+}
+
+.sidebar-search-input::placeholder {
+  color: rgba(var(--v-theme-on-surface), 0.4);
+  font-weight: 400;
+}
+
+.search-icon {
+  color: rgba(var(--v-theme-on-surface), 0.4);
+  transition: color 0.2s ease;
+}
+
+/* Shortcut visual hint */
+.search-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(var(--v-theme-on-surface), 0.05);
+  border: 1px solid rgba(var(--v-border-color), 0.1);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(var(--v-theme-on-surface), 0.4);
+  pointer-events: none;
+}
+
+#appViewId[rtl="true"] .search-shortcut {
+  flex-direction: row-reverse;
+}
+
+/* ══════════════════════════════════════════════════════
+   4. Navigation Artistry
+══════════════════════════════════════════════════════ */
+.sneat-sidebar .sidebar-nav.v-list {
+  padding: 0 12px 100px !important; /* Massive bottom padding for scroll space */
+  overflow-y: visible !important;
+}
+
+.sidebar-section-title {
+  font-size: 12px !important; /* Enhanced Hierarchy */
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  color: rgba(var(--v-theme-on-surface), 0.25) !important;
+  padding: 24px 16px 10px !important;
+}
+
+.sneat-sidebar .sidebar-nav .v-list-item {
+  min-height: 44px !important;
+  border-radius: 5px !important;
+  margin-bottom: 4px !important;
+  padding-inline: 14px !important;
+  color: rgba(var(--v-theme-on-surface)) !important;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.sneat-sidebar .sidebar-nav .v-list-item .v-list-item-title {
+  font-size: 14px !important; /* Standardized Readability */
+  font-weight: 500 !important;
+  letter-spacing: -0.01em;
+}
+
+/* Icon Aesthetics */
+.sneat-sidebar .sidebar-nav .v-list-item .v-list-item__prepend .v-icon {
+  font-size: 22px !important; /* Main Visual Anchor */
+  margin-inline-end: 14px !important;
+  opacity: 0.55;
+  transition: transform 0.15s ease-out, opacity 0.15s ease-out;
+  backface-visibility: hidden;
+}
+
+/* Subtle scaling for nested items — Semantic Hierarchy */
+.sneat-sidebar .sidebar-nav .v-list-group .v-list-item .v-list-item__prepend .v-icon {
+  font-size: 18px !important;
+  opacity: 0.45;
+}
+
+.sneat-sidebar .sidebar-nav .v-list-item:hover .v-list-item__prepend .v-icon {
+  transform: scale(1.12);
+  opacity: 1;
+}
+
+/* ── Hover ── */
+.sneat-sidebar .sidebar-nav .v-list-item:hover:not(.v-list-item--active) {
+  background: rgba(var(--v-theme-on-surface), 0.04) !important;
+  color: rgba(var(--v-theme-on-surface), 0.95) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Light Sweep Animation — Pantheon Interaction */
+.sneat-sidebar .sidebar-nav .v-list-item:hover::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  animation: light-sweep 0.8s ease-in-out;
+}
+
+@keyframes light-sweep {
+  100% {
+    left: 100%;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   6. The "Signature" Active State
+══════════════════════════════════════════════════════ */
+
+.sneat-sidebar .sidebar-nav > .v-list-item--active,
+.sneat-sidebar
+  .sidebar-nav
+  .v-list-group:has(.v-list-item--active)
+  > .v-list-item {
+  background: linear-gradient(
+    90deg,
+    rgba(var(--v-theme-primary), 0.1) 0%,
+    rgba(var(--v-theme-primary), 0.04) 100%
+  ) !important;
+  color: rgb(var(--v-theme-primary)) !important;
+  box-shadow: inset 0 0 0 1px rgba(var(--v-theme-primary), 0.08);
+}
+
+.sneat-sidebar .sidebar-nav > .v-list-item--active .v-list-item-title,
+.sneat-sidebar
+  .sidebar-nav
+  .v-list-group:has(.v-list-item--active)
+  > .v-list-item
+  .v-list-item-title {
+  font-weight: 700 !important;
+}
+
+.sneat-sidebar
+  .sidebar-nav
+  > .v-list-item--active
+  .v-list-item__prepend
+  .v-icon {
+  color: rgb(var(--v-theme-primary)) !important;
+  opacity: 1;
+  transform: scale(1.1) translateY(-1px);
+}
+
+/* The High-End "Light Bar" Indicator */
+.sneat-sidebar .sidebar-nav > .v-list-item--active::before,
+.sneat-sidebar
+  .sidebar-nav
+  .v-list-group:has(.v-list-item--active)
+  > .v-list-item::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 4px;
+  border-radius: 0 6px 6px 0;
+  /* background: rgb(var(--v-theme-primary), 0.7); */
+  /* box-shadow: 0 0 12px rgba(var(--v-theme-primary), 0.4); */
+  z-index: 2;
+}
+
+#appViewId[rtl="true"]
+  .sneat-sidebar
+  .sidebar-nav
+  > .v-list-item--active::before,
+#appViewId[rtl="true"]
+  .sneat-sidebar
+  .sidebar-nav
+  .v-list-group:has(.v-list-item--active)
+  > .v-list-item::before {
+  border-radius: 6px 0 0 6px;
+}
+
+/* ══════════════════════════════════════════════════════
+   7. Heirarchy Path (Tree Design)
+══════════════════════════════════════════════════════ */
+.tree-node-sneat .child-item {
+  margin-inline-start: 1rem;
+  border-inline-start: 1px solid rgba(var(--v-border-color), 0.06);
+  padding-inline-start: 0.5rem;
+}
+
+.tree-node-sneat .child-item.v-list-item--active {
+  border-inline-start-color: rgb(var(--v-theme-primary)) !important;
+  border-inline-start-width: 2px;
+}
+
+.sneat-sidebar .sidebar-nav .v-list-group__items {
+  padding-inline-start: 4px !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   8. Premium Micro-Scroll
+══════════════════════════════════════════════════════ */
+.sneat-sidebar ::-webkit-scrollbar {
+  width: 4px;
+}
+.sneat-sidebar ::-webkit-scrollbar-thumb {
+  background: rgba(var(--v-theme-on-surface), 0.08);
+  border-radius: 20px;
+}
+.sneat-sidebar ::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--v-theme-on-surface), 0.15);
+}
