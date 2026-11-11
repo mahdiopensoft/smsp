@@ -85,7 +85,7 @@ export function isQuestionTrueFalse(q: any, totalQuestions: number = 50): boolea
   return false
 }
 
-export function formatChoiceDisplay(choice: any, isTF: boolean, fallback: string = 'لم يُجب (فارغ)'): string {
+export function formatChoiceDisplay(choice: any, isTF: boolean, fallback: string = 'لم يُجب (فارغ)', options?: string[]): string {
   if (choice == null || choice === '' || choice === 'لم يُجب (فارغ)') {
     return fallback
   }
@@ -94,7 +94,24 @@ export function formatChoiceDisplay(choice: any, isTF: boolean, fallback: string
     const upper = str.toUpperCase()
     if (['A', '1', 'صح', 'ص', 'T', 'TRUE', '✓'].includes(upper)) return 'صح'
     if (['B', '2', 'خطأ', 'خ', 'F', 'FALSE', '✗'].includes(upper)) return 'خطأ'
+    return str
   }
+
+  // أسئلة الاختيارات المتعددة (MCQ)
+  // إذا كانت خيارات النموذج أرقاماً (1, 2, 3, 4) كما في الاختبارات اليمنية
+  // نقوم بمطابقة وعرض الأحرف والرموز بصيغة الخيار الرقمي الموحد لضمان التطابق التام بين العمودين
+  const isNumericOptions = !options || options.length === 0 || options.some(opt => ['1', '2', '3', '4'].includes(opt))
+  if (isNumericOptions) {
+    const letterToNum: Record<string, string> = {
+      'A': '1', 'B': '2', 'C': '3', 'D': '4', 'E': '5',
+      'أ': '1', 'ب': '2', 'ج': '3', 'د': '4', 'هـ': '5', 'ه': '5',
+    }
+    const upper = str.toUpperCase()
+    if (letterToNum[upper]) {
+      return letterToNum[upper]
+    }
+  }
+
   return str
 }
 
@@ -160,8 +177,21 @@ export function enrichQuestion(q: any, totalQuestions: number = 50): ReviewQuest
   q.is_true_false = isTF
   q.question_type = isTF ? 'صح وخطأ' : 'اختيارات'
   q.options = getQuestionOptions(q, totalQuestions)
-  q.correct_choice_display = formatChoiceDisplay(q.correct_choice, isTF, 'لم تُحدد')
-  q.marked_choice_display = formatChoiceDisplay(q.marked_choice, isTF, 'لم يُجب (فارغ)')
+  q.correct_choice_display = formatChoiceDisplay(q.correct_choice, isTF, 'لم تُحدد', q.options)
+  q.marked_choice_display = formatChoiceDisplay(q.marked_choice, isTF, 'لم يُجب (فارغ)', q.options)
+
+  // مطابقة منطقية حاسمة لمنع أي تعارض بين تظليل الطالب والإجابة النموذجية
+  if (q.correct_choice && q.marked_choice && q.marked_choice !== 'لم يُجب (فارغ)') {
+    const isMatch = normalizeChoice(q.marked_choice) === normalizeChoice(q.correct_choice)
+    q.is_correct = isMatch
+    const weight = Number(q.assigned_weight || 1.0)
+    if (isMatch) {
+      q.marks_awarded = (q.marks_awarded != null && Number(q.marks_awarded) > 0) ? q.marks_awarded : weight
+    } else {
+      q.marks_awarded = 0.0
+    }
+  }
+
   const statusInfo = getStatusChip(q)
   q.status = statusInfo.text
   q.score = q.is_correct

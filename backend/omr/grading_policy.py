@@ -20,6 +20,20 @@ class GradingDecision:
     explanation: str
 
 
+def normalize_choice(choice: Any) -> str:
+    """Standardize Arabic words, letters, numbers, and True/False symbols to standard uppercase Latin."""
+    if choice is None or choice == "":
+        return ""
+    c = str(choice).strip().upper()
+    mapping = {
+        "1": "A", "2": "B", "3": "C", "4": "D", "5": "E",
+        "أ": "A", "ا": "A", "ب": "B", "ج": "C", "د": "D", "هـ": "E", "ه": "E",
+        "صح": "A", "ص": "A", "T": "A", "TRUE": "A", "✓": "A",
+        "خطأ": "B", "خ": "B", "F": "B", "FALSE": "B", "✗": "B",
+    }
+    return mapping.get(c, c)
+
+
 def evaluate_question_score(
     marked_choice: Optional[str],
     all_marked_choices: List[str],
@@ -48,10 +62,20 @@ def evaluate_question_score(
             explanation="السؤال متروك فارغاً بدون تظليل."
         )
 
-    # Normalize choices for safe comparison
-    norm_correct = str(correct_choice).strip().upper() if correct_choice else None
-    norm_marked = str(marked_choice).strip().upper() if marked_choice else None
-    norm_all = [str(c).strip().upper() for c in all_marked_choices]
+    # Normalize choices for safe comparison (Arabic words, numbers, and Latin letters)
+    norm_correct = normalize_choice(correct_choice) if correct_choice else None
+    norm_marked = normalize_choice(marked_choice) if marked_choice else None
+    norm_all = [normalize_choice(c) for c in all_marked_choices if c]
+
+    # If no answer key is defined for this question
+    if not norm_correct:
+        return GradingDecision(
+            marks_awarded=0.0,
+            is_correct=None,
+            status_code="NO_ANSWER_KEY",
+            needs_review=True,
+            explanation="لم يتم تحديد إجابة نموذجية لهذا السؤال."
+        )
 
     # 2. Multiple Marked Bubbles (>= 2 choices filled)
     if len(norm_all) >= 2 or bubble_state == "multiple":

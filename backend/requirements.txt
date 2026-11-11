@@ -29,3 +29,7 @@ Pillow>=10.0.0
 torch>=2.0.0
 ultralytics>=8.0.0
 
+# Barcode & QR Code Recognition
+zxing-cpp>=2.2.0
+pyzbar>=0.1.9
+

@@ -74,7 +74,7 @@
               <div class="text-caption text-medium-emphasis font-weight-medium" style="font-size: 11px !important;">الدرجة المحتسبة</div>
               <div class="d-flex align-baseline gap-1">
                 <span class="font-weight-black text-h6 text-primary font-mono leading-none">
-                  {{ Number(activeReviewSheet.mcq_score ?? 0).toFixed(2) }}
+                  {{ currentScore.toFixed(2) }}
                 </span>
                 <span class="text-caption text-medium-emphasis font-mono">
                   / {{ Number(activeReviewSheet.mcq_max_score ?? activeReviewSheet.total_questions ?? 0).toFixed(2) }}
@@ -85,7 +85,7 @@
               class="center-count-badge unified-badge-primary px-2 py-0.5 text-caption font-mono font-weight-bold"
               style="font-size: 11px !important;"
             >
-              {{ Math.round(((activeReviewSheet.mcq_score ?? 0) / (activeReviewSheet.mcq_max_score || activeReviewSheet.total_questions || 1)) * 100) }}%
+              {{ Math.round((currentScore / (activeReviewSheet.mcq_max_score || activeReviewSheet.total_questions || 1)) * 100) }}%
             </div>
           </div>
 
@@ -238,6 +238,16 @@ const enrichedQuestions = computed(() => {
   const rawQs = props.activeReviewSheet?.questions || []
   const total = props.activeReviewSheet?.total_questions || rawQs.length || 50
   return rawQs.map((q: any) => enrichQuestion({ ...q }, total))
+})
+
+const currentScore = computed(() => {
+  if (enrichedQuestions.value && enrichedQuestions.value.length > 0) {
+    const hasAnyCorrect = enrichedQuestions.value.some((q: any) => q.is_correct === true)
+    if (hasAnyCorrect) {
+      return enrichedQuestions.value.reduce((acc: number, q: any) => acc + (q.is_correct ? Number(q.marks_awarded || q.assigned_weight || 1.0) : 0), 0)
+    }
+  }
+  return Number(props.activeReviewSheet?.mcq_score ?? 0)
 })
 
 watch(

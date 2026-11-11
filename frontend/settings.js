@@ -1,9 +1,16 @@
-const url = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL)
+const envUrl = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL)
   ? import.meta.env.VITE_API_BASE_URL
-  : (typeof window !== 'undefined' && window.location && window.location.origin && !window.location.origin.includes('localhost') && !window.location.origin.includes('127.0.0.1'))
-    ? (window.location.origin.endsWith('/') ? window.location.origin : window.location.origin + '/')
-    : "http://localhost:5001/"
+  : ''
 
+const isBrowserProd = typeof window !== 'undefined' && window.location && window.location.origin &&
+  !window.location.origin.includes('localhost') && !window.location.origin.includes('127.0.0.1')
+
+// Priority: Explicit production URL (https://maktabab.opensoftye.net/), or dynamic browser origin, or localhost
+const url = envUrl
+  ? (envUrl.endsWith('/') ? envUrl : envUrl + '/')
+  : (isBrowserProd
+      ? (window.location.origin.endsWith('/') ? window.location.origin : window.location.origin + '/')
+      : "http://localhost:5001/")
 
 function remove_http(rawUrl) {
   return rawUrl.replace(/^https?:\/\//, '')
@@ -11,7 +18,7 @@ function remove_http(rawUrl) {
 
 const websocket_url = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_WS_URL)
   ? import.meta.env.VITE_WS_URL
-  : remove_http(url)
+  : (isBrowserProd ? (window.location.host || remove_http(url)) : remove_http(url))
 
 var settings = {
   port: (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_PORT)

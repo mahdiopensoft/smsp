@@ -1213,7 +1213,6 @@ async function printOfficialPaper() {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
 .yemeni-official-question-paper {
   font-family: 'Amiri', 'Traditional Arabic', 'Simplified Arabic', 'Noto Naskh Arabic', Tahoma, Arial, sans-serif !important;

@@ -118,6 +118,67 @@ var routes_paths = {
       meta: { requiresAuth: true, title: "تفاصيل تصحيح ورقة الإجابة" },
       props: true,
     },
+    // ── OMR Core Direct Routes ──────────────────────────────────────────
+    {
+      path: "omr-templates",
+      name: "omr-templates-direct",
+      component: () => import("../pages/OMRSystem/OMRTemplatesView.vue"),
+      meta: { requiresAuth: true, title: "مكتبة القوالب وسياسات التصحيح" },
+    },
+    {
+      path: "omr-settings",
+      name: "omr-settings-direct",
+      component: () => import("../pages/OMRSystem/OMRTemplatesView.vue"),
+      meta: { requiresAuth: true, title: "إعدادات وسياسات الذكاء الاصطناعي والتصحيح" },
+    },
+    {
+      path: "omr-template-builder",
+      name: "omr-template-builder-direct",
+      component: () => import("../pages/OMRSystem/OMRTemplateBuilderView.vue"),
+      meta: { requiresAuth: true, title: "مصمم قوالب التصحيح OMR" },
+    },
+    {
+      path: "omr-exams",
+      name: "omr-exams-direct",
+      component: () => import("../pages/OMRSystem/OMRExamsView.vue"),
+      meta: { requiresAuth: true, title: "استلام وتجهيز الاختبارات" },
+    },
+    {
+      path: "omr-print-registry",
+      name: "omr-print-registry-direct",
+      component: () => import("../pages/OMRSystem/OMRPrintRegistryView.vue"),
+      meta: { requiresAuth: true, title: "طباعة أوراق الإجابة" },
+    },
+    {
+      path: "omr-scanner",
+      name: "omr-scanner-direct",
+      component: () => import("../pages/OMRSystem/OMRScanningView.vue"),
+      meta: { requiresAuth: true, title: "المسح والتصحيح الآلي" },
+    },
+    {
+      path: "omr-submissions",
+      name: "omr-submissions-direct",
+      component: () => import("../pages/OMRSystem/OMRSubmissionsView.vue"),
+      meta: { requiresAuth: true, title: "سجل أوراق الإجابة المصححة" },
+    },
+    {
+      path: "omr-gradebook",
+      name: "omr-gradebook-direct",
+      component: () => import("../pages/OMRSystem/OMRGradebookView.vue"),
+      meta: { requiresAuth: true, title: "كشف الدرجات ورصد الكنترول" },
+    },
+    {
+      path: "omr-verification",
+      name: "omr-verification-direct",
+      component: () => import("../pages/OMRSystem/OMRVerificationView.vue"),
+      meta: { requiresAuth: true, title: "التحقق الهندسي والجودة" },
+    },
+    {
+      path: "omr-scanner-lab",
+      name: "omr-scanner-lab-direct",
+      component: () => import("../pages/OMRSystem/OMRScannerLabView.vue"),
+      meta: { requiresAuth: true, title: "مختبر المسح التجريبي" },
+    },
     {
       path: "instructions",
       name: "instructions",

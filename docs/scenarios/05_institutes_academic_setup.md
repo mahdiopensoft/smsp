@@ -2,6 +2,30 @@
 
 ---
 
+## بطاقة إحصائيات وحصر شاشات المنظومة (System Screens Inventory & Statistics)
+
+> [!IMPORTANT]
+> **إجمالي عدد شاشات هذه الوحدة:** 12 شاشة معتمدة في منظومة التعليم الفني والمهني والمعاهد.
+> يغطي هذا الدليل المجالات، أنظمة التدريب، التخصصات، الخطط الدراسية، المواد، ومسارات الاعتماد.
+
+### جدول حصر شاشات الوحدة:
+| # | معرّف الشاشة (ID) | اسم الشاشة بالعربية | الاسم بالإنجليزية | المسار (Route) | المكون البرمجي (Component) | الوظيفة التشغيلية |
+|:---:|:---:|---|---|---|---|---|
+| **1** | 88 | المجالات المهنية والتقنية | Institute Fields | `institutes-fields` | `InstituteFieldsView` | القطاعات الكبرى (صناعي، تجاري، زراعي) |
+| **2** | 89 | أنظمة التعليم والتدريب | Institute Education Systems | `institutes-education-systems` | `InstituteEducationSystemsView` | أطر الدراسة والاختبار الوزاري الشامل |
+| **3** | 90 | التخصصات المهنية والتقنية | Institute Specializations | `institutes-specializations` | `InstituteSpecializationsView` | المهن والتخصصات الفنية ومؤهلات القبول |
+| **4** | 91 | شروط وضوابط القبول والتسجيل | Admission Requirements | `institutes-admission-requirements` | `InstituteAdmissionRequirementsView` | النسب والوثائق وشروط التجسير |
+| **5** | 92 | الخطط الدراسية للمعاهد | Institute Curricula | `institutes-curricula` | `InstituteCurriculaView` | إصدارات الخطط المعتمدة وساعات التدريب |
+| **6** | 93 | الدفعات والأفواج | Institute Batches | `institutes-batches` | `InstituteBatchesView` | أفواج الخريجين وتواريخ التخرج |
+| **7** | 94 | المستويات الدراسية للمعاهد | Institute Levels | `institutes-levels` | `InstituteLevelsView` | السنوات التدريبية (1 إلى 3) |
+| **8** | 95 | الفصول والفترات الدراسية | Institute Semesters | `institutes-semesters` | `InstituteSemestersView` | الفصول والتدريب الميداني الصيفي |
+| **9** | 96 | المواد الدراسية للمعاهد | Institute Subjects | `institutes-subjects` | `InstituteSubjectsView` | المواد النظرية والورش والمعامل |
+| **10** | 97 | مقررات الخطط والفصول | Curriculum Subjects | `institutes-curriculum-subjects` | `InstituteCurriculumSubjectsView` | خطة المواد والاختبار الوزاري الشامل |
+| **11** | 98 | الدورات التدريبية القصيرة | Institute Short Courses | `institutes-short-courses` | `InstituteShortCoursesView` | الدورات الموازية والشهادات المهنية |
+| **12** | 99 | تحقيق المهنة والمسارات الخاصة | Special Tracks & Accreditation | `institutes-special-tracks` | `InstituteSpecialTracksView` | رخص مزاولة المهنة والتقييم العملي |
+
+---
+
 ## مقدمة الوحدة
 تغطي هذه الوحدة الهياكل الأكاديمية والمهنية الخاصة بالمعاهد الفنية والتقنية ومراكز التدريب المهني. تتميز منظومة المعاهد بوجود مجالات تخصصية دقيقة (صناعية، تجارية، زراعية، بحرية، فندقية، تقنية)، وأنظمة دراسية متعددة الأطر (دبلوم تقني، دبلوم مهني، تدريب مهني، دورات قصيرة)، بالإضافة إلى خطط دراسية ترتبط بالاختبارات الوزارية الشاملة وتقييم المهارات العملية ونماذج التصحيح الآلي OMR.
 
