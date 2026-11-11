@@ -1,33 +1,24 @@
 <template>
-  <div class="exam-papers-report-page">
-    <filter-fields label="معايير التصفية والتقرير" class="mb-4">
+  <div class="exam-papers-report-page pa-4 pa-md-6">
+    <filter-fields label="معايير التصفية والتقرير" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
       <template #fields>
-        <!-- اختيار نوع المؤسسة التعليمية (مدارس / جامعات / معاهد) بدون خيار الكل -->
-        <v-col cols="12" sm="6" :md="filterInstitutionType ? 3 : 4">
-          <v-select
+        <!-- 1. اختيار نوع المؤسسة التعليمية الموحد -->
+        <v-col cols="12" sm="6" md="3">
+          <auto-list
             v-model="filterInstitutionType"
-            :items="institutionTypeOptions"
-            item-title="text"
-            item-value="value"
+            name="InstitutionType"
             label="نوع المؤسسة التعليمية"
-            placeholder="اختر نوع المؤسسة"
-            prepend-inner-icon="mdi-domain"
-            hide-details
-            clearable
-            density="compact"
-            variant="outlined"
+            placeholder="نوع المؤسسة التعليمية"
+            cols="12"
+            :add="false"
             @update:model-value="onInstitutionTypeChange"
-          >
-            <template v-slot:item="{ props, item }">
-              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
-            </template>
-          </v-select>
+          />
         </v-col>
 
         <!-- الظهور مشروط باختيار نوع المؤسسة -->
-        <template v-if="filterInstitutionType">
+        <!-- الظهور مشروط باختيار نوع المؤسسة -->
+        <template v-if="filterInstitutionType === 'school' || !filterInstitutionType || filterInstitutionType === 'all'">
           <!-- 🏫 فلاتر المدارس -->
-          <template v-if="filterInstitutionType === 'school'">
             <auto-list
               v-model="filterStage"
               name="Stage"
@@ -139,7 +130,6 @@
               @update:model-value="onInstituteSubjectChange"
             />
           </template>
-        </template>
 
         <auto-list
           v-model="filterExamId"
@@ -193,29 +183,41 @@
       </template>
     </filter-fields>
 
-    <CustomCard elevation="0" class="rounded-xl overflow-hidden">
+    <div class="main-card rounded-2xl overflow-hidden mb-6">
       <custom-data-table
         :items="items"
         :headers="headers"
-        :loading="loading"
+        :getData="applyFilters"
+        :customLoading="loading"
         :hasFilter="false"
-        hover
+        :log="false"
+        :restore="false"
+        :actions="false"
+        :search="true"
+        :numbering="true"
+        class="bg-transparent"
       >
-        <template #item.index="{ index }">{{ index + 1 }}</template>
-        <template #item.isPresent="{ item }">
-          <v-chip
-            :color="item.isPresent ? 'success' : 'error'"
-            size="small"
-            variant="tonal"
-          >
-            {{ item.isPresent ? 'حاضر' : 'غائب' }}
-          </v-chip>
-        </template>
-        <template #item.barcodeHash="{ item }">
-          <code class="text-caption font-mono">{{ item.barcodeHash }}</code>
+        <template v-slot:item-slot="{ item, key, index }">
+          <template v-if="key === 'index'">
+            <div class="d-flex justify-center align-center">
+              <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+            </div>
+          </template>
+          <template v-else-if="key === 'isPresent'">
+            <v-chip
+              :color="item.isPresent ? 'success' : 'error'"
+              size="small"
+              variant="tonal"
+            >
+              {{ item.isPresent ? 'حاضر' : 'غائب' }}
+            </v-chip>
+          </template>
+          <template v-else-if="key === 'barcodeHash'">
+            <code class="text-caption font-mono">{{ item.barcodeHash }}</code>
+          </template>
         </template>
       </custom-data-table>
-    </CustomCard>
+    </div>
   </div>
 </template>
 
@@ -224,15 +226,13 @@ import { ref, computed, onMounted } from 'vue'
 import { reportsService } from '@/services/reportsService'
 
 const loading = ref(false)
-const items = ref([])
+const items = ref({
+  results: [],
+  count: 0,
+})
 
 // المؤسسة التعليمية
-const filterInstitutionType = ref(null)
-const institutionTypeOptions = [
-  { text: 'تعليم مدرسي', value: 'school', icon: 'mdi-school' },
-  { text: 'تعليم جامعي', value: 'university', icon: 'mdi-domain' },
-  { text: 'معاهد وتدريب مهني', value: 'institute', icon: 'mdi-tools' },
-]
+const filterInstitutionType = ref('school')
 
 // فلاتر المدارس
 const filterStage = ref(null)
@@ -258,7 +258,7 @@ const filterSearch = ref('')
 
 const subjectFilterParam = computed(() => {
   const p = {}
-  if (filterInstitutionType.value) p.institution_type = filterInstitutionType.value
+  if (filterInstitutionType.value && filterInstitutionType.value !== 'all') p.institution_type = filterInstitutionType.value
   if (filterClassTrack.value) p.class_track = filterClassTrack.value
   else if (filterStage.value) p.stage = filterStage.value
   return Object.keys(p).length ? p : null
@@ -278,7 +278,7 @@ const instituteSubjectParam = computed(() => {
 
 const examParam = computed(() => {
   const p = {}
-  if (filterInstitutionType.value) p.institution_type = filterInstitutionType.value
+  if (filterInstitutionType.value && filterInstitutionType.value !== 'all') p.institution_type = filterInstitutionType.value
   if (filterStage.value) p.stage = filterStage.value
   if (filterClassTrack.value) p.class_track = filterClassTrack.value
   if (filterCollege.value) p.college = filterCollege.value
@@ -376,11 +376,11 @@ const headers = [
 
 const buildParams = () => {
   const p = {}
-  if (filterInstitutionType.value) {
+  if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
     p.institution_type = filterInstitutionType.value
   }
 
-  if (filterInstitutionType.value === 'school') {
+  if (filterInstitutionType.value === 'school' || !filterInstitutionType.value || filterInstitutionType.value === 'all') {
     if (filterStage.value) p.stageId = filterStage.value
     if (filterClassTrack.value) p.classTrackId = filterClassTrack.value
     if (filterSubject.value) p.subjectId = filterSubject.value
@@ -415,7 +415,7 @@ const applyFilters = async () => {
 }
 
 const resetFilters = () => {
-  filterInstitutionType.value = null
+  filterInstitutionType.value = 'school'
   filterStage.value = null
   filterClassTrack.value = null
   filterCollege.value = null

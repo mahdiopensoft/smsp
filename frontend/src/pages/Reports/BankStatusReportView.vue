@@ -1,33 +1,24 @@
 <template>
-  <div class="bank-status-report-page">
-    <filter-fields label="تصفية بيانات بنك الأسئلة" class="mb-4">
+  <div class="bank-status-report-page pa-4 pa-md-6">
+    <filter-fields label="تصفية بيانات بنك الأسئلة" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
       <template #fields>
-        <!-- اختيار نوع المؤسسة التعليمية (مدارس / جامعات / معاهد) بدون خيار الكل -->
-        <v-col cols="12" sm="6" :md="filterInstitutionType ? 3 : 4">
-          <v-select
+        <!-- 1. اختيار نوع المؤسسة التعليمية الموحد -->
+        <v-col cols="12" sm="6" md="3">
+          <auto-list
             v-model="filterInstitutionType"
-            :items="institutionTypeOptions"
-            item-title="text"
-            item-value="value"
+            name="InstitutionType"
             label="نوع المؤسسة التعليمية"
-            placeholder="اختر نوع المؤسسة"
-            prepend-inner-icon="mdi-domain"
-            hide-details
-            clearable
-            density="compact"
-            variant="outlined"
+            placeholder="نوع المؤسسة التعليمية"
+            cols="12"
+            :add="false"
             @update:model-value="onInstitutionTypeChange"
-          >
-            <template v-slot:item="{ props, item }">
-              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
-            </template>
-          </v-select>
+          />
         </v-col>
 
         <!-- الظهور مشروط باختيار نوع المؤسسة -->
-        <template v-if="filterInstitutionType">
+        <!-- الظهور مشروط باختيار نوع المؤسسة -->
+        <template v-if="filterInstitutionType === 'school' || !filterInstitutionType || filterInstitutionType === 'all'">
           <!-- 🏫 فلاتر المدارس -->
-          <template v-if="filterInstitutionType === 'school'">
             <auto-list
               v-model="filterStage"
               name="Stage"
@@ -139,7 +130,6 @@
               @update:model-value="onInstituteSubjectChange"
             />
           </template>
-        </template>
 
         <v-col cols="auto" class="d-flex align-center gap-2 py-2">
           <custom-btn type="filter" :loading="loading" :click="applyFilters" />
@@ -154,26 +144,38 @@
       </template>
     </filter-fields>
 
-    <CustomCard elevation="0" class="rounded-xl overflow-hidden">
+    <div class="main-card rounded-2xl overflow-hidden mb-6">
       <custom-data-table
-        :items="subjectRows"
+        :items="items"
         :headers="headers"
-        :loading="loading"
+        :getData="applyFilters"
+        :customLoading="loading"
         :hasFilter="false"
-        hover
+        :log="false"
+        :restore="false"
+        :actions="false"
+        :search="true"
+        :numbering="true"
+        class="bg-transparent"
       >
-        <template #item.index="{ index }">{{ index + 1 }}</template>
-        <template #item.coverageLabel="{ item }">
-          <v-chip
-            :color="getCoverageColor(item.coverage)"
-            size="small"
-            variant="tonal"
-          >
-            {{ item.coverageLabel }}
-          </v-chip>
+        <template v-slot:item-slot="{ item, key, index }">
+          <template v-if="key === 'index'">
+            <div class="d-flex justify-center align-center">
+              <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+            </div>
+          </template>
+          <template v-else-if="key === 'coverageLabel'">
+            <v-chip
+              :color="getCoverageColor(item.coverage)"
+              size="small"
+              variant="tonal"
+            >
+              {{ item.coverageLabel }}
+            </v-chip>
+          </template>
         </template>
       </custom-data-table>
-    </CustomCard>
+    </div>
   </div>
 </template>
 
@@ -185,12 +187,7 @@ const loading = ref(false)
 const overviewData = ref({})
 
 // خيارات نوع المؤسسة بدون "الكل"
-const filterInstitutionType = ref(null)
-const institutionTypeOptions = [
-  { text: 'تعليم مدرسي', value: 'school', icon: 'mdi-school' },
-  { text: 'تعليم جامعي', value: 'university', icon: 'mdi-domain' },
-  { text: 'معاهد وتدريب مهني', value: 'institute', icon: 'mdi-tools' },
-]
+const filterInstitutionType = ref('school')
 
 // فلاتر المدارس
 const filterStage = ref(null)
@@ -213,7 +210,7 @@ const filterSubject = ref(null)
 
 const subjectFilterParam = computed(() => {
   const p = {}
-  if (filterInstitutionType.value) p.institution_type = filterInstitutionType.value
+  if (filterInstitutionType.value && filterInstitutionType.value !== 'all') p.institution_type = filterInstitutionType.value
   if (filterClassTrack.value) p.class_track = filterClassTrack.value
   else if (filterStage.value) p.stage = filterStage.value
   return Object.keys(p).length ? p : null
@@ -309,11 +306,11 @@ const getCoverageColor = (coverage) => {
 
 const buildParams = () => {
   const p = {}
-  if (filterInstitutionType.value) {
+  if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
     p.institution_type = filterInstitutionType.value
   }
 
-  if (filterInstitutionType.value === 'school') {
+  if (filterInstitutionType.value === 'school' || !filterInstitutionType.value || filterInstitutionType.value === 'all') {
     if (filterStage.value) p.stage = filterStage.value
     if (filterClassTrack.value) p.class_track = filterClassTrack.value
     if (filterSubject.value) p.subject = filterSubject.value
@@ -353,7 +350,7 @@ const applyFilters = async () => {
 }
 
 const resetFilters = () => {
-  filterInstitutionType.value = null
+  filterInstitutionType.value = 'school'
   filterStage.value = null
   filterClassTrack.value = null
   filterCollege.value = null

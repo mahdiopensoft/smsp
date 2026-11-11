@@ -1,217 +1,276 @@
 <template>
-  <div class="rejected-questions-report-page">
-    <filter-fields label="معايير التصفية والبحث في سجل الأسئلة المرفوضة" class="mb-4">
+  <div class="rejected-questions-report-page pa-4 pa-md-6">
+    <filter-fields label="معايير التصفية والبحث في سجل الأسئلة المرفوضة" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
       <template #fields>
-        <!-- اختيار نوع المؤسسة التعليمية (مدارس / جامعات / معاهد) بدون خيار الكل -->
-        <v-col cols="12" sm="6" :md="filterInstitutionType ? 3 : 4">
-          <v-select
+        <!-- 1. اختيار نوع المؤسسة التعليمية الموحد بنمط النظام -->
+        <v-col cols="12" sm="6" md="3">
+          <auto-list
             v-model="filterInstitutionType"
-            :items="institutionTypeOptions"
-            item-title="text"
-            item-value="value"
+            name="InstitutionType"
             label="نوع المؤسسة التعليمية"
-            placeholder="اختر نوع المؤسسة"
-            prepend-inner-icon="mdi-domain"
-            hide-details
-            clearable
-            density="compact"
-            variant="outlined"
+            placeholder="نوع المؤسسة التعليمية"
+            cols="12"
+            :add="false"
             @update:model-value="onInstitutionTypeChange"
-          >
-            <template v-slot:item="{ props, item }">
-              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
-            </template>
-          </v-select>
+          />
         </v-col>
 
         <!-- الظهور مشروط باختيار نوع المؤسسة: إما مدارس أو جامعات أو معاهد -->
-        <template v-if="filterInstitutionType">
+        <template v-if="filterInstitutionType === 'school' || !filterInstitutionType || filterInstitutionType === 'all'">
           <!-- 🏫 فلاتر المدارس -->
-          <template v-if="filterInstitutionType === 'school'">
-            <auto-list
-              v-model="filterStage"
-              name="Stage"
-              placeholder="المرحلة الدراسية"
-              cols="2"
-              :add="false"
-              @update:model-value="onStageChange"
-            />
-            <auto-list
-              v-model="filterClassTrack"
-              name="ClassTrackByStage"
-              :param="filterStage"
-              placeholder="الصف والمسار"
-              cols="2"
-              :add="false"
-              :disabled="!filterStage"
-              @update:model-value="onClassTrackChange"
-            />
-            <auto-list
-              v-model="filterSubject"
-              name="Subject"
-              :param="subjectFilterParam"
-              placeholder="المادة الدراسية"
-              cols="2"
-              :add="false"
-              @update:model-value="onSubjectChange"
-            />
-            <auto-list
-              v-model="filterUnit"
-              name="UnitBySubject"
-              :param="unitFilterParam"
-              placeholder="الوحدة الدراسية"
-              cols="2"
-              :add="false"
-              :disabled="!filterSubject"
-            />
-          </template>
+          <auto-list
+            v-model="filterStage"
+            name="Stage"
+            placeholder="المرحلة الدراسية"
+            label="المرحلة الدراسية"
+            cols="12"
+            sm="6"
+            md="2"
+            :add="false"
+            @update:model-value="onStageChange"
+          />
+          <auto-list
+            v-model="filterClassTrack"
+            name="ClassTrackByStage"
+            :param="filterStage"
+            placeholder="الصف والمسار"
+            label="الصف والمسار"
+            cols="12"
+            sm="6"
+            md="2"
+            :add="false"
+            :disabled="!filterStage"
+            @update:model-value="onClassTrackChange"
+          />
+          <auto-list
+            v-model="filterSubject"
+            name="Subject"
+            :param="subjectFilterParam"
+            placeholder="المادة الدراسية"
+            label="المادة الدراسية"
+            cols="12"
+            sm="6"
+            md="3"
+            :add="false"
+            @update:model-value="onSubjectChange"
+          />
+          <auto-list
+            v-model="filterUnit"
+            name="UnitBySubject"
+            :param="unitFilterParam"
+            placeholder="الوحدة الدراسية"
+            label="الوحدة الدراسية"
+            cols="12"
+            sm="6"
+            md="2"
+            :add="false"
+            :disabled="!filterSubject"
+          />
+        </template>
 
-          <!-- 🎓 فلاتر الجامعات -->
-          <template v-if="filterInstitutionType === 'university'">
-            <auto-list
-              v-model="filterCollege"
-              name="College"
-              placeholder="الكلية الجامعية"
-              cols="2"
-              :add="false"
-              @update:model-value="onCollegeChange"
-            />
-            <auto-list
-              v-model="filterDepartment"
-              name="DepartmentByCollege"
-              :param="filterCollege"
-              placeholder="القسم الأكاديمي"
-              cols="2"
-              :add="false"
-              :disabled="!filterCollege"
-              @update:model-value="onDepartmentChange"
-            />
-            <auto-list
-              v-model="filterSpecialization"
-              name="Specialization"
-              :param="filterDepartment"
-              placeholder="التخصص والبرنامج"
-              cols="2"
-              :add="false"
-              :disabled="!filterDepartment"
-              @update:model-value="onSpecializationChange"
-            />
-            <auto-list
-              v-model="filterSemesterSubject"
-              name="SemesterSubject"
-              :param="filterSpecialization"
-              placeholder="مقرر الفصل الجامعي"
-              cols="2"
-              :add="false"
-              :disabled="!filterSpecialization"
-              @update:model-value="onSemesterSubjectChange"
-            />
-            <auto-list
-              v-model="filterUnit"
-              name="UnitBySubject"
-              :param="unitFilterParam"
-              placeholder="مفردة / موضوع المقرر"
-              cols="2"
-              :add="false"
-              :disabled="!filterSemesterSubject"
-            />
-          </template>
+        <!-- 🎓 فلاتر الجامعات -->
+        <template v-if="filterInstitutionType === 'university'">
+          <auto-list
+            v-model="filterCollege"
+            name="College"
+            placeholder="الكلية الجامعية"
+            label="الكلية الجامعية"
+            cols="12"
+            sm="6"
+            md="2"
+            :add="false"
+            @update:model-value="onCollegeChange"
+          />
+          <auto-list
+            v-model="filterDepartment"
+            name="DepartmentByCollege"
+            :param="filterCollege"
+            placeholder="القسم الأكاديمي"
+            label="القسم الأكاديمي"
+            cols="12"
+            sm="6"
+            md="2"
+            :add="false"
+            :disabled="!filterCollege"
+            @update:model-value="onDepartmentChange"
+          />
+          <auto-list
+            v-model="filterSpecialization"
+            name="Specialization"
+            :param="filterDepartment"
+            placeholder="التخصص والبرنامج"
+            label="التخصص والبرنامج"
+            cols="12"
+            sm="6"
+            md="2"
+            :add="false"
+            :disabled="!filterDepartment"
+            @update:model-value="onSpecializationChange"
+          />
+          <auto-list
+            v-model="filterSemesterSubject"
+            name="SemesterSubject"
+            :param="filterSpecialization"
+            placeholder="مقرر الفصل الجامعي"
+            label="مقرر الفصل الجامعي"
+            cols="12"
+            sm="6"
+            md="3"
+            :add="false"
+            :disabled="!filterSpecialization"
+            @update:model-value="onSemesterSubjectChange"
+          />
+          <auto-list
+            v-model="filterUnit"
+            name="UnitBySubject"
+            :param="unitFilterParam"
+            placeholder="مفردة / موضوع المقرر"
+            label="مفردة / موضوع المقرر"
+            cols="12"
+            sm="6"
+            md="2"
+            :add="false"
+            :disabled="!filterSemesterSubject"
+          />
+        </template>
 
-          <!-- 🏢 فلاتر المعاهد والتدريب المهني -->
-          <template v-if="filterInstitutionType === 'institute'">
-            <auto-list
-              v-model="filterInstituteField"
-              name="InstituteField"
-              placeholder="المجال المهني / التقني"
-              cols="2"
-              :add="false"
-              @update:model-value="onInstituteFieldChange"
-            />
-            <auto-list
-              v-model="filterInstituteEducationSystem"
-              name="InstituteEducationSystem"
-              :param="filterInstituteField"
-              placeholder="نظام التعليم والتدريب"
-              cols="2"
-              :add="false"
-              :disabled="!filterInstituteField"
-              @update:model-value="onInstituteEducationSystemChange"
-            />
-            <auto-list
-              v-model="filterInstituteSpecialization"
-              name="InstituteSpecialization"
-              :param="instituteSpecParam"
-              placeholder="التخصص المهني"
-              cols="2"
-              :add="false"
-              :disabled="!filterInstituteEducationSystem"
-              @update:model-value="onInstituteSpecializationChange"
-            />
-            <auto-list
-              v-model="filterInstituteSubject"
-              name="InstituteSubject"
-              :param="instituteSubjectParam"
-              placeholder="المادة الدراسية للمعهد"
-              cols="2"
-              :add="false"
-              @update:model-value="onInstituteSubjectChange"
-            />
-            <auto-list
-              v-model="filterUnit"
-              name="UnitBySubject"
-              :param="unitFilterParam"
-              placeholder="الوحدة / التدريب العملي"
-              cols="2"
-              :add="false"
-              :disabled="!filterInstituteSubject"
-            />
-          </template>
+        <!-- 🏢 فلاتر المعاهد والتدريب المهني -->
+        <template v-if="filterInstitutionType === 'institute'">
+          <auto-list
+            v-model="filterInstituteField"
+            name="InstituteField"
+            placeholder="المجال المهني / التقني"
+            label="المجال المهني / التقني"
+            cols="12"
+            sm="6"
+            md="2"
+            :add="false"
+            @update:model-value="onInstituteFieldChange"
+          />
+          <auto-list
+            v-model="filterInstituteEducationSystem"
+            name="InstituteEducationSystem"
+            :param="filterInstituteField"
+            placeholder="نظام التعليم والتدريب"
+            label="نظام التعليم والتدريب"
+            cols="12"
+            sm="6"
+            md="2"
+            :add="false"
+            :disabled="!filterInstituteField"
+            @update:model-value="onInstituteEducationSystemChange"
+          />
+          <auto-list
+            v-model="filterInstituteSpecialization"
+            name="InstituteSpecialization"
+            :param="instituteSpecParam"
+            placeholder="التخصص المهني"
+            label="التخصص المهني"
+            cols="12"
+            sm="6"
+            md="2"
+            :add="false"
+            :disabled="!filterInstituteEducationSystem"
+            @update:model-value="onInstituteSpecializationChange"
+          />
+          <auto-list
+            v-model="filterInstituteSubject"
+            name="InstituteSubject"
+            :param="instituteSubjectParam"
+            placeholder="المادة الدراسية للمعهد"
+            label="المادة الدراسية للمعهد"
+            cols="12"
+            sm="6"
+            md="3"
+            :add="false"
+            @update:model-value="onInstituteSubjectChange"
+          />
+          <auto-list
+            v-model="filterUnit"
+            name="UnitBySubject"
+            :param="unitFilterParam"
+            placeholder="الوحدة / التدريب العملي"
+            label="الوحدة / التدريب العملي"
+            cols="12"
+            sm="6"
+            md="2"
+            :add="false"
+            :disabled="!filterInstituteSubject"
+          />
         </template>
 
         <!-- فلاتر التواريخ باستخدام CustomDate الموحد -->
         <custom-date
           v-model="filterDateFrom"
           label="من تاريخ"
-          cols="2"
+          cols="12"
+          sm="6"
+          md="2"
           hide-details
         />
 
         <custom-date
           v-model="filterDateTo"
           label="إلى تاريخ"
-          cols="2"
+          cols="12"
+          sm="6"
+          md="2"
           hide-details
         />
 
-        <!-- أزرار الإجراءات -->
+        <!-- أزرار الإجراءات الموحدة -->
         <v-col cols="auto" class="d-flex align-center gap-2 py-2">
-          <custom-btn type="filter" :loading="loading" :click="applyFilters" />
           <custom-btn
-            color="primary"
+            type="show"
+            label="تصفية النتائج"
+            icon="mdi-filter"
+            class="font-weight-bold px-4"
+            :loading="loading"
+            :click="applyFilters"
+          />
+          <custom-btn
+            type="cancel_filter"
             variant="tonal"
+            color="error"
+            label="تفريغ الفلاتر"
+            icon="mdi-filter-off"
+            class="font-weight-bold"
             :click="resetFilters"
-            label="إعادة ضبط"
-            icon="mdi-refresh"
           />
         </v-col>
       </template>
     </filter-fields>
 
-    <!-- جدول الأسئلة المرفوضة -->
-    <CustomCard elevation="0" class="rounded-xl overflow-hidden">
+    <!-- جدول الأسئلة المرفوضة الموحد (custom-data-table) -->
+    <div class="main-card rounded-2xl overflow-hidden mb-6">
       <custom-data-table
         :items="items"
         :headers="headers"
-        :loading="loading"
+        :getData="applyFilters"
+        :customLoading="loading"
         :hasFilter="false"
-        hover
+        :log="false"
+        :restore="false"
+        :actions="false"
+        :search="true"
+        :numbering="true"
+        class="bg-transparent"
       >
-        <template #item.index="{ index }">{{ index + 1 }}</template>
-        <template #item.rejectionReason="{ item }">
-          <span class="text-error font-weight-medium">{{ item.rejectionReason || 'لم يحدد سبب' }}</span>
+        <template v-slot:item-slot="{ item, key, index }">
+          <template v-if="key === 'index'">
+            <div class="d-flex justify-center align-center">
+              <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+            </div>
+          </template>
+          <template v-else-if="key === 'rejectionReason'">
+            <span class="text-error font-weight-bold">{{ item.rejectionReason || 'لم يحدد سبب' }}</span>
+          </template>
+          <template v-else-if="key === 'contentPreview'">
+            <span class="font-weight-medium text-on-surface">{{ item.contentPreview || item.content || '—' }}</span>
+          </template>
         </template>
       </custom-data-table>
-    </CustomCard>
+    </div>
   </div>
 </template>
 
@@ -220,15 +279,13 @@ import { ref, computed, onMounted } from 'vue'
 import { reportsService } from '@/services/reportsService'
 
 const loading = ref(false)
-const items = ref([])
+const items = ref({
+  results: [],
+  count: 0,
+})
 
-// خيارات نوع المؤسسة - بدون خيار "الكل" وبنفس الهيكل الموحد
-const filterInstitutionType = ref(null)
-const institutionTypeOptions = [
-  { text: 'تعليم مدرسي', value: 'school', icon: 'mdi-school' },
-  { text: 'تعليم جامعي', value: 'university', icon: 'mdi-domain' },
-  { text: 'معاهد وتدريب مهني', value: 'institute', icon: 'mdi-tools' },
-]
+// نوع المؤسسة التعليمية الموحد (افتراضياً مدارس التعليم العام)
+const filterInstitutionType = ref('school')
 
 // فلاتر المدارس
 const filterStage = ref(null)
@@ -255,7 +312,7 @@ const filterDateTo = ref(null)
 // Computed Params for AutoLists
 const subjectFilterParam = computed(() => {
   const p = {}
-  if (filterInstitutionType.value) {
+  if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
     p.institution_type = filterInstitutionType.value
   }
   if (filterClassTrack.value) {
@@ -366,7 +423,7 @@ const onInstituteSubjectChange = () => {
 
 // أعمدة الجدول
 const headers = [
-  { title: '#', key: 'index', sortable: false, width: '60px' },
+  { title: '#', key: 'index', sortable: false, width: '60px', align: 'center' },
   { title: 'نص السؤال (مختصر)', key: 'contentPreview', sortable: false },
   { title: 'المادة', key: 'subject', sortable: true },
   { title: 'الوحدة', key: 'unit', sortable: true },
@@ -381,11 +438,11 @@ const headers = [
 // بناء معايير الفلترة وإرسال ما يخص النوع المحدد فقط
 const buildParams = () => {
   const p = {}
-  if (filterInstitutionType.value) {
+  if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
     p.institution_type = filterInstitutionType.value
   }
 
-  if (filterInstitutionType.value === 'school') {
+  if (filterInstitutionType.value === 'school' || !filterInstitutionType.value || filterInstitutionType.value === 'all') {
     if (filterStage.value) p.stage = filterStage.value
     if (filterClassTrack.value) p.class_track = filterClassTrack.value
     if (filterSubject.value) p.subject = filterSubject.value
@@ -413,16 +470,22 @@ const applyFilters = async () => {
   loading.value = true
   try {
     const res = await reportsService.getRejectedQuestionsReport(buildParams())
-    items.value = res.results || []
+    const results = Array.isArray(res) ? res : (res?.results || [])
+    const count = res?.count !== undefined ? res.count : results.length
+    items.value = {
+      results,
+      count,
+    }
   } catch (e) {
     console.error(e)
+    items.value = { results: [], count: 0 }
   } finally {
     loading.value = false
   }
 }
 
 const resetFilters = () => {
-  filterInstitutionType.value = null
+  filterInstitutionType.value = 'school'
   filterStage.value = null
   filterClassTrack.value = null
   filterCollege.value = null

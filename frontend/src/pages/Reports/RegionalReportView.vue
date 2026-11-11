@@ -1,27 +1,18 @@
 <template>
-  <div class="regional-report-page">
-    <filter-fields label="خيارات تصفية التقرير الإقليمي والجغرافي" class="mb-4">
+  <div class="regional-report-page pa-4 pa-md-6">
+    <filter-fields label="خيارات تصفية التقرير الإقليمي والجغرافي" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
       <template #fields>
-        <!-- اختيار نوع المؤسسة التعليمية (مدارس / جامعات / معاهد) بدون خيار الكل -->
+        <!-- 1. اختيار نوع المؤسسة التعليمية الموحد -->
         <v-col cols="12" sm="6" md="3">
-          <v-select
+          <auto-list
             v-model="filterInstitutionType"
-            :items="institutionTypeOptions"
-            item-title="text"
-            item-value="value"
+            name="InstitutionType"
             label="نوع المؤسسة التعليمية"
-            placeholder="اختر نوع المؤسسة"
-            prepend-inner-icon="mdi-domain"
-            hide-details
-            clearable
-            density="compact"
-            variant="outlined"
-            @update:model-value="loadReport"
-          >
-            <template v-slot:item="{ props, item }">
-              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
-            </template>
-          </v-select>
+            placeholder="نوع المؤسسة التعليمية"
+            cols="12"
+            :add="false"
+            @update:model-value="onInstitutionTypeChange"
+          />
         </v-col>
 
         <v-col cols="12" sm="6" md="3">
@@ -55,25 +46,37 @@
       </template>
     </filter-fields>
 
-    <CustomCard elevation="0" class="rounded-xl overflow-hidden">
+    <div class="main-card rounded-2xl overflow-hidden mb-6">
       <custom-data-table
         :items="filteredItems"
         :headers="headers"
-        :loading="loading"
+        :getData="loadReport"
+        :customLoading="loading"
         :hasFilter="false"
-        hover
+        :log="false"
+        :restore="false"
+        :actions="false"
+        :search="true"
+        :numbering="true"
+        class="bg-transparent"
       >
-        <template #item.index="{ index }">{{ index + 1 }}</template>
-        <template #item.average="{ item }">
-          <span :class="getScoreClass(item.average)" class="font-weight-bold">
-            {{ item.average }}%
-          </span>
-        </template>
-        <template #item.passRate="{ item }">
-          <span>{{ item.passRate }}%</span>
+        <template v-slot:item-slot="{ item, key, index }">
+          <template v-if="key === 'index'">
+            <div class="d-flex justify-center align-center">
+              <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+            </div>
+          </template>
+          <template v-else-if="key === 'average'">
+            <span :class="getScoreClass(item.average)" class="font-weight-bold">
+              {{ item.average }}%
+            </span>
+          </template>
+          <template v-else-if="key === 'passRate'">
+            <span>{{ item.passRate }}%</span>
+          </template>
         </template>
       </custom-data-table>
-    </CustomCard>
+    </div>
   </div>
 </template>
 
@@ -85,12 +88,7 @@ const loading = ref(false)
 const allItems = ref([])
 
 // خيارات نوع المؤسسة بدون "الكل"
-const filterInstitutionType = ref(null)
-const institutionTypeOptions = [
-  { text: 'تعليم مدرسي', value: 'school', icon: 'mdi-school' },
-  { text: 'تعليم جامعي', value: 'university', icon: 'mdi-domain' },
-  { text: 'معاهد وتدريب مهني', value: 'institute', icon: 'mdi-tools' },
-]
+const filterInstitutionType = ref('school')
 
 const filterComparisonType = ref('all')
 
@@ -125,7 +123,7 @@ const loadReport = async () => {
   loading.value = true
   try {
     const params = {}
-    if (filterInstitutionType.value) {
+    if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
       params.institution_type = filterInstitutionType.value
     }
     const res = await reportsService.getRegionalReport(params)
@@ -138,7 +136,7 @@ const loadReport = async () => {
 }
 
 const resetFilters = () => {
-  filterInstitutionType.value = null
+  filterInstitutionType.value = 'school'
   filterComparisonType.value = 'all'
   loadReport()
 }

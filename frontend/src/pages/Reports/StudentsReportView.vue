@@ -1,27 +1,18 @@
 <template>
-  <div class="students-report-page">
-    <filter-fields label="معايير التصفية والبحث في سجل الطلاب" class="mb-4">
+  <div class="students-report-page pa-4 pa-md-6">
+    <filter-fields label="معايير التصفية والبحث في سجل الطلاب" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
       <template #fields>
-        <!-- اختيار نوع المؤسسة التعليمية (مدارس / جامعات / معاهد) بدون خيار الكل -->
+        <!-- 1. اختيار نوع المؤسسة التعليمية الموحد -->
         <v-col cols="12" sm="6" md="3">
-          <v-select
+          <auto-list
             v-model="filterInstitutionType"
-            :items="institutionTypeOptions"
-            item-title="text"
-            item-value="value"
+            name="InstitutionType"
             label="نوع المؤسسة التعليمية"
-            placeholder="اختر نوع المؤسسة"
-            prepend-inner-icon="mdi-domain"
-            hide-details
-            clearable
-            density="compact"
-            variant="outlined"
+            placeholder="نوع المؤسسة التعليمية"
+            cols="12"
+            :add="false"
             @update:model-value="onInstitutionTypeChange"
-          >
-            <template v-slot:item="{ props, item }">
-              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
-            </template>
-          </v-select>
+          />
         </v-col>
 
         <!-- فلاتر هرمية حسب النوع -->
@@ -100,26 +91,38 @@
       </template>
     </filter-fields>
 
-    <CustomCard elevation="0" class="rounded-xl overflow-hidden">
+    <div class="main-card rounded-2xl overflow-hidden mb-6">
       <custom-data-table
         :items="items"
         :headers="headers"
-        :loading="loading"
+        :getData="applyFilters"
+        :customLoading="loading"
         :hasFilter="false"
-        hover
+        :log="false"
+        :restore="false"
+        :actions="false"
+        :search="true"
+        :numbering="true"
+        class="bg-transparent"
       >
-        <template #item.index="{ index }">{{ index + 1 }}</template>
-        <template #item.gender="{ item }">
-          <v-chip
-            :color="item.gender === 'ذكر' ? 'info' : 'pink'"
-            size="small"
-            variant="tonal"
-          >
-            {{ item.gender }}
-          </v-chip>
+        <template v-slot:item-slot="{ item, key, index }">
+          <template v-if="key === 'index'">
+            <div class="d-flex justify-center align-center">
+              <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+            </div>
+          </template>
+          <template v-else-if="key === 'gender'">
+            <v-chip
+              :color="item.gender === 'ذكر' ? 'info' : 'pink'"
+              size="small"
+              variant="tonal"
+            >
+              {{ item.gender }}
+            </v-chip>
+          </template>
         </template>
       </custom-data-table>
-    </CustomCard>
+    </div>
   </div>
 </template>
 
@@ -128,15 +131,13 @@ import { ref, onMounted } from 'vue'
 import { reportsService } from '@/services/reportsService'
 
 const loading = ref(false)
-const items = ref([])
+const items = ref({
+  results: [],
+  count: 0,
+})
 
 // خيارات نوع المؤسسة بدون "الكل"
-const filterInstitutionType = ref(null)
-const institutionTypeOptions = [
-  { text: 'تعليم مدرسي', value: 'school', icon: 'mdi-school' },
-  { text: 'تعليم جامعي', value: 'university', icon: 'mdi-domain' },
-  { text: 'معاهد وتدريب مهني', value: 'institute', icon: 'mdi-tools' },
-]
+const filterInstitutionType = ref('school')
 
 const filterStage = ref(null)
 const filterCollege = ref(null)
@@ -166,7 +167,7 @@ const headers = [
 
 const buildParams = () => {
   const p = {}
-  if (filterInstitutionType.value) {
+  if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
     p.institution_type = filterInstitutionType.value
   }
   if (filterStage.value) p.stage = filterStage.value
@@ -182,7 +183,9 @@ const applyFilters = async () => {
   loading.value = true
   try {
     const res = await reportsService.getStudentsReport(buildParams())
-    items.value = res.results || []
+    const results = Array.isArray(res) ? res : (res?.results || [])
+    const count = res?.count !== undefined ? res.count : results.length
+    items.value = { results, count }
   } catch (e) {
     console.error(e)
   } finally {
@@ -191,7 +194,7 @@ const applyFilters = async () => {
 }
 
 const resetFilters = () => {
-  filterInstitutionType.value = null
+  filterInstitutionType.value = 'school'
   filterStage.value = null
   filterCollege.value = null
   filterInstituteField.value = null

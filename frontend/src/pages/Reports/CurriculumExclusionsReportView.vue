@@ -1,27 +1,18 @@
 <template>
-  <div class="curriculum-exclusions-report-page">
-    <filter-fields label="معايير التصفية والبحث في سجل المحذوفات من المنهج" class="mb-4">
+  <div class="curriculum-exclusions-report-page pa-4 pa-md-6">
+    <filter-fields label="معايير التصفية والبحث في سجل المحذوفات من المنهج" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
       <template #fields>
-        <!-- اختيار نوع المؤسسة التعليمية (مدارس / جامعات / معاهد) بدون خيار الكل -->
-        <v-col cols="12" sm="6" :md="filterInstitutionType ? 3 : 4">
-          <v-select
+        <!-- 1. اختيار نوع المؤسسة التعليمية الموحد -->
+        <v-col cols="12" sm="6" md="3">
+          <auto-list
             v-model="filterInstitutionType"
-            :items="institutionTypeOptions"
-            item-title="text"
-            item-value="value"
+            name="InstitutionType"
             label="نوع المؤسسة التعليمية"
-            placeholder="اختر نوع المؤسسة"
-            prepend-inner-icon="mdi-domain"
-            hide-details
-            clearable
-            density="compact"
-            variant="outlined"
+            placeholder="نوع المؤسسة التعليمية"
+            cols="12"
+            :add="false"
             @update:model-value="onInstitutionTypeChange"
-          >
-            <template v-slot:item="{ props, item }">
-              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
-            </template>
-          </v-select>
+          />
         </v-col>
 
         <auto-list
@@ -33,9 +24,9 @@
         />
 
         <!-- الظهور مشروط باختيار نوع المؤسسة -->
-        <template v-if="filterInstitutionType">
+        <!-- الظهور مشروط باختيار نوع المؤسسة -->
+        <template v-if="filterInstitutionType === 'school' || !filterInstitutionType || filterInstitutionType === 'all'">
           <!-- 🏫 فلاتر المدارس -->
-          <template v-if="filterInstitutionType === 'school'">
             <auto-list
               v-model="filterStage"
               name="Stage"
@@ -147,7 +138,6 @@
               @update:model-value="onInstituteSubjectChange"
             />
           </template>
-        </template>
 
         <v-col cols="12" md="2">
           <v-select
@@ -196,31 +186,43 @@
       </template>
     </filter-fields>
 
-    <CustomCard elevation="0" class="rounded-xl overflow-hidden">
+    <div class="main-card rounded-2xl overflow-hidden mb-6">
       <custom-data-table
         :items="items"
         :headers="headers"
-        :loading="loading"
+        :getData="applyFilters"
+        :customLoading="loading"
         :hasFilter="false"
-        hover
+        :log="false"
+        :restore="false"
+        :actions="false"
+        :search="true"
+        :numbering="true"
+        class="bg-transparent"
       >
-        <template #item.index="{ index }">{{ index + 1 }}</template>
-        <template #item.exclusionType="{ item }">
-          <v-chip size="small" variant="tonal" color="primary">
-            {{ item.exclusionType === 'unit' ? 'وحدة كاملة' : 'درس محدد' }}
-          </v-chip>
-        </template>
-        <template #item.isActive="{ item }">
-          <v-chip
-            :color="item.isActive ? 'success' : 'default'"
-            size="small"
-            variant="tonal"
-          >
-            {{ item.isActive ? 'نشط' : 'غير نشط' }}
-          </v-chip>
+        <template v-slot:item-slot="{ item, key, index }">
+          <template v-if="key === 'index'">
+            <div class="d-flex justify-center align-center">
+              <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+            </div>
+          </template>
+          <template v-else-if="key === 'exclusionType'">
+            <v-chip size="small" variant="tonal" color="primary">
+              {{ item.exclusionType === 'unit' ? 'وحدة كاملة' : 'درس محدد' }}
+            </v-chip>
+          </template>
+          <template v-else-if="key === 'isActive'">
+            <v-chip
+              :color="item.isActive ? 'success' : 'default'"
+              size="small"
+              variant="tonal"
+            >
+              {{ item.isActive ? 'نشط' : 'غير نشط' }}
+            </v-chip>
+          </template>
         </template>
       </custom-data-table>
-    </CustomCard>
+    </div>
   </div>
 </template>
 
@@ -229,15 +231,13 @@ import { ref, computed, onMounted } from 'vue'
 import { reportsService } from '@/services/reportsService'
 
 const loading = ref(false)
-const items = ref([])
+const items = ref({
+  results: [],
+  count: 0,
+})
 
 // خيارات نوع المؤسسة بدون "الكل"
-const filterInstitutionType = ref(null)
-const institutionTypeOptions = [
-  { text: 'تعليم مدرسي', value: 'school', icon: 'mdi-school' },
-  { text: 'تعليم جامعي', value: 'university', icon: 'mdi-domain' },
-  { text: 'معاهد وتدريب مهني', value: 'institute', icon: 'mdi-tools' },
-]
+const filterInstitutionType = ref('school')
 
 // فلاتر المدارس
 const filterStage = ref(null)
@@ -263,7 +263,7 @@ const filterIsActive = ref('')
 
 const subjectFilterParam = computed(() => {
   const p = {}
-  if (filterInstitutionType.value) p.institution_type = filterInstitutionType.value
+  if (filterInstitutionType.value && filterInstitutionType.value !== 'all') p.institution_type = filterInstitutionType.value
   if (filterClassTrack.value) p.class_track = filterClassTrack.value
   else if (filterStage.value) p.stage = filterStage.value
   return Object.keys(p).length ? p : null
@@ -355,13 +355,13 @@ const headers = [
 
 const buildParams = () => {
   const p = {}
-  if (filterInstitutionType.value) {
+  if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
     p.institution_type = filterInstitutionType.value
   }
 
   if (filterAcademicYear.value) p.academic_year = filterAcademicYear.value
 
-  if (filterInstitutionType.value === 'school') {
+  if (filterInstitutionType.value === 'school' || !filterInstitutionType.value || filterInstitutionType.value === 'all') {
     if (filterStage.value) p.stage = filterStage.value
     if (filterClassTrack.value) p.class_track = filterClassTrack.value
     if (filterSubject.value) p.subject = filterSubject.value
@@ -386,7 +386,9 @@ const applyFilters = async () => {
   loading.value = true
   try {
     const res = await reportsService.getCurriculumExclusionsReport(buildParams())
-    items.value = res.results || []
+    const results = Array.isArray(res) ? res : (res?.results || [])
+    const count = res?.count !== undefined ? res.count : results.length
+    items.value = { results, count }
   } catch (e) {
     console.error(e)
   } finally {
@@ -395,7 +397,7 @@ const applyFilters = async () => {
 }
 
 const resetFilters = () => {
-  filterInstitutionType.value = null
+  filterInstitutionType.value = 'school'
   filterAcademicYear.value = null
   filterStage.value = null
   filterClassTrack.value = null
