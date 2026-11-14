@@ -7,6 +7,7 @@
           getData: getSubmissionsData,
           headers: submissionsHeaders,
         }"
+        :numbering="false"
         :hasFilter="false"
         :log="false"
         :restore="false"
@@ -74,7 +75,7 @@ const props = defineProps({
 defineEmits(['view-submissions'])
 
 const submissionsHeaders = ref([
-  { title: '#', key: 'submission_id', sortable: false, width: '80px' },
+  { title: 'معرف التسليم', key: 'submission_id', sortable: false, width: '95px' },
   { title: 'رقم الجلوس', key: 'seat_number', sortable: false, width: '120px' },
   { title: 'اسم الطالب', key: 'student_name', sortable: false },
   { title: 'الدرجة', key: 'score', sortable: false, width: '90px' },

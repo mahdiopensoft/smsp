@@ -7,6 +7,7 @@
         headers,
         editItem: (item: any) => $emit('edit', item),
       }"
+      :numbering="false"
       :create="false"
       :search="true"
       :hasFilter="false"
