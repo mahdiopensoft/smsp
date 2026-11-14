@@ -121,9 +121,13 @@
                 color="primary"
                 density="compact"
                 hide-details
+                :disabled="totalTargetCount === 0"
               >
                 <template #label>
-                  <span class="text-body-2 font-weight-medium">أوراق إجابة OMR ({{ totalTargetCount }} طالب)</span>
+                  <span class="text-body-2 font-weight-medium">
+                    أوراق إجابة OMR ({{ totalTargetCount }} طالب)
+                    <span v-if="totalTargetCount === 0" class="text-error text-caption ms-1">(لا توجد سجلات)</span>
+                  </span>
                 </template>
               </v-checkbox>
             </v-col>
@@ -145,9 +149,13 @@
                 color="primary"
                 density="compact"
                 hide-details
+                :disabled="totalTargetCount === 0"
               >
                 <template #label>
-                  <span class="text-body-2 font-weight-medium">كشوف المناداة ومحاضر المراكز</span>
+                  <span class="text-body-2 font-weight-medium">
+                    كشوف المناداة ومحاضر المراكز
+                    <span v-if="totalTargetCount === 0" class="text-error text-caption ms-1">(لا توجد سجلات)</span>
+                  </span>
                 </template>
               </v-checkbox>
             </v-col>
@@ -211,6 +219,23 @@
 
           <!-- تنبيه واقعي واضح -->
           <v-alert
+            v-if="totalTargetCount === 0"
+            type="warning"
+            variant="tonal"
+            density="compact"
+            rounded="lg"
+            class="mt-3 py-2 text-caption font-weight-medium"
+          >
+            <template #prepend>
+              <v-icon size="18" color="warning">mdi-shield-alert-outline</v-icon>
+            </template>
+            <div>
+              <strong>تنبيه كنترول:</strong> لا تتوفر سجلات طلاب مقيدين في قاعدة البيانات لهذا الاختبار. تم تعطيل سحب أوراق OMR وكشوف المناداة لمنع توليد بيانات افتراضية. يمكنك سحب كراسات الأسئلة أو إذن الصرف فقط.
+            </div>
+          </v-alert>
+
+          <v-alert
+            v-else
             type="primary"
             variant="tonal"
             density="compact"
@@ -429,7 +454,7 @@ const options = ref({
 })
 
 const totalTargetCount = computed(() => {
-  return props.exam?.total_registered || props.exam?.total_students || 8
+  return props.exam?.total_registered || props.exam?.total_students || 0
 })
 
 const orderNumberDisplay = computed(() => {
@@ -443,9 +468,9 @@ watch(() => props.modelValue, (isOpen) => {
     actualPrintedCount.value = totalTargetCount.value
     operatorNotes.value = ''
     options.value = {
-      sheets: true,
+      sheets: totalTargetCount.value > 0,
       booklets: true,
-      roster: true,
+      roster: totalTargetCount.value > 0,
       manifest: true,
     }
   }
@@ -458,9 +483,14 @@ const close = () => {
 // المرحلة 1: تشغيل أمر السحب الفعلي والانتقال للمرحلة 2
 const startPrintDispatch = () => {
   actualPrintedCount.value = totalTargetCount.value
+  const sanitizedOptions = {
+    ...options.value,
+    sheets: totalTargetCount.value > 0 ? options.value.sheets : false,
+    roster: totalTargetCount.value > 0 ? options.value.roster : false,
+  }
   emit('startPrint', {
     exam: props.exam,
-    options: options.value,
+    options: sanitizedOptions,
   })
   currentStep.value = 'verify'
 }

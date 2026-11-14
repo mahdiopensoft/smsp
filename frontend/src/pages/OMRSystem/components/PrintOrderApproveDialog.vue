@@ -105,7 +105,7 @@
                 {{ exam.schools_count }} مراكز امتحانية
               </div>
               <div class="center-count-badge px-2.5 py-0.5 text-caption font-weight-bold font-mono">
-                المقيدون: {{ exam?.total_registered || exam?.total_students || 8 }} طالب
+                المقيدون: {{ exam?.total_registered || exam?.total_students || 0 }} طالب
               </div>
             </div>
           </div>
