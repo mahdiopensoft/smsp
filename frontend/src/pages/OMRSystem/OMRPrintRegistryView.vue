@@ -2638,45 +2638,7 @@
     <!-- TAB 4: سجل الدفعات السابقة المطبوعة                                 -->
     <!-- ══════════════════════════════════════════════════════════════════ -->
     <div v-if="isTabVisited('history')" v-show="activeTab === 'history'">
-      <!-- Unified Filter Fields -->
-      <filter-fields label="خيارات التصفية للبحث في سجلات الطباعة" class="main-card border-0 pa-5 rounded-2xl mb-6">
-        <v-row dense class="align-center">
-          <v-col cols="12" sm="8" md="9">
-            <custom-text-field
-              v-model="searchQuery"
-              label="اسم الاختبار أو دفعة الطباعة"
-              placeholder="بحث بمعرف الدفعة (Batch) أو اسم الاختبار..."
-              icon="magnify"
-              cols="12"
-              class="mb-3"
-              :hideDetails="true"
-              @keyup.enter="fetchBatches"
-            />
-          </v-col>
-
-          <v-col cols="12" sm="4" md="3" class="d-flex align-center justify-end gap-2 mb-3">
-            <custom-btn
-              type="show"
-              label="تصفية النتائج"
-              color="primary"
-              icon="mdi-filter"
-              class="font-weight-bold px-5"
-              :click="fetchBatches"
-            />
-            <custom-btn
-              type="cancel_filter"
-              :click="resetFilters"
-              variant="tonal"
-              color="error"
-              label="تفريغ الفلاتر"
-              icon="mdi-filter-off"
-              class="font-weight-bold"
-            />
-          </v-col>
-        </v-row>
-      </filter-fields>
-
-      <!-- Unified Custom Data Table for Batches -->
+      <!-- Unified Custom Data Table for Batches with Built-in Search -->
       <div class="main-card rounded-2xl overflow-hidden mb-6">
         <custom-data-table
           v-bind="{
@@ -2689,6 +2651,9 @@
           :hasFilter="false"
           :log="false"
           :restore="false"
+          :numbering="true"
+          :search="true"
+          class="bg-transparent"
         >
           <template v-slot:item-slot="{ item, key, index }">
             <template v-if="key === 'numbering'">
@@ -5372,6 +5337,9 @@ const switchDetailTab = (tab) => {
   if (visitedTabs.value) {
     visitedTabs.value.add(tab)
   }
+  if (tab === 'history' && (!batches.value || batches.value.length === 0)) {
+    fetchBatches()
+  }
 }
 
 // Document Category: أوراق التظليل vs ورقة الأسئلة الرسمية vs حزمة الاختبار الكاملة
@@ -6112,7 +6080,21 @@ const getBatchesData = async (params = {}) => {
   batchesPage.value = page
   batchesPageSize.value = pageSize
 
-  const all = batches.value || []
+  if (p.search !== undefined) {
+    searchQuery.value = (p.search || '').trim().toLowerCase()
+  }
+
+  let all = batches.value || []
+  if (searchQuery.value) {
+    const q = searchQuery.value
+    all = all.filter(b =>
+      String(b.batch_id || '').toLowerCase().includes(q) ||
+      String(b.exam_title || '').toLowerCase().includes(q) ||
+      String(b.print_date || '').toLowerCase().includes(q) ||
+      String(b.status || '').toLowerCase().includes(q)
+    )
+  }
+
   const total = all.length
   const numPages = Math.ceil(total / pageSize) || 1
   const validPage = Math.min(Math.max(1, page), numPages)
