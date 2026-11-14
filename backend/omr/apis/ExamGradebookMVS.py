@@ -115,7 +115,7 @@ class ExamGradebookMVS(ViewSet):
                 subj_q |= Q(subject__name_ar__icontains=sn) | Q(subject__name_en__icontains=sn)
             qs = qs.filter(subj_q)
 
-        office_id = request.query_params.get('office_id') or request.query_params.get('office')
+        office_id = request.query_params.get('office_id') or request.query_params.get('office') or request.query_params.get('governorate') or request.query_params.get('governorate_id')
         directorate_id = request.query_params.get('directorate_id') or request.query_params.get('directorate')
         school_id = request.query_params.get('school_id') or request.query_params.get('school')
 
@@ -505,7 +505,7 @@ class ExamGradebookMVS(ViewSet):
         تجميع إحصائيات الرصد والكنترول حسب إدارات التربية والتعليم بالمديريات (المستوى 40).
         """
         search = request.query_params.get('search', '').strip()
-        office_id = request.query_params.get('office_id') or request.query_params.get('office')
+        office_id = request.query_params.get('office_id') or request.query_params.get('office') or request.query_params.get('governorate') or request.query_params.get('governorate_id')
         directorate_id = request.query_params.get('directorate_id') or request.query_params.get('directorate')
         off_ids = [int(x) for x in str(office_id).split(',') if x.strip().isdigit()] if (office_id and office_id != 'all') else []
         dir_ids = [int(x) for x in str(directorate_id).split(',') if x.strip().isdigit()] if (directorate_id and directorate_id != 'all') else []
@@ -588,7 +588,7 @@ class ExamGradebookMVS(ViewSet):
         تجميع إحصائيات الرصد والكنترول حسب المدرسة / المركز الامتحاني / الجامعة / المعهد.
         """
         search = request.query_params.get('search', '').strip()
-        office_id = request.query_params.get('office_id') or request.query_params.get('office')
+        office_id = request.query_params.get('office_id') or request.query_params.get('office') or request.query_params.get('governorate') or request.query_params.get('governorate_id')
         directorate_id = request.query_params.get('directorate_id') or request.query_params.get('directorate')
         school_id = request.query_params.get('school_id') or request.query_params.get('school') or request.query_params.get('organization_id')
         institution_type = request.query_params.get('institution_type')

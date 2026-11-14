@@ -539,7 +539,19 @@ const normalizeIds = (val) => {
 const directoratesOptions = computed(() => {
   const officeIds = normalizeIds(selectedOfficeId.value)
   if (officeIds.length > 0) {
-    return (directoratesList.value || []).filter(d => officeIds.includes(Number(d.office_id)))
+    const oObjs = (officesList.value || []).filter(o => 
+      officeIds.includes(Number(o.id)) ||
+      officeIds.includes(Number(o.core_org_id)) ||
+      officeIds.includes(Number(o.office_id)) ||
+      officeIds.includes(Number(o.governorate_id)) ||
+      officeIds.includes(Number(o.fk_governorate_id))
+    )
+    const allOffIds = [...officeIds, ...oObjs.map(o => Number(o.id)), ...oObjs.map(o => Number(o.office_id)), ...oObjs.map(o => Number(o.governorate_id)), ...oObjs.map(o => Number(o.fk_governorate_id))].filter(Boolean)
+    return (directoratesList.value || []).filter(d => 
+      allOffIds.includes(Number(d.office_id)) ||
+      allOffIds.includes(Number(d.governorate_id)) ||
+      allOffIds.includes(Number(d.fk_governorate_id))
+    )
   }
   return directoratesList.value || []
 })
@@ -554,23 +566,34 @@ const schoolsOptions = computed(() => {
   const officeIds = normalizeIds(selectedOfficeId.value)
 
   if (dirIds.length > 0) {
-    const dObjs = (directoratesList.value || []).filter(d => dirIds.includes(Number(d.id)))
+    const dObjs = (directoratesList.value || []).filter(d => 
+      dirIds.includes(Number(d.id)) ||
+      dirIds.includes(Number(d.directorate_id)) ||
+      dirIds.includes(Number(d.fk_directorate_id))
+    )
     const dNames = dObjs.map(d => d.name?.replace(/^(إدارة التربية والتعليم - مديرية |مديرية )/, '').trim()).filter(Boolean)
+    const allDirIds = [...dirIds, ...dObjs.map(d => Number(d.id)), ...dObjs.map(d => Number(d.directorate_id)), ...dObjs.map(d => Number(d.fk_directorate_id))].filter(Boolean)
     list = list.filter(s => 
-      dirIds.includes(Number(s.directorate_id)) ||
+      allDirIds.includes(Number(s.directorate_id)) ||
+      allDirIds.includes(Number(s.fk_directorate_id)) ||
       dNames.some(dn => s.directorate_name && s.directorate_name.includes(dn))
     )
   } else if (officeIds.length > 0) {
-    const oObjs = (officesList.value || []).filter(o => officeIds.includes(Number(o.id)))
+    const oObjs = (officesList.value || []).filter(o => 
+      officeIds.includes(Number(o.id)) ||
+      officeIds.includes(Number(o.core_org_id)) ||
+      officeIds.includes(Number(o.office_id)) ||
+      officeIds.includes(Number(o.governorate_id)) ||
+      officeIds.includes(Number(o.fk_governorate_id))
+    )
     const oGovs = oObjs.map(o => o.governorate_name?.trim()).filter(Boolean)
+    const allOffIds = [...officeIds, ...oObjs.map(o => Number(o.id)), ...oObjs.map(o => Number(o.office_id)), ...oObjs.map(o => Number(o.governorate_id)), ...oObjs.map(o => Number(o.fk_governorate_id))].filter(Boolean)
     list = list.filter(s => 
-      officeIds.includes(Number(s.office_id)) ||
+      allOffIds.includes(Number(s.office_id)) ||
+      allOffIds.includes(Number(s.governorate_id)) ||
+      allOffIds.includes(Number(s.fk_governorate_id)) ||
       oGovs.some(og => s.governorate_name && s.governorate_name.includes(og))
     )
-  }
-  const schoolIds = normalizeIds(selectedSchoolId.value)
-  if (schoolIds.length > 0) {
-    list = list.filter(s => schoolIds.includes(Number(s.id)))
   }
   return list
 })
@@ -2091,7 +2114,23 @@ const loadSubjects = async () => {
   }
 }
 
+// ── Concurrency & Race-Condition Guards ──
+const isRequestCanceled = (err) => {
+  return err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED' || err?.message === 'canceled'
+}
+
+let masterDataRequestId = 0
+let masterDataAbortController = null
+
 const loadMasterData = async () => {
+  // Cancel previous pending master data request to prevent out-of-order race conditions
+  if (masterDataAbortController) {
+    masterDataAbortController.abort()
+  }
+  masterDataAbortController = new AbortController()
+  const signal = masterDataAbortController.signal
+  const currentRequestId = ++masterDataRequestId
+
   loadingMaster.value = true
   try {
     const effGov = filterGovernorate.value || (normalizeIds(selectedOfficeId.value)[0] || undefined)
@@ -2129,14 +2168,25 @@ const loadMasterData = async () => {
 
     const [allOfficesRes, officesRes, directoratesRes, schoolsRes, examsRes] = await Promise.all([
       (!allOfficesList.value || !allOfficesList.value.length)
-        ? gradebookAPI.getByOffice(baseParams).catch(() => ({ data: { results: [] } }))
+        ? gradebookAPI.getByOffice(baseParams, { signal }).catch((err) => (isRequestCanceled(err) ? null : { data: { results: [] } }))
         : Promise.resolve({ data: { results: allOfficesList.value } }),
-      gradebookAPI.getByOffice(officeParams).catch(() => ({ data: { results: [] } })),
-      gradebookAPI.getByDirectorate(dirParams).catch(() => ({ data: { results: [] } })),
-      gradebookAPI.getBySchool(schoolParams).catch(() => ({ data: { results: [] } })),
-      gradebookAPI.list(schoolParams).catch(() => ({ data: { results: [] } }))
+      gradebookAPI.getByOffice(officeParams, { signal }).catch((err) => (isRequestCanceled(err) ? null : { data: { results: [] } })),
+      gradebookAPI.getByDirectorate(dirParams, { signal }).catch((err) => (isRequestCanceled(err) ? null : { data: { results: [] } })),
+      gradebookAPI.getBySchool(schoolParams, { signal }).catch((err) => (isRequestCanceled(err) ? null : { data: { results: [] } })),
+      gradebookAPI.list(schoolParams, { signal }).catch((err) => (isRequestCanceled(err) ? null : { data: { results: [] } }))
     ])
-    if (!allOfficesList.value || !allOfficesList.value.length) {
+
+    // Strict Sequence Guard: Discard stale response if a newer request was dispatched
+    if (currentRequestId !== masterDataRequestId) {
+      return
+    }
+
+    if (!officesRes || !directoratesRes || !schoolsRes || !examsRes) {
+      return
+    }
+
+    // Atomic State Commit
+    if (allOfficesRes && (!allOfficesList.value || !allOfficesList.value.length)) {
       allOfficesList.value = allOfficesRes.data?.results || []
     }
     officesList.value = officesRes.data?.results || []
@@ -2144,15 +2194,22 @@ const loadMasterData = async () => {
     schoolsList.value = schoolsRes.data?.results || []
     masterExamsList.value = examsRes.data?.results || []
     await loadSavedPrintOrders()
-    getOfficeMasterData()
-    getDirectorateMasterData()
-    getSchoolMasterData()
-    getExamMasterData()
-    getBatchMasterData()
+
+    if (currentRequestId === masterDataRequestId) {
+      getOfficeMasterData()
+      getDirectorateMasterData()
+      getSchoolMasterData()
+      getExamMasterData()
+      getBatchMasterData()
+    }
   } catch (err) {
-    console.error('Failed to load master data:', err)
+    if (!isRequestCanceled(err)) {
+      console.error('Failed to load master data:', err)
+    }
   } finally {
-    loadingMaster.value = false
+    if (currentRequestId === masterDataRequestId) {
+      loadingMaster.value = false
+    }
   }
 }
 
@@ -2172,7 +2229,6 @@ const resetHierarchyFilters = async () => {
 
 const onSectorChange = (val) => {
   institutionType.value = val
-  filterInstitutionType.value = val
   selectedOfficeId.value = []
   selectedOfficeName.value = ''
   selectedDirectorateId.value = []
@@ -2279,43 +2335,138 @@ const drillDownToDirectorate = (dir) => {
 
 const openSchoolStudio = async (school) => {
   selectedSchoolId.value = school.id
-  selectedSchoolName.value = school.name
-  if (school.directorate_name) selectedDirectorateName.value = school.directorate_name
-  if (school.governorate_name) selectedOfficeName.value = school.governorate_name
+  selectedSchoolName.value = school.name || school.school_name || ''
+  if (school.directorate_id && (!selectedDirectorateId.value || !selectedDirectorateId.value.length)) {
+    const matchedDir = (directoratesList.value || []).find(d => 
+      Number(d.id) === Number(school.directorate_id) || 
+      Number(d.fk_directorate_id) === Number(school.fk_directorate_id || school.directorate_id) ||
+      Number(d.directorate_id) === Number(school.directorate_id)
+    )
+    selectedDirectorateId.value = matchedDir ? matchedDir.id : school.directorate_id
+    if (school.directorate_name && !selectedDirectorateName.value) {
+      selectedDirectorateName.value = school.directorate_name
+    }
+  } else if (filterDirectorate.value && (!selectedDirectorateId.value || !selectedDirectorateId.value.length)) {
+    const matchedDir = (directoratesList.value || []).find(d => 
+      Number(d.id) === Number(filterDirectorate.value) || 
+      Number(d.fk_directorate_id) === Number(filterDirectorate.value) ||
+      Number(d.directorate_id) === Number(filterDirectorate.value)
+    )
+    selectedDirectorateId.value = matchedDir ? matchedDir.id : filterDirectorate.value
+    if (matchedDir) selectedDirectorateName.value = matchedDir.name || ''
+  }
+  if ((school.office_id || school.governorate_id) && (!selectedOfficeId.value || !selectedOfficeId.value.length)) {
+    selectedOfficeId.value = school.office_id || school.governorate_id
+    if (school.governorate_name && !selectedOfficeName.value) {
+      selectedOfficeName.value = school.governorate_name
+    }
+  } else if (filterGovernorate.value && (!selectedOfficeId.value || !selectedOfficeId.value.length)) {
+    selectedOfficeId.value = filterGovernorate.value
+  }
   currentView.value = 'detail'
-  await fetchExamsList({ school_id: school.id })
+  await fetchExamsList({ 
+    school_id: school.id,
+    directorate_id: selectedDirectorateId.value || undefined,
+    office_id: selectedOfficeId.value || undefined,
+  })
   if (examsList.value && examsList.value.length > 0) {
     selectedExamId.value = examsList.value[0].id
-    await loadExamDetails(selectedExamId.value, { school_id: school.id })
+    await loadExamDetails(selectedExamId.value, { 
+      school_id: school.id,
+      directorate_id: selectedDirectorateId.value || undefined,
+      office_id: selectedOfficeId.value || undefined,
+    })
   }
 }
 
 const openDirectorateStudio = async (dir) => {
   selectedDirectorateId.value = dir.id
-  selectedDirectorateName.value = dir.name
-  if (dir.office_name) selectedOfficeName.value = dir.office_name
+  selectedDirectorateName.value = dir.name || dir.name_ar || ''
+  const offId = dir.office_id || dir.fk_parent_organization_id || dir.governorate_id || dir.fk_governorate_id
+  if (offId && (!selectedOfficeId.value || !selectedOfficeId.value.length)) {
+    selectedOfficeId.value = offId
+    if (dir.office_name) selectedOfficeName.value = dir.office_name
+  } else if (filterGovernorate.value && (!selectedOfficeId.value || !selectedOfficeId.value.length)) {
+    selectedOfficeId.value = filterGovernorate.value
+  }
+  if (filterOrganization.value && (!selectedSchoolId.value || !selectedSchoolId.value.length)) {
+    const matchedSchool = (schoolsList.value || []).find(s => 
+      Number(s.id) === Number(filterOrganization.value) ||
+      Number(s.school_id) === Number(filterOrganization.value)
+    )
+    selectedSchoolId.value = matchedSchool ? matchedSchool.id : filterOrganization.value
+    if (matchedSchool) selectedSchoolName.value = matchedSchool.name || ''
+  }
   currentView.value = 'detail'
-  await fetchExamsList({ directorate_id: dir.id })
+  await fetchExamsList({ 
+    directorate_id: dir.id,
+    office_id: selectedOfficeId.value || undefined,
+    school_id: selectedSchoolId.value || undefined,
+  })
   if (examsList.value && examsList.value.length > 0) {
     selectedExamId.value = examsList.value[0].id
-    await loadExamDetails(selectedExamId.value, { directorate_id: dir.id })
+    await loadExamDetails(selectedExamId.value, { 
+      directorate_id: dir.id,
+      office_id: selectedOfficeId.value || undefined,
+      school_id: selectedSchoolId.value || undefined,
+    })
   }
 }
 
 const openOfficeStudio = async (office) => {
-  selectedOfficeId.value = office.id
-  selectedOfficeName.value = office.office_name
+  selectedOfficeId.value = office.id || office.core_org_id || office.office_id
+  selectedOfficeName.value = office.office_name || office.governorate_name || ''
+  if (filterDirectorate.value && (!selectedDirectorateId.value || !selectedDirectorateId.value.length)) {
+    const matchedDir = (directoratesList.value || []).find(d => 
+      Number(d.id) === Number(filterDirectorate.value) || 
+      Number(d.fk_directorate_id) === Number(filterDirectorate.value) ||
+      Number(d.directorate_id) === Number(filterDirectorate.value)
+    )
+    selectedDirectorateId.value = matchedDir ? matchedDir.id : filterDirectorate.value
+    if (matchedDir) selectedDirectorateName.value = matchedDir.name || ''
+  }
+  if (filterOrganization.value && (!selectedSchoolId.value || !selectedSchoolId.value.length)) {
+    const matchedSchool = (schoolsList.value || []).find(s => 
+      Number(s.id) === Number(filterOrganization.value) ||
+      Number(s.school_id) === Number(filterOrganization.value)
+    )
+    selectedSchoolId.value = matchedSchool ? matchedSchool.id : filterOrganization.value
+    if (matchedSchool) selectedSchoolName.value = matchedSchool.name || ''
+  }
   currentView.value = 'detail'
-  await fetchExamsList({ office_id: office.id })
+  await fetchExamsList({ 
+    office_id: selectedOfficeId.value || undefined,
+    directorate_id: selectedDirectorateId.value || undefined,
+    school_id: selectedSchoolId.value || undefined,
+  })
   if (examsList.value && examsList.value.length > 0) {
     selectedExamId.value = examsList.value[0].id
-    await loadExamDetails(selectedExamId.value, { office_id: office.id })
+    await loadExamDetails(selectedExamId.value, { 
+      office_id: selectedOfficeId.value || undefined,
+      directorate_id: selectedDirectorateId.value || undefined,
+      school_id: selectedSchoolId.value || undefined,
+    })
   }
 }
 
 const openExamStudio = async (exam) => {
   selectedExamId.value = exam.id
+  if (exam.office_id && (!selectedOfficeId.value || !selectedOfficeId.value.length)) {
+    selectedOfficeId.value = exam.office_id
+    selectedOfficeName.value = exam.governorate_name || ''
+  }
+  if (exam.directorate_id && (!selectedDirectorateId.value || !selectedDirectorateId.value.length)) {
+    selectedDirectorateId.value = exam.directorate_id
+    selectedDirectorateName.value = exam.directorate_name || ''
+  }
+  if (exam.school_id && (!selectedSchoolId.value || !selectedSchoolId.value.length)) {
+    selectedSchoolId.value = exam.school_id
+    selectedSchoolName.value = exam.school_name || ''
+  } else if (filterOrganization.value && (!selectedSchoolId.value || !selectedSchoolId.value.length)) {
+    selectedSchoolId.value = filterOrganization.value
+  }
   currentView.value = 'detail'
+  await fetchExamsList()
   await loadExamDetails(exam.id, {
     school_id: selectedSchoolId.value || undefined,
     directorate_id: selectedDirectorateId.value || undefined,
@@ -3267,29 +3418,44 @@ watch(batchStudents, () => {
 const studentsTableItems = computed(() => batchStudentsTableItems.value)
 
 // Methods
+let examsListRequestId = 0
+let examsListAbortController = null
+
 const fetchExamsList = async (customParams = {}) => {
+  // Cancel previous in-flight exam list query to eliminate race conditions
+  if (examsListAbortController) {
+    examsListAbortController.abort()
+  }
+  examsListAbortController = new AbortController()
+  const signal = examsListAbortController.signal
+  const currentRequestId = ++examsListRequestId
+
   loadingExams.value = true
   try {
+    const offParam = customParams.office_id || (normalizeIds(selectedOfficeId.value)[0] || (filterGovernorate.value ? Number(filterGovernorate.value) : undefined))
+    const dirParam = customParams.directorate_id || (normalizeIds(selectedDirectorateId.value)[0] || (filterDirectorate.value ? Number(filterDirectorate.value) : undefined))
+    const schParam = customParams.school_id || (normalizeIds(selectedSchoolId.value)[0] || (filterOrganization.value ? Number(filterOrganization.value) : undefined))
+
     const params = {
-      school_id: selectedSchoolId.value || undefined,
-      directorate_id: selectedDirectorateId.value || undefined,
-      office_id: selectedOfficeId.value || undefined,
+      school_id: schParam,
+      directorate_id: dirParam,
+      office_id: offParam,
       ...customParams,
     }
     const effType = getEffectiveInstitutionType()
     if (effType) {
       params.institution_type = effType
     }
-    if (filterInstitutionType.value === 'school') {
+    if (institutionType.value === 'school') {
       if (filterStage.value) params.stage = filterStage.value
       if (filterClassTrack.value) params.class_track = filterClassTrack.value
       if (filterSubject.value) params.subject = filterSubject.value
-    } else if (filterInstitutionType.value === 'university') {
+    } else if (institutionType.value === 'university') {
       if (filterCollege.value) params.college = filterCollege.value
       if (filterDepartment.value) params.department = filterDepartment.value
       if (filterSpecialization.value) params.specialization = filterSpecialization.value
       if (filterSemesterSubject.value) params.semester_subject = filterSemesterSubject.value
-    } else if (filterInstitutionType.value === 'institute') {
+    } else if (institutionType.value === 'institute') {
       if (filterInstituteField.value) params.institute_field = filterInstituteField.value
       if (filterInstituteEducationSystem.value) params.institute_education_system = filterInstituteEducationSystem.value
       if (filterInstituteSpecialization.value) params.institute_specialization = filterInstituteSpecialization.value
@@ -3298,32 +3464,74 @@ const fetchExamsList = async (customParams = {}) => {
       if (filterSubject.value) params.subject = filterSubject.value
     }
 
-    const resp = await api.get('/api/omr/exam-linking/', { params })
+    const resp = await api.get('/api/omr/exam-linking/', { params, signal })
+
+    // Strict Sequence Guard: Discard stale response
+    if (currentRequestId !== examsListRequestId) {
+      return
+    }
+
     if (resp.data && resp.data.results) {
       examsList.value = resp.data.results
       if (selectedExamId.value && !examsList.value.some(e => e.id === selectedExamId.value)) {
         selectedExamId.value = null
         examDetails.value = null
       }
+      if (!selectedExamId.value && examsList.value.length > 0) {
+        selectedExamId.value = examsList.value[0].id
+        await loadExamDetails(selectedExamId.value, {
+          school_id: schParam,
+          directorate_id: dirParam,
+          office_id: offParam,
+        })
+      }
     }
   } catch (err) {
-    console.error('Failed to load exams list:', err)
+    if (!isRequestCanceled(err)) {
+      console.error('Failed to load exams list:', err)
+    }
   } finally {
-    loadingExams.value = false
+    if (currentRequestId === examsListRequestId) {
+      loadingExams.value = false
+    }
   }
 }
 
+let examDetailsRequestId = 0
+let examDetailsAbortController = null
+
 const loadExamDetails = async (examId, customParams = {}) => {
   if (!examId) return
+
+  // Cancel prior pending exam details request
+  if (examDetailsAbortController) {
+    examDetailsAbortController.abort()
+  }
+  examDetailsAbortController = new AbortController()
+  const signal = examDetailsAbortController.signal
+  const currentRequestId = ++examDetailsRequestId
+  const targetId = Number(examId)
+
   loadingExamDetails.value = true
   try {
+    const offParam = customParams.office_id || (normalizeIds(selectedOfficeId.value)[0] || (filterGovernorate.value ? Number(filterGovernorate.value) : undefined))
+    const dirParam = customParams.directorate_id || (normalizeIds(selectedDirectorateId.value)[0] || (filterDirectorate.value ? Number(filterDirectorate.value) : undefined))
+    const schParam = customParams.school_id || (normalizeIds(selectedSchoolId.value)[0] || (filterOrganization.value ? Number(filterOrganization.value) : undefined))
+
     const params = {
-      school_id: selectedSchoolId.value || undefined,
-      directorate_id: selectedDirectorateId.value || undefined,
-      office_id: selectedOfficeId.value || undefined,
+      school_id: schParam,
+      directorate_id: dirParam,
+      office_id: offParam,
       ...customParams,
     }
-    const resp = await api.get(`/api/omr/exam-linking/${examId}/`, { params })
+    const resp = await api.get(`/api/omr/exam-linking/${examId}/`, { params, signal })
+
+    // Strict Sequence Guard: Discard stale response if newer request was dispatched or exam changed
+    if (currentRequestId !== examDetailsRequestId || Number(selectedExamId.value) !== targetId) {
+      return
+    }
+
+    // Atomic State Commit
     examDetails.value = resp.data
     showHierarchyFilters.value = false
     if (resp.data.registered_students && resp.data.registered_students.length > 0) {
@@ -3336,33 +3544,59 @@ const loadExamDetails = async (examId, customParams = {}) => {
     await getQuestionModelsData()
     await getPackageData()
   } catch (err) {
-    console.error('Failed to load exam details:', err)
+    if (!isRequestCanceled(err)) {
+      console.error('Failed to load exam details:', err)
+    }
   } finally {
-    loadingExamDetails.value = false
+    if (currentRequestId === examDetailsRequestId) {
+      loadingExamDetails.value = false
+    }
   }
 }
 
 const onExamSelected = (newId) => {
   if (newId) {
+    selectedExamId.value = Number(newId)
     loadExamDetails(newId)
   } else {
+    selectedExamId.value = null
     examDetails.value = null
   }
 }
 
+let batchesRequestId = 0
+let batchesAbortController = null
+
 const fetchBatches = async () => {
+  if (batchesAbortController) {
+    batchesAbortController.abort()
+  }
+  batchesAbortController = new AbortController()
+  const signal = batchesAbortController.signal
+  const currentRequestId = ++batchesRequestId
+
   loadingBatches.value = true
   try {
     const resp = await api.get('/api/omr/print-registry/', {
-      params: { search: searchQuery.value }
+      params: { search: searchQuery.value },
+      signal,
     })
+
+    if (currentRequestId !== batchesRequestId) {
+      return
+    }
+
     if (resp.data && resp.data.success) {
       batches.value = resp.data.results
     }
   } catch (e) {
-    console.error("Failed to load print batches", e)
+    if (!isRequestCanceled(e)) {
+      console.error("Failed to load print batches", e)
+    }
   } finally {
-    loadingBatches.value = false
+    if (currentRequestId === batchesRequestId) {
+      loadingBatches.value = false
+    }
   }
 }
 
@@ -3371,20 +3605,41 @@ const resetFilters = () => {
   fetchBatches()
 }
 
+let batchDetailsRequestId = 0
+let batchDetailsAbortController = null
+
 const viewBatchDetails = async (batch) => {
   activeBatch.value = batch
   detailsDialog.value = true
   loadingDetails.value = true
   batchStudents.value = []
+
+  if (batchDetailsAbortController) {
+    batchDetailsAbortController.abort()
+  }
+  batchDetailsAbortController = new AbortController()
+  const signal = batchDetailsAbortController.signal
+  const currentRequestId = ++batchDetailsRequestId
+  const targetBatchId = batch.batch_id
+
   try {
-    const resp = await api.get(`/api/omr/print-registry/${batch.batch_id}/`)
+    const resp = await api.get(`/api/omr/print-registry/${batch.batch_id}/`, { signal })
+
+    if (currentRequestId !== batchDetailsRequestId || activeBatch.value?.batch_id !== targetBatchId) {
+      return
+    }
+
     if (resp.data && resp.data.success) {
       batchStudents.value = resp.data.students
     }
   } catch (e) {
-    console.error("Failed to load batch students", e)
+    if (!isRequestCanceled(e)) {
+      console.error("Failed to load batch students", e)
+    }
   } finally {
-    loadingDetails.value = false
+    if (currentRequestId === batchDetailsRequestId) {
+      loadingDetails.value = false
+    }
   }
 }
 

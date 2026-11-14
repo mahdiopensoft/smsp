@@ -8,8 +8,16 @@ export function usePrintRegistryFilters(options: { onFilterChange?: () => void }
   }
 
   // ── Unified Tripartite Filters State ──
-  const filterInstitutionType = ref<string>('school')
+  // Single Source of Truth for Institution Type:
   const institutionType = ref<string>('school')
+
+  // Writable Computed alias ensuring 100% two-way synchronization with zero divergence risk
+  const filterInstitutionType = computed({
+    get: () => institutionType.value,
+    set: (val: string) => {
+      institutionType.value = val
+    }
+  })
   const filterGovernorate = ref<any>(null)
   const filterDirectorate = ref<any>(null)
   const filterOrganization = ref<any>(null)
@@ -34,12 +42,6 @@ export function usePrintRegistryFilters(options: { onFilterChange?: () => void }
   const masterSearchQuery = ref<string>('')
 
   const getEffectiveInstitutionType = () => {
-    if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
-      return filterInstitutionType.value
-    }
-    if (filterInstitutionType.value === 'all') {
-      return undefined
-    }
     if (institutionType.value && institutionType.value !== 'all') {
       return institutionType.value
     }
@@ -47,7 +49,7 @@ export function usePrintRegistryFilters(options: { onFilterChange?: () => void }
   }
 
   const isSchoolFilter = computed(() => {
-    return !filterInstitutionType.value || filterInstitutionType.value === 'all' || filterInstitutionType.value === 'school'
+    return !institutionType.value || institutionType.value === 'all' || institutionType.value === 'school'
   })
 
   const isOrgDisabled = computed(() => {
@@ -58,8 +60,8 @@ export function usePrintRegistryFilters(options: { onFilterChange?: () => void }
   })
 
   const orgFieldLabel = computed(() => {
-    if (filterInstitutionType.value === 'university') return 'الجامعة / الكلية'
-    if (filterInstitutionType.value === 'institute') return 'المعهد / مركز التدريب'
+    if (institutionType.value === 'university') return 'الجامعة / الكلية'
+    if (institutionType.value === 'institute') return 'المعهد / مركز التدريب'
     return 'المدرسة / المركز الامتحاني'
   })
 
@@ -76,8 +78,8 @@ export function usePrintRegistryFilters(options: { onFilterChange?: () => void }
     const p: Record<string, any> = {}
     if (filterGovernorate.value) p.governorate = filterGovernorate.value
     if (filterDirectorate.value) p.directorate = filterDirectorate.value
-    if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
-      p.institution_type = filterInstitutionType.value
+    if (institutionType.value && institutionType.value !== 'all') {
+      p.institution_type = institutionType.value
     }
     return Object.keys(p).length > 0 ? p : null
   })
@@ -102,8 +104,10 @@ export function usePrintRegistryFilters(options: { onFilterChange?: () => void }
   })
 
   // ── Change Handlers ──
-  const onInstitutionTypeChange = () => {
-    institutionType.value = filterInstitutionType.value
+  const onInstitutionTypeChange = (newType?: string) => {
+    if (newType !== undefined) {
+      institutionType.value = newType
+    }
     filterGovernorate.value = null
     filterDirectorate.value = null
     filterOrganization.value = null
@@ -179,7 +183,6 @@ export function usePrintRegistryFilters(options: { onFilterChange?: () => void }
   }
 
   const resetUnifiedFilters = async () => {
-    filterInstitutionType.value = 'all'
     institutionType.value = 'all'
     filterGovernorate.value = null
     filterDirectorate.value = null

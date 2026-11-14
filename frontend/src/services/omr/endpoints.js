@@ -121,15 +121,15 @@ export const omrTemplatesAPI = {
 
 // ── 6. شاشة سجل الدرجات والترحيل لنظام الكنترول ──
 export const gradebookAPI = {
-  list: (params) => api.get('/api/omr/gradebook/', { params }),
-  getByOffice: (params) => api.get('/api/omr/gradebook/by-office/', { params }),
-  getBySchool: (params) => api.get('/api/omr/gradebook/by-school/', { params }),
-  getByDirectorate: (params) => api.get('/api/omr/gradebook/by-directorate/', { params }),
-  getRoster: (examId, params) => api.get(`/api/omr/gradebook/${examId}/`, { params }),
-  getSubjects: (params) => api.get('/api/omr/gradebook/subjects/', { params }),
-  dispatchToControl: (examId, data) => api.post(`/api/omr/gradebook/${examId}/dispatch-to-control/`, data),
-  rollbackDispatch: (examId, data) => api.post(`/api/omr/gradebook/${examId}/rollback-dispatch/`, data),
-  getPsychometrics: (examId) => api.get(`/api/omr/gradebook/${examId}/psychometrics/`),
+  list: (params, config = {}) => api.get('/api/omr/gradebook/', { params, ...config }),
+  getByOffice: (params, config = {}) => api.get('/api/omr/gradebook/by-office/', { params, ...config }),
+  getBySchool: (params, config = {}) => api.get('/api/omr/gradebook/by-school/', { params, ...config }),
+  getByDirectorate: (params, config = {}) => api.get('/api/omr/gradebook/by-directorate/', { params, ...config }),
+  getRoster: (examId, params, config = {}) => api.get(`/api/omr/gradebook/${examId}/`, { params, ...config }),
+  getSubjects: (params, config = {}) => api.get('/api/omr/gradebook/subjects/', { params, ...config }),
+  dispatchToControl: (examId, data, config = {}) => api.post(`/api/omr/gradebook/${examId}/dispatch-to-control/`, data, config),
+  rollbackDispatch: (examId, data, config = {}) => api.post(`/api/omr/gradebook/${examId}/rollback-dispatch/`, data, config),
+  getPsychometrics: (examId, config = {}) => api.get(`/api/omr/gradebook/${examId}/psychometrics/`, config),
   exportControlSheetUrl: (examId) => `/api/omr/gradebook/${examId}/export-control-sheet/`,
 }
 
