@@ -8,6 +8,8 @@
       v-if="currentView === 'master'"
       :filters="filters"
       :loading-master="loadingMaster"
+      :master-error="masterDataError"
+      @clear-error="masterDataError = null"
       v-model:master-tab="masterTab"
       :institution-type="institutionType"
       :filtered-offices-table="filteredOfficesTable"
@@ -75,6 +77,7 @@
       :selected-exam="selectedExam"
       v-model:show-hierarchy-filters="showHierarchyFilters"
       :loading-exams="loadingExams"
+      :exam-details-error="examDetailsError"
       v-model:institution-type="institutionType"
       :sector-options-objects="sectorOptionsObjects"
       v-model:selected-office-id="selectedOfficeId"
@@ -969,12 +972,16 @@ const selectedManifestOrder = ref(null)
 
 const loadSavedPrintOrders = async () => {
   try {
-    const res = await api.get('/api/omr/print-orders/')
+    const res = await api.get('/api/omr/print-orders/', { skipInterceptor: true })
     if (res.data && res.data.success) {
       savedPrintOrders.value = res.data.results || []
     }
   } catch (err) {
-    console.error('Failed to load real print orders from backend:', err)
+    console.error('[OMR Registry API Error] فشل في تحميل أوامر الطباعة المحفوظة:', {
+      operation: 'loadSavedPrintOrders',
+      endpoint: '/api/omr/print-orders/',
+      error: err?.message || err
+    })
   }
 }
 
@@ -1207,7 +1214,16 @@ const confirmOrderReturn = async () => {
       message: `تم إرجاع طلب طباعة الاختبار "${exam.title}" للتعديل بنجاح: (${returnReasonSelected.value}). سيظهر كمرتجع في السجل وشاشة إدارة الاختبارات.`,
     }
   } catch (e) {
-    console.error('Failed to return order:', e)
+    console.error('[OMR Registry API Error] فشل في إرجاع طلب طباعة الاختبار:', {
+      operation: 'confirmOrderReturn',
+      examId: targetExamForReturn.value?.id,
+      error: e
+    })
+    batchPrintNotification.value = {
+      show: true,
+      color: 'error',
+      message: `تعذر إرجاع طلب الطباعة على الخادم: ${e?.response?.data?.message || e?.message || 'خطأ في الاتصال'}`
+    }
   } finally {
     actionLoading.value = false
   }
@@ -1242,7 +1258,16 @@ const onConfirmAdvanceSchedule = async ({ exam, reason, authDoc }) => {
       message: `تم تقديم موعد طباعة "${target.title}" لليوم وتوثيق التفويض رسمياً! تم نقله إلى تبويب [المستحقة] وهو جاهز للتنفيذ الفوري الآن.`,
     }
   } catch (e) {
-    console.error('Failed to advance schedule:', e)
+    console.error('[OMR Registry API Error] فشل في تقديم موعد الطباعة:', {
+      operation: 'onConfirmAdvanceSchedule',
+      examId: target?.id,
+      error: e
+    })
+    batchPrintNotification.value = {
+      show: true,
+      color: 'error',
+      message: `تعذر تقديم موعد الطباعة على الخادم: ${e?.response?.data?.message || e?.message || 'خطأ في الاتصال'}`
+    }
   } finally {
     actionLoading.value = false
   }
@@ -2112,25 +2137,100 @@ watch(masterTab, (tab) => {
   else if (tab === 'registry') getBatchMasterData()
 })
 
-// Master Methods
-const loadSubjects = async () => {
-  try {
-    const res = await gradebookAPI.getSubjects()
-    subjectsList.value = res.data?.results || []
-    if (!subjectsList.value.length) {
-      const acRes = await api.get('/api/academic/subjects/').catch(() => null)
-      if (acRes?.data?.results) {
-        subjectsList.value = acRes.data.results
-      }
-    }
-  } catch (err) {
-    console.error('Failed to load subjects:', err)
-  }
-}
+// ── Error & Three-State Diagnostic Tracking ──
+const masterDataError = ref(null)
+const examsListError = ref(null)
+const examDetailsError = ref(null)
+const batchesError = ref(null)
+
+const masterDataStatus = ref('idle') // 'idle' | 'loading' | 'success' | 'empty' | 'error'
+const examsListStatus = ref('idle')
+const examDetailsStatus = ref('idle')
 
 // ── Concurrency & Race-Condition Guards ──
 const isRequestCanceled = (err) => {
   return err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED' || err?.message === 'canceled'
+}
+
+/**
+ * Executes an API fetch function safely with:
+ * 1. Distinction between 3 states: Data exists, Data genuinely empty, and Data load error.
+ * 2. Structured diagnostic logging (Operation, params, HTTP status, server message, timestamp).
+ * 3. Graceful handling of AbortController cancellations without false error alerts.
+ */
+const safeApiFetch = async (operationName, fetchFn, params = {}) => {
+  try {
+    const res = await fetchFn()
+    const rawData = res?.data
+    let results = []
+    if (rawData && Array.isArray(rawData.results)) {
+      results = rawData.results
+    } else if (Array.isArray(rawData)) {
+      results = rawData
+    } else if (rawData && typeof rawData === 'object' && rawData.data && Array.isArray(rawData.data)) {
+      results = rawData.data
+    }
+
+    return {
+      status: 'success',
+      data: results,
+      raw: rawData,
+      count: results.length,
+      isEmpty: results.length === 0,
+      error: null
+    }
+  } catch (err) {
+    if (isRequestCanceled(err)) {
+      return {
+        status: 'canceled',
+        data: [],
+        raw: null,
+        count: 0,
+        isEmpty: false,
+        error: null
+      }
+    }
+
+    const errDetails = {
+      operation: operationName,
+      params,
+      statusCode: err?.response?.status || null,
+      statusText: err?.response?.statusText || null,
+      serverMessage: err?.response?.data?.message || err?.response?.data?.detail || err?.response?.data?.error || null,
+      errorMessage: err?.message || 'تعذر الاتصال بالخادم',
+      timestamp: new Date().toISOString()
+    }
+
+    console.error(`[OMR Registry API Error] فشل في عملية: ${operationName}`, errDetails)
+
+    return {
+      status: 'error',
+      data: [],
+      raw: null,
+      count: 0,
+      isEmpty: false,
+      error: errDetails
+    }
+  }
+}
+
+// Master Methods
+const loadSubjects = async () => {
+  try {
+    const res = await safeApiFetch('loadSubjects:gradebook', () => gradebookAPI.getSubjects())
+    if (res.status === 'success' && res.data.length > 0) {
+      subjectsList.value = res.data
+      return
+    }
+    const acRes = await safeApiFetch('loadSubjects:academic', () => api.get('/api/academic/subjects/', { skipInterceptor: true }))
+    if (acRes.status === 'success' && acRes.data.length > 0) {
+      subjectsList.value = acRes.data
+    } else if (res.status === 'error' && acRes.status === 'error') {
+      console.warn('[OMR Registry] تعذر تحميل قائمة المواد من كلا المصدرين (gradebook & academic).')
+    }
+  } catch (err) {
+    console.error('[OMR Registry API Error] فشل في loadSubjects:', err)
+  }
 }
 
 let masterDataRequestId = 0
@@ -2146,6 +2246,9 @@ const loadMasterData = async () => {
   const currentRequestId = ++masterDataRequestId
 
   loadingMaster.value = true
+  masterDataStatus.value = 'loading'
+  masterDataError.value = null
+
   try {
     const effGov = filterGovernorate.value || (normalizeIds(selectedOfficeId.value)[0] || undefined)
     const effDir = filterDirectorate.value || (normalizeIds(selectedDirectorateId.value)[0] || undefined)
@@ -2182,12 +2285,12 @@ const loadMasterData = async () => {
 
     const [allOfficesRes, officesRes, directoratesRes, schoolsRes, examsRes] = await Promise.all([
       (!allOfficesList.value || !allOfficesList.value.length)
-        ? gradebookAPI.getByOffice(baseParams, { signal }).catch((err) => (isRequestCanceled(err) ? null : { data: { results: [] } }))
-        : Promise.resolve({ data: { results: allOfficesList.value } }),
-      gradebookAPI.getByOffice(officeParams, { signal }).catch((err) => (isRequestCanceled(err) ? null : { data: { results: [] } })),
-      gradebookAPI.getByDirectorate(dirParams, { signal }).catch((err) => (isRequestCanceled(err) ? null : { data: { results: [] } })),
-      gradebookAPI.getBySchool(schoolParams, { signal }).catch((err) => (isRequestCanceled(err) ? null : { data: { results: [] } })),
-      gradebookAPI.list(schoolParams, { signal }).catch((err) => (isRequestCanceled(err) ? null : { data: { results: [] } }))
+        ? safeApiFetch('loadMasterData:allOffices', () => gradebookAPI.getByOffice(baseParams, { signal }), baseParams)
+        : Promise.resolve({ status: 'success', data: allOfficesList.value, count: allOfficesList.value.length, isEmpty: allOfficesList.value.length === 0, error: null }),
+      safeApiFetch('loadMasterData:offices', () => gradebookAPI.getByOffice(officeParams, { signal }), officeParams),
+      safeApiFetch('loadMasterData:directorates', () => gradebookAPI.getByDirectorate(dirParams, { signal }), dirParams),
+      safeApiFetch('loadMasterData:schools', () => gradebookAPI.getBySchool(schoolParams, { signal }), schoolParams),
+      safeApiFetch('loadMasterData:exams', () => gradebookAPI.list(schoolParams, { signal }), schoolParams)
     ])
 
     // Strict Sequence Guard: Discard stale response if a newer request was dispatched
@@ -2195,18 +2298,64 @@ const loadMasterData = async () => {
       return
     }
 
-    if (!officesRes || !directoratesRes || !schoolsRes || !examsRes) {
+    // Check if any request was canceled
+    if (
+      allOfficesRes.status === 'canceled' ||
+      officesRes.status === 'canceled' ||
+      directoratesRes.status === 'canceled' ||
+      schoolsRes.status === 'canceled' ||
+      examsRes.status === 'canceled'
+    ) {
       return
     }
 
-    // Atomic State Commit
-    if (allOfficesRes && (!allOfficesList.value || !allOfficesList.value.length)) {
-      allOfficesList.value = allOfficesRes.data?.results || []
+    // Inspect failed operations
+    const failures = [
+      { name: 'مكاتب المحافظات', res: officesRes },
+      { name: 'إدارات المديريات', res: directoratesRes },
+      { name: 'المراكز الامتحانية والمدارس', res: schoolsRes },
+      { name: 'الاختبارات المعتمدة', res: examsRes },
+    ].filter(item => item.res.status === 'error')
+
+    if (failures.length > 0) {
+      masterDataStatus.value = 'error'
+      const failedNames = failures.map(f => f.name).join('، ')
+      masterDataError.value = {
+        message: `تعذر جلب بيانات: ${failedNames}`,
+        failedServices: failures.map(f => f.name),
+        errors: failures.map(f => f.res.error)
+      }
+      batchPrintNotification.value = {
+        show: true,
+        color: 'error',
+        message: `تعذر تحميل بعض بيانات الهيكل الإداري (${failedNames}). يرجى مراجعة الاتصال أو إعادة المحاولة.`
+      }
+    } else {
+      masterDataError.value = null
     }
-    officesList.value = officesRes.data?.results || []
-    directoratesList.value = directoratesRes.data?.results || []
-    schoolsList.value = schoolsRes.data?.results || []
-    masterExamsList.value = examsRes.data?.results || []
+
+    // Safe Atomic Commit: Only adopt successful results
+    if (allOfficesRes.status === 'success' && (!allOfficesList.value || !allOfficesList.value.length)) {
+      allOfficesList.value = allOfficesRes.data || []
+    }
+    if (officesRes.status === 'success') {
+      officesList.value = officesRes.data || []
+    }
+    if (directoratesRes.status === 'success') {
+      directoratesList.value = directoratesRes.data || []
+    }
+    if (schoolsRes.status === 'success') {
+      schoolsList.value = schoolsRes.data || []
+    }
+    if (examsRes.status === 'success') {
+      masterExamsList.value = examsRes.data || []
+    }
+
+    const totalCount = (officesList.value?.length || 0) + (schoolsList.value?.length || 0) + (masterExamsList.value?.length || 0)
+    if (failures.length === 0) {
+      masterDataStatus.value = totalCount === 0 ? 'empty' : 'success'
+    }
+
     await loadSavedPrintOrders()
 
     if (currentRequestId === masterDataRequestId) {
@@ -2218,7 +2367,12 @@ const loadMasterData = async () => {
     }
   } catch (err) {
     if (!isRequestCanceled(err)) {
-      console.error('Failed to load master data:', err)
+      masterDataStatus.value = 'error'
+      masterDataError.value = {
+        message: 'حدث خطأ غير متوقع أثناء جلب بيانات الهيكل الإداري',
+        errorMessage: err.message
+      }
+      console.error('[OMR Registry API Error] Failed to load master data:', err)
     }
   } finally {
     if (currentRequestId === masterDataRequestId) {
@@ -2911,40 +3065,105 @@ const selectAllRosterStudents = () => {
   }
 }
 
-const toggleStudentPrintedStatus = (st) => {
+const toggleStudentPrintedStatus = async (st) => {
+  const previousState = {
+    is_printed: st.is_printed,
+    printed_at: st.printed_at
+  }
+
+  // Optimistic update
   st.is_printed = !st.is_printed
   if (st.is_printed) {
     st.printed_at = new Date().toLocaleTimeString('ar-YE')
   }
+
   if (selectedExamId.value) {
-    api.post(`/api/omr/exam-linking/${selectedExamId.value}/mark-printed/`, {
+    const payload = {
       student_ids: [st.id],
       is_printed: st.is_printed
-    }).catch(e => console.error("Toggle print status error:", e))
+    }
+    try {
+      await api.post(`/api/omr/exam-linking/${selectedExamId.value}/mark-printed/`, payload)
+    } catch (err) {
+      // Revert optimistic state
+      st.is_printed = previousState.is_printed
+      st.printed_at = previousState.printed_at
+
+      const errDetails = {
+        operation: 'toggleStudentPrintedStatus',
+        studentId: st.id,
+        examId: selectedExamId.value,
+        payload,
+        statusCode: err?.response?.status,
+        serverMessage: err?.response?.data?.message || err?.response?.data?.detail,
+        errorMessage: err.message
+      }
+      console.error('[OMR Registry API Error] فشل في تحديث حالة طباعة الطالب:', errDetails)
+
+      batchPrintNotification.value = {
+        show: true,
+        color: 'error',
+        message: `تعذر تحديث حالة طباعة الطالب (${st.student_name || st.id}) على الخادم. تم التراجع عن التغيير.`
+      }
+    }
   }
 }
 
-const markSelectedAsPrinted = () => {
+const markSelectedAsPrinted = async () => {
   if (!selectedStudentIds.value.length) return
   const idSet = new Set(selectedStudentIds.value)
   const targetIds = []
+  const rollbackSnapshots = []
+
   ;(examDetails.value?.registered_students || []).forEach(st => {
     if (idSet.has(st.id)) {
+      rollbackSnapshots.push({
+        student: st,
+        is_printed: st.is_printed,
+        printed_at: st.printed_at
+      })
       st.is_printed = true
       st.printed_at = new Date().toLocaleTimeString('ar-YE')
       targetIds.push(st.id)
     }
   })
+
   if (selectedExamId.value && targetIds.length) {
-    api.post(`/api/omr/exam-linking/${selectedExamId.value}/mark-printed/`, {
+    const payload = {
       student_ids: targetIds,
       is_printed: true
-    }).catch(e => console.error("Mark printed error:", e))
-  }
-  batchPrintNotification.value = {
-    show: true,
-    color: 'success',
-    message: `تم تحديد ${targetIds.length} طالب كمطبوع وتحديث السجل بنجاح.`
+    }
+    try {
+      await api.post(`/api/omr/exam-linking/${selectedExamId.value}/mark-printed/`, payload)
+      batchPrintNotification.value = {
+        show: true,
+        color: 'success',
+        message: `تم تحديد ${targetIds.length} طالب كمطبوع وتحديث السجل بنجاح.`
+      }
+    } catch (err) {
+      // Rollback all affected students
+      rollbackSnapshots.forEach(snap => {
+        snap.student.is_printed = snap.is_printed
+        snap.student.printed_at = snap.printed_at
+      })
+
+      const errDetails = {
+        operation: 'markSelectedAsPrinted',
+        studentCount: targetIds.length,
+        examId: selectedExamId.value,
+        payload,
+        statusCode: err?.response?.status,
+        serverMessage: err?.response?.data?.message || err?.response?.data?.detail,
+        errorMessage: err.message
+      }
+      console.error('[OMR Registry API Error] فشل في تحديث حالة طباعة الطلاب المحددين:', errDetails)
+
+      batchPrintNotification.value = {
+        show: true,
+        color: 'error',
+        message: `تعذر تحديث حالة الطباعة للطلاب المحددين على الخادم. تم التراجع عن العملية.`
+      }
+    }
   }
 }
 
@@ -2968,13 +3187,30 @@ const printPreviewStudentSheet = async () => {
       isA5: selectedSheetLayout.value === 'compact_a5'
     })
     if (!st.is_demo) {
+      const prevPrinted = st.is_printed
+      const prevPrintedAt = st.printed_at
       st.is_printed = true
       st.printed_at = new Date().toLocaleTimeString('ar-YE')
       if (selectedExamId.value && st.id && !String(st.id).startsWith('blank_')) {
-        api.post(`/api/omr/exam-linking/${selectedExamId.value}/mark-printed/`, {
-          student_ids: [st.id],
-          is_printed: true
-        }).catch(e => console.error(e))
+        try {
+          await api.post(`/api/omr/exam-linking/${selectedExamId.value}/mark-printed/`, {
+            student_ids: [st.id],
+            is_printed: true
+          })
+        } catch (err) {
+          st.is_printed = prevPrinted
+          st.printed_at = prevPrintedAt
+          console.error('[OMR Registry API Error] فشل في حفظ حالة طباعة الورقة الفردية:', {
+            operation: 'printPreviewStudentSheet',
+            studentId: st.id,
+            error: err?.message || err
+          })
+          batchPrintNotification.value = {
+            show: true,
+            color: 'warning',
+            message: 'تم إرسال الورقة للطباعة ولكن تعذر توثيق حالة الطباعة على الخادم.'
+          }
+        }
       }
     }
   } else {
@@ -3189,18 +3425,36 @@ const printSelectedOrAllRoster = async () => {
           }
         })
 
-        api.post(`/api/omr/exam-linking/${selectedExamId.value}/mark-printed/`, {
-          student_ids: targetStudentIds,
-          batch_id: batchId
-        }).catch(e => console.error("Mark printed error:", e))
-
-        fetchBatches()
-      }
-
-      batchPrintNotification.value = {
-        show: true,
-        color: 'success',
-        message: `تم إرسال ${elements.length} ورقة تظليل إلى أمر الطباعة وتحديث سجل الدفعات بنجاح.`
+        try {
+          await api.post(`/api/omr/exam-linking/${selectedExamId.value}/mark-printed/`, {
+            student_ids: targetStudentIds,
+            batch_id: batchId
+          })
+          fetchBatches()
+          batchPrintNotification.value = {
+            show: true,
+            color: 'success',
+            message: `تم إرسال ${elements.length} ورقة تظليل إلى أمر الطباعة وتحديث سجل الدفعات بنجاح.`
+          }
+        } catch (postErr) {
+          console.error('[OMR Registry API Error] فشل في تسجيل الدفعة على الخادم:', {
+            operation: 'printTargetBatch',
+            batchId,
+            studentCount: targetStudentIds.length,
+            error: postErr?.message || postErr
+          })
+          batchPrintNotification.value = {
+            show: true,
+            color: 'warning',
+            message: `تم إرسال المستندات للطباعة ولكن تعذر توثيق الدفعة #${batchId} على الخادم: ${postErr?.message || postErr}`
+          }
+        }
+      } else {
+        batchPrintNotification.value = {
+          show: true,
+          color: 'success',
+          message: `تم إرسال ${elements.length} ورقة تظليل إلى أمر الطباعة بنجاح.`
+        }
       }
     }
   } catch (err) {
@@ -3450,6 +3704,9 @@ const fetchExamsList = async (customParams = {}) => {
   const currentRequestId = ++examsListRequestId
 
   loadingExams.value = true
+  examsListError.value = null
+  examsListStatus.value = 'loading'
+
   try {
     const offParam = customParams.office_id || (normalizeIds(selectedOfficeId.value)[0] || (filterGovernorate.value ? Number(filterGovernorate.value) : undefined))
     const dirParam = customParams.directorate_id || (normalizeIds(selectedDirectorateId.value)[0] || (filterDirectorate.value ? Number(filterDirectorate.value) : undefined))
@@ -3483,31 +3740,50 @@ const fetchExamsList = async (customParams = {}) => {
       if (filterSubject.value) params.subject = filterSubject.value
     }
 
-    const resp = await api.get('/api/omr/exam-linking/', { params, signal })
+    const res = await safeApiFetch(
+      'fetchExamsList',
+      () => api.get('/api/omr/exam-linking/', { params, signal, skipInterceptor: true }),
+      params
+    )
 
     // Strict Sequence Guard: Discard stale response
-    if (currentRequestId !== examsListRequestId) {
+    if (currentRequestId !== examsListRequestId || res.status === 'canceled') {
       return
     }
 
-    if (resp.data && resp.data.results) {
-      examsList.value = resp.data.results
-      if (selectedExamId.value && !examsList.value.some(e => e.id === selectedExamId.value)) {
-        selectedExamId.value = null
-        examDetails.value = null
+    if (res.status === 'error') {
+      examsListStatus.value = 'error'
+      examsListError.value = res.error
+      batchPrintNotification.value = {
+        show: true,
+        color: 'error',
+        message: `تعذر جلب قائمة الاختبارات من الخادم: ${res.error?.serverMessage || res.error?.errorMessage || 'خطأ في الاتصال'}`
       }
-      if (!selectedExamId.value && examsList.value.length > 0) {
-        selectedExamId.value = examsList.value[0].id
-        await loadExamDetails(selectedExamId.value, {
-          school_id: schParam,
-          directorate_id: dirParam,
-          office_id: offParam,
-        })
-      }
+      return
+    }
+
+    // Success State
+    examsList.value = res.data
+    examsListStatus.value = res.count === 0 ? 'empty' : 'success'
+    examsListError.value = null
+
+    if (selectedExamId.value && !examsList.value.some(e => e.id === selectedExamId.value)) {
+      selectedExamId.value = null
+      examDetails.value = null
+    }
+    if (!selectedExamId.value && examsList.value.length > 0) {
+      selectedExamId.value = examsList.value[0].id
+      await loadExamDetails(selectedExamId.value, {
+        school_id: schParam,
+        directorate_id: dirParam,
+        office_id: offParam,
+      })
     }
   } catch (err) {
     if (!isRequestCanceled(err)) {
-      console.error('Failed to load exams list:', err)
+      examsListStatus.value = 'error'
+      examsListError.value = { errorMessage: err.message }
+      console.error('[OMR Registry API Error] Failed to load exams list:', err)
     }
   } finally {
     if (currentRequestId === examsListRequestId) {
@@ -3532,6 +3808,9 @@ const loadExamDetails = async (examId, customParams = {}) => {
   const targetId = Number(examId)
 
   loadingExamDetails.value = true
+  examDetailsError.value = null
+  examDetailsStatus.value = 'loading'
+
   try {
     const offParam = customParams.office_id || (normalizeIds(selectedOfficeId.value)[0] || (filterGovernorate.value ? Number(filterGovernorate.value) : undefined))
     const dirParam = customParams.directorate_id || (normalizeIds(selectedDirectorateId.value)[0] || (filterDirectorate.value ? Number(filterDirectorate.value) : undefined))
@@ -3543,18 +3822,42 @@ const loadExamDetails = async (examId, customParams = {}) => {
       office_id: offParam,
       ...customParams,
     }
-    const resp = await api.get(`/api/omr/exam-linking/${examId}/`, { params, signal })
+
+    const res = await safeApiFetch(
+      `loadExamDetails:${examId}`,
+      () => api.get(`/api/omr/exam-linking/${examId}/`, { params, signal, skipInterceptor: true }),
+      params
+    )
 
     // Strict Sequence Guard: Discard stale response if newer request was dispatched or exam changed
-    if (currentRequestId !== examDetailsRequestId || Number(selectedExamId.value) !== targetId) {
+    if (currentRequestId !== examDetailsRequestId || Number(selectedExamId.value) !== targetId || res.status === 'canceled') {
       return
     }
 
-    // Atomic State Commit
-    examDetails.value = resp.data
+    if (res.status === 'error') {
+      examDetailsStatus.value = 'error'
+      examDetailsError.value = {
+        examId,
+        message: res.error?.serverMessage || res.error?.errorMessage || 'تعذر تحميل تفاصيل الاختبار وقائمة الطلاب من الخادم',
+        details: res.error
+      }
+      examDetails.value = null
+      batchPrintNotification.value = {
+        show: true,
+        color: 'error',
+        message: `تعذر تحميل تفاصيل الاختبار #${examId}: ${res.error?.serverMessage || res.error?.errorMessage || 'خطأ في الاتصال'}`
+      }
+      return
+    }
+
+    // Atomic State Commit on Success
+    examDetails.value = res.raw
+    examDetailsStatus.value = res.raw ? 'success' : 'empty'
+    examDetailsError.value = null
     showHierarchyFilters.value = false
-    if (resp.data.registered_students && resp.data.registered_students.length > 0) {
-      selectedStudentId.value = resp.data.registered_students[0].id
+
+    if (res.raw?.registered_students && res.raw.registered_students.length > 0) {
+      selectedStudentId.value = res.raw.registered_students[0].id
       sheetGenerationMode.value = 'all_students'
     } else {
       sheetGenerationMode.value = 'blank'
@@ -3564,7 +3867,14 @@ const loadExamDetails = async (examId, customParams = {}) => {
     await getPackageData()
   } catch (err) {
     if (!isRequestCanceled(err)) {
-      console.error('Failed to load exam details:', err)
+      examDetailsStatus.value = 'error'
+      examDetailsError.value = {
+        examId,
+        message: 'حدث خطأ غير متوقع أثناء تحميل تفاصيل الاختبار',
+        errorMessage: err.message
+      }
+      examDetails.value = null
+      console.error('[OMR Registry API Error] Failed to load exam details:', err)
     }
   } finally {
     if (currentRequestId === examDetailsRequestId) {
@@ -3595,26 +3905,36 @@ const fetchBatches = async (customParams = {}) => {
   const currentRequestId = ++batchesRequestId
 
   loadingBatches.value = true
+  batchesError.value = null
+
   try {
     const params = {
       search: searchQuery.value,
       ...customParams,
     }
-    const resp = await api.get('/api/omr/print-registry/', {
-      params,
-      signal,
-    })
+    const res = await safeApiFetch(
+      'fetchBatches',
+      () => api.get('/api/omr/print-registry/', { params, signal, skipInterceptor: true }),
+      params
+    )
 
-    if (currentRequestId !== batchesRequestId) {
+    if (currentRequestId !== batchesRequestId || res.status === 'canceled') {
       return
     }
 
-    if (resp.data && resp.data.success) {
-      batches.value = resp.data.results
+    if (res.status === 'error') {
+      batchesError.value = res.error
+      console.error('[OMR Registry API Error] Failed to load print batches:', res.error)
+      return
+    }
+
+    if (res.raw && res.raw.success) {
+      batches.value = res.raw.results || []
     }
   } catch (e) {
     if (!isRequestCanceled(e)) {
-      console.error("Failed to load print batches", e)
+      batchesError.value = { errorMessage: e.message }
+      console.error('[OMR Registry API Error] Failed to load print batches', e)
     }
   } finally {
     if (currentRequestId === batchesRequestId) {
@@ -3646,18 +3966,31 @@ const viewBatchDetails = async (batch) => {
   const targetBatchId = batch.batch_id
 
   try {
-    const resp = await api.get(`/api/omr/print-registry/${batch.batch_id}/`, { signal })
+    const res = await safeApiFetch(
+      `viewBatchDetails:${batch.batch_id}`,
+      () => api.get(`/api/omr/print-registry/${batch.batch_id}/`, { signal, skipInterceptor: true })
+    )
 
-    if (currentRequestId !== batchDetailsRequestId || activeBatch.value?.batch_id !== targetBatchId) {
+    if (currentRequestId !== batchDetailsRequestId || activeBatch.value?.batch_id !== targetBatchId || res.status === 'canceled') {
       return
     }
 
-    if (resp.data && resp.data.success) {
-      batchStudents.value = resp.data.students
+    if (res.status === 'error') {
+      console.error('[OMR Registry API Error] Failed to load batch students:', res.error)
+      batchPrintNotification.value = {
+        show: true,
+        color: 'error',
+        message: `تعذر جلب تفاصيل الطلاب للدفعة #${batch.batch_id}: ${res.error?.serverMessage || res.error?.errorMessage || 'خطأ في الاتصال'}`
+      }
+      return
+    }
+
+    if (res.raw && res.raw.success) {
+      batchStudents.value = res.raw.students || []
     }
   } catch (e) {
     if (!isRequestCanceled(e)) {
-      console.error("Failed to load batch students", e)
+      console.error('[OMR Registry API Error] Failed to load batch students', e)
     }
   } finally {
     if (currentRequestId === batchDetailsRequestId) {
@@ -3674,7 +4007,19 @@ const seedSampleStudents = async () => {
     await loadExamDetails(selectedExamId.value)
     fetchExamsList()
   } catch (err) {
-    console.error('Failed to seed students:', err)
+    const errDetails = {
+      operation: 'seedSampleStudents',
+      examId: selectedExamId.value,
+      statusCode: err?.response?.status,
+      serverMessage: err?.response?.data?.message || err?.response?.data?.detail,
+      errorMessage: err.message
+    }
+    console.error('[OMR Registry API Error] Failed to seed students:', errDetails)
+    batchPrintNotification.value = {
+      show: true,
+      color: 'error',
+      message: `تعذر توليد بيانات الطلاب التجريبية: ${errDetails.serverMessage || errDetails.errorMessage || 'خطأ في الاتصال'}`
+    }
   } finally {
     seedingStudents.value = false
   }
