@@ -1433,7 +1433,7 @@ const dispatchRealDirectPrint = (exam, options, realOmrElements = []) => {
             <div class="order-code">الاختبار: ${examTitle} (${examCode}) — المادة: ${subjectName}</div>
           </div>
           <div style="border: 2px dashed #b71c1c; background: #fff8f8; color: #b71c1c; padding: 30px 20px; text-align: center; border-radius: 8px; margin: 40px auto; max-width: 650px;">
-            <div style="font-size: 17px; font-weight: bold; margin-bottom: 8px;">⚠️ تنبيه الرقابة والكنترول: لا تتوفر سجلات طلاب مقيدين</div>
+            <div style="font-size: 17px; font-weight: bold; margin-bottom: 8px;">تنبيه الرقابة والكنترول: لا تتوفر سجلات طلاب مقيدين</div>
             <p style="font-size: 13px; margin: 0; color: #374151; line-height: 1.6;">
               لا توجد بيانات طلاب مقيدين في قاعدة البيانات لهذا الاختبار (${examCode}).
               <br>

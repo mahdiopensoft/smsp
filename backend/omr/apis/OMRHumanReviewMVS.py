@@ -34,30 +34,30 @@ class OMRHumanReviewMVS(AllMVS):
         stage_id = self.request.query_params.get('stage') or self.request.query_params.get('stage_id')
         if stage_id:
             qs = qs.filter(
-                Q(submission__exam__versions__question_orders__question__lesson__unit__class_subject__class_track__level__stage_id=stage_id) |
+                Q(submission__exam__class_track__level__stage_id=stage_id) |
                 Q(submission__exam__subject__class_subjects__class_track__level__stage_id=stage_id)
-            )
+            ).distinct()
 
         class_track_id = self.request.query_params.get('class_track') or self.request.query_params.get('class_track_id')
         if class_track_id:
             qs = qs.filter(
-                Q(submission__exam__versions__question_orders__question__lesson__unit__class_subject__class_track_id=class_track_id) |
-                Q(submission__exam__subject__class_subjects__class_track_id=class_track_id)
-            )
+                Q(submission__exam__subject__class_subjects__class_track_id=class_track_id) |
+                Q(submission__exam__class_track_id=class_track_id)
+            ).distinct()
 
         level_id = self.request.query_params.get('level') or self.request.query_params.get('level_id')
         if level_id:
             qs = qs.filter(
-                Q(submission__exam__versions__question_orders__question__lesson__unit__class_subject__class_track__level_id=level_id) |
+                Q(submission__exam__class_track__level_id=level_id) |
                 Q(submission__exam__subject__class_subjects__class_track__level_id=level_id)
-            )
+            ).distinct()
 
         track_id = self.request.query_params.get('track') or self.request.query_params.get('track_id')
         if track_id:
             qs = qs.filter(
-                Q(submission__exam__versions__question_orders__question__lesson__unit__class_subject__class_track__track_id=track_id) |
+                Q(submission__exam__class_track__track_id=track_id) |
                 Q(submission__exam__subject__class_subjects__class_track__track_id=track_id)
-            )
+            ).distinct()
 
         # University Filters
         college_id = self.request.query_params.get('college') or self.request.query_params.get('fk_college')
