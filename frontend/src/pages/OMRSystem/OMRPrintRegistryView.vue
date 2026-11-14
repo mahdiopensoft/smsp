@@ -264,11 +264,11 @@
       <div class="main-card rounded-2xl overflow-hidden mb-6 elevation-1 bg-surface border">
         <div class="d-flex align-center flex-wrap gap-2 px-4 pt-3 border-b">
           <v-tabs v-model="masterTab" color="primary" density="compact">
-            <v-tab v-if="institutionType === 'school'" value="offices" class="font-weight-bold">
+            <v-tab v-if="institutionType === 'school' || institutionType === 'all'" value="offices" class="font-weight-bold">
               <v-icon start size="18">mdi-office-building-outline</v-icon>
               مكاتب التربية والتعليم ({{ filteredOfficesTable.length }})
             </v-tab>
-            <v-tab v-if="institutionType === 'school'" value="directorates" class="font-weight-bold">
+            <v-tab v-if="institutionType === 'school' || institutionType === 'all'" value="directorates" class="font-weight-bold">
               <v-icon start size="18">mdi-map-marker-radius-outline</v-icon>
               إدارات التربية بالمديريات ({{ filteredDirectoratesTable.length }})
             </v-tab>
@@ -289,7 +289,7 @@
 
         <v-window v-model="masterTab">
           <!-- 1. تبويب مكاتب التربية بالمحافظات -->
-          <v-window-item value="offices" v-if="institutionType === 'school'">
+          <v-window-item value="offices" v-if="institutionType === 'school' || institutionType === 'all'">
             <custom-data-table
               :key="'offices-tbl-' + filteredOfficesTable.length + '-' + normalizeIds(selectedOfficeId).join('-')"
               v-model="selectedOfficeMasterRows"
@@ -407,7 +407,7 @@
           </v-window-item>
 
           <!-- 2. تبويب إدارات التربية بالمديريات -->
-          <v-window-item value="directorates" v-if="institutionType === 'school'">
+          <v-window-item value="directorates" v-if="institutionType === 'school' || institutionType === 'all'">
             <custom-data-table
               :key="'dirs-tbl-' + filteredDirectoratesTable.length + '-' + normalizeIds(selectedDirectorateId).join('-')"
               v-model="selectedDirectorateMasterRows"
@@ -1730,6 +1730,28 @@
         <!-- TAB 1: UNIFIED ROSTER TABLE (الجدول الموحد custom-data-table) -->
         <!-- ════════════════════════════════════════════════════════════ -->
         <div v-if="isTabVisited('sheets')" v-show="activeTab === 'sheets'">
+          <!-- تنبيه أمني واضح عند عدم توفر طلاب مقيدين في قاعدة البيانات -->
+          <v-alert
+            v-if="examDetails && (!examDetails.registered_students || examDetails.registered_students.length === 0)"
+            type="warning"
+            variant="tonal"
+            border="start"
+            rounded="xl"
+            class="mb-4"
+          >
+            <template #title>
+              <div class="d-flex align-center gap-2 font-weight-black text-body-1">
+                <v-icon color="warning">mdi-shield-alert-outline</v-icon>
+                <span>لا تتوفر سجلات طلاب مقيدين في قاعدة البيانات لهذا الاختبار</span>
+              </div>
+            </template>
+            <div class="text-body-2 mt-1">
+              حفاظاً على سلامة الوثائق والكنترول، يمنع النظام توليد كشوف مناداة رسمية أو إصدار أوراق تظليل ببيانات أو أرقام جلوس افتراضية.
+              يرجى تسكين وقيد الطلاب وتوليد أرقام جلوسهم من إدارة الاختبارات قبل الشروع في الطباعة الرسمية.
+              يمكنك في هذه الأثناء طباعة نماذج كراسات الأسئلة أو إجراء معاينة تجريبية لقالب التظليل فقط.
+            </div>
+          </v-alert>
+
           <!-- Controls Toolbar (شريط الفلاتر والبحث السريع وأوامر الطباعة) -->
           <!-- ── شريط العمليات والطباعة والتصفية الموحد (Control Center) ── -->
           <div class="main-card rounded-2xl pa-4 mb-4 border bg-surface elevation-1">
@@ -1760,6 +1782,7 @@
                   class="font-weight-bold px-4"
                   prepend-icon="mdi-clipboard-text-outline"
                   title="طباعة كشف تسليم الكنترول الرسمي"
+                  :disabled="!examDetails?.registered_students?.length"
                   @click="printAuditRoster"
                 >
                   كشف تسليم الكنترول
@@ -2787,18 +2810,42 @@
         <!-- Single Sheet Preview Dialog (معاينة ورقة التظليل الفردية - مطابق لتصميم omr-human-review) -->
     <v-dialog v-model="singleSheetDialog" max-width="850px" scrollable>
       <v-card v-if="previewStudent" class="rounded-2xl overflow-hidden main-card">
+        <!-- شريط تحذيري خاص بالمعاينة التجريبية -->
+        <v-alert
+          v-if="previewStudent?.is_demo"
+          type="warning"
+          variant="flat"
+          density="compact"
+          rounded="0"
+          class="text-center font-weight-black text-caption py-1.5"
+          icon="mdi-flask-outline"
+        >
+          ⚠️ نموذج معاينة تجريبية (بيانات افتراضية للاختبار فقط) — وثيقة غير رسمية ويمنع طباعتها أو توزيعها على مراكز الاختبارات
+        </v-alert>
+
         <!-- Dialog Header (مطابق تماماً لـ omr-human-review) -->
         <v-card-title class="d-flex align-center justify-space-between bg-surface px-6 py-4 border-b">
           <div class="d-flex align-center gap-3">
-            <v-avatar color="primary" variant="tonal" rounded="lg" size="44">
-              <v-icon size="24" color="primary">mdi-card-account-details-outline</v-icon>
+            <v-avatar :color="previewStudent?.is_demo ? 'warning' : 'primary'" variant="tonal" rounded="lg" size="44">
+              <v-icon size="24" :color="previewStudent?.is_demo ? 'warning' : 'primary'">
+                {{ previewStudent?.is_demo ? 'mdi-flask-outline' : 'mdi-card-account-details-outline' }}
+              </v-icon>
             </v-avatar>
             <div>
               <div class="d-flex align-center gap-2 flex-wrap">
                 <h3 class="text-h6 font-weight-black text-on-surface mb-0">
                   {{ previewStudent.student_name || 'طالب بدون اسم' }}
                 </h3>
-                <v-chip size="small" color="primary" variant="flat" class="font-weight-bold px-2 unified-table-chip">
+                <v-chip
+                  v-if="previewStudent?.is_demo"
+                  size="small"
+                  color="warning"
+                  variant="flat"
+                  class="font-weight-black px-2.5"
+                >
+                  معاينة تجريبية فقط
+                </v-chip>
+                <v-chip v-else size="small" color="primary" variant="flat" class="font-weight-bold px-2 unified-table-chip">
                   رقم الجلوس: {{ previewStudent.seat_number }}
                 </v-chip>
                 <v-chip size="small" :color="getModelChipColor(previewStudent.model_code)" variant="tonal" class="font-weight-bold px-2.5 rounded-lg border">
@@ -2813,6 +2860,19 @@
 
           <div class="d-flex align-center gap-2">
             <v-btn
+              v-if="previewStudent?.is_demo"
+              color="warning"
+              variant="tonal"
+              rounded="lg"
+              size="default"
+              class="font-weight-bold px-4 shadow-sm"
+              prepend-icon="mdi-printer-eye"
+              @click="printPreviewStudentSheet"
+            >
+              طباعة مسودة تجريبية
+            </v-btn>
+            <v-btn
+              v-else
               color="success"
               variant="flat"
               rounded="lg"
@@ -3255,6 +3315,19 @@ const filterGovernorate = ref(null)
 const filterDirectorate = ref(null)
 const filterOrganization = ref(null)
 
+const getEffectiveInstitutionType = () => {
+  if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
+    return filterInstitutionType.value
+  }
+  if (filterInstitutionType.value === 'all') {
+    return undefined
+  }
+  if (institutionType.value && institutionType.value !== 'all') {
+    return institutionType.value
+  }
+  return undefined
+}
+
 const isSchoolFilter = computed(() => {
   return !filterInstitutionType.value || filterInstitutionType.value === 'all' || filterInstitutionType.value === 'school'
 })
@@ -3394,7 +3467,7 @@ const onInstituteEducationSystemChange = () => {
 
 const resetUnifiedFilters = async () => {
   filterInstitutionType.value = 'all'
-  institutionType.value = 'school'
+  institutionType.value = 'all'
   filterGovernorate.value = null
   filterDirectorate.value = null
   filterOrganization.value = null
@@ -3556,8 +3629,9 @@ const directoratesOptions = computed(() => {
 
 const schoolsOptions = computed(() => {
   let list = schoolsList.value || []
-  if (institutionType.value !== 'all') {
-    list = list.filter(s => !s.institution_type || s.institution_type === institutionType.value)
+  const effType = getEffectiveInstitutionType()
+  if (effType) {
+    list = list.filter(s => !s.institution_type || s.institution_type === effType)
   }
   const dirIds = normalizeIds(selectedDirectorateId.value)
   const officeIds = normalizeIds(selectedOfficeId.value)
@@ -3677,9 +3751,7 @@ const filteredDirectoratesTable = computed(() => {
 
 const filteredSchoolsTable = computed(() => {
   let list = schoolsList.value || []
-  const effType = (filterInstitutionType.value && filterInstitutionType.value !== 'all') 
-    ? filterInstitutionType.value 
-    : (institutionType.value !== 'all' ? institutionType.value : undefined)
+  const effType = getEffectiveInstitutionType()
   if (effType) {
     list = list.filter(s => !s.institution_type || s.institution_type === effType)
   }
@@ -3731,9 +3803,7 @@ const filteredSchoolsTable = computed(() => {
 
 const filteredMasterExamsTable = computed(() => {
   let list = masterExamsList.value || []
-  const effType = (filterInstitutionType.value && filterInstitutionType.value !== 'all') 
-    ? filterInstitutionType.value 
-    : (institutionType.value !== 'all' ? institutionType.value : undefined)
+  const effType = getEffectiveInstitutionType()
   if (effType) {
     list = list.filter(e => !e.institution_type || e.institution_type === effType)
   }
@@ -4280,8 +4350,25 @@ const previewFirstOmrSheet = async () => {
   if (st) {
     openSingleSheetPreview(st)
   } else {
-    printBlankSheetVersion('A')
+    openDemoSheetPreview('A')
   }
+}
+
+const openDemoSheetPreview = (verCode = 'A') => {
+  previewStudent.value = {
+    id: `demo_preview_${verCode}`,
+    is_demo: true,
+    student_name: 'بيانات تجريبية للمعاينة (TEST DEMO)',
+    seat_number: '—',
+    secret_number: 'TEST',
+    model_code: verCode,
+    school_name: customCenterName.value || selectedExam.value?.directorate || 'مركز اختباري (معاينة تجريبية)',
+    directorate: customDirectorate.value || selectedExam.value?.directorate || 'معاينة تجريبية',
+    governorate: customGovernorate.value || selectedExam.value?.governorate || 'معاينة تجريبية',
+    barcode_value: `DEMO_PREVIEW_OMR_VER_${verCode}`,
+    qr_value: `DEMO|${verCode}|PREVIEW_ONLY`
+  }
+  singleSheetDialog.value = true
 }
 
 const previewFirstQuestionPaper = async () => {
@@ -4315,7 +4402,7 @@ const dispatchRealDirectPrint = (exam, options, realOmrElements = []) => {
   const pressName = exam.press_name || 'المطبعة السرية المركزية (ديوان الوزارة)'
   const officerName = exam.responsible_officer || 'مدير إدارة الامتحانات والكنترول'
   const schedDate = exam.scheduled_print_date || getTodayIso()
-  const totalCount = exam.total_registered || exam.total_students || 8
+  const totalCount = exam.total_registered || exam.total_students || 0
   const schoolsCount = exam.schools_count || 1
 
   const students = examDetails.value?.registered_students || []
@@ -4420,54 +4507,66 @@ const dispatchRealDirectPrint = (exam, options, realOmrElements = []) => {
 
   // 2. إذا تم تحديد كشوف المناداة ومحاضر المراكز
   if (options?.roster) {
-    const listForRoster = students.length > 0 ? students : Array.from({ length: totalCount }, (_, i) => ({
-      seat_number: 1001 + i,
-      secret_number: 5001 + i,
-      student_name: `طالب مقيد ${i + 1}`,
-      school_name: 'المركز الامتحاني المعتمد',
-      model_code: ['A', 'B', 'C', 'D'][i % 4],
-    }))
-
-    let studentRows = ''
-    listForRoster.forEach((st, idx) => {
-      studentRows += `
-        <tr>
-          <td style="text-align: center;">${idx + 1}</td>
-          <td style="text-align: center; font-family: monospace; font-weight: bold;">${st.seat_number || ''}</td>
-          <td style="text-align: center; font-family: monospace;">${st.secret_number || ''}</td>
-          <td style="font-weight: bold;">${st.student_name || ''}</td>
-          <td>${st.school_name || 'المركز الرئيسي'}</td>
-          <td style="text-align: center; font-weight: bold;">نموذج ${st.model_code || 'A'}</td>
-          <td style="min-width: 100px;"></td>
-        </tr>
-      `
-    })
-
-    sectionsHtml += `
-      <div class="print-page">
-        <div class="header">
-          <h2>الجمهورية اليمنية — وزارة التربية والتعليم</h2>
-          <h3>كشف تسليم واستلام وثائق الاختبار للمركز الامتحاني</h3>
-          <div class="order-code">الاختبار: ${examTitle} (${examCode}) — المادة: ${subjectName}</div>
+    if (!students || students.length === 0) {
+      sectionsHtml += `
+        <div class="print-page">
+          <div class="header">
+            <h2>الجمهورية اليمنية — وزارة التربية والتعليم</h2>
+            <h3>كشف تسليم واستلام وثائق الاختبار للمركز الامتحاني</h3>
+            <div class="order-code">الاختبار: ${examTitle} (${examCode}) — المادة: ${subjectName}</div>
+          </div>
+          <div style="border: 2px dashed #b71c1c; background: #fff8f8; color: #b71c1c; padding: 30px 20px; text-align: center; border-radius: 8px; margin: 40px auto; max-width: 650px;">
+            <div style="font-size: 17px; font-weight: bold; margin-bottom: 8px;">⚠️ تنبيه الرقابة والكنترول: لا تتوفر سجلات طلاب مقيدين</div>
+            <p style="font-size: 13px; margin: 0; color: #374151; line-height: 1.6;">
+              لا توجد بيانات طلاب مقيدين في قاعدة البيانات لهذا الاختبار (${examCode}).
+              <br>
+              <strong>يمنع النظام بصورة قاطعة إصدار كشف مناداة رسمي أو توليد أرقام جلوس وسرية افتراضية</strong> لضمان سلامة الوثائق الامتحانية ومطابقتها للكنترول.
+            </p>
+          </div>
         </div>
-        <table class="items-table" style="font-size: 12px;">
-          <thead>
-            <tr>
-              <th style="width: 30px;">م</th>
-              <th style="width: 90px;">رقم الجلوس</th>
-              <th style="width: 80px;">الرقم السري</th>
-              <th>اسم الطالب</th>
-              <th>المدرسة</th>
-              <th style="width: 80px;">النموذج</th>
-              <th style="width: 120px;">توقيع الاستلام</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${studentRows}
-          </tbody>
-        </table>
-      </div>
-    `
+      `
+    } else {
+      let studentRows = ''
+      students.forEach((st, idx) => {
+        studentRows += `
+          <tr>
+            <td style="text-align: center;">${idx + 1}</td>
+            <td style="text-align: center; font-family: monospace; font-weight: bold;">${st.seat_number || ''}</td>
+            <td style="text-align: center; font-family: monospace;">${st.secret_number || ''}</td>
+            <td style="font-weight: bold;">${st.student_name || ''}</td>
+            <td>${st.school_name || 'المركز الرئيسي'}</td>
+            <td style="text-align: center; font-weight: bold;">نموذج ${st.model_code || 'A'}</td>
+            <td style="min-width: 100px;"></td>
+          </tr>
+        `
+      })
+
+      sectionsHtml += `
+        <div class="print-page">
+          <div class="header">
+            <h2>الجمهورية اليمنية — وزارة التربية والتعليم</h2>
+            <h3>كشف تسليم واستلام وثائق الاختبار للمركز الامتحاني</h3>
+            <div class="order-code">الاختبار: ${examTitle} (${examCode}) — المادة: ${subjectName}</div>
+          </div>
+          <table class="items-table" style="font-size: 12px;">
+            <thead>
+              <tr>
+                <th style="width: 30px;">م</th>
+                <th style="width: 90px;">رقم الجلوس</th>
+                <th style="width: 80px;">الرقم السري</th>
+                <th>اسم الطالب</th>
+                <th>المدرسة</th>
+                <th style="width: 80px;">النموذج</th>
+                <th style="width: 120px;">توقيع الاستلام</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${studentRows}
+            </tbody>
+          </table>
+        </div>
+      `
+    }
   }
 
   // 3. كراسات الأسئلة الامتحانية (إذا تم تحديدها)
@@ -5025,9 +5124,7 @@ const loadMasterData = async () => {
     const effDir = filterDirectorate.value || (normalizeIds(selectedDirectorateId.value)[0] || undefined)
     const effOrg = filterOrganization.value || (normalizeIds(selectedSchoolId.value)[0] || undefined)
     const effSubj = filterSubject.value || filterSemesterSubject.value || filterInstituteSubject.value || selectedSubjectId.value || undefined
-    const effType = (filterInstitutionType.value && filterInstitutionType.value !== 'all') 
-      ? filterInstitutionType.value 
-      : (institutionType.value !== 'all' ? institutionType.value : undefined)
+    const effType = getEffectiveInstitutionType()
 
     const baseParams = {
       institution_type: effType,
@@ -5101,6 +5198,7 @@ const resetHierarchyFilters = async () => {
 
 const onSectorChange = (val) => {
   institutionType.value = val
+  filterInstitutionType.value = val
   selectedOfficeId.value = []
   selectedOfficeName.value = ''
   selectedDirectorateId.value = []
@@ -5661,18 +5759,7 @@ const targetBatchStudents = computed(() => {
   if (examDetails.value?.registered_students && examDetails.value.registered_students.length > 0) {
     return examDetails.value.registered_students
   }
-  const count = selectedExam.value?.total_registered || selectedExam.value?.total_students || 8
-  const models = ['A', 'B', 'C', 'D']
-  return Array.from({ length: Math.max(count, 4) }, (_, i) => ({
-    id: `reg_st_${i + 1}`,
-    student_name: `طالب مقيد ${i + 1}`,
-    seat_number: 418485 + i,
-    secret_number: 5001 + i,
-    model_code: models[i % models.length],
-    school_name: selectedExam.value?.directorate || 'المركز الاختباري المعتمد',
-    governorate: selectedExam.value?.governorate || 'أمانة العاصمة',
-    directorate: selectedExam.value?.directorate || 'معين',
-  }))
+  return []
 })
 
 const filteredStreamStudents = computed(() => filteredRosterStudents.value)
@@ -5741,13 +5828,15 @@ const printPreviewStudentSheet = async () => {
       title: `${selectedExam.value?.uniqueCode || 'OMR'}_${st?.seat_number || st?.model_code || 'SHEET'}`,
       isA5: selectedSheetLayout.value === 'compact_a5'
     })
-    st.is_printed = true
-    st.printed_at = new Date().toLocaleTimeString('ar-YE')
-    if (selectedExamId.value && st.id && !String(st.id).startsWith('blank_')) {
-      api.post(`/api/omr/exam-linking/${selectedExamId.value}/mark-printed/`, {
-        student_ids: [st.id],
-        is_printed: true
-      }).catch(e => console.error(e))
+    if (!st.is_demo) {
+      st.is_printed = true
+      st.printed_at = new Date().toLocaleTimeString('ar-YE')
+      if (selectedExamId.value && st.id && !String(st.id).startsWith('blank_')) {
+        api.post(`/api/omr/exam-linking/${selectedExamId.value}/mark-printed/`, {
+          student_ids: [st.id],
+          is_printed: true
+        }).catch(e => console.error(e))
+      }
     }
   } else {
     window.print()
@@ -5783,7 +5872,14 @@ const printAuditRoster = () => {
   const students = (filteredRosterStudents.value && filteredRosterStudents.value.length > 0)
     ? filteredRosterStudents.value
     : (examDetails.value?.registered_students || [])
-  if (!students.length) return
+  if (!students.length) {
+    batchPrintNotification.value = {
+      show: true,
+      color: 'warning',
+      message: 'تعذر طباعة كشف تسليم الكنترول: لا توجد سجلات طلاب مقيدين في قاعدة البيانات لهذا الاختبار. يمنع النظام توليد كشوف رسمية ببيانات افتراضية.'
+    }
+    return
+  }
 
   const exam = selectedExam.value || {}
   const center = customCenterName.value || exam.directorate || 'المركز الاختباري الرئيسي'
@@ -5904,7 +6000,14 @@ const printAuditRoster = () => {
 }
 
 const printSelectedOrAllRoster = async () => {
-  if (!targetBatchStudents.value.length) return
+  if (!targetBatchStudents.value.length) {
+    batchPrintNotification.value = {
+      show: true,
+      color: 'warning',
+      message: 'لا توجد بيانات طلاب مسجلين لهذا الاختبار للطباعة. يرجى قيد وتسكين الطلاب وأرقام جلوسهم أولاً.'
+    }
+    return
+  }
   printingBatch.value = true
   try {
     const isAudit = selectedSheetLayout.value === 'full_a4'
@@ -6196,10 +6299,9 @@ const fetchExamsList = async (customParams = {}) => {
       office_id: selectedOfficeId.value || undefined,
       ...customParams,
     }
-    if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
-      params.institution_type = filterInstitutionType.value
-    } else if (institutionType.value && institutionType.value !== 'all') {
-      params.institution_type = institutionType.value
+    const effType = getEffectiveInstitutionType()
+    if (effType) {
+      params.institution_type = effType
     }
     if (filterInstitutionType.value === 'school') {
       if (filterStage.value) params.stage = filterStage.value
