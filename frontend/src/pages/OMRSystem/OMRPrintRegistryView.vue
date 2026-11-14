@@ -2831,6 +2831,7 @@
           <div ref="singlePreviewRef" class="single-sheet-preview-wrap bg-white rounded-xl border elevation-1 pa-3">
             <YemeniAuditReportSheet
               v-if="selectedSheetLayout === 'full_a4'"
+              :hide-action-bar="true"
               :student-name="previewStudent.student_name"
               :seat-number="previewStudent.seat_number"
               :serial-number="previewStudent.secret_number || previewStudent.model_code"
@@ -3175,6 +3176,7 @@
       >
         <YemeniAuditReportSheet
           v-if="selectedSheetLayout === 'full_a4'"
+          :hide-action-bar="true"
           :student-name="st.student_name"
           :seat-number="st.seat_number"
           :serial-number="st.secret_number || st.model_code"
