@@ -244,7 +244,14 @@ const questionPaperRef = ref<HTMLElement | null>(null)
 
 const selectedVersionQuestions = computed(() => {
   if (!props.examVersions || props.examVersions.length === 0) return []
-  const ver = props.examVersions.find(v => (v.model_code || v.version_code || '').toUpperCase() === selectedModelCode.value.toUpperCase())
+  const code = (selectedModelCode.value || 'A').trim().toUpperCase()
+  const ver = props.examVersions.find(v => {
+    const vCode = String(v.versionCode || v.model_code || v.version_code || v.code || '').trim().toUpperCase()
+    return vCode === code
+  }) || props.examVersions.find(v => {
+    const vCode = String(v.versionCode || v.model_code || v.version_code || v.code || '').trim().toUpperCase()
+    return vCode === 'A'
+  }) || props.examVersions[0]
   return ver?.questions || []
 })
 

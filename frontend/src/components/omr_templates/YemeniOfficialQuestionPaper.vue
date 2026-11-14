@@ -347,8 +347,19 @@
           </table>
         </div>
 
+        <!-- Empty State Alert if No Questions -->
+        <div v-if="!questions || questions.length === 0" class="no-questions-placeholder text-center py-8 px-4 my-4 rounded-lg bg-grey-lighten-4" style="border: 2px dashed #9e9e9e;">
+          <v-icon color="warning" size="36" class="mb-2">mdi-alert-circle-outline</v-icon>
+          <div class="text-subtitle-2 font-weight-bold text-grey-darken-3">
+            لا توجد أسئلة مسجلة للنموذج ({{ modelCode || 'A' }}) في هذا الاختبار
+          </div>
+          <div class="text-caption text-grey-darken-1 mt-1">
+            لم يتم ربط أي أسئلة في بنك الأسئلة لهذا النموذج حتى الآن، يرجى تجهيز الأسئلة وتوليد النماذج أولاً.
+          </div>
+        </div>
+
         <!-- Bottom Footer Banner if only 1 column has questions -->
-        <div v-if="col2McqQuestions.length === 0" class="exam-paper-end-banner text-center font-weight-black">
+        <div v-if="col2McqQuestions.length === 0 && (questions && questions.length > 0)" class="exam-paper-end-banner text-center font-weight-black">
           {{ endBannerText }}
         </div>
       </div>
@@ -692,8 +703,19 @@
             </table>
           </div>
 
+          <!-- Empty State Alert if No Questions -->
+          <div v-if="!questions || questions.length === 0" class="no-questions-placeholder text-center py-8 px-4 my-4 rounded-lg bg-grey-lighten-4" style="border: 2px dashed #9e9e9e;">
+            <v-icon color="warning" size="36" class="mb-2">mdi-alert-circle-outline</v-icon>
+            <div class="text-subtitle-2 font-weight-bold text-grey-darken-3">
+              لا توجد أسئلة مسجلة للنموذج ({{ modelCode || 'A' }}) في هذا الاختبار
+            </div>
+            <div class="text-caption text-grey-darken-1 mt-1">
+              لم يتم ربط أي أسئلة في بنك الأسئلة لهذا النموذج حتى الآن، يرجى تجهيز الأسئلة وتوليد النماذج أولاً.
+            </div>
+          </div>
+
           <!-- Bottom Footer Banner on Page 1 if only 1 page -->
-          <div v-if="!hasSecondPage" class="exam-paper-end-banner text-center font-weight-black">
+          <div v-if="!hasSecondPage && (questions && questions.length > 0)" class="exam-paper-end-banner text-center font-weight-black">
             {{ endBannerText }}
           </div>
         </div>
@@ -785,7 +807,7 @@
           </div>
 
           <!-- Bottom Footer Banner -->
-          <div class="exam-paper-end-banner text-center font-weight-black">
+          <div v-if="questions && questions.length > 0" class="exam-paper-end-banner text-center font-weight-black">
             {{ endBannerText }}
           </div>
         </div>
