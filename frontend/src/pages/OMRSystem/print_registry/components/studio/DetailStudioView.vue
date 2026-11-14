@@ -190,6 +190,27 @@
           />
         </div>
       </div>
+
+      <!-- حالة تعذر تحميل البيانات أو حدوث خطأ من الخادم -->
+      <div v-else class="text-center py-16 main-card rounded-2xl border bg-surface">
+        <v-avatar size="64" color="error" variant="tonal" class="mb-4">
+          <v-icon size="36">mdi-cloud-alert</v-icon>
+        </v-avatar>
+        <h3 class="text-h6 font-weight-black mb-1 text-error">تعذر تحميل بيانات الاختبار من الخادم</h3>
+        <p class="text-caption text-medium-emphasis mb-4">
+          {{ examDetailsError?.message || 'حدث خطأ أثناء محاولة جلب تفاصيل الاختبار وقائمة الطلاب ونماذج الأسئلة، أو انقطع الاتصال بالخادم.' }}
+        </p>
+        <v-btn
+          color="primary"
+          variant="elevated"
+          prepend-icon="mdi-refresh"
+          :loading="loadingExamDetails"
+          class="font-weight-bold px-4"
+          @click="$emit('exam-selected', selectedExamId)"
+        >
+          إعادة المحاولة
+        </v-btn>
+      </div>
     </div>
 
     <!-- تبويب 4: سجل الدفعات المطبوعة -->
@@ -238,6 +259,7 @@ defineProps<{
   batches?: any[]
   isTabVisited: (tab: string) => boolean
   loadingExamDetails: boolean
+  examDetailsError?: any
   batchPrintNotification?: any
 
   // Tab 1: Sheets

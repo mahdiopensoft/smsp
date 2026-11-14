@@ -87,7 +87,7 @@
       :exams-objects-formatted="examsObjectsFormatted"
       :versions-chip-label="versionsChipLabel"
       :active-tab="activeTab"
-      :batches="batches"
+      :batches="currentExamBatches"
       :is-tab-visited="isTabVisited"
       :loading-exam-details="loadingExamDetails"
       :batch-print-notification="batchPrintNotification"
@@ -423,6 +423,10 @@ const directoratesList = ref([])
 const schoolsList = ref([])
 const masterExamsList = ref([])
 const batches = ref([])
+const currentExamBatches = computed(() => {
+  if (!selectedExamId.value) return []
+  return (batches.value || []).filter(b => Number(b.exam_id) === Number(selectedExamId.value))
+})
 const loadingBatches = ref(false)
 
 // Master Table Headers
@@ -819,12 +823,22 @@ const filteredMasterExamsTable = computed(() => {
 
 const filteredBatchesTable = computed(() => {
   let list = batches.value || []
+  const effSubj = filterSubject.value || filterSemesterSubject.value || filterInstituteSubject.value || selectedSubjectId.value
+  if (effSubj) {
+    const sObj = subjectsList.value.find(s => Number(s.id) === Number(effSubj))
+    const sName = sObj?.name?.trim() || sObj?.name_ar?.trim()
+    list = list.filter(b => 
+      Number(b.subject_id) === Number(effSubj) ||
+      (sName && b.subject_name && (b.subject_name === sName || b.subject_name.includes(sName)))
+    )
+  }
   if (masterSearchQuery.value) {
     const q = masterSearchQuery.value.toLowerCase().trim()
     list = list.filter(b => 
       (b.batch_id && b.batch_id.toLowerCase().includes(q)) ||
       (b.exam_title && b.exam_title.toLowerCase().includes(q)) ||
-      (b.exam_code && b.exam_code.toLowerCase().includes(q))
+      (b.exam_code && b.exam_code.toLowerCase().includes(q)) ||
+      (b.subject_name && b.subject_name.toLowerCase().includes(q))
     )
   }
   return list
@@ -3328,12 +3342,17 @@ const getBatchesData = async (params = {}) => {
     searchQuery.value = (p.search || '').trim().toLowerCase()
   }
 
-  let all = batches.value || []
+  let all = (currentView.value === 'detail' && selectedExamId.value)
+    ? (currentExamBatches.value || [])
+    : (filteredBatchesTable.value || [])
+
   if (searchQuery.value) {
     const q = searchQuery.value
     all = all.filter(b =>
       String(b.batch_id || '').toLowerCase().includes(q) ||
       String(b.exam_title || '').toLowerCase().includes(q) ||
+      String(b.exam_code || '').toLowerCase().includes(q) ||
+      String(b.subject_name || '').toLowerCase().includes(q) ||
       String(b.print_date || '').toLowerCase().includes(q) ||
       String(b.status || '').toLowerCase().includes(q)
     )
@@ -3357,7 +3376,7 @@ const getBatchesData = async (params = {}) => {
   return batchesTableItems.value
 }
 
-watch(batches, () => {
+watch([batches, currentExamBatches, currentView, selectedExamId], () => {
   batchesPage.value = 1
   getBatchesData({ page: 1, page_size: batchesPageSize.value })
 }, { immediate: true })
@@ -3567,7 +3586,7 @@ const onExamSelected = (newId) => {
 let batchesRequestId = 0
 let batchesAbortController = null
 
-const fetchBatches = async () => {
+const fetchBatches = async (customParams = {}) => {
   if (batchesAbortController) {
     batchesAbortController.abort()
   }
@@ -3577,8 +3596,12 @@ const fetchBatches = async () => {
 
   loadingBatches.value = true
   try {
+    const params = {
+      search: searchQuery.value,
+      ...customParams,
+    }
     const resp = await api.get('/api/omr/print-registry/', {
-      params: { search: searchQuery.value },
+      params,
       signal,
     })
 

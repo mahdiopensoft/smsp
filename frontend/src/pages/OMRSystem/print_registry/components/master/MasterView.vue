@@ -7,6 +7,45 @@
       @apply="$emit('load-master-data')"
     />
 
+    <!-- تنبيه عند وجود خطأ في تحميل بيانات الهيكل الإداري من الخادم -->
+    <v-alert
+      v-if="masterError"
+      type="error"
+      variant="tonal"
+      density="comfortable"
+      closable
+      class="mb-4 rounded-xl border border-error"
+      @click:close="$emit('clear-error')"
+    >
+      <div class="d-flex align-center justify-space-between flex-wrap gap-2">
+        <div class="d-flex align-center">
+          <v-icon start icon="mdi-alert-circle" size="24" class="me-2 text-error" />
+          <div>
+            <div class="font-weight-bold text-subtitle-2 text-error">
+              تعذر تحميل بعض بيانات الهيكل الإداري من الخادم
+            </div>
+            <div class="text-caption text-medium-emphasis mt-1">
+              {{ masterError.message || 'حدث خطأ في الاتصال بالخادم، يرجى التحقق من الشبكة أو الخادم.' }}
+              <span v-if="masterError.failedServices?.length" class="font-weight-bold text-error ms-1">
+                (البيانات المتأثرة: {{ masterError.failedServices.join('، ') }})
+              </span>
+            </div>
+          </div>
+        </div>
+        <v-btn
+          color="error"
+          variant="flat"
+          size="small"
+          prepend-icon="mdi-refresh"
+          :loading="loadingMaster"
+          class="font-weight-bold"
+          @click="$emit('load-master-data')"
+        >
+          إعادة المحاولة
+        </v-btn>
+      </div>
+    </v-alert>
+
     <!-- 4. تبويبات الاستعراض الهيكلي وسجل الطباعة المركزي (Master Tabs) -->
     <div class="main-card rounded-2xl overflow-hidden mb-6 elevation-1 bg-surface border">
       <div class="d-flex align-center flex-wrap gap-2 px-4 pt-3 border-b">
@@ -144,6 +183,7 @@ import MasterBatchesTab from './MasterBatchesTab.vue'
 defineProps<{
   filters: any
   loadingMaster?: boolean
+  masterError?: any
   masterTab: string
   institutionType: string
   filteredOfficesTable: any[]
@@ -187,6 +227,7 @@ defineProps<{
 
 defineEmits<{
   (e: 'load-master-data'): void
+  (e: 'clear-error'): void
   (e: 'update:masterTab', val: string): void
   (e: 'update:selectedOfficeMasterRows', val: any[]): void
   (e: 'update:selectedDirectorateMasterRows', val: any[]): void
