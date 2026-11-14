@@ -1621,7 +1621,7 @@
 
         <div class="d-flex align-center gap-2 flex-wrap">
           <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold" prepend-icon="mdi-layers-outline">
-            {{ selectedExam.versions_count || examDetails?.versions?.length || 4 }} نماذج (A, B, C, D)
+            {{ versionsChipLabel }}
           </v-chip>
           <v-chip size="small" color="success" variant="tonal" class="font-weight-black" prepend-icon="mdi-account-group-outline">
             {{ examDetails?.registered_students?.length || selectedExam.registered_students_count || 0 }} طالب
@@ -5514,6 +5514,17 @@ const questionsModelSelectOptions = computed(() => {
     title: `النموذج ${v.versionCode} (${v.questions?.length || v.questionsCount || 0} سؤال)`,
     value: v.versionCode
   }))
+})
+
+const versionsChipLabel = computed(() => {
+  const versions = examDetails.value?.versions || []
+  if (versions.length > 0) {
+    const codes = versions.map(v => v.versionCode).filter(Boolean).join(', ')
+    const count = versions.length
+    return count === 1 ? `نموذج واحد (${codes || 'A'})` : `${count} نماذج (${codes})`
+  }
+  const count = selectedExam.value?.versions_count || 1
+  return count === 1 ? 'نموذج واحد (A)' : `${count} نماذج`
 })
 
 // ── Unified Roster Table & Batch Print State (الجدول الموحد لأوراق التظليل والطلاب) ──
