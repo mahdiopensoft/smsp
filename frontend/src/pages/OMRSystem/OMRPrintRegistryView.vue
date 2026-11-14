@@ -1954,7 +1954,7 @@
               </div>
             </v-expand-transition>
 
-            <!-- السطر الثاني: شريط الفلاتر والبحث الموحد (فلاتر منسدلة أنيقة) -->
+            <!-- السطر الثاني: شريط الفلاتر المنسدلة للنموذج وحالة الطباعة -->
             <div class="d-flex align-center justify-space-between flex-wrap gap-2 pt-3">
               <!-- الفلاتر المنسدلة عبر auto-list الموحد -->
               <div class="d-flex align-center gap-2 flex-wrap">
@@ -1999,23 +1999,13 @@
                   إلغاء التصفية
                 </v-btn>
               </div>
-
-              <!-- حقل البحث السريع بالاسم أو رقم الجلوس أو السري عبر custom-text-field الموحد -->
-              <div style="min-width: 260px; max-width: 340px;">
-                <custom-text-field
-                  v-model="rosterSearch"
-                  placeholder="بحث بالاسم أو رقم الجلوس أو السري..."
-                  icon="magnify"
-                  cols="12"
-                  :hideDetails="true"
-                />
-              </div>
             </div>
           </div>
 
           <!-- ── الجدول الموحد للطلاب وأوراق التظليل (custom-data-table) ── -->
           <div class="main-card rounded-2xl overflow-hidden mb-6">
             <custom-data-table
+              ref="rosterTableRef"
               :items="rosterTableItems"
               :getData="getRosterData"
               :headers="rosterHeaders"
@@ -2026,7 +2016,7 @@
               :numbering="true"
               :showSelect="false"
               :actions="false"
-              :search="false"
+              :search="true"
               class="bg-transparent"
             >
               <template v-slot:item-slot="{ item, key, index }">
@@ -2402,16 +2392,6 @@
                     :hideDetails="true"
                   />
                 </div>
-
-                <div style="min-width: 220px; max-width: 280px;">
-                  <custom-text-field
-                    v-model="packageSearch"
-                    placeholder="بحث برقم الجلوس أو اسم الطالب..."
-                    icon="magnify"
-                    cols="12"
-                    :hideDetails="true"
-                  />
-                </div>
               </div>
             </div>
           </div>
@@ -2419,6 +2399,7 @@
           <!-- الجدول الموحد لحزم الاختبار المتكاملة للطلاب (custom-data-table) -->
           <div class="main-card rounded-2xl overflow-hidden mb-6">
             <custom-data-table
+              ref="packageTableRef"
               :items="packageTableItems"
               :getData="getPackageData"
               :headers="packageHeaders"
@@ -2429,7 +2410,7 @@
               :numbering="true"
               :showSelect="false"
               :actions="false"
-              :search="false"
+              :search="true"
               class="bg-transparent"
             >
               <template v-slot:item-slot="{ item, key, index }">
@@ -5546,10 +5527,15 @@ const printStatusFilterObjects = computed(() => {
   }))
 })
 
+const rosterTableRef = ref(null)
 const resetRosterFilters = () => {
   rosterModelFilter.value = 'all'
   rosterPrintFilter.value = 'all'
   rosterSearch.value = ''
+  if (rosterTableRef.value?.params) {
+    rosterTableRef.value.params.search = ''
+  }
+  getRosterData()
 }
 
 const questionsModelSelectOptions = computed(() => {
@@ -5659,6 +5645,9 @@ const rosterTableItems = ref({
 
 const getRosterData = async (params = {}) => {
   const p = params?.params || params || {}
+  if (p.search !== undefined) {
+    rosterSearch.value = (p.search || '').trim().toLowerCase()
+  }
   const page = p.page || 1
   const pageSize = p.page_size || 50
   const all = filteredRosterStudents.value || []
@@ -6539,6 +6528,7 @@ const printAllQuestionPapers = async () => {
 
 // State & Methods for Tab 3: Combined Student Packages
 const packageSearch = ref('')
+const packageTableRef = ref(null)
 const packageModelFilter = ref('all')
 const selectedPackageStudentIds = ref([])
 const previewPackageStudent = ref(null)
@@ -6586,6 +6576,9 @@ const filteredPackageStudents = computed(() => {
 
 const getPackageData = async (params = {}) => {
   const p = params?.params || params || {}
+  if (p.search !== undefined) {
+    packageSearch.value = (p.search || '').trim().toLowerCase()
+  }
   const page = p.page || 1
   const pageSize = p.page_size || 50
   const all = filteredPackageStudents.value || []
