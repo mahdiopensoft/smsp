@@ -205,6 +205,8 @@
 </template>
 
 <script setup>
+import { escapeHtml, sanitizePrintNode } from '@/pages/OMRSystem/utils/omrPrint'
+
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   orderData: {
@@ -257,6 +259,8 @@ const triggerPrint = () => {
   iframe.style.visibility = 'hidden'
   document.body.appendChild(iframe)
 
+  const clonedManifest = sanitizePrintNode(manifestEl.cloneNode(true))
+
   const doc = iframe.contentWindow?.document || iframe.contentDocument
   if (doc) {
     doc.open()
@@ -265,7 +269,8 @@ const triggerPrint = () => {
       <html dir="rtl" lang="ar">
       <head>
         <meta charset="utf-8">
-        <title>إذن صرف وأمر طباعة رسمي - ${props.orderData?.orderNumber || ''}</title>
+        <meta http-equiv="Content-Security-Policy" content="script-src 'none'; connect-src 'none'; style-src 'unsafe-inline'; img-src data: blob: 'self'; font-src data: 'self';">
+        <title>إذن صرف وأمر طباعة رسمي - ${escapeHtml(props.orderData?.orderNumber || '')}</title>
         <style>
           @page { size: A4 portrait; margin: 10mm; }
           *, *::before, *::after { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -287,7 +292,7 @@ const triggerPrint = () => {
         </style>
       </head>
       <body>
-        ${manifestEl.outerHTML}
+        ${clonedManifest.outerHTML}
       </body>
       </html>
     `)

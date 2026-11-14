@@ -332,7 +332,7 @@ import { gradebookAPI } from '@/services/omr/endpoints'
 import YemeniMinistrySheet from '@/components/omr_templates/YemeniMinistrySheet.vue'
 import YemeniAuditReportSheet from '@/components/omr_templates/YemeniAuditReportSheet.vue'
 import YemeniOfficialQuestionPaper from '@/components/omr_templates/YemeniOfficialQuestionPaper.vue'
-import { printOmrElement, printOmrBatch, printOfficialQuestionPaper, printExamPackage } from './utils/omrPrint'
+import { printOmrElement, printOmrBatch, printOfficialQuestionPaper, printExamPackage, escapeHtml, sanitizePrintNode } from './utils/omrPrint'
 import PrintOrderManifestDialog from './components/PrintOrderManifestDialog.vue'
 import PrintOrderApproveDialog from './components/PrintOrderApproveDialog.vue'
 import DirectPrintOrderDialog from './components/DirectPrintOrderDialog.vue'
@@ -626,7 +626,11 @@ const filteredOfficesTable = computed(() => {
   let list = officesList.value || []
   const effGov = filterGovernorate.value ? [Number(filterGovernorate.value)] : normalizeIds(selectedOfficeId.value)
   if (effGov.length > 0) {
-    list = list.filter(o => effGov.includes(Number(o.id)) || effGov.includes(Number(o.governorate_id)))
+    list = list.filter(o => 
+      effGov.includes(Number(o.id)) || 
+      effGov.includes(Number(o.governorate_id)) || 
+      effGov.includes(Number(o.fk_governorate_id))
+    )
   }
   const effSubj = filterSubject.value || filterSemesterSubject.value || filterInstituteSubject.value || selectedSubjectId.value
   if (effSubj) {
@@ -646,11 +650,19 @@ const filteredDirectoratesTable = computed(() => {
   let list = directoratesList.value || []
   const effGov = filterGovernorate.value ? [Number(filterGovernorate.value)] : normalizeIds(selectedOfficeId.value)
   if (effGov.length > 0) {
-    list = list.filter(d => effGov.includes(Number(d.office_id)) || effGov.includes(Number(d.governorate_id)))
+    list = list.filter(d => 
+      effGov.includes(Number(d.office_id)) || 
+      effGov.includes(Number(d.governorate_id)) ||
+      effGov.includes(Number(d.fk_governorate_id))
+    )
   }
   const effDir = filterDirectorate.value ? [Number(filterDirectorate.value)] : normalizeIds(selectedDirectorateId.value)
   if (effDir.length > 0) {
-    list = list.filter(d => effDir.includes(Number(d.id)))
+    list = list.filter(d => 
+      effDir.includes(Number(d.id)) || 
+      effDir.includes(Number(d.directorate_id)) || 
+      effDir.includes(Number(d.fk_directorate_id))
+    )
   }
   const effSubj = filterSubject.value || filterSemesterSubject.value || filterInstituteSubject.value || selectedSubjectId.value
   if (effSubj) {
@@ -676,34 +688,45 @@ const filteredSchoolsTable = computed(() => {
   const effGov = filterGovernorate.value ? [Number(filterGovernorate.value)] : normalizeIds(selectedOfficeId.value)
 
   if (effDir.length > 0) {
-    const dObjs = (directoratesList.value || []).filter(d => effDir.includes(Number(d.id)))
+    const dObjs = (directoratesList.value || []).filter(d => 
+      effDir.includes(Number(d.id)) || 
+      effDir.includes(Number(d.directorate_id)) || 
+      effDir.includes(Number(d.fk_directorate_id))
+    )
     const dNames = dObjs.map(d => d.name?.replace(/^(إدارة التربية والتعليم - مديرية |مديرية )/, '').trim()).filter(Boolean)
     list = list.filter(s => 
       effDir.includes(Number(s.directorate_id)) ||
+      effDir.includes(Number(s.fk_directorate_id)) ||
       dNames.some(dn => s.directorate_name && s.directorate_name.includes(dn))
     )
   } else if (effGov.length > 0) {
-    const oObjs = (officesList.value || []).filter(o => effGov.includes(Number(o.id)))
+    const oObjs = (officesList.value || []).filter(o => 
+      effGov.includes(Number(o.id)) || 
+      effGov.includes(Number(o.governorate_id)) || 
+      effGov.includes(Number(o.fk_governorate_id))
+    )
     const oGovs = oObjs.map(o => o.governorate_name?.trim()).filter(Boolean)
     list = list.filter(s => 
       effGov.includes(Number(s.office_id)) ||
       effGov.includes(Number(s.governorate_id)) ||
+      effGov.includes(Number(s.fk_governorate_id)) ||
       oGovs.some(og => s.governorate_name && s.governorate_name.includes(og))
     )
   }
   const effOrg = filterOrganization.value ? [Number(filterOrganization.value)] : normalizeIds(selectedSchoolId.value)
   if (effOrg.length > 0) {
-    list = list.filter(s => effOrg.includes(Number(s.id)))
+    list = list.filter(s => effOrg.includes(Number(s.id)) || effOrg.includes(Number(s.organization_id)))
   }
   const effSubj = filterSubject.value || filterSemesterSubject.value || filterInstituteSubject.value || selectedSubjectId.value
   if (effSubj) {
-    const sObj = subjectsList.value.find(s => s.id === effSubj)
-    const sName = sObj?.name?.trim()
+    const sObj = subjectsList.value.find(s => Number(s.id) === Number(effSubj))
+    const sName = sObj?.name?.trim() || sObj?.name_ar?.trim()
     list = list.filter(s => {
+      if (!sName) return true
       if (s.subjects && Array.isArray(s.subjects)) {
-        return s.subjects.some(sub => sub === sName || (sName && sub.includes(sName)))
+        return s.subjects.some(sub => sub === sName || sub.includes(sName))
       }
-      return s.subject_name === sName || (sName && s.subject_name && s.subject_name.includes(sName))
+      return s.subject_name === sName || (s.subject_name && s.subject_name.includes(sName))
     })
   }
   if (masterSearchQuery.value) {
@@ -729,7 +752,13 @@ const filteredMasterExamsTable = computed(() => {
   const effGov = filterGovernorate.value ? [Number(filterGovernorate.value)] : normalizeIds(selectedOfficeId.value)
 
   if (effOrg.length > 0) {
-    list = list.filter(e => effOrg.includes(Number(e.school_id)) || effOrg.includes(Number(e.school)) || effOrg.includes(Number(e.organization_id)))
+    list = list.filter(e => 
+      effOrg.includes(Number(e.school_id)) || 
+      effOrg.includes(Number(e.school)) || 
+      effOrg.includes(Number(e.organization_id)) ||
+      (e.schools && Array.isArray(e.schools) && e.schools.some(sId => effOrg.includes(Number(sId)))) ||
+      !e.school_id // Directorate/Ministry-level exams whose registered students or target scope match the school
+    )
   } else if (effDir.length > 0) {
     list = list.filter(e => effDir.includes(Number(e.directorate_id)) || effDir.includes(Number(e.directorate)))
   } else if (effGov.length > 0) {
@@ -737,7 +766,7 @@ const filteredMasterExamsTable = computed(() => {
   }
 
   if (filterStage.value) {
-    list = list.filter(e => Number(e.stage_id) === Number(filterStage.value) || Number(e.stage) === Number(filterStage.value))
+    list = list.filter(e => Number(e.stage_id) === Number(filterStage.value) || Number(e.stage) === Number(filterStage.value) || !e.stage_id)
   }
   if (filterClassTrack.value) {
     list = list.filter(e => Number(e.class_track_id) === Number(filterClassTrack.value) || Number(e.class_track) === Number(filterClassTrack.value))
@@ -745,7 +774,13 @@ const filteredMasterExamsTable = computed(() => {
 
   const effSubj = filterSubject.value || filterSemesterSubject.value || filterInstituteSubject.value || selectedSubjectId.value
   if (effSubj) {
-    list = list.filter(e => Number(e.subject_id) === Number(effSubj) || Number(e.subject) === Number(effSubj))
+    const sObj = subjectsList.value.find(s => Number(s.id) === Number(effSubj))
+    const sName = sObj?.name?.trim() || sObj?.name_ar?.trim()
+    list = list.filter(e => 
+      Number(e.subject_id) === Number(effSubj) || 
+      Number(e.subject) === Number(effSubj) ||
+      (sName && e.subject_name && (e.subject_name === sName || e.subject_name.includes(sName)))
+    )
   }
   if (masterSearchQuery.value) {
     const q = masterSearchQuery.value.toLowerCase().trim()
@@ -1312,15 +1347,15 @@ const openExamStudioFromDirect = (exam) => {
 const dispatchRealDirectPrint = (exam, options, realOmrElements = []) => {
   if (!exam) return
 
-  const orderNum = exam.order_number || `PRN-REQ-${exam.uniqueCode || exam.id}`
-  const examTitle = exam.title || 'الاختبار العام'
-  const examCode = exam.uniqueCode || 'EXAM-CODE'
-  const subjectName = exam.subject_name || 'الرياضيات'
-  const pressName = exam.press_name || 'المطبعة السرية المركزية (ديوان الوزارة)'
-  const officerName = exam.responsible_officer || 'مدير إدارة الامتحانات والكنترول'
-  const schedDate = exam.scheduled_print_date || getTodayIso()
-  const totalCount = exam.total_registered || exam.total_students || 0
-  const schoolsCount = exam.schools_count || 1
+  const safeOrderNum = escapeHtml(String(exam.order_number || `PRN-REQ-${exam.uniqueCode || exam.id || ''}`))
+  const safeExamTitle = escapeHtml(String(exam.title || 'الاختبار العام'))
+  const safeExamCode = escapeHtml(String(exam.uniqueCode || 'EXAM-CODE'))
+  const safeSubjectName = escapeHtml(String(exam.subject_name || 'الرياضيات'))
+  const safePressName = escapeHtml(String(exam.press_name || 'المطبعة السرية المركزية (ديوان الوزارة)'))
+  const safeOfficerName = escapeHtml(String(exam.responsible_officer || 'مدير إدارة الامتحانات والكنترول'))
+  const safeSchedDate = escapeHtml(String(exam.scheduled_print_date || getTodayIso()))
+  const totalCount = Number(exam.total_registered || exam.total_students || 0) || 0
+  const schoolsCount = Number(exam.schools_count || 1) || 1
 
   const students = examDetails.value?.registered_students || []
 
@@ -1335,27 +1370,27 @@ const dispatchRealDirectPrint = (exam, options, realOmrElements = []) => {
           <h2>الجمهورية اليمنية — وزارة التربية والتعليم</h2>
           <h3>اللجنة العليا للاختبارات — الإدارة العامة للاختبارات والكنترول</h3>
           <h1 class="manifest-title">إذن صرف وأمر طباعة رسمي للاختبارات</h1>
-          <div class="order-code">رقم أمر الطباعة: ${orderNum}</div>
+          <div class="order-code">رقم أمر الطباعة: ${safeOrderNum}</div>
         </div>
 
         <table class="info-table">
           <tr>
             <td class="lbl">اسم الاختبار:</td>
-            <td class="val"><strong>${examTitle}</strong></td>
+            <td class="val"><strong>${safeExamTitle}</strong></td>
             <td class="lbl">المادة:</td>
-            <td class="val">${subjectName}</td>
+            <td class="val">${safeSubjectName}</td>
           </tr>
           <tr>
             <td class="lbl">كود الاختبار:</td>
-            <td class="val font-mono">${examCode}</td>
+            <td class="val font-mono">${safeExamCode}</td>
             <td class="lbl">تاريخ التنفيذ المعتمد:</td>
-            <td class="val font-mono">${schedDate}</td>
+            <td class="val font-mono">${safeSchedDate}</td>
           </tr>
           <tr>
             <td class="lbl">المطبعة المنفذة:</td>
-            <td class="val">${pressName}</td>
+            <td class="val">${safePressName}</td>
             <td class="lbl">المسؤول المعتمد:</td>
-            <td class="val">${officerName}</td>
+            <td class="val">${safeOfficerName}</td>
           </tr>
           <tr>
             <td class="lbl">إجمالي الطلاب المشمولين:</td>
@@ -1405,7 +1440,7 @@ const dispatchRealDirectPrint = (exam, options, realOmrElements = []) => {
           <div class="sig-box">
             <div>عضو لجنة التحقق والاعتماد</div>
             <div class="sig-line">التوقيع: ...........................</div>
-            <div>التاريخ: ${schedDate}</div>
+            <div>التاريخ: ${safeSchedDate}</div>
           </div>
           <div class="sig-box">
             <div>المشرف المسؤول بالمطبعة</div>
@@ -1415,7 +1450,7 @@ const dispatchRealDirectPrint = (exam, options, realOmrElements = []) => {
           <div class="sig-box">
             <div>مدير عام الامتحانات والكنترول</div>
             <div class="sig-line">المصادقة: ...........................</div>
-            <div>التاريخ: ${schedDate}</div>
+            <div>التاريخ: ${safeSchedDate}</div>
           </div>
         </div>
       </div>
@@ -1430,12 +1465,12 @@ const dispatchRealDirectPrint = (exam, options, realOmrElements = []) => {
           <div class="header">
             <h2>الجمهورية اليمنية — وزارة التربية والتعليم</h2>
             <h3>كشف تسليم واستلام وثائق الاختبار للمركز الامتحاني</h3>
-            <div class="order-code">الاختبار: ${examTitle} (${examCode}) — المادة: ${subjectName}</div>
+            <div class="order-code">الاختبار: ${safeExamTitle} (${safeExamCode}) — المادة: ${safeSubjectName}</div>
           </div>
           <div style="border: 2px dashed #b71c1c; background: #fff8f8; color: #b71c1c; padding: 30px 20px; text-align: center; border-radius: 8px; margin: 40px auto; max-width: 650px;">
             <div style="font-size: 17px; font-weight: bold; margin-bottom: 8px;">تنبيه الرقابة والكنترول: لا تتوفر سجلات طلاب مقيدين</div>
             <p style="font-size: 13px; margin: 0; color: #374151; line-height: 1.6;">
-              لا توجد بيانات طلاب مقيدين في قاعدة البيانات لهذا الاختبار (${examCode}).
+              لا توجد بيانات طلاب مقيدين في قاعدة البيانات لهذا الاختبار (${safeExamCode}).
               <br>
               <strong>يمنع النظام بصورة قاطعة إصدار كشف مناداة رسمي أو توليد أرقام جلوس وسرية افتراضية</strong> لضمان سلامة الوثائق الامتحانية ومطابقتها للكنترول.
             </p>
@@ -1448,11 +1483,11 @@ const dispatchRealDirectPrint = (exam, options, realOmrElements = []) => {
         studentRows += `
           <tr>
             <td style="text-align: center;">${idx + 1}</td>
-            <td style="text-align: center; font-family: monospace; font-weight: bold;">${st.seat_number || ''}</td>
-            <td style="text-align: center; font-family: monospace;">${st.secret_number || ''}</td>
-            <td style="font-weight: bold;">${st.student_name || ''}</td>
-            <td>${st.school_name || 'المركز الرئيسي'}</td>
-            <td style="text-align: center; font-weight: bold;">نموذج ${st.model_code || 'A'}</td>
+            <td style="text-align: center; font-family: monospace; font-weight: bold;">${escapeHtml(String(st.seat_number ?? ''))}</td>
+            <td style="text-align: center; font-family: monospace;">${escapeHtml(String(st.secret_number ?? ''))}</td>
+            <td style="font-weight: bold;">${escapeHtml(String(st.student_name ?? ''))}</td>
+            <td>${escapeHtml(String(st.school_name || 'المركز الرئيسي'))}</td>
+            <td style="text-align: center; font-weight: bold;">نموذج ${escapeHtml(String(st.model_code || 'A'))}</td>
             <td style="min-width: 100px;"></td>
           </tr>
         `
@@ -1463,7 +1498,7 @@ const dispatchRealDirectPrint = (exam, options, realOmrElements = []) => {
           <div class="header">
             <h2>الجمهورية اليمنية — وزارة التربية والتعليم</h2>
             <h3>كشف تسليم واستلام وثائق الاختبار للمركز الامتحاني</h3>
-            <div class="order-code">الاختبار: ${examTitle} (${examCode}) — المادة: ${subjectName}</div>
+            <div class="order-code">الاختبار: ${safeExamTitle} (${safeExamCode}) — المادة: ${safeSubjectName}</div>
           </div>
           <table class="items-table" style="font-size: 12px;">
             <thead>
@@ -1495,21 +1530,23 @@ const dispatchRealDirectPrint = (exam, options, realOmrElements = []) => {
       { model_code: 'D', questions_count: 50 },
     ]
     models.forEach((m) => {
+      const safeModelCode = escapeHtml(String(m.model_code || 'A'))
+      const safeQuestionsCount = Number(m.questions_count) || 50
       sectionsHtml += `
         <div class="print-page question-booklet-page">
           <div class="header">
             <div class="header-badge">سري للغاية — وثيقة امتحانية رسمية</div>
             <h2>الجمهورية اليمنية — وزارة التربية والتعليم</h2>
-            <h3>كراسة الأسئلة الامتحانية المقننة — نموذج (${m.model_code || 'A'})</h3>
-            <div class="order-code">المادة: ${subjectName} | كود الاختبار: ${examCode}</div>
+            <h3>كراسة الأسئلة الامتحانية المقننة — نموذج (${safeModelCode})</h3>
+            <div class="order-code">المادة: ${safeSubjectName} | كود الاختبار: ${safeExamCode}</div>
           </div>
           <div style="border: 2px dashed #000; padding: 25px; text-align: center; margin: 40px 0; border-radius: 8px;">
-            <h2 style="margin: 0 0 10px 0;">كراسة الأسئلة — نموذج (${m.model_code || 'A'})</h2>
+            <h2 style="margin: 0 0 10px 0;">كراسة الأسئلة — نموذج (${safeModelCode})</h2>
             <p style="font-size: 14px; color: #444;">
-              عدد الفقرات: <strong>${m.questions_count || 50} فقرة اختيار من متعدد</strong> | الزمن المحدد: <strong>ساعتان ونصف</strong>
+              عدد الفقرات: <strong>${safeQuestionsCount} فقرة اختيار من متعدد</strong> | الزمن المحدد: <strong>ساعتان ونصف</strong>
             </p>
             <p style="font-size: 12px; color: #777; margin-top: 20px;">
-              تعليمات: تأكد من تطابق نموذج كراسة الأسئلة (${m.model_code || 'A'}) مع النموذج المطبوع على ورقة إجابتك المخصصة.
+              تعليمات: تأكد من تطابق نموذج كراسة الأسئلة (${safeModelCode}) مع النموذج المطبوع على ورقة إجابتك المخصصة.
             </p>
           </div>
         </div>
@@ -1520,14 +1557,16 @@ const dispatchRealDirectPrint = (exam, options, realOmrElements = []) => {
   // 4. أوراق إجابة OMR الرسمية الحقيقية للنظام (SVGs الأصلية المعتمدة)
   if (options?.sheets && realOmrElements && realOmrElements.length > 0) {
     realOmrElements.forEach(el => {
+      if (!el) return
       const cloned = el.cloneNode(true)
       if (cloned instanceof HTMLElement) {
         cloned.querySelectorAll('.d-print-none, button, .v-btn').forEach(b => b.remove())
+        sanitizePrintNode(cloned)
       }
       sectionsHtml += `
         <div class="print-page omr-real-sheet-page">
           <div class="real-sheet-container">
-            ${cloned.outerHTML}
+            ${cloned instanceof HTMLElement ? cloned.outerHTML : ''}
           </div>
         </div>
       `
@@ -1541,10 +1580,10 @@ const dispatchRealDirectPrint = (exam, options, realOmrElements = []) => {
         <div class="header">
           <h2>الجمهورية اليمنية — وزارة التربية والتعليم</h2>
           <h3>أمر سحب وثائق الاختبار</h3>
-          <h1>${examTitle} (${examCode})</h1>
+          <h1>${safeExamTitle} (${safeExamCode})</h1>
         </div>
         <p style="text-align: center; font-size: 16px; margin-top: 30px;">
-          المادة: ${subjectName} | إجمالي المقيدين: ${totalCount} طالب | المطبعة: ${pressName}
+          المادة: ${safeSubjectName} | إجمالي المقيدين: ${totalCount} طالب | المطبعة: ${safePressName}
         </p>
       </div>
     `
@@ -1558,7 +1597,8 @@ const dispatchRealDirectPrint = (exam, options, realOmrElements = []) => {
     <html dir="rtl" lang="ar">
     <head>
       <meta charset="utf-8">
-      <title>أمر سحب وثائق الاختبار - ${examTitle} (${examCode})</title>
+      <meta http-equiv="Content-Security-Policy" content="script-src 'none'; connect-src 'none'; style-src 'unsafe-inline'; img-src data: blob: 'self'; font-src data: 'self';">
+      <title>أمر سحب وثائق الاختبار - ${safeExamTitle} (${safeExamCode})</title>
       <style>
         @page {
           size: ${onlySheetsSelected ? omrPageSize : 'A4 portrait'};
@@ -1824,12 +1864,16 @@ const onDirectPrintStart = async ({ exam, options }) => {
 
 const executeDirectPrint = async (payload) => {
   const exam = payload?.exam || targetExamForDirectPrint.value
-  const actualCount = Number(payload?.actualPrintedCount ?? (exam?.total_registered || exam?.total_students || 0))
-  const totalCount = exam?.total_registered || exam?.total_students || 0
+  if (!exam) return
+
+  const totalCount = Number(exam?.total_registered || exam?.total_students || 0)
+  const alreadyPrinted = Number(exam?.printed_count || 0)
+  const remainingTarget = Math.max(0, totalCount - alreadyPrinted)
+
+  const actualCount = Number(payload?.actualPrintedCount ?? (remainingTarget > 0 ? remainingTarget : totalCount))
   const chosenOptions = payload?.options || directPrintOptions.value
   const notes = payload?.notes || ''
 
-  if (!exam) return
   if (actualCount <= 0) {
     directPrintDialog.value = false
     batchPrintNotification.value = {
@@ -1842,30 +1886,32 @@ const executeDirectPrint = async (payload) => {
 
   directPrintLoading.value = true
   try {
-    const batchId = `BATCH_DIRECT_${Date.now()}`
+    const uniqueBatchId = payload?.batchId || `PRN-BAT-${exam.uniqueCode || exam.id}-${Date.now()}-${Math.floor(Math.random() * 1000)}`
 
-    // 1. Call mark-printed on real backend database with the verified count
-    await api.post(`/api/omr/exam-linking/${exam.id}/mark-printed/`, {
-      batch_id: batchId,
-      student_ids: actualCount >= totalCount ? 'all' : undefined,
+    // 1. استدعاء الخادم لتوثيق الدفعة وربطها بالطلاب وحساب الأعداد التراكمية بشكل موثوق
+    const resp = await api.post(`/api/omr/exam-linking/${exam.id}/mark-printed/`, {
+      batch_id: uniqueBatchId,
+      count: actualCount,
+      student_ids: actualCount >= remainingTarget ? 'all' : undefined,
       notes: notes,
     })
 
-    // 2. Update state reflecting whether it's fully or partially printed
-    exam.printed_count = actualCount
-    exam.printed_rate = Math.round((actualCount / (totalCount || 1)) * 100)
-    if (actualCount >= totalCount) {
-      exam.print_status = 'full'
-      exam.is_completed = true
-      exam.is_due = false
-      examSubTab.value = 'completed'
-    } else {
-      exam.print_status = 'partial'
-      exam.is_completed = false
-      exam.is_due = true
+    const resData = resp.data || {}
+
+    // 2. اعتماد الحالة مباشرة من الخادم (Server Authoritative)
+    if (resData.success) {
+      exam.printed_count = resData.total_printed_count ?? (alreadyPrinted + actualCount)
+      exam.printed_rate = resData.printed_rate ?? Math.round((exam.printed_count / (totalCount || 1)) * 100)
+      exam.print_status = resData.print_status ?? (exam.printed_count >= totalCount ? 'full' : 'partial')
+      exam.is_completed = !!resData.is_completed
+      exam.is_due = !resData.is_completed
+
+      if (exam.is_completed) {
+        examSubTab.value = 'completed'
+      }
     }
 
-    // 3. Reload persistent state from backend
+    // 3. إعادة تحميل السجلات والمصادقة الميدانية
     await Promise.all([
       loadSavedPrintOrders(),
       loadMasterData(),
@@ -1878,12 +1924,17 @@ const executeDirectPrint = async (payload) => {
     batchPrintNotification.value = {
       show: true,
       color: 'info',
-      message: actualCount >= totalCount 
-        ? `تمت مصادقة إتمام الطباعة بنجاح للاختبار "${exam.title}"! تم توثيق الدفعة برقم (${batchId}) لعدد ${actualCount} ورقة بنسبة 100%.`
-        : `تم توثيق السحب الجزئي بنجاح للاختبار "${exam.title}"! تم قيد ${actualCount} ورقة وتبقى ${totalCount - actualCount} ورقة في قائمة المستحقة.`,
+      message: resData.message || (exam.is_completed 
+        ? `تمت مصادقة إتمام الطباعة بنجاح للاختبار "${exam.title}"! تم توثيق الدفعة برقم (${uniqueBatchId}) لعدد ${actualCount} ورقة بنسبة 100%.`
+        : `تم توثيق السحب الجزئي بنجاح للاختبار "${exam.title}"! تم قيد ${actualCount} ورقة إضافية ليصبح الإجمالي ${exam.printed_count} ورقة، وتبقى ${totalCount - exam.printed_count} ورقة في قائمة المستحقة.`),
     }
   } catch (err) {
     console.error('Direct print error:', err)
+    batchPrintNotification.value = {
+      show: true,
+      color: 'error',
+      message: `فشل توثيق عملية الطباعة في السجلات: ${err?.response?.data?.message || err?.message || err}`,
+    }
   } finally {
     directPrintLoading.value = false
   }
@@ -2029,6 +2080,12 @@ const loadSubjects = async () => {
   try {
     const res = await gradebookAPI.getSubjects()
     subjectsList.value = res.data?.results || []
+    if (!subjectsList.value.length) {
+      const acRes = await api.get('/api/academic/subjects/').catch(() => null)
+      if (acRes?.data?.results) {
+        subjectsList.value = acRes.data.results
+      }
+    }
   } catch (err) {
     console.error('Failed to load subjects:', err)
   }
@@ -2799,23 +2856,25 @@ const printAuditRoster = () => {
   }
 
   const exam = selectedExam.value || {}
-  const center = customCenterName.value || exam.directorate || 'المركز الاختباري الرئيسي'
-  const directorate = customDirectorate.value || exam.directorate || 'السبعين'
-  const governorate = customGovernorate.value || exam.governorate || 'أمانة العاصمة'
-  const examTitle = customStageTitle.value || exam.title || 'اختبار الشهادة الثانوية العامة'
-  const yearName = customExamYear.value || exam.year_name || '1445هـ - 2024م'
-  const subjectName = exam.subject_name || 'الرياضيات'
+  const center = escapeHtml(String(customCenterName.value || exam.directorate || 'المركز الاختباري الرئيسي'))
+  const directorate = escapeHtml(String(customDirectorate.value || exam.directorate || 'السبعين'))
+  const governorate = escapeHtml(String(customGovernorate.value || exam.governorate || 'أمانة العاصمة'))
+  const examTitle = escapeHtml(String(customStageTitle.value || exam.title || 'اختبار الشهادة الثانوية العامة'))
+  const yearName = escapeHtml(String(customExamYear.value || exam.year_name || '1445هـ - 2024م'))
+  const subjectName = escapeHtml(String(exam.subject_name || 'الرياضيات'))
+  const examCode = escapeHtml(String(exam.uniqueCode || ''))
+  const totalStudents = Number(students.length) || 0
 
   let rowsHtml = ''
   students.forEach((st, idx) => {
     rowsHtml += `
       <tr>
         <td style="text-align: center; font-weight: bold;">${idx + 1}</td>
-        <td style="text-align: center; font-family: monospace; font-weight: bold; font-size: 14px;">${st.seat_number || ''}</td>
-        <td style="text-align: center; font-family: monospace;">${st.secret_number || ''}</td>
-        <td style="font-weight: bold; padding-right: 8px;">${st.student_name || ''}</td>
-        <td>${st.school_name || ''}</td>
-        <td style="text-align: center; font-weight: bold;">النموذج ${st.model_code || 'A'}</td>
+        <td style="text-align: center; font-family: monospace; font-weight: bold; font-size: 14px;">${escapeHtml(String(st.seat_number ?? ''))}</td>
+        <td style="text-align: center; font-family: monospace;">${escapeHtml(String(st.secret_number ?? ''))}</td>
+        <td style="font-weight: bold; padding-right: 8px;">${escapeHtml(String(st.student_name ?? ''))}</td>
+        <td>${escapeHtml(String(st.school_name || ''))}</td>
+        <td style="text-align: center; font-weight: bold;">النموذج ${escapeHtml(String(st.model_code || 'A'))}</td>
         <td style="text-align: center;">${st.is_printed ? 'نعم' : 'لا'}</td>
         <td style="min-width: 120px;"></td>
       </tr>
@@ -2827,7 +2886,8 @@ const printAuditRoster = () => {
     <html dir="rtl" lang="ar">
     <head>
       <meta charset="utf-8">
-      <title>كشف تسليم واستلام الكنترول - ${exam.uniqueCode || ''}</title>
+      <meta http-equiv="Content-Security-Policy" content="script-src 'none'; connect-src 'none'; style-src 'unsafe-inline'; img-src data: blob: 'self'; font-src data: 'self';">
+      <title>كشف تسليم واستلام الكنترول - ${examCode}</title>
       <style>
         @page { size: A4 landscape; margin: 10mm; }
         *, *::before, *::after { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -2854,7 +2914,7 @@ const printAuditRoster = () => {
       </div>
       <div class="meta-grid">
         <div>المادة: ${subjectName} | المرحلة: ${examTitle}</div>
-        <div>العام الدراسي: ${yearName} | إجمالي الطلاب: ${students.length}</div>
+        <div>العام الدراسي: ${yearName} | إجمالي الطلاب: ${totalStudents}</div>
       </div>
       <table>
         <thead>
@@ -2876,7 +2936,7 @@ const printAuditRoster = () => {
       <div class="footer">
         <div>مسؤول الكنترول: .......................................</div>
         <div>رئيس المركز الامتحاني: .......................................</div>
-        <div>تاريخ التسليم: ${new Date().toLocaleDateString('ar-YE')}</div>
+        <div>تاريخ التسليم: ${escapeHtml(new Date().toLocaleDateString('ar-YE'))}</div>
       </div>
     </body>
     </html>

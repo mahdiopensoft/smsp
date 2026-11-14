@@ -3,6 +3,38 @@
  * Uses an isolated iframe with direct @page CSS rules to avoid parent CSS contamination
  * and prevent unwanted blank pages or layout truncation.
  */
+
+/**
+ * Safely escapes dynamic text strings for injection into HTML printing templates.
+ * Prevents HTML injection, script injection, and cross-site scripting (XSS).
+ */
+export function escapeHtml(str: any): string {
+  if (str === null || str === undefined) return ''
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+/**
+ * Sanitizes a cloned DOM/SVG element before printing by stripping any executable
+ * tags (<script>, <iframe>, <object>, <embed>) and inline event handlers (on*).
+ */
+export function sanitizePrintNode<T extends Element>(node: T): T {
+  if (!node) return node
+  node.querySelectorAll('script, iframe, object, embed, link[rel="import"]').forEach(el => el.remove())
+  node.querySelectorAll('*').forEach(el => {
+    for (const attr of Array.from(el.attributes)) {
+      if (attr.name.toLowerCase().startsWith('on')) {
+        el.removeAttribute(attr.name)
+      }
+    }
+  })
+  return node
+}
+
 export async function printOmrElement(
   targetEl: SVGGraphicsElement | HTMLElement | null,
   options: { title?: string; isA5?: boolean } = {}
@@ -292,6 +324,8 @@ export async function printOmrElement(
       .font-mono { font-family: monospace, sans-serif !important; }
     `
 
+  sanitizePrintNode(cloned)
+
   const docStyles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
     .map(el => el.outerHTML)
     .join('\n')
@@ -302,7 +336,8 @@ export async function printOmrElement(
     <html dir="rtl" lang="ar">
       <head>
         <meta charset="utf-8">
-        <title>${options.title || 'وثيقة التصحيح OMR'}</title>
+        <meta http-equiv="Content-Security-Policy" content="script-src 'none'; connect-src 'none'; style-src 'unsafe-inline'; img-src data: blob: 'self'; font-src data: 'self';">
+        <title>${escapeHtml(options.title || 'وثيقة التصحيح OMR')}</title>
         ${docStyles}
         <style>${headStyles}</style>
       </head>
@@ -559,6 +594,7 @@ export async function printOmrBatch(
     } else if (cloned instanceof HTMLElement) {
       cloned.querySelectorAll('.d-print-none, .report-action-bar, button, .v-btn').forEach(b => b.remove())
     }
+    sanitizePrintNode(cloned)
     pagesHtml += `<div class="sheet-print-page">${cloned.outerHTML}</div>`
   }
 
@@ -568,7 +604,8 @@ export async function printOmrBatch(
     <html dir="rtl" lang="ar">
       <head>
         <meta charset="utf-8">
-        <title>${options.title || 'طباعة أوراق التظليل دفعة واحدة'}</title>
+        <meta http-equiv="Content-Security-Policy" content="script-src 'none'; connect-src 'none'; style-src 'unsafe-inline'; img-src data: blob: 'self'; font-src data: 'self';">
+        <title>${escapeHtml(options.title || 'طباعة أوراق التظليل دفعة واحدة')}</title>
         ${docStyles}
         <style>${headStyles}</style>
       </head>
@@ -1136,6 +1173,8 @@ export async function printOfficialQuestionPaper(
     .font-mono { font-family: monospace, sans-serif !important; }
   `
 
+  sanitizePrintNode(cloned)
+
   const docStyles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
     .map(el => el.outerHTML)
     .join('\n')
@@ -1146,7 +1185,8 @@ export async function printOfficialQuestionPaper(
     <html dir="${isDocLtr ? 'ltr' : 'rtl'}" lang="${isDocLtr ? 'en' : 'ar'}">
       <head>
         <meta charset="utf-8">
-        <title>${options.title || 'ورقة_الأسئلة_الرسمية'}</title>
+        <meta http-equiv="Content-Security-Policy" content="script-src 'none'; connect-src 'none'; style-src 'unsafe-inline'; img-src data: blob: 'self'; font-src data: 'self';">
+        <title>${escapeHtml(options.title || 'ورقة_الأسئلة_الرسمية')}</title>
         ${docStyles}
         <style>${headStyles}</style>
       </head>
@@ -2279,8 +2319,9 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
     <html dir="${isEnglish ? 'ltr' : 'rtl'}" lang="${isEnglish ? 'en' : 'ar'}">
       <head>
         <meta charset="utf-8">
+        <meta http-equiv="Content-Security-Policy" content="script-src 'none'; connect-src 'none'; style-src 'unsafe-inline'; img-src data: blob: 'self'; font-src data: 'self';">
         <base href="${window.location.origin}/">
-        <title>${options.title || `حزمة_اختبار_${options.subjectName}_النموذج_${options.versionCode}`}</title>
+        <title>${escapeHtml(options.title || `حزمة_اختبار_${options.subjectName}_النموذج_${options.versionCode}`)}</title>
         ${docStyles}
         <style>${headStyles}</style>
       </head>

@@ -1198,50 +1198,173 @@ class ExamLinkingMVS(ViewSet):
     @action(detail=True, methods=['post'], url_path='mark-printed')
     def mark_printed(self, request, pk=None):
         """
-        Mark specific or all registered students as 'printed'.
-        Payload: { "student_ids": [1, 2, 3], "batch_id": "BATCH_A4" }
-        If student_ids is empty or 'all', marks all.
+        Mark specific, next unprinted slice, or all registered students as 'printed'.
+        Ensures:
+        1. Atomic transaction to preserve database integrity.
+        2. Idempotency by batch_id / request token.
+        3. Prevention of duplicate batch assignments (only unprinted students are assigned).
+        4. Cumulative calculation of printed vs total students directly from the database.
+        5. Proper synchronization of OMRPrintOrder status (READY, PRINTING, COMPLETED).
         """
+        from django.db import transaction
+        from django.utils import timezone
+        from omr.models.OMRPrintOrder import OMRPrintOrder
+
         try:
             exam = Exam.objects.get(pk=pk, is_deleted=False)
         except Exam.DoesNotExist:
             return Response({"success": False, "message": "الاختبار غير موجود"}, status=status.HTTP_404_NOT_FOUND)
 
-        student_ids = request.data.get('student_ids', 'all')
-        batch_id = request.data.get('batch_id', 'BATCH_DEFAULT')
-        
-        from django.utils import timezone
+        student_ids = request.data.get('student_ids')
+        count = request.data.get('count')
+        batch_id = request.data.get('batch_id')
+        notes = request.data.get('notes', '')
+        is_reprint = bool(request.data.get('is_reprint', False))
+        target_is_printed = request.data.get('is_printed', True)
+
         now = timezone.now()
 
-        qs = StudentExamRegistration.objects.filter(examVersion__exam=exam, is_deleted=False)
-        if isinstance(student_ids, list) and student_ids:
-            qs = qs.filter(id__in=student_ids)
+        # Generate a structured unique batch_id if none provided
+        if not batch_id:
+            batch_id = f"PRN-BAT-{exam.uniqueCode or exam.id}-{now.strftime('%Y%m%d%H%M%S')}"
 
-        updated_count = qs.update(is_printed=True, printed_at=now, print_batch=batch_id)
+        with transaction.atomic():
+            base_qs = StudentExamRegistration.objects.filter(examVersion__exam=exam, is_deleted=False)
+            total_registered = base_qs.count()
 
-        # Update or create real OMRPrintOrder in database
-        try:
-            from omr.models.OMRPrintOrder import OMRPrintOrder
-            order_num = f"PRN-REQ-{exam.uniqueCode or exam.id}"
-            ord_obj, _ = OMRPrintOrder.objects.get_or_create(
-                exam=exam,
-                defaults={
-                    "order_number": order_num,
-                    "scheduled_print_date": now.date(),
-                    "status": OMRPrintOrder.Status.COMPLETED,
+            # 1. Handle un-marking (e.g. toggle off in roster)
+            if target_is_printed is False:
+                if isinstance(student_ids, list) and student_ids:
+                    unmarked_count = base_qs.filter(id__in=student_ids).update(
+                        is_printed=False, printed_at=None, print_batch=None
+                    )
+                else:
+                    unmarked_count = 0
+
+                total_printed = base_qs.filter(is_printed=True).count()
+                remaining_count = max(0, total_registered - total_printed)
+                is_completed = (total_registered > 0 and total_printed >= total_registered)
+                print_status = 'full' if is_completed else ('partial' if total_printed > 0 else 'ready')
+                printed_rate = round((total_printed / max(1, total_registered)) * 100, 1)
+
+                try:
+                    ord_obj = OMRPrintOrder.objects.filter(exam=exam, is_deleted=False).first()
+                    if ord_obj:
+                        ord_obj.status = OMRPrintOrder.Status.COMPLETED if is_completed else (
+                            OMRPrintOrder.Status.PRINTING if total_printed > 0 else OMRPrintOrder.Status.READY
+                        )
+                        ord_obj.save()
+                except Exception:
+                    pass
+
+                return Response({
+                    "success": True,
+                    "message": f"تم إلغاء تأشير طباعة {unmarked_count} طالب بنجاح",
                     "batch_id": batch_id,
-                    "printed_at": now,
-                }
+                    "updated_count": unmarked_count,
+                    "batch_printed_count": unmarked_count,
+                    "total_printed_count": total_printed,
+                    "total_registered_count": total_registered,
+                    "remaining_count": remaining_count,
+                    "print_status": print_status,
+                    "is_completed": is_completed,
+                    "printed_rate": printed_rate,
+                })
+
+            # 2. Check for Idempotency: Has this exact batch_id already been executed for this exam?
+            existing_batch_qs = base_qs.filter(print_batch=batch_id)
+            if existing_batch_qs.exists() and not is_reprint:
+                # Already processed this batch; return current cumulative state idempotently
+                total_printed = base_qs.filter(is_printed=True).count()
+                remaining_count = max(0, total_registered - total_printed)
+                is_completed = (total_registered > 0 and total_printed >= total_registered)
+                printed_rate = round((total_printed / max(1, total_registered)) * 100, 1)
+                return Response({
+                    "success": True,
+                    "message": f"تم استرجاع بيانات الدفعة المسجلة مسبقاً برقم ({batch_id}) بنجاح (معاملة متطابقة)",
+                    "batch_id": batch_id,
+                    "updated_count": existing_batch_qs.count(),
+                    "batch_printed_count": existing_batch_qs.count(),
+                    "total_printed_count": total_printed,
+                    "total_registered_count": total_registered,
+                    "remaining_count": remaining_count,
+                    "print_status": "full" if is_completed else ("partial" if total_printed > 0 else "ready"),
+                    "is_completed": is_completed,
+                    "printed_rate": printed_rate,
+                    "is_idempotent": True,
+                })
+
+            # 3. Determine target registrations to mark
+            if is_reprint:
+                target_qs = base_qs
+            else:
+                # Strictly prevent duplicate registration across batches: only select unprinted students!
+                target_qs = base_qs.filter(is_printed=False)
+
+            if isinstance(student_ids, list) and student_ids:
+                # Explicit list of student IDs
+                target_qs = target_qs.filter(id__in=student_ids)
+            elif count is not None and str(count).isdigit() and int(count) > 0:
+                # Partial count requested (e.g. 200 out of 700 remaining unprinted)
+                slice_count = int(count)
+                pks = list(target_qs.order_by('seatNumber', 'id').values_list('id', flat=True)[:slice_count])
+                target_qs = StudentExamRegistration.objects.filter(id__in=pks)
+            elif student_ids == 'all' or student_ids is None:
+                # All remaining target students
+                pass
+            else:
+                # Empty or unrecognized filter
+                target_qs = target_qs.none()
+
+            updated_count = target_qs.update(
+                is_printed=True,
+                printed_at=now,
+                print_batch=batch_id
             )
-            ord_obj.status = OMRPrintOrder.Status.COMPLETED
-            ord_obj.batch_id = batch_id
-            ord_obj.printed_at = now
-            ord_obj.save()
-        except Exception as e:
-            pass
+
+            # 4. Cumulative counts calculated directly from persistent database records
+            total_printed = base_qs.filter(is_printed=True).count()
+            remaining_count = max(0, total_registered - total_printed)
+            is_completed = (total_registered > 0 and total_printed >= total_registered)
+            print_status = 'full' if is_completed else ('partial' if total_printed > 0 else 'ready')
+            printed_rate = round((total_printed / max(1, total_registered)) * 100, 1)
+
+            # 5. Update or create real OMRPrintOrder in database
+            try:
+                order_num = f"PRN-REQ-{exam.uniqueCode or exam.id}"
+                ord_status = OMRPrintOrder.Status.COMPLETED if is_completed else (
+                    OMRPrintOrder.Status.PRINTING if total_printed > 0 else OMRPrintOrder.Status.READY
+                )
+                ord_obj, _ = OMRPrintOrder.objects.get_or_create(
+                    exam=exam,
+                    defaults={
+                        "order_number": order_num,
+                        "scheduled_print_date": now.date(),
+                        "status": ord_status,
+                        "batch_id": batch_id,
+                        "printed_at": now if is_completed else None,
+                    }
+                )
+                ord_obj.status = ord_status
+                ord_obj.batch_id = batch_id
+                if is_completed:
+                    ord_obj.printed_at = now
+                if is_reprint:
+                    ord_obj.reprinted_count = (ord_obj.reprinted_count or 0) + updated_count
+                ord_obj.save()
+            except Exception as e:
+                pass
 
         return Response({
             "success": True,
-            "message": f"تم توثيق طباعة {updated_count} ورقة بنجاح في سجل الطباعة",
-            "updated_count": updated_count
+            "message": f"تم توثيق طباعة {updated_count} ورقة بنجاح في الدفعة ({batch_id}). الإجمالي المطبوع: {total_printed} من {total_registered} ({printed_rate}%).",
+            "batch_id": batch_id,
+            "updated_count": updated_count,
+            "batch_printed_count": updated_count,
+            "total_printed_count": total_printed,
+            "total_registered_count": total_registered,
+            "remaining_count": remaining_count,
+            "print_status": print_status,
+            "is_completed": is_completed,
+            "printed_rate": printed_rate,
         })

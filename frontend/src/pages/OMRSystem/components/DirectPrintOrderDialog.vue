@@ -302,8 +302,8 @@
               v-model.number="actualPrintedCount"
               type="number"
               :min="0"
-              :max="totalTargetCount"
-              label="عدد الأوراق السليمة التي خرجت فعلياً من الماكينة"
+              :max="remainingToPrint > 0 ? remainingToPrint : totalTargetCount"
+              label="عدد الأوراق السليمة التي خرجت فعلياً من الماكينة في هذه الدفعة"
               icon="counter"
               suffix="ورقة"
               cols="12"
@@ -311,21 +311,22 @@
               class="mb-2"
             />
             
-            <!-- مؤشر حالة السحب التفاعلي -->
+            <!-- مؤشر حالة السحب التفاعلي والتراكمي -->
             <div class="d-flex align-center justify-space-between mt-2 flex-wrap gap-2">
-              <div v-if="actualPrintedCount >= totalTargetCount" class="center-count-badge unified-badge-primary px-3 py-1 text-caption font-weight-bold">
-                ✓ سحب مكتمل بالكامل (100% - {{ totalTargetCount }} من {{ totalTargetCount }})
+              <div v-if="cumulativeExpected >= totalTargetCount" class="center-count-badge unified-badge-primary px-3 py-1 text-caption font-weight-bold">
+                ✓ سحب مكتمل بالكامل (100% — {{ totalTargetCount }} من {{ totalTargetCount }})
               </div>
               <div v-else-if="actualPrintedCount > 0" class="center-count-badge unified-badge-warning px-3 py-1 text-caption font-weight-bold">
-                ⚠ سحب جزئي: تم طباعة {{ actualPrintedCount }} ورقة، وسيتبقى {{ totalTargetCount - actualPrintedCount }} في قائمة المستحقة
+                ⚠ سحب جزئي: تم طباعة {{ actualPrintedCount }} ورقة إضافية (المطبوع التراكمي: {{ cumulativeExpected }} من {{ totalTargetCount }}، والمتبقي: {{ totalTargetCount - cumulativeExpected }})
               </div>
               <div v-else class="center-count-badge unified-badge-warning px-3 py-1 text-caption font-weight-bold">
-                ✕ لم تطبع أي ورقة (سحب ملغى / تعذر عمل الطابعة)
+                ✕ لم تطبع أي ورقة في هذه الدفعة (سحب ملغى / تعذر عمل الطابعة)
               </div>
 
-              <span class="text-caption text-medium-emphasis">
-                المستهدف الكلي: <strong>{{ totalTargetCount }} ورقة</strong>
-              </span>
+              <div class="d-flex align-center gap-2 text-caption text-medium-emphasis">
+                <span v-if="alreadyPrintedCount > 0">سبق طباعة: <strong>{{ alreadyPrintedCount }}</strong> |</span>
+                <span>المستهدف الكلي: <strong>{{ totalTargetCount }} ورقة</strong></span>
+              </div>
             </div>
           </div>
 
@@ -454,7 +455,19 @@ const options = ref({
 })
 
 const totalTargetCount = computed(() => {
-  return props.exam?.total_registered || props.exam?.total_students || 0
+  return Number(props.exam?.total_registered || props.exam?.total_students || 0)
+})
+
+const alreadyPrintedCount = computed(() => {
+  return Number(props.exam?.printed_count || 0)
+})
+
+const remainingToPrint = computed(() => {
+  return Math.max(0, totalTargetCount.value - alreadyPrintedCount.value)
+})
+
+const cumulativeExpected = computed(() => {
+  return Math.min(totalTargetCount.value, alreadyPrintedCount.value + Number(actualPrintedCount.value || 0))
 })
 
 const orderNumberDisplay = computed(() => {
@@ -465,7 +478,8 @@ const orderNumberDisplay = computed(() => {
 watch(() => props.modelValue, (isOpen) => {
   if (isOpen) {
     currentStep.value = 'prepare'
-    actualPrintedCount.value = totalTargetCount.value
+    // Default to the remaining unprinted count for this batch
+    actualPrintedCount.value = remainingToPrint.value > 0 ? remainingToPrint.value : (totalTargetCount.value > 0 ? totalTargetCount.value : 0)
     operatorNotes.value = ''
     options.value = {
       sheets: totalTargetCount.value > 0,
@@ -482,7 +496,7 @@ const close = () => {
 
 // المرحلة 1: تشغيل أمر السحب الفعلي والانتقال للمرحلة 2
 const startPrintDispatch = () => {
-  actualPrintedCount.value = totalTargetCount.value
+  actualPrintedCount.value = remainingToPrint.value > 0 ? remainingToPrint.value : totalTargetCount.value
   const sanitizedOptions = {
     ...options.value,
     sheets: totalTargetCount.value > 0 ? options.value.sheets : false,
@@ -508,12 +522,14 @@ const onFailedOrCancelled = () => {
   close()
 }
 
-// المرحلة 2: اعتماد وتوثيق ما خرج فعلياً فقط
+// المرحلة 2: اعتماد وتوثيق ما خرج فعلياً فقط مع رقم عملية فريد يمنع التكرار
 const onConfirmVerification = () => {
+  const uniqueBatchId = `PRN-BAT-${props.exam?.uniqueCode || props.exam?.id || 'EXAM'}-${Date.now()}-${Math.floor(Math.random() * 1000)}`
   emit('confirmExecution', {
     exam: props.exam,
     options: options.value,
     actualPrintedCount: Number(actualPrintedCount.value || 0),
+    batchId: uniqueBatchId,
     notes: operatorNotes.value,
   })
 }
