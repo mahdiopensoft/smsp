@@ -61,7 +61,7 @@
         class="bg-transparent"
       >
         <template v-slot:item-slot="{ item, key, index }">
-          <template v-if="key === 'index'">
+          <template v-if="key === 'numbering'">
             <div class="d-flex justify-center align-center">
               <span class="font-weight-bold text-caption text-medium-emphasis">{{ ((items?.pagination?.current_page || 1) - 1) * (items?.pagination?.page_size || 20) + (index ?? 0) + 1 }}</span>
             </div>
@@ -103,7 +103,6 @@ const onInstitutionTypeChange = () => {
 }
 
 const headers = [
-  { title: '#', key: 'index', sortable: false, width: '60px' },
   { title: 'المحافظة / المنطقة', key: 'name', sortable: true },
   { title: 'النوع', key: 'type', sortable: true, align: 'center' },
   { title: 'عدد الطلاب الممتحنين', key: 'students', sortable: true, align: 'center' },

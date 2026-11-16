@@ -265,7 +265,7 @@
         class="bg-transparent"
       >
         <template v-slot:item-slot="{ item, key, index }">
-          <template v-if="key === 'index'">
+          <template v-if="key === 'numbering'">
             <div class="d-flex justify-center align-center">
               <span class="font-weight-bold text-caption text-medium-emphasis">{{ ((items?.pagination?.current_page || 1) - 1) * (items?.pagination?.page_size || 20) + (index ?? 0) + 1 }}</span>
             </div>
@@ -490,7 +490,6 @@ const getStatusColor = (status) => {
 
 // أعمدة الجدول
 const headers = [
-  { title: '#', key: 'index', sortable: false, width: '60px' },
   { title: 'نص السؤال (مختصر)', key: 'contentPreview', sortable: false },
   { title: 'نوع السؤال', key: 'questionType', sortable: true, align: 'center' },
   { title: 'الصعوبة', key: 'difficultyLabel', sortable: true, align: 'center' },
