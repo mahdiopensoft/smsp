@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 
 from bank.models.Question import Question
 from bank.serializers.Question import QuestionSerializer
+from utils.report_pagination import paginate_records, paginated_report_response
 
 User = get_user_model()
 
@@ -97,8 +98,11 @@ class AuthorsReportMVS(AllMVS):
             rejected=Count('id', filter=Q(status='مرفوض') | Q(status='rejected'))
         ).order_by('-total')
 
+        paginated_stats, pagination_meta = paginate_records(author_stats, request, default_size=20)
+        start_rank = (pagination_meta['current_page'] - 1) * pagination_meta['page_size']
+
         results = []
-        for idx, item in enumerate(author_stats[:50]):
+        for idx, item in enumerate(paginated_stats):
             user_id = item['createdBy__id']
             if not user_id:
                 continue
@@ -139,7 +143,7 @@ class AuthorsReportMVS(AllMVS):
 
             results.append({
                 "id": user_id,
-                "rank": idx + 1,
+                "rank": start_rank + idx + 1,
                 "name": full_name,
                 "email": item['createdBy__email'] or '',
                 "subjectName": subject_name,
@@ -154,10 +158,7 @@ class AuthorsReportMVS(AllMVS):
                 "lastActivity": "مؤخراً"
             })
 
-        return Response({
-            "results": results,
-            "count": len(results)
-        })
+        return paginated_report_response(results, pagination_meta)
 
     @action(detail=False, methods=['get'])
     def stats(self, request):

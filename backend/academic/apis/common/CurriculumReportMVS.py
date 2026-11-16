@@ -2,6 +2,7 @@ from OpenSoftCoreV41.utils.model_view_set.__all__ import AllMVS
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Count, Q
+from utils.report_pagination import paginate_records, paginated_report_response
 
 from academic.models.universities.UniversityLesson import UniversityLesson as UniLesson
 from academic.models.schools.SchoolLesson import SchoolLesson
@@ -169,10 +170,8 @@ class CurriculumReportMVS(AllMVS):
                     'coverageStatus': 'مكتمل' if q_count >= 15 else ('جزئي' if q_count > 0 else 'غير مغطى'),
                 })
 
-        return Response({
-            'results': lessons_data,
-            'count': len(lessons_data),
-        })
+        paginated_lessons, pagination_meta = paginate_records(lessons_data, request, default_size=20)
+        return paginated_report_response(paginated_lessons, pagination_meta)
 
     @action(detail=False, methods=['get'])
     def stats(self, request):

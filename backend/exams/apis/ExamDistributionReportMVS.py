@@ -1,8 +1,8 @@
 from OpenSoftCoreV41.utils.model_view_set.__all__ import AllMVS
-from rest_framework.response import Response
 from django.db.models import Q
 from exams.models.ExamDistribution import ExamDistribution
 from exams.serializers.ExamDistribution import ExamDistributionSerializer
+from utils.report_pagination import paginate_records, paginated_report_response
 
 
 class ExamDistributionReportMVS(AllMVS):
@@ -24,6 +24,7 @@ class ExamDistributionReportMVS(AllMVS):
         delivery_mode = request.query_params.get('delivery_mode')
         date_from = request.query_params.get('date_from')
         date_to = request.query_params.get('date_to')
+        search = request.query_params.get('search')
 
         if exam_id:
             qs = qs.filter(exam_id=exam_id)
@@ -35,9 +36,16 @@ class ExamDistributionReportMVS(AllMVS):
             qs = qs.filter(dispatch_at__date__gte=date_from)
         if date_to:
             qs = qs.filter(dispatch_at__date__lte=date_to)
+        if search:
+            qs = qs.filter(
+                Q(title__icontains=search) |
+                Q(exam__title__icontains=search)
+            )
+
+        paginated_qs, pagination_meta = paginate_records(qs, request, default_size=20)
 
         results = []
-        for d in qs[:200]:
+        for d in paginated_qs:
             exam_title = d.exam.title if d.exam else ''
             subject_name = (d.exam.subject.name_ar or d.exam.subject.name_en) if d.exam and d.exam.subject else ''
             results.append({
@@ -54,5 +62,4 @@ class ExamDistributionReportMVS(AllMVS):
                 'examEndAt': d.exam_end_at.strftime('%Y-%m-%d %H:%M') if d.exam_end_at else '',
             })
 
-        return Response({'results': results, 'count': len(results)})
-
+        return paginated_report_response(results, pagination_meta)

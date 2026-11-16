@@ -173,7 +173,7 @@
         <template v-slot:item-slot="{ item, key, index }">
           <template v-if="key === 'index'">
             <div class="d-flex justify-center align-center">
-              <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+              <span class="font-weight-bold text-caption text-medium-emphasis">{{ ((items?.pagination?.current_page || 1) - 1) * (items?.pagination?.page_size || 20) + (index ?? 0) + 1 }}</span>
             </div>
           </template>
           <template v-else-if="key === 'coverage_status'">
@@ -194,12 +194,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { reportsService } from '@/services/reportsService'
+import { useReportPagination } from '@/composables/useReportPagination'
 
-const loading = ref(false)
-const items = ref({
-  results: [],
-  count: 0,
-})
+const {
+  loading,
+  items,
+  extractParams,
+  setResponse,
+  resetPagination
+} = useReportPagination(20)
 
 // خيارات نوع المؤسسة بدون "الكل"
 const filterInstitutionType = ref('school')
@@ -340,13 +343,27 @@ const buildParams = () => {
   return p
 }
 
-const applyFilters = async () => {
+const applyFilters = async (tableParams = {}) => {
+  const p = extractParams(tableParams)
   loading.value = true
   try {
-    const res = await reportsService.getAlignmentMatrixReport(buildParams())
-    items.value = res.clos || []
+    const query = {
+      ...buildParams(),
+      page: p.page,
+      page_size: p.page_size,
+    }
+    if (p.search) query.search = p.search
+    if (p.sort_by) query.sort_by = p.sort_by
+
+    const res = await reportsService.getAlignmentMatrixReport(query)
+    const results = res?.results || res?.clos || (Array.isArray(res) ? res : [])
+    setResponse({
+      ...res,
+      results
+    })
   } catch (e) {
     console.error(e)
+    setResponse({ results: [], count: 0 })
   } finally {
     loading.value = false
   }
@@ -366,6 +383,7 @@ const resetFilters = () => {
   filterInstituteSubject.value = null
   filterSubject.value = null
   filterSearch.value = ''
+  resetPagination()
   applyFilters()
 }
 

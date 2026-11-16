@@ -6,6 +6,7 @@ from django.db.models import Count, Sum, Q
 
 from exams.models.StudentExamRegistration import StudentExamRegistration
 from exams.serializers.StudentExamRegistration import StudentExamRegistrationSerializer
+from utils.report_pagination import paginate_records, paginated_report_response
 
 class ExamQualityReportMVS(AllMVS):
     """
@@ -116,8 +117,10 @@ class ExamQualityReportMVS(AllMVS):
                 Q(examVersion__exam__title__icontains=search)
             )
 
+        paginated_qs, pagination_meta = paginate_records(qs, request, default_size=20)
+
         papers = []
-        for reg in qs[:100]:
+        for reg in paginated_qs:
             exam = getattr(reg.examVersion, 'exam', None)
             student = reg.student
             version = reg.examVersion
@@ -168,11 +171,7 @@ class ExamQualityReportMVS(AllMVS):
                 "isPresent": reg.isPresent
             })
 
-        return Response({
-            "results": papers,
-            "count": len(papers),
-            "totalCount": qs.count()
-        })
+        return paginated_report_response(papers, pagination_meta)
 
     @action(detail=False, methods=['get'])
     def stats(self, request):

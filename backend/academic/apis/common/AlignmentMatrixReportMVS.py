@@ -8,6 +8,7 @@ from academic.models.universities.UniversitySubject import UniversitySubject as 
 from academic.models.universities.UniversitySemesterSubject import UniversitySemesterSubject as SemesterSubject
 from academic.models.universities.UniversityUnit import UniversityUnit as Unit
 from bank.models.Question import Question
+from utils.report_pagination import paginate_records, paginated_report_response
 
 
 class AlignmentMatrixReportMVS(AllMVS):
@@ -162,12 +163,14 @@ class AlignmentMatrixReportMVS(AllMVS):
         total_clos = len(clo_data)
         coverage_rate = round(((total_clos - uncovered_clos) / total_clos * 100), 1) if total_clos > 0 else 0
 
-        return Response({
+        paginated_clos, pagination_meta = paginate_records(clo_data, request, default_size=20)
+
+        return paginated_report_response(paginated_clos, pagination_meta, extra={
             "subject_id": semester_subject_id or subject_id,
             "subject_name": subject_name,
             "total_clos": total_clos,
             "uncovered_clos": uncovered_clos,
             "coverage_rate_percentage": coverage_rate,
             "total_approved_questions": total_questions,
-            "clos": clo_data
+            "clos": paginated_clos
         })

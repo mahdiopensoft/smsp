@@ -1,6 +1,6 @@
 <template>
   <div class="students-report-page pa-4 pa-md-6">
-    <filter-fields label="معايير التصفية والبحث في سجل الطلاب" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
+    <filter-fields label="معايير التصفية والبحث في الطلاب" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
       <template #fields>
         <!-- 1. اختيار نوع المؤسسة التعليمية الموحد -->
         <v-col cols="12" sm="6" md="3">
@@ -15,38 +15,36 @@
           />
         </v-col>
 
-        <!-- فلاتر هرمية حسب النوع -->
         <template v-if="filterInstitutionType === 'school'">
           <auto-list
             v-model="filterStage"
-            name="Stage"
+            name="SchoolStage"
             placeholder="المرحلة الدراسية"
             cols="2"
             :add="false"
           />
         </template>
 
-        <template v-if="filterInstitutionType === 'university'">
+        <template v-else-if="filterInstitutionType === 'university'">
           <auto-list
             v-model="filterCollege"
-            name="College"
-            placeholder="الكلية الجامعية"
+            name="UniversityCollege"
+            placeholder="الكلية"
             cols="2"
             :add="false"
           />
         </template>
 
-        <template v-if="filterInstitutionType === 'institute'">
+        <template v-else-if="filterInstitutionType === 'institute'">
           <auto-list
             v-model="filterInstituteField"
             name="InstituteField"
-            placeholder="المجال المهني"
+            placeholder="المجال"
             cols="2"
             :add="false"
           />
         </template>
 
-        <!-- فلاتر جغرافية عامة -->
         <auto-list
           v-model="filterGovernorate"
           name="Governorate"
@@ -58,8 +56,8 @@
 
         <auto-list
           v-model="filterDirectorate"
-          name="DirectorateByGovernorate"
-          :param="filterGovernorate"
+          name="Directorate"
+          :param="filterGovernorate ? { fk_governorate: filterGovernorate } : null"
           placeholder="المديرية"
           cols="2"
           :add="false"
@@ -69,12 +67,13 @@
         <v-col cols="12" md="3">
           <v-text-field
             v-model="filterSearch"
-            placeholder="بحث باسم الطالب أو الرقم الأكاديمي..."
-            prepend-inner-icon="mdi-magnify"
-            clearable
+            placeholder="بحث بالاسم أو الرقم الأكاديمي..."
             density="compact"
             variant="outlined"
+            prepend-inner-icon="mdi-magnify"
             hide-details
+            clearable
+            @keyup.enter="applyFilters"
           />
         </v-col>
 
@@ -108,7 +107,7 @@
         <template v-slot:item-slot="{ item, key, index }">
           <template v-if="key === 'index'">
             <div class="d-flex justify-center align-center">
-              <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+              <span class="font-weight-bold text-caption text-medium-emphasis">{{ ((items?.pagination?.current_page || 1) - 1) * (items?.pagination?.page_size || 20) + (index ?? 0) + 1 }}</span>
             </div>
           </template>
           <template v-else-if="key === 'gender'">
@@ -129,12 +128,15 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { reportsService } from '@/services/reportsService'
+import { useReportPagination } from '@/composables/useReportPagination'
 
-const loading = ref(false)
-const items = ref({
-  results: [],
-  count: 0,
-})
+const {
+  loading,
+  items,
+  extractParams,
+  setResponse,
+  resetPagination
+} = useReportPagination(20)
 
 // خيارات نوع المؤسسة بدون "الكل"
 const filterInstitutionType = ref('school')
@@ -150,19 +152,20 @@ const onInstitutionTypeChange = () => {
   filterStage.value = null
   filterCollege.value = null
   filterInstituteField.value = null
+  resetPagination()
   applyFilters()
 }
 
 const headers = [
   { title: '#', key: 'index', sortable: false, width: '60px' },
   { title: 'اسم الطالب', key: 'name', sortable: true },
-  { title: 'الرقم الأكاديمي', key: 'academicNumber', sortable: true },
+  { title: 'الرقم الأكاديمي', key: 'academicNumber', sortable: true, align: 'center' },
   { title: 'الجنس', key: 'gender', sortable: true, align: 'center' },
   { title: 'المؤسسة التعليمية', key: 'institution', sortable: true },
-  { title: 'المرحلة / المستوى', key: 'levelStage', sortable: true },
+  { title: 'المرحلة / المستوى', key: 'levelStage', sortable: true, align: 'center' },
   { title: 'المحافظة', key: 'governorate', sortable: true },
   { title: 'المديرية', key: 'directorate', sortable: true },
-  { title: 'تاريخ التسجيل', key: 'createdAt', sortable: true },
+  { title: 'تاريخ الإضافة', key: 'createdAt', sortable: true, align: 'center' },
 ]
 
 const buildParams = () => {
@@ -179,15 +182,23 @@ const buildParams = () => {
   return p
 }
 
-const applyFilters = async () => {
+const applyFilters = async (tableParams = {}) => {
+  const p = extractParams(tableParams)
   loading.value = true
   try {
-    const res = await reportsService.getStudentsReport(buildParams())
-    const results = Array.isArray(res) ? res : (res?.results || [])
-    const count = res?.count !== undefined ? res.count : results.length
-    items.value = { results, count }
+    const query = {
+      ...buildParams(),
+      page: p.page,
+      page_size: p.page_size,
+    }
+    if (p.search) query.search = p.search
+    if (p.sort_by) query.sort_by = p.sort_by
+
+    const res = await reportsService.getStudentsReport(query)
+    setResponse(res)
   } catch (e) {
     console.error(e)
+    setResponse({ results: [], count: 0 })
   } finally {
     loading.value = false
   }
@@ -201,6 +212,7 @@ const resetFilters = () => {
   filterGovernorate.value = null
   filterDirectorate.value = null
   filterSearch.value = ''
+  resetPagination()
   applyFilters()
 }
 

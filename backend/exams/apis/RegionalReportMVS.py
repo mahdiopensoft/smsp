@@ -6,6 +6,7 @@ from django.db.models import Avg, Count, Q
 from exams.models.Exam import Exam
 from exams.models.StudentExamRegistration import StudentExamRegistration
 from submissions.models.Submission import Submission
+from utils.report_pagination import paginate_records, paginated_report_response
 
 class RegionalReportMVS(AllMVS):
     """
@@ -97,7 +98,9 @@ class RegionalReportMVS(AllMVS):
         diff = round(abs(city_avg - remote_avg), 1)
         pass_diff = round(abs(city_pass - remote_pass), 1)
 
-        return Response({
+        paginated_govs, pagination_meta = paginate_records(governorates, request, default_size=20)
+
+        return paginated_report_response(paginated_govs, pagination_meta, extra={
             "institution_type": institution_type or 'all',
             "summary": {
                 "cityAverage": city_avg,
@@ -114,5 +117,5 @@ class RegionalReportMVS(AllMVS):
                     "improvementRate": 66.4
                 }
             },
-            "governorates": governorates
+            "governorates": paginated_govs
         })

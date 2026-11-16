@@ -1,8 +1,8 @@
 from OpenSoftCoreV41.utils.model_view_set.__all__ import AllMVS
-from rest_framework.response import Response
 from django.db.models import Q
 from academic.models.common.Student import Student
 from academic.serializers.common.Student import StudentSerializer
+from utils.report_pagination import paginate_records, paginated_report_response
 
 
 class StudentsReportMVS(AllMVS):
@@ -51,8 +51,10 @@ class StudentsReportMVS(AllMVS):
                 Q(academic_number__icontains=search)
             )
 
+        paginated_qs, pagination_meta = paginate_records(qs, request, default_size=20)
+
         results = []
-        for s in qs[:300]:
+        for s in paginated_qs:
             gov_name = ''
             dir_name = ''
             if s.directorate:
@@ -84,4 +86,4 @@ class StudentsReportMVS(AllMVS):
                 'createdAt': s.created_at.strftime('%Y-%m-%d') if s.created_at else '',
             })
 
-        return Response({'results': results, 'count': len(results)})
+        return paginated_report_response(results, pagination_meta)

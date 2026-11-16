@@ -1,8 +1,8 @@
 from OpenSoftCoreV41.utils.model_view_set.__all__ import AllMVS
-from rest_framework.response import Response
 from django.db.models import Q
 from omr.models.OMRSheetResult import OMRSheetResult
 from omr.serializers.OMRSheetResult import OMRSheetResultSerializer
+from utils.report_pagination import paginate_records, paginated_report_response
 
 
 class OMRResultsReportMVS(AllMVS):
@@ -28,6 +28,7 @@ class OMRResultsReportMVS(AllMVS):
         version_id = request.query_params.get('version')
         status_filter = request.query_params.get('status')
         confidence_min = request.query_params.get('confidence_min')
+        search = request.query_params.get('search')
 
         if exam_id:
             qs = qs.filter(submission__exam_id=exam_id)
@@ -40,9 +41,17 @@ class OMRResultsReportMVS(AllMVS):
                 qs = qs.filter(confidence__gte=float(confidence_min))
             except (ValueError, TypeError):
                 pass
+        if search:
+            qs = qs.filter(
+                Q(submission__registration__student_profile__name_ar__icontains=search) |
+                Q(submission__registration__student_profile__name_en__icontains=search) |
+                Q(submission__exam__title__icontains=search)
+            )
+
+        paginated_qs, pagination_meta = paginate_records(qs, request, default_size=20)
 
         results = []
-        for r in qs[:300]:
+        for r in paginated_qs:
             student_name = ''
             exam_title = ''
             version_code = ''
@@ -75,5 +84,4 @@ class OMRResultsReportMVS(AllMVS):
                 'status': r.status or '',
             })
 
-        return Response({'results': results, 'count': len(results)})
-
+        return paginated_report_response(results, pagination_meta)

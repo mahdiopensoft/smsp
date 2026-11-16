@@ -1,6 +1,6 @@
 <template>
   <div class="regional-report-page pa-4 pa-md-6">
-    <filter-fields label="خيارات تصفية التقرير الإقليمي والجغرافي" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
+    <filter-fields label="معايير التصفية والبحث في التقرير الإقليمي والجغرافي" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
       <template #fields>
         <!-- 1. اختيار نوع المؤسسة التعليمية الموحد -->
         <v-col cols="12" sm="6" md="3">
@@ -15,26 +15,26 @@
           />
         </v-col>
 
-        <v-col cols="12" sm="6" md="3">
+        <v-col cols="12" md="3">
           <v-select
             v-model="filterComparisonType"
             :items="[
-              { text: 'جميع المحافظات', value: 'all' },
+              { text: 'الكل (مدن ومناطق نائية)', value: 'all' },
               { text: 'المدن الرئيسية فقط', value: 'cities_only' },
-              { text: 'المناطق النائية فقط', value: 'remote_only' }
+              { text: 'المناطق النائية والريفية فقط', value: 'remote_only' }
             ]"
             item-title="text"
             item-value="value"
-            label="نطاق المقارنة"
-            placeholder="نطاق المقارنة"
+            placeholder="نوع المقارنة الجغرافية"
             hide-details
             density="compact"
             variant="outlined"
+            @update:model-value="applyFilters"
           />
         </v-col>
 
         <v-col cols="auto" class="d-flex align-center gap-2 py-2">
-          <custom-btn type="filter" :loading="loading" :click="loadReport" />
+          <custom-btn type="filter" :loading="loading" :click="applyFilters" />
           <custom-btn
             color="primary"
             variant="tonal"
@@ -48,9 +48,9 @@
 
     <div class="main-card rounded-2xl overflow-hidden mb-6">
       <custom-data-table
-        :items="filteredItems"
+        :items="items"
         :headers="headers"
-        :getData="loadReport"
+        :getData="applyFilters"
         :customLoading="loading"
         :hasFilter="false"
         :log="false"
@@ -63,7 +63,7 @@
         <template v-slot:item-slot="{ item, key, index }">
           <template v-if="key === 'index'">
             <div class="d-flex justify-center align-center">
-              <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+              <span class="font-weight-bold text-caption text-medium-emphasis">{{ ((items?.pagination?.current_page || 1) - 1) * (items?.pagination?.page_size || 20) + (index ?? 0) + 1 }}</span>
             </div>
           </template>
           <template v-else-if="key === 'average'">
@@ -81,16 +81,26 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { reportsService } from '@/services/reportsService'
+import { useReportPagination } from '@/composables/useReportPagination'
 
-const loading = ref(false)
-const allItems = ref([])
+const {
+  loading,
+  items,
+  extractParams,
+  setResponse,
+  resetPagination
+} = useReportPagination(20)
 
 // خيارات نوع المؤسسة بدون "الكل"
 const filterInstitutionType = ref('school')
-
 const filterComparisonType = ref('all')
+
+const onInstitutionTypeChange = () => {
+  resetPagination()
+  applyFilters()
+}
 
 const headers = [
   { title: '#', key: 'index', sortable: false, width: '60px' },
@@ -103,33 +113,40 @@ const headers = [
   { title: 'الاتجاه', key: 'trend', sortable: true, align: 'center' },
 ]
 
-const filteredItems = computed(() => {
-  if (filterComparisonType.value === 'cities_only') {
-    return allItems.value.filter(g => !g.isRemote)
-  }
-  if (filterComparisonType.value === 'remote_only') {
-    return allItems.value.filter(g => g.isRemote)
-  }
-  return allItems.value
-})
-
 const getScoreClass = (val) => {
   if (val >= 75) return 'text-success'
   if (val >= 60) return 'text-primary'
   return 'text-error'
 }
 
-const loadReport = async () => {
+const applyFilters = async (tableParams = {}) => {
+  const p = extractParams(tableParams)
   loading.value = true
   try {
-    const params = {}
-    if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
-      params.institution_type = filterInstitutionType.value
+    const query = {
+      page: p.page,
+      page_size: p.page_size,
     }
-    const res = await reportsService.getRegionalReport(params)
-    allItems.value = res.governorates || []
+    if (filterInstitutionType.value && filterInstitutionType.value !== 'all') {
+      query.institution_type = filterInstitutionType.value
+    }
+    if (p.search) query.search = p.search
+    if (p.sort_by) query.sort_by = p.sort_by
+
+    const res = await reportsService.getRegionalReport(query)
+    let results = res?.results || res?.governorates || (Array.isArray(res) ? res : [])
+    if (filterComparisonType.value === 'cities_only') {
+      results = results.filter(g => !g.isRemote)
+    } else if (filterComparisonType.value === 'remote_only') {
+      results = results.filter(g => g.isRemote)
+    }
+    setResponse({
+      ...res,
+      results
+    })
   } catch (e) {
     console.error(e)
+    setResponse({ results: [], count: 0 })
   } finally {
     loading.value = false
   }
@@ -138,10 +155,11 @@ const loadReport = async () => {
 const resetFilters = () => {
   filterInstitutionType.value = 'school'
   filterComparisonType.value = 'all'
-  loadReport()
+  resetPagination()
+  applyFilters()
 }
 
-onMounted(loadReport)
+onMounted(applyFilters)
 </script>
 
 <style scoped>
