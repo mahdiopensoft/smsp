@@ -149,11 +149,13 @@
               :color="item.is_printed ? 'success' : 'grey'"
               :variant="item.is_printed ? 'flat' : 'tonal'"
               class="font-weight-bold cursor-pointer"
-              title="انقر لتبديل حالة الطباعة"
+              :title="item._updating ? 'جاري توثيق التحديث في السجل...' : 'انقر لتبديل حالة الطباعة'"
+              :disabled="item._updating"
               @click="$emit('toggle-printed', item)"
             >
-              <v-icon start size="14">{{ item.is_printed ? 'mdi-check-circle' : 'mdi-clock-outline' }}</v-icon>
-              {{ item.is_printed ? 'تمت الطباعة' : 'جاهز للطباعة' }}
+              <v-progress-circular v-if="item._updating" indeterminate size="12" width="2" class="me-1" />
+              <v-icon v-else start size="14">{{ item.is_printed ? 'mdi-check-circle' : 'mdi-clock-outline' }}</v-icon>
+              {{ item._updating ? 'جاري التحديث...' : (item.is_printed ? 'تمت الطباعة' : 'جاهز للطباعة') }}
             </v-chip>
           </template>
 
@@ -255,12 +257,12 @@
                 :seat-number="previewPackageStudent.seat_number"
                 :serial-number="previewPackageStudent.secret_number || previewPackageStudent.model_code"
                 :model-code="previewPackageStudent.model_code || 'A'"
-                :exam-subject="selectedExam?.subject_name || 'الرياضيات'"
-                :exam-stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || 'اختبار الشهادة الثانوية العامة'))"
-                :exam-year="customExamYear || selectedExam?.year_name || '2026'"
-                :center-name="customCenterName || previewPackageStudent.school_name || selectedExam?.directorate || 'المركز الامتحاني الرئيسي'"
-                :governorate="customGovernorate || selectedExam?.governorate || 'أمانة العاصمة'"
-                :directorate="customDirectorate || previewPackageStudent.directorate || selectedExam?.directorate || 'السبعين'"
+                :exam-subject="selectedExam?.subject_name || ''"
+                :exam-stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || 'اختبار'))"
+                :exam-year="customExamYear || selectedExam?.year_name || ''"
+                :center-name="customCenterName || previewPackageStudent.school_name || selectedExam?.center_name || selectedExam?.school_name || selectedExam?.directorate || ''"
+                :governorate="customGovernorate || selectedExam?.governorate || ''"
+                :directorate="customDirectorate || previewPackageStudent.directorate || selectedExam?.directorate || ''"
                 :barcode-value="`EXAM_${selectedExam?.id}_VER_${previewPackageStudent.model_code || 'A'}_SEAT_${previewPackageStudent.seat_number}`"
                 :qr-value="`${selectedExam?.uniqueCode}|${previewPackageStudent.model_code || 'A'}|${previewPackageStudent.seat_number}`"
                 :field-layout="examFieldLayout"

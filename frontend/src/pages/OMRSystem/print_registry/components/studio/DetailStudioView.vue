@@ -117,6 +117,7 @@
             :get-roster-data="getRosterData"
             :roster-headers="rosterHeaders || []"
             :loading-exam-details="loadingExamDetails"
+            :marking-printed-loading="markingPrintedLoading"
             :get-model-chip-color="getModelChipColor"
             @print-batch="$emit('print-batch')"
             @print-audit="$emit('print-audit')"
@@ -259,6 +260,7 @@ defineProps<{
   batches?: any[]
   isTabVisited: (tab: string) => boolean
   loadingExamDetails: boolean
+  markingPrintedLoading?: boolean
   examDetailsError?: any
   batchPrintNotification?: any
 

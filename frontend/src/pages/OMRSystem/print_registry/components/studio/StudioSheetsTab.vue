@@ -168,6 +168,8 @@
             rounded="lg"
             class="font-weight-bold"
             prepend-icon="mdi-check-all"
+            :loading="markingPrintedLoading"
+            :disabled="markingPrintedLoading"
             @click="$emit('mark-printed')"
           >
             تحديد كمطبوع
@@ -392,11 +394,13 @@
               :color="item.is_printed ? 'success' : 'grey'"
               :variant="item.is_printed ? 'flat' : 'tonal'"
               class="font-weight-bold unified-table-chip cursor-pointer"
-              title="انقر لتبديل حالة الطباعة"
+              :title="item._updating ? 'جاري توثيق التحديث في السجل...' : 'انقر لتبديل حالة الطباعة'"
+              :disabled="item._updating"
               @click="$emit('toggle-printed', item)"
             >
-              <v-icon start size="14">{{ item.is_printed ? 'mdi-check-circle' : 'mdi-clock-outline' }}</v-icon>
-              {{ item.is_printed ? 'تمت الطباعة' : 'جاهز للطباعة' }}
+              <v-progress-circular v-if="item._updating" indeterminate size="12" width="2" class="me-1" />
+              <v-icon v-else start size="14">{{ item.is_printed ? 'mdi-check-circle' : 'mdi-clock-outline' }}</v-icon>
+              {{ item._updating ? 'جاري التحديث...' : (item.is_printed ? 'تمت الطباعة' : 'جاهز للطباعة') }}
             </v-chip>
           </template>
 
@@ -458,6 +462,7 @@ defineProps<{
   getRosterData: any
   rosterHeaders: any[]
   loadingExamDetails: boolean
+  markingPrintedLoading?: boolean
   getModelChipColor: (code?: string) => string
 }>()
 

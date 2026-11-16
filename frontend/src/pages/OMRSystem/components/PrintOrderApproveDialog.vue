@@ -72,9 +72,9 @@
               <span class="text-body-2 font-weight-medium text-medium-emphasis">الاختبار والمادة:</span>
             </div>
             <div class="d-flex align-center gap-2">
-              <span class="font-weight-bold text-body-2 text-high-emphasis">{{ exam?.title || 'كل المهام' }}</span>
-              <div class="center-count-badge px-2.5 py-0.5 text-caption font-weight-bold">
-                المادة: {{ exam?.subject_name || 'الرياضيات' }}
+              <span class="font-weight-bold text-body-2 text-high-emphasis">{{ exam?.title || 'الاختبار' }}</span>
+              <div v-if="exam?.subject_name" class="center-count-badge px-2.5 py-0.5 text-caption font-weight-bold">
+                المادة: {{ exam.subject_name }}
               </div>
             </div>
           </div>
@@ -88,7 +88,7 @@
               <span class="text-body-2 font-weight-medium text-medium-emphasis">كود الاختبار:</span>
             </div>
             <div class="center-count-badge px-3 py-1 font-mono font-weight-bold text-caption text-high-emphasis">
-              {{ exam?.uniqueCode || 'EXAM-C285C2A8' }}
+              {{ exam?.uniqueCode || exam?.id || '-' }}
             </div>
           </div>
 

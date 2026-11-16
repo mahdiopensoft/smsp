@@ -93,6 +93,7 @@
       :batches="currentExamBatches"
       :is-tab-visited="isTabVisited"
       :loading-exam-details="loadingExamDetails"
+      :marking-printed-loading="markingSelectedLoading"
       :batch-print-notification="batchPrintNotification"
       :target-batch-students="targetBatchStudents"
       :selected-student-ids="selectedStudentIds"
@@ -290,13 +291,13 @@
           :serial-number="st.secret_number || st.model_code"
           :model-code="st.model_code || 'A'"
           :form-number="st.model_code || 'A'"
-          :exam-subject="selectedExam?.subject_name || 'الرياضيات'"
-          :exam-stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || 'اختبار الشهادة العامة'))"
-          :exam-year="customExamYear || selectedExam?.year_name || '2026'"
-          :center-name="customCenterName || st.school_name || selectedExam?.directorate || 'المركز الاختباري الرئيسي'"
-          :center-code="st.school_id || selectedExam?.id || '101'"
-          :governorate="customGovernorate || st.governorate || selectedExam?.governorate || 'أمانة العاصمة'"
-          :directorate="customDirectorate || st.directorate || selectedExam?.directorate || 'السبعين'"
+          :exam-subject="selectedExam?.subject_name || ''"
+          :exam-stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || 'اختبار'))"
+          :exam-year="customExamYear || selectedExam?.year_name || ''"
+          :center-name="customCenterName || st.school_name || selectedExam?.center_name || selectedExam?.school_name || ''"
+          :center-code="st.school_id || selectedExam?.id || ''"
+          :governorate="customGovernorate || st.governorate || selectedExam?.governorate || ''"
+          :directorate="customDirectorate || st.directorate || selectedExam?.directorate || ''"
           :barcode-value="st.barcode_value || `EXAM_${selectedExam?.id}_VER_${st.model_code || 'A'}_SEAT_${st.seat_number}`"
           :qr-value="st.qr_value || `${selectedExam?.uniqueCode}|${st.model_code || 'A'}|${st.seat_number}`"
           :total-questions="getQuestionsCountForVersion(st.model_code)"
@@ -310,12 +311,12 @@
           :seat-number="st.seat_number"
           :serial-number="st.secret_number || st.model_code"
           :model-code="st.model_code || 'A'"
-          :exam-subject="selectedExam?.subject_name || 'الرياضيات'"
-          :exam-stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || 'اختبار الشهادة العامة'))"
-          :exam-year="customExamYear || selectedExam?.year_name || '2026'"
-          :center-name="customCenterName || st.school_name || selectedExam?.directorate || 'المركز الامتحاني الرئيسي'"
-          :governorate="customGovernorate || selectedExam?.governorate || 'أمانة العاصمة'"
-          :directorate="customDirectorate || st.directorate || selectedExam?.directorate || 'السبعين'"
+          :exam-subject="selectedExam?.subject_name || ''"
+          :exam-stage-title="customStageTitle || (selectedExam?.stage_name ? `اختبار ${selectedExam.stage_name}` : (selectedExam?.title || 'اختبار'))"
+          :exam-year="customExamYear || selectedExam?.year_name || ''"
+          :center-name="customCenterName || st.school_name || selectedExam?.center_name || selectedExam?.school_name || ''"
+          :governorate="customGovernorate || st.governorate || selectedExam?.governorate || ''"
+          :directorate="customDirectorate || st.directorate || selectedExam?.directorate || ''"
           :barcode-value="st.barcode_value || `EXAM_${selectedExam?.id}_VER_${st.model_code || 'A'}_SEAT_${st.seat_number}`"
           :qr-value="st.qr_value || `${selectedExam?.uniqueCode}|${st.model_code || 'A'}|${st.seat_number}`"
           :total-questions="getQuestionsCountForVersion(st.model_code)"
@@ -335,7 +336,7 @@ import { gradebookAPI } from '@/services/omr/endpoints'
 import YemeniMinistrySheet from '@/components/omr_templates/YemeniMinistrySheet.vue'
 import YemeniAuditReportSheet from '@/components/omr_templates/YemeniAuditReportSheet.vue'
 import YemeniOfficialQuestionPaper from '@/components/omr_templates/YemeniOfficialQuestionPaper.vue'
-import { printOmrElement, printOmrBatch, printOfficialQuestionPaper, printExamPackage, escapeHtml, sanitizePrintNode } from './utils/omrPrint'
+import { printOmrElement, printOmrBatch, printOfficialQuestionPaper, printExamPackage, printExamPackagesBatch, escapeHtml, sanitizePrintNode } from './utils/omrPrint'
 import PrintOrderManifestDialog from './components/PrintOrderManifestDialog.vue'
 import PrintOrderApproveDialog from './components/PrintOrderApproveDialog.vue'
 import DirectPrintOrderDialog from './components/DirectPrintOrderDialog.vue'
@@ -431,6 +432,31 @@ const currentExamBatches = computed(() => {
   return (batches.value || []).filter(b => Number(b.exam_id) === Number(selectedExamId.value))
 })
 const loadingBatches = ref(false)
+
+// ── Unified Notification & Error Handling System ──
+const batchPrintNotification = ref({ show: false, message: '', color: 'success' })
+
+const handleOmrError = (operationName, err, customFallbackMsg = 'حدث خطأ أثناء تنفيذ العملية') => {
+  const statusCode = err?.response?.status
+  const serverMessage = err?.response?.data?.message || err?.response?.data?.detail || err?.response?.data?.error
+  const errorDetails = {
+    operation: operationName,
+    statusCode,
+    serverMessage,
+    clientMessage: err?.message,
+    url: err?.config?.url,
+    timestamp: new Date().toISOString()
+  }
+  console.error(`[OMR Registry Error: ${operationName}]`, errorDetails)
+
+  const displayMsg = serverMessage || (statusCode ? `خطأ في الخادم (رمز: ${statusCode})` : err?.message || customFallbackMsg)
+  batchPrintNotification.value = {
+    show: true,
+    color: 'error',
+    message: `${customFallbackMsg}: ${displayMsg}`
+  }
+  return errorDetails
+}
 
 // Master Table Headers
 const officeMasterHeaders = [
@@ -970,51 +996,78 @@ const savedPrintOrders = ref([])
 const manifestDialog = ref(false)
 const selectedManifestOrder = ref(null)
 
-const loadSavedPrintOrders = async () => {
-  try {
-    const res = await api.get('/api/omr/print-orders/', { skipInterceptor: true })
-    if (res.data && res.data.success) {
-      savedPrintOrders.value = res.data.results || []
-    }
-  } catch (err) {
-    console.error('[OMR Registry API Error] فشل في تحميل أوامر الطباعة المحفوظة:', {
-      operation: 'loadSavedPrintOrders',
-      endpoint: '/api/omr/print-orders/',
-      error: err?.message || err
-    })
+// ── In-Flight Request Deduplication & Cache for Print Orders ──
+let printOrdersPromise = null
+let lastPrintOrdersFetchTime = 0
+const PRINT_ORDERS_CACHE_TTL = 8000 // 8 ثوانٍ كحد أقصى لمنع الطلبات المكررة
+
+const loadSavedPrintOrders = async (force = false) => {
+  const now = Date.now()
+  if (!force && savedPrintOrders.value.length > 0 && (now - lastPrintOrdersFetchTime < PRINT_ORDERS_CACHE_TTL)) {
+    return savedPrintOrders.value
   }
+  if (printOrdersPromise) {
+    return printOrdersPromise
+  }
+
+  printOrdersPromise = (async () => {
+    try {
+      const res = await api.get('/api/omr/print-orders/', { skipInterceptor: true })
+      if (res.data && res.data.success) {
+        savedPrintOrders.value = res.data.results || []
+        lastPrintOrdersFetchTime = Date.now()
+      }
+    } catch (err) {
+      handleOmrError('loadSavedPrintOrders', err, 'فشل في تحميل أوامر الطباعة المحفوظة')
+    } finally {
+      printOrdersPromise = null
+    }
+    return savedPrintOrders.value
+  })()
+
+  return printOrdersPromise
 }
 
-const previewOrderManifest = (exam) => {
-  const order = (savedPrintOrders.value || []).find(o => 
-    String(o.exam_id) === String(exam.id) || 
-    (o.exam_code && o.exam_code === exam.uniqueCode) ||
-    (o.order_number && exam.uniqueCode && o.order_number.includes(exam.uniqueCode))
-  )
-  if (order) {
-    selectedManifestOrder.value = {
-      ...order,
-      exam_title: exam.title || order.exam_title,
-      subject_name: exam.subject_name || order.subject_name || 'عام',
-      grand_total: exam.total_registered || exam.total_students || order.grand_total || 0,
-      actual_exam_date: exam.exam_date || order.actual_exam_date,
+// ── Indexed Map for O(1) Strict Print Order Matching ──
+const savedPrintOrdersMap = computed(() => {
+  const map = new Map()
+  for (const o of (savedPrintOrders.value || [])) {
+    if (!o) continue
+    if (o.exam_id !== undefined && o.exam_id !== null) {
+      map.set(String(o.exam_id), o)
     }
-    manifestDialog.value = true
-  } else {
-    selectedManifestOrder.value = {
-      order_number: exam.order_number || `PRN-REQ-${exam.uniqueCode || exam.id}`,
-      exam_id: exam.id,
-      exam_title: exam.title,
-      exam_code: exam.uniqueCode,
-      subject_name: exam.subject_name || 'عام',
-      press_name: exam.press_name || 'المطبعة السرية المركزية (ديوان الوزارة)',
-      scheduled_print_date: exam.scheduled_print_date || getTodayIso(),
-      actual_exam_date: exam.exam_date || exam.actual_exam_date || getTodayIso(),
-      status: exam.order_status || 'approved',
-      grand_total: exam.total_registered || exam.total_students || 0,
+    if (o.exam_code) {
+      map.set(`code_${String(o.exam_code).trim().toLowerCase()}`, o)
     }
-    manifestDialog.value = true
   }
+  return map
+})
+
+const getPrintOrderForExam = (exam) => {
+  if (!exam) return null
+  const map = savedPrintOrdersMap.value
+  if (exam.id !== undefined && exam.id !== null && map.has(String(exam.id))) {
+    return map.get(String(exam.id))
+  }
+  if (exam.uniqueCode && map.has(`code_${String(exam.uniqueCode).trim().toLowerCase()}`)) {
+    return map.get(`code_${String(exam.uniqueCode).trim().toLowerCase()}`)
+  }
+  return null
+}
+
+// ── Robust Calendar Date Parsing & Comparison ──
+const parseCalendarDate = (dateVal) => {
+  if (!dateVal) return null
+  if (dateVal instanceof Date) {
+    return isNaN(dateVal.getTime()) ? null : new Date(dateVal.getFullYear(), dateVal.getMonth(), dateVal.getDate()).getTime()
+  }
+  const str = String(dateVal).trim()
+  const isoMatch = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)
+  if (isoMatch) {
+    return new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3])).getTime()
+  }
+  const d = new Date(str)
+  return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
 }
 
 const getTodayIso = () => {
@@ -1025,20 +1078,41 @@ const getTodayIso = () => {
   return `${year}-${month}-${day}`
 }
 
+const previewOrderManifest = (exam) => {
+  const order = getPrintOrderForExam(exam)
+  if (order) {
+    selectedManifestOrder.value = {
+      ...order,
+      exam_title: exam.title || order.exam_title || '',
+      subject_name: exam.subject_name || order.subject_name || '',
+      grand_total: exam.total_registered || exam.total_students || order.grand_total || 0,
+      actual_exam_date: exam.exam_date || order.actual_exam_date || '',
+    }
+  } else {
+    selectedManifestOrder.value = {
+      order_number: exam.order_number || `PRN-REQ-${exam.uniqueCode || exam.id}`,
+      exam_id: exam.id,
+      exam_title: exam.title || '',
+      exam_code: exam.uniqueCode || '',
+      subject_name: exam.subject_name || '',
+      press_name: exam.press_name || '',
+      scheduled_print_date: exam.scheduled_print_date || getTodayIso(),
+      actual_exam_date: exam.exam_date || exam.actual_exam_date || getTodayIso(),
+      status: exam.order_status || 'approved',
+      grand_total: exam.total_registered || exam.total_students || 0,
+    }
+  }
+  manifestDialog.value = true
+}
+
 const enrichedMasterExamsList = computed(() => {
   try {
     const baseList = filteredMasterExamsTable.value || []
-    const today = getTodayIso()
+    const todayTs = parseCalendarDate(new Date())
 
     return baseList.filter(Boolean).map(exam => {
       try {
-        const order = (savedPrintOrders.value || []).find(o => 
-          o && (
-            String(o.exam_id) === String(exam.id) || 
-            (o.exam_code && exam.uniqueCode && String(o.exam_code) === String(exam.uniqueCode)) ||
-            (o.order_number && exam.uniqueCode && String(o.order_number).includes(String(exam.uniqueCode)))
-          )
-        )
+        const order = getPrintOrderForExam(exam)
 
         const rawStatus = order?.status || (exam.order_status || 'pending')
         const scheduledDate = order?.scheduled_print_date || exam.scheduled_print_date || null
@@ -1063,10 +1137,13 @@ const enrichedMasterExamsList = computed(() => {
         const isPending = !isCompleted && !isReturned && !isCancelled && (rawStatus === 'pending')
 
         // 4. Scheduled: approved with future print date (> today)
-        const isScheduled = !isCompleted && !isReturned && !isCancelled && !isPending && (rawStatus === 'scheduled' || (scheduledDate && scheduledDate > today))
+        const schedTs = parseCalendarDate(scheduledDate)
+        const isSchedInFuture = schedTs !== null && todayTs !== null && schedTs > todayTs
+        const isScheduled = !isCompleted && !isReturned && !isCancelled && !isPending && (rawStatus === 'scheduled' || isSchedInFuture)
 
         // 5. Due: approved with print date today or earlier (<= today), or in active printing
-        const isDue = !isCompleted && !isReturned && !isCancelled && !isPending && !isScheduled && (rawStatus === 'ready' || rawStatus === 'printing' || (scheduledDate && scheduledDate <= today) || rawStatus === 'approved')
+        const isSchedDue = schedTs !== null && todayTs !== null && schedTs <= todayTs
+        const isDue = !isCompleted && !isReturned && !isCancelled && !isPending && !isScheduled && (rawStatus === 'ready' || rawStatus === 'printing' || isSchedDue || rawStatus === 'approved')
 
         const effectiveStatus = isCompleted ? 'completed' :
                                (isReturned ? 'failed' :
@@ -1126,11 +1203,12 @@ const openApproveDialog = (exam) => {
 }
 
 const onOrderApproved = async (payload) => {
-  await loadSavedPrintOrders()
+  await loadSavedPrintOrders(true)
   await loadMasterData()
 
-  const today = getTodayIso()
-  const isFuture = payload.scheduledDate > today
+  const schedTs = parseCalendarDate(payload.scheduledDate)
+  const todayTs = parseCalendarDate(new Date())
+  const isFuture = schedTs !== null && todayTs !== null && schedTs > todayTs
   if (isFuture) {
     examSubTab.value = 'scheduled'
     batchPrintNotification.value = {
@@ -1204,7 +1282,7 @@ const confirmOrderReturn = async () => {
       return_notes: returnNotesText.value,
     })
 
-    await loadSavedPrintOrders()
+    await loadSavedPrintOrders(true)
     await loadMasterData()
     returnOrderDialog.value = false
 
@@ -1247,7 +1325,7 @@ const onConfirmAdvanceSchedule = async ({ exam, reason, authDoc }) => {
       advance_auth_doc: authDoc || advanceAuthDoc.value,
     })
 
-    await loadSavedPrintOrders()
+    await loadSavedPrintOrders(true)
     await loadMasterData()
     advanceScheduleDialog.value = false
     examSubTab.value = 'due'
@@ -1412,9 +1490,9 @@ const dispatchRealDirectPrint = (exam, options, realOmrElements = []) => {
   const safeOrderNum = escapeHtml(String(exam.order_number || `PRN-REQ-${exam.uniqueCode || exam.id || ''}`))
   const safeExamTitle = escapeHtml(String(exam.title || 'الاختبار العام'))
   const safeExamCode = escapeHtml(String(exam.uniqueCode || 'EXAM-CODE'))
-  const safeSubjectName = escapeHtml(String(exam.subject_name || 'الرياضيات'))
-  const safePressName = escapeHtml(String(exam.press_name || 'المطبعة السرية المركزية (ديوان الوزارة)'))
-  const safeOfficerName = escapeHtml(String(exam.responsible_officer || 'مدير إدارة الامتحانات والكنترول'))
+  const safeSubjectName = escapeHtml(String(exam.subject_name || ''))
+  const safePressName = escapeHtml(String(exam.press_name || 'المطبعة المركزية'))
+  const safeOfficerName = escapeHtml(String(exam.responsible_officer || 'مسؤول الكنترول والامتحانات'))
   const safeSchedDate = escapeHtml(String(exam.scheduled_print_date || getTodayIso()))
   const totalCount = Number(exam.total_registered || exam.total_students || 0) || 0
   const schoolsCount = Number(exam.schools_count || 1) || 1
@@ -1816,38 +1894,117 @@ const dispatchRealDirectPrint = (exam, options, realOmrElements = []) => {
     existingFrame.remove()
   }
 
-  // إنشاء إطار طباعة مخفي في الصفحة (لا يحظره أي متصفح كالنوافذ المنبثقة)
+  // إنشاء إطار طباعة معزول بأبعاد حقيقية خارج نطاق الرؤية لمنع طباعة نافذة التطبيق بالخطأ
   const iframe = document.createElement('iframe')
   iframe.id = 'omr-hardware-print-frame'
   iframe.style.position = 'fixed'
-  iframe.style.right = '0'
-  iframe.style.bottom = '0'
-  iframe.style.width = '0'
-  iframe.style.height = '0'
+  iframe.style.left = '-10000px'
+  iframe.style.top = '-10000px'
+  iframe.style.width = '1024px'
+  iframe.style.height = '768px'
   iframe.style.border = '0'
-  iframe.style.visibility = 'hidden'
-  iframe.setAttribute('aria-hidden', 'true')
+  iframe.style.opacity = '0.01'
+  iframe.style.pointerEvents = 'none'
+  iframe.style.zIndex = '-9999'
   document.body.appendChild(iframe)
 
   const doc = iframe.contentWindow?.document || iframe.contentDocument
-  if (doc) {
-    doc.open()
-    doc.write(fullHtml)
-    doc.close()
-
-    // استدعاء نافذة الطباعة الحقيقية للنظام والمتصفح فوراً بعد إعداد المستند
-    setTimeout(() => {
-      try {
-        iframe.contentWindow?.focus()
-        iframe.contentWindow?.print()
-      } catch (err) {
-        console.warn('Iframe print error, falling back to window.print():', err)
-        window.print()
-      }
-    }, 250)
-  } else {
-    window.print()
+  if (!doc) {
+    console.error('Failed to access print iframe document')
+    batchPrintNotification.value = {
+      show: true,
+      color: 'error',
+      message: 'تعذر إنشاء بيئة الطباعة المعزولة للمستند.'
+    }
+    return
   }
+
+  doc.open()
+  doc.write(fullHtml)
+  doc.close()
+
+  let triggered = false
+  const cleanup = () => {
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        iframe.remove()
+      }
+    }, 1500)
+  }
+
+  const triggerIframePrint = () => {
+    if (triggered) return
+    triggered = true
+    try {
+      iframe.contentWindow?.addEventListener('afterprint', cleanup)
+      iframe.contentWindow?.focus()
+      iframe.contentWindow?.print()
+    } catch (err) {
+      console.error('Iframe print failed:', err)
+      batchPrintNotification.value = {
+        show: true,
+        color: 'error',
+        message: 'حدث خطأ أثناء استدعاء نافذة الطباعة للمستند المعزول.'
+      }
+      cleanup()
+    }
+  }
+
+  iframe.onload = () => {
+    setTimeout(triggerIframePrint, 250)
+  }
+  setTimeout(triggerIframePrint, 700)
+}
+
+/**
+ * دالة التحقق الحقيقي من اكتمال رسم أوراق OMR والباركود في الحاوية قبل الطباعة
+ */
+const waitForBatchStagingReady = async (expectedCount, isAudit, maxWaitMs = 5000) => {
+  if (expectedCount <= 0) return []
+
+  const startTime = performance.now()
+  const selector = isAudit ? '.yemeni-audit-report-sheet' : 'svg.yemeni-ministry-sheet-svg'
+  const fallbackSelector = isAudit ? '.yemeni-audit-report-sheet' : 'svg'
+
+  while (performance.now() - startTime < maxWaitMs) {
+    await nextTick()
+    await new Promise(resolve => requestAnimationFrame(resolve))
+
+    const stagingEl = document.getElementById('omr-registry-batch-staging')
+    if (stagingEl) {
+      let elements = Array.from(stagingEl.querySelectorAll(selector))
+      if (!elements.length && !isAudit) {
+        elements = Array.from(stagingEl.querySelectorAll(fallbackSelector))
+      }
+
+      if (elements.length >= expectedCount) {
+        // التحقق من اكتمال عناصر DOM الداخلية للرسم والباركود
+        const allReady = elements.every(el => {
+          if (isAudit) {
+            return el.children && el.children.length > 0
+          }
+          return el.childNodes && el.childNodes.length > 5
+        })
+
+        if (allReady) {
+          await new Promise(resolve => setTimeout(resolve, 60))
+          return elements
+        }
+      }
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 50))
+  }
+
+  const stagingEl = document.getElementById('omr-registry-batch-staging')
+  if (stagingEl) {
+    let elements = Array.from(stagingEl.querySelectorAll(selector))
+    if (!elements.length && !isAudit) {
+      elements = Array.from(stagingEl.querySelectorAll(fallbackSelector))
+    }
+    return elements
+  }
+  return []
 }
 
 const onDirectPrintStart = async ({ exam, options }) => {
@@ -1855,42 +2012,86 @@ const onDirectPrintStart = async ({ exam, options }) => {
 
   directPrintLoading.value = true
   try {
-    // 1. التأكد من تحديد الاختبار وتحميل بياناته
-    selectedExam.value = exam
-    selectedExamId.value = exam.id
-    if (!examDetails.value || examDetails.value.id !== exam.id) {
-      await loadExamDetails(exam.id)
+    // 1. تحديد الاختبار وتحميل بياناته مع التحقق الصارم من نجاح الخادم
+    targetExamForDirectPrint.value = exam
+    selectedExamId.value = Number(exam.id)
+
+    if (!examDetails.value || Number(examDetails.value.id) !== Number(exam.id)) {
+      const loadSuccess = await loadExamDetails(exam.id)
+      if (!loadSuccess || !examDetails.value) {
+        batchPrintNotification.value = {
+          show: true,
+          color: 'error',
+          message: 'تعذر تحميل بيانات وتفاصيل الاختبار من الخادم. تم إيقاف عملية الطباعة لحماية سلامة الوثائق.'
+        }
+        return
+      }
+    }
+
+    const registeredCount = examDetails.value?.registered_students?.length || 0
+
+    // التحقق من المتطلبات الأساسية حسب الوثائق المختارة
+    if ((options?.sheets || options?.roster) && registeredCount === 0) {
+      batchPrintNotification.value = {
+        show: true,
+        color: 'error',
+        message: 'لا يمكن متابعة الطباعة لعدم وجود بيانات طلاب مقيدين أو أرقام جلوس مسجلة لهذا الاختبار.'
+      }
+      return
+    }
+
+    if (options?.booklets && (!examDetails.value?.versions || examDetails.value.versions.length === 0)) {
+      batchPrintNotification.value = {
+        show: true,
+        color: 'error',
+        message: 'لا يمكن طباعة كراسات الأسئلة لعدم توفر نماذج أسئلة معتمدة في تفاصيل الاختبار.'
+      }
+      return
     }
 
     rosterModelFilter.value = 'all'
     selectedStudentIds.value = []
 
-    // 2. إذا تم اختيار أوراق إجابة OMR، نقوم باستخراج الأوراق الحقيقية الأصلية من المكون المعتمد
+    // 2. إذا تم اختيار أوراق إجابة OMR، نقوم باستخراج الأوراق وضمان اكتمال رسم SVG والباركود
     let realOmrElements = []
     if (options?.sheets) {
+      const expectedCount = targetBatchStudents.value?.length || registeredCount
+      if (expectedCount === 0) {
+        batchPrintNotification.value = {
+          show: true,
+          color: 'error',
+          message: 'لا توجد بيانات طلاب لاستخراج أوراق التظليل. تم إيقاف العملية.'
+        }
+        return
+      }
+
       printingBatch.value = true
       await nextTick()
+
       const stagingEl = document.getElementById('omr-registry-batch-staging')
       if (stagingEl) {
         stagingEl.classList.remove('d-none')
-        await nextTick()
-        // منح وقت كافٍ للمكون لرسم SVG وشفرات الباركود وQR الرسمية
-        await new Promise(resolve => setTimeout(resolve, 450))
+      }
 
-        const isAudit = selectedSheetLayout.value === 'full_a4'
-        if (isAudit) {
-          realOmrElements = Array.from(stagingEl.querySelectorAll('.yemeni-audit-report-sheet'))
-        } else {
-          realOmrElements = Array.from(stagingEl.querySelectorAll('svg.yemeni-ministry-sheet-svg'))
-          if (!realOmrElements.length) {
-            realOmrElements = Array.from(stagingEl.querySelectorAll('svg'))
-          }
-        }
+      const isAudit = selectedSheetLayout.value === 'full_a4'
+      realOmrElements = await waitForBatchStagingReady(expectedCount, isAudit)
+
+      if (stagingEl) {
         stagingEl.classList.add('d-none')
+      }
+
+      // إيقاف العملية وإظهار خطأ إذا لم يتم تجهيز أوراق OMR المطلوبة بدلاً من المتابعة بصمت
+      if (!realOmrElements || realOmrElements.length === 0) {
+        batchPrintNotification.value = {
+          show: true,
+          color: 'error',
+          message: 'تعذر رسم وتجهيز أوراق التظليل المعتمدة (0 ورقة). تم إيقاف العملية لمنع طباعة مستندات ناقصة.'
+        }
+        return
       }
     }
 
-    // 3. التحقق من الحالات المحددة بدقة كاملة وفق ما يحدده المستخدم فقط:
+    // 3. مسارات الطباعة المتخصصة:
     // أ) إذا اختار المستخدم أوراق إجابة OMR فقط:
     if (options?.sheets && !options?.manifest && !options?.roster && !options?.booklets) {
       if (realOmrElements.length > 0) {
@@ -1898,6 +2099,13 @@ const onDirectPrintStart = async ({ exam, options }) => {
           title: `أوراق_تظليل_${exam.uniqueCode || 'OMR'}_${selectedSheetLayout.value}`,
           isA5: selectedSheetLayout.value === 'compact_a5',
         })
+        return
+      } else {
+        batchPrintNotification.value = {
+          show: true,
+          color: 'error',
+          message: 'تعذر العثور على أوراق التظليل للطباعة.'
+        }
         return
       }
     }
@@ -1918,6 +2126,11 @@ const onDirectPrintStart = async ({ exam, options }) => {
     dispatchRealDirectPrint(exam, options, realOmrElements)
   } catch (err) {
     console.error('Error during direct print execution:', err)
+    batchPrintNotification.value = {
+      show: true,
+      color: 'error',
+      message: `حدث خطأ أثناء تنفيذ الطباعة: ${err?.message || err}`
+    }
   } finally {
     directPrintLoading.value = false
     printingBatch.value = false
@@ -2356,7 +2569,7 @@ const loadMasterData = async () => {
       masterDataStatus.value = totalCount === 0 ? 'empty' : 'success'
     }
 
-    await loadSavedPrintOrders()
+    await loadSavedPrintOrders(true)
 
     if (currentRequestId === masterDataRequestId) {
       getOfficeMasterData()
@@ -2792,8 +3005,12 @@ const resetInstitutionFilters = () => {
 }
 
 const selectedExam = computed(() => {
-  const base = examsList.value.find(e => e.id === selectedExamId.value) || {}
-  const detailed = examDetails.value?.exam || {}
+  if (!selectedExamId.value) return null
+  const targetId = Number(selectedExamId.value)
+  const base = (examsList.value || []).find(e => Number(e.id) === targetId) ||
+               (masterExamsList.value || []).find(e => Number(e.id) === targetId) ||
+               (Number(targetExamForDirectPrint.value?.id) === targetId ? targetExamForDirectPrint.value : {}) || {}
+  const detailed = examDetails.value?.exam || (Number(examDetails.value?.id) === targetId ? examDetails.value : {})
   return (base.id || detailed.id) ? { ...base, ...detailed } : null
 })
 
@@ -2819,7 +3036,6 @@ const customGovernorate = ref('')
 const customExamYear = ref('')
 const customStageTitle = ref('')
 const showAdjustmentsPanel = ref(false)
-const batchPrintNotification = ref({ show: false, message: '', color: 'success' })
 
 // DOM Refs
 const sheetArtboardRef = ref(null)
@@ -3065,105 +3281,132 @@ const selectAllRosterStudents = () => {
   }
 }
 
+const markingSelectedLoading = ref(false)
+
 const toggleStudentPrintedStatus = async (st) => {
-  const previousState = {
-    is_printed: st.is_printed,
-    printed_at: st.printed_at
+  if (!st || st._updating || !selectedExamId.value) return
+
+  const targetState = !st.is_printed
+  st._updating = true
+
+  const payload = {
+    student_ids: [st.id],
+    is_printed: targetState
   }
 
-  // Optimistic update
-  st.is_printed = !st.is_printed
-  if (st.is_printed) {
-    st.printed_at = new Date().toLocaleTimeString('ar-YE')
-  }
+  try {
+    const resp = await api.post(`/api/omr/exam-linking/${selectedExamId.value}/mark-printed/`, payload)
 
-  if (selectedExamId.value) {
-    const payload = {
-      student_ids: [st.id],
-      is_printed: st.is_printed
-    }
-    try {
-      await api.post(`/api/omr/exam-linking/${selectedExamId.value}/mark-printed/`, payload)
-    } catch (err) {
-      // Revert optimistic state
-      st.is_printed = previousState.is_printed
-      st.printed_at = previousState.printed_at
+    if (resp.data && resp.data.success) {
+      // 1. تثبيت الحالة في السجل فقط بعد مصادقة ونجاح الخادم
+      st.is_printed = targetState
+      st.printed_at = targetState ? (resp.data.printed_at || new Date().toLocaleTimeString('ar-YE')) : null
 
-      const errDetails = {
-        operation: 'toggleStudentPrintedStatus',
-        studentId: st.id,
-        examId: selectedExamId.value,
-        payload,
-        statusCode: err?.response?.status,
-        serverMessage: err?.response?.data?.message || err?.response?.data?.detail,
-        errorMessage: err.message
+      // 2. تحديث الإحصائيات التراكمية المعتمدة من الخادم مباشرة
+      if (selectedExam.value && resp.data.total_printed_count !== undefined) {
+        selectedExam.value.printed_count = resp.data.total_printed_count
+        selectedExam.value.is_completed = !!resp.data.is_completed
+        selectedExam.value.print_status = resp.data.print_status || (resp.data.is_completed ? 'full' : 'partial')
       }
-      console.error('[OMR Registry API Error] فشل في تحديث حالة طباعة الطالب:', errDetails)
 
       batchPrintNotification.value = {
         show: true,
-        color: 'error',
-        message: `تعذر تحديث حالة طباعة الطالب (${st.student_name || st.id}) على الخادم. تم التراجع عن التغيير.`
+        color: targetState ? 'success' : 'info',
+        message: targetState
+          ? `تم توثيق طباعة الطالب (${st.student_name || st.id}) رسمياً في السجل التشغيلي.`
+          : `تم إلغاء تأشير طباعة الطالب (${st.student_name || st.id}) في السجل.`
       }
+
+      fetchBatches()
+    } else {
+      throw new Error(resp.data?.message || 'تعذر اعتماد حالة الطباعة بالخادم')
     }
+  } catch (err) {
+    const errDetails = {
+      operation: 'toggleStudentPrintedStatus',
+      studentId: st.id,
+      examId: selectedExamId.value,
+      payload,
+      statusCode: err?.response?.status,
+      serverMessage: err?.response?.data?.message || err?.response?.data?.detail,
+      errorMessage: err.message
+    }
+    console.error('[OMR Registry API Error] فشل في تحديث حالة طباعة الطالب:', errDetails)
+
+    batchPrintNotification.value = {
+      show: true,
+      color: 'error',
+      message: `تعذر تحديث حالة طباعة الطالب (${st.student_name || st.id}) على الخادم: ${errDetails.serverMessage || errDetails.errorMessage || 'خطأ في الاتصال'}. لم يتم تغيير السجل.`
+    }
+  } finally {
+    st._updating = false
   }
 }
 
 const markSelectedAsPrinted = async () => {
-  if (!selectedStudentIds.value.length) return
-  const idSet = new Set(selectedStudentIds.value)
-  const targetIds = []
-  const rollbackSnapshots = []
+  if (!selectedStudentIds.value.length || markingSelectedLoading.value || !selectedExamId.value) return
 
-  ;(examDetails.value?.registered_students || []).forEach(st => {
-    if (idSet.has(st.id)) {
-      rollbackSnapshots.push({
-        student: st,
-        is_printed: st.is_printed,
-        printed_at: st.printed_at
+  markingSelectedLoading.value = true
+  const targetIds = [...selectedStudentIds.value]
+  const idSet = new Set(targetIds)
+
+  const payload = {
+    student_ids: targetIds,
+    is_printed: true
+  }
+
+  try {
+    const resp = await api.post(`/api/omr/exam-linking/${selectedExamId.value}/mark-printed/`, payload)
+
+    if (resp.data && resp.data.success) {
+      // 1. تثبيت تعديل الطلاب في الواجهة فقط بعد تأكيد الخادم الرسمي
+      const printTime = new Date().toLocaleTimeString('ar-YE')
+      ;(examDetails.value?.registered_students || []).forEach(st => {
+        if (idSet.has(st.id)) {
+          st.is_printed = true
+          st.printed_at = printTime
+        }
       })
-      st.is_printed = true
-      st.printed_at = new Date().toLocaleTimeString('ar-YE')
-      targetIds.push(st.id)
-    }
-  })
 
-  if (selectedExamId.value && targetIds.length) {
-    const payload = {
-      student_ids: targetIds,
-      is_printed: true
-    }
-    try {
-      await api.post(`/api/omr/exam-linking/${selectedExamId.value}/mark-printed/`, payload)
+      // 2. تحديث الإحصائيات التراكمية من الخادم مباشرة
+      if (selectedExam.value && resp.data.total_printed_count !== undefined) {
+        selectedExam.value.printed_count = resp.data.total_printed_count
+        selectedExam.value.is_completed = !!resp.data.is_completed
+        selectedExam.value.print_status = resp.data.print_status || (resp.data.is_completed ? 'full' : 'partial')
+      }
+
+      // 3. إلغاء التحديد فقط بعد نجاح وتوثيق العملية
+      selectedStudentIds.value = []
+
       batchPrintNotification.value = {
         show: true,
         color: 'success',
-        message: `تم تحديد ${targetIds.length} طالب كمطبوع وتحديث السجل بنجاح.`
+        message: resp.data.message || `تم توثيق طباعة ${targetIds.length} طالب بنجاح في السجل التشغيلي.`
       }
-    } catch (err) {
-      // Rollback all affected students
-      rollbackSnapshots.forEach(snap => {
-        snap.student.is_printed = snap.is_printed
-        snap.student.printed_at = snap.printed_at
-      })
 
-      const errDetails = {
-        operation: 'markSelectedAsPrinted',
-        studentCount: targetIds.length,
-        examId: selectedExamId.value,
-        payload,
-        statusCode: err?.response?.status,
-        serverMessage: err?.response?.data?.message || err?.response?.data?.detail,
-        errorMessage: err.message
-      }
-      console.error('[OMR Registry API Error] فشل في تحديث حالة طباعة الطلاب المحددين:', errDetails)
-
-      batchPrintNotification.value = {
-        show: true,
-        color: 'error',
-        message: `تعذر تحديث حالة الطباعة للطلاب المحددين على الخادم. تم التراجع عن العملية.`
-      }
+      fetchBatches()
+    } else {
+      throw new Error(resp.data?.message || 'تعذر اعتماد طباعة الطلاب على الخادم')
     }
+  } catch (err) {
+    const errDetails = {
+      operation: 'markSelectedAsPrinted',
+      studentCount: targetIds.length,
+      examId: selectedExamId.value,
+      payload,
+      statusCode: err?.response?.status,
+      serverMessage: err?.response?.data?.message || err?.response?.data?.detail,
+      errorMessage: err.message
+    }
+    console.error('[OMR Registry API Error] فشل في تحديث حالة طباعة الطلاب المحددين:', errDetails)
+
+    batchPrintNotification.value = {
+      show: true,
+      color: 'error',
+      message: `تعذر توثيق طباعة الطلاب على الخادم: ${errDetails.serverMessage || errDetails.errorMessage || 'حدث خطأ في الاتصال'}. لم يتم تغيير أي سجل في الواجهة.`
+    }
+  } finally {
+    markingSelectedLoading.value = false
   }
 }
 
@@ -3187,20 +3430,24 @@ const printPreviewStudentSheet = async () => {
       isA5: selectedSheetLayout.value === 'compact_a5'
     })
     if (!st.is_demo) {
-      const prevPrinted = st.is_printed
-      const prevPrintedAt = st.printed_at
-      st.is_printed = true
-      st.printed_at = new Date().toLocaleTimeString('ar-YE')
       if (selectedExamId.value && st.id && !String(st.id).startsWith('blank_')) {
         try {
-          await api.post(`/api/omr/exam-linking/${selectedExamId.value}/mark-printed/`, {
+          const resp = await api.post(`/api/omr/exam-linking/${selectedExamId.value}/mark-printed/`, {
             student_ids: [st.id],
             is_printed: true
           })
+          if (resp.data && resp.data.success) {
+            // تثبيت حالة الطباعة فقط بعد تأكيد الخادم
+            st.is_printed = true
+            st.printed_at = resp.data.printed_at || new Date().toLocaleTimeString('ar-YE')
+            if (selectedExam.value && resp.data.total_printed_count !== undefined) {
+              selectedExam.value.printed_count = resp.data.total_printed_count
+              selectedExam.value.is_completed = !!resp.data.is_completed
+              selectedExam.value.print_status = resp.data.print_status || (resp.data.is_completed ? 'full' : 'partial')
+            }
+          }
         } catch (err) {
-          st.is_printed = prevPrinted
-          st.printed_at = prevPrintedAt
-          console.error('[OMR Registry API Error] فشل في حفظ حالة طباعة الورقة الفردية:', {
+          console.error('[OMR Registry API Error] فشل في توثيق حالة طباعة الورقة الفردية:', {
             operation: 'printPreviewStudentSheet',
             studentId: st.id,
             error: err?.message || err
@@ -3214,7 +3461,11 @@ const printPreviewStudentSheet = async () => {
       }
     }
   } else {
-    window.print()
+    batchPrintNotification.value = {
+      show: true,
+      color: 'error',
+      message: 'تعذر العثور على عنصر ورقة التظليل القابل للطباعة في نافذة المعاينة.'
+    }
   }
 }
 
@@ -3232,9 +3483,9 @@ const printBlankSheetVersion = async (verCode) => {
     seat_number: '.....',
     secret_number: verCode,
     model_code: verCode,
-    school_name: customCenterName.value || selectedExam.value?.directorate || 'المركز الاختباري الرئيسي',
-    directorate: customDirectorate.value || selectedExam.value?.directorate || 'السبعين',
-    governorate: customGovernorate.value || selectedExam.value?.governorate || 'أمانة العاصمة',
+    school_name: customCenterName.value || selectedExam.value?.school_name || selectedExam.value?.center_name || selectedExam.value?.directorate || '',
+    directorate: customDirectorate.value || selectedExam.value?.directorate || '',
+    governorate: customGovernorate.value || selectedExam.value?.governorate || '',
     barcode_value: `EXAM_${selectedExam.value?.id}_VER_${verCode}_BLANK`,
     qr_value: `${selectedExam.value?.uniqueCode}|${verCode}|BLANK`
   }
@@ -3257,12 +3508,12 @@ const printAuditRoster = () => {
   }
 
   const exam = selectedExam.value || {}
-  const center = escapeHtml(String(customCenterName.value || exam.directorate || 'المركز الاختباري الرئيسي'))
-  const directorate = escapeHtml(String(customDirectorate.value || exam.directorate || 'السبعين'))
-  const governorate = escapeHtml(String(customGovernorate.value || exam.governorate || 'أمانة العاصمة'))
-  const examTitle = escapeHtml(String(customStageTitle.value || exam.title || 'اختبار الشهادة الثانوية العامة'))
-  const yearName = escapeHtml(String(customExamYear.value || exam.year_name || '1445هـ - 2024م'))
-  const subjectName = escapeHtml(String(exam.subject_name || 'الرياضيات'))
+  const center = escapeHtml(String(customCenterName.value || exam.school_name || exam.center_name || exam.directorate || ''))
+  const directorate = escapeHtml(String(customDirectorate.value || exam.directorate || ''))
+  const governorate = escapeHtml(String(customGovernorate.value || exam.governorate || ''))
+  const examTitle = escapeHtml(String(customStageTitle.value || exam.title || ''))
+  const yearName = escapeHtml(String(customExamYear.value || exam.year_name || ''))
+  const subjectName = escapeHtml(String(exam.subject_name || ''))
   const examCode = escapeHtml(String(exam.uniqueCode || ''))
   const totalStudents = Number(students.length) || 0
 
@@ -3349,12 +3600,14 @@ const printAuditRoster = () => {
   const iframe = document.createElement('iframe')
   iframe.id = 'roster-print-frame'
   iframe.style.position = 'fixed'
-  iframe.style.right = '0'
-  iframe.style.bottom = '0'
-  iframe.style.width = '0'
-  iframe.style.height = '0'
+  iframe.style.left = '-10000px'
+  iframe.style.top = '-10000px'
+  iframe.style.width = '1024px'
+  iframe.style.height = '768px'
   iframe.style.border = '0'
-  iframe.style.visibility = 'hidden'
+  iframe.style.opacity = '0.01'
+  iframe.style.pointerEvents = 'none'
+  iframe.style.zIndex = '-9999'
   iframe.setAttribute('aria-hidden', 'true')
   document.body.appendChild(iframe)
 
@@ -3369,16 +3622,30 @@ const printAuditRoster = () => {
         iframe.contentWindow?.focus()
         iframe.contentWindow?.print()
       } catch (err) {
-        window.print()
+        console.error('[OMR Registry] خطأ في طباعة كشف التسليم:', err)
+        batchPrintNotification.value = {
+          show: true,
+          color: 'error',
+          message: 'تعذر تشغيل أمر الطباعة لكشف التسليم من الإطار المخصص.'
+        }
+      } finally {
+        setTimeout(() => {
+          if (iframe.parentNode) iframe.parentNode.removeChild(iframe)
+        }, 1500)
       }
     }, 250)
   } else {
-    window.print()
+    batchPrintNotification.value = {
+      show: true,
+      color: 'error',
+      message: 'تعذر تجهيز إطار الطباعة لكشف تسليم الكنترول.'
+    }
   }
 }
 
 const printSelectedOrAllRoster = async () => {
-  if (!targetBatchStudents.value.length) {
+  const expectedCount = targetBatchStudents.value?.length || 0
+  if (!expectedCount) {
     batchPrintNotification.value = {
       show: true,
       color: 'warning',
@@ -3389,52 +3656,79 @@ const printSelectedOrAllRoster = async () => {
   printingBatch.value = true
   try {
     const isAudit = selectedSheetLayout.value === 'full_a4'
-    let elements = []
 
-    await nextTick()
     const stagingEl = document.getElementById('omr-registry-batch-staging')
     if (stagingEl) {
       stagingEl.classList.remove('d-none')
-      await nextTick()
-      if (isAudit) {
-        elements = Array.from(stagingEl.querySelectorAll('.yemeni-audit-report-sheet'))
-      } else {
-        elements = Array.from(stagingEl.querySelectorAll('svg.yemeni-ministry-sheet-svg'))
-        if (!elements.length) {
-          elements = Array.from(stagingEl.querySelectorAll('svg'))
-        }
-      }
+    }
+
+    // انتظار حقيقي لديناميكية رسم SVG والباركود
+    const elements = await waitForBatchStagingReady(expectedCount, isAudit, 5000)
+
+    if (stagingEl) {
       stagingEl.classList.add('d-none')
     }
 
-    if (elements.length > 0) {
-      const batchId = `BATCH_${Date.now()}`
-      await printOmrBatch(elements, {
-        title: `كشف_أوراق_تظليل_${selectedExam.value?.uniqueCode || 'الاختبار'}_${selectedSheetLayout.value}`,
-        isA5: selectedSheetLayout.value === 'compact_a5'
-      })
+    // إيقاف العملية وإظهار خطأ إذا لم يتم العثور على أوراق OMR المطلوبة
+    if (!elements || elements.length === 0) {
+      batchPrintNotification.value = {
+        show: true,
+        color: 'error',
+        message: 'تعذر تجهيز أوراق الإجابة للطباعة: لم يتم العثور على أوراق التظليل المطلوبة أو تعذر رسم عناصر SVG. تم إيقاف العملية.'
+      }
+      return
+    }
+
+    if (elements.length < expectedCount) {
+      batchPrintNotification.value = {
+        show: true,
+        color: 'warning',
+        message: `تم تجهيز ${elements.length} من أصل ${expectedCount} ورقة تظليل فقط. تم إيقاف الطباعة لتفادي نقص في الدفعة.`
+      }
+      return
+    }
+
+    const batchId = `BATCH_${Date.now()}`
+    await printOmrBatch(elements, {
+      title: `كشف_أوراق_تظليل_${selectedExam.value?.uniqueCode || 'الاختبار'}_${selectedSheetLayout.value}`,
+      isA5: selectedSheetLayout.value === 'compact_a5'
+    })
 
       const targetStudentIds = targetBatchStudents.value.map(s => s.id)
       if (selectedExamId.value && targetStudentIds.length > 0) {
-        targetStudentIds.forEach(id => {
-          const st = examDetails.value?.registered_students?.find(s => s.id === id)
-          if (st) {
-            st.is_printed = true
-            st.printed_at = new Date().toLocaleTimeString('ar-YE')
-            st.print_batch = batchId
-          }
-        })
-
         try {
-          await api.post(`/api/omr/exam-linking/${selectedExamId.value}/mark-printed/`, {
+          const resp = await api.post(`/api/omr/exam-linking/${selectedExamId.value}/mark-printed/`, {
             student_ids: targetStudentIds,
             batch_id: batchId
           })
-          fetchBatches()
-          batchPrintNotification.value = {
-            show: true,
-            color: 'success',
-            message: `تم إرسال ${elements.length} ورقة تظليل إلى أمر الطباعة وتحديث سجل الدفعات بنجاح.`
+
+          if (resp.data && resp.data.success) {
+            // تثبيت حالة الطلاب فقط بعد مصادقة الخادم
+            const printTime = new Date().toLocaleTimeString('ar-YE')
+            targetStudentIds.forEach(id => {
+              const st = examDetails.value?.registered_students?.find(s => s.id === id)
+              if (st) {
+                st.is_printed = true
+                st.printed_at = printTime
+                st.print_batch = batchId
+              }
+            })
+
+            // تحديث الإحصائيات التراكمية المعتمدة من الخادم
+            if (selectedExam.value && resp.data.total_printed_count !== undefined) {
+              selectedExam.value.printed_count = resp.data.total_printed_count
+              selectedExam.value.is_completed = !!resp.data.is_completed
+              selectedExam.value.print_status = resp.data.print_status || (resp.data.is_completed ? 'full' : 'partial')
+            }
+
+            fetchBatches()
+            batchPrintNotification.value = {
+              show: true,
+              color: 'success',
+              message: `تم إرسال ${elements.length} ورقة تظليل إلى أمر الطباعة وتحديث سجل الدفعات بنجاح.`
+            }
+          } else {
+            throw new Error(resp.data?.message || 'تعذر توثيق الدفعة بالخادم')
           }
         } catch (postErr) {
           console.error('[OMR Registry API Error] فشل في تسجيل الدفعة على الخادم:', {
@@ -3446,7 +3740,7 @@ const printSelectedOrAllRoster = async () => {
           batchPrintNotification.value = {
             show: true,
             color: 'warning',
-            message: `تم إرسال المستندات للطباعة ولكن تعذر توثيق الدفعة #${batchId} على الخادم: ${postErr?.message || postErr}`
+            message: `تم إرسال المستندات للطباعة ولكن تعذر توثيق الدفعة #${batchId} على الخادم: ${postErr?.message || postErr}. لم يتم تحديث سجل الطلاب كـ "مطبوع".`
           }
         }
       } else {
@@ -3456,7 +3750,6 @@ const printSelectedOrAllRoster = async () => {
           message: `تم إرسال ${elements.length} ورقة تظليل إلى أمر الطباعة بنجاح.`
         }
       }
-    }
   } catch (err) {
     console.error("Batch print error:", err)
     batchPrintNotification.value = {
@@ -3796,7 +4089,7 @@ let examDetailsRequestId = 0
 let examDetailsAbortController = null
 
 const loadExamDetails = async (examId, customParams = {}) => {
-  if (!examId) return
+  if (!examId) return false
 
   // Cancel prior pending exam details request
   if (examDetailsAbortController) {
@@ -3831,7 +4124,7 @@ const loadExamDetails = async (examId, customParams = {}) => {
 
     // Strict Sequence Guard: Discard stale response if newer request was dispatched or exam changed
     if (currentRequestId !== examDetailsRequestId || Number(selectedExamId.value) !== targetId || res.status === 'canceled') {
-      return
+      return false
     }
 
     if (res.status === 'error') {
@@ -3847,7 +4140,7 @@ const loadExamDetails = async (examId, customParams = {}) => {
         color: 'error',
         message: `تعذر تحميل تفاصيل الاختبار #${examId}: ${res.error?.serverMessage || res.error?.errorMessage || 'خطأ في الاتصال'}`
       }
-      return
+      return false
     }
 
     // Atomic State Commit on Success
@@ -3865,6 +4158,8 @@ const loadExamDetails = async (examId, customParams = {}) => {
     await getRosterData()
     await getQuestionModelsData()
     await getPackageData()
+
+    return true
   } catch (err) {
     if (!isRequestCanceled(err)) {
       examDetailsStatus.value = 'error'
@@ -3876,6 +4171,7 @@ const loadExamDetails = async (examId, customParams = {}) => {
       examDetails.value = null
       console.error('[OMR Registry API Error] Failed to load exam details:', err)
     }
+    return false
   } finally {
     if (currentRequestId === examDetailsRequestId) {
       loadingExamDetails.value = false
@@ -4065,6 +4361,34 @@ const printSingleStudentCard = async (globalIndex) => {
   }
 }
 
+// ── Centralized Print Package Configuration Builder ──
+const resolveExamPackageConfig = (student = null, overrides = {}) => {
+  const exam = selectedExam.value || targetExamForDirectPrint.value || {}
+  const vCode = student?.model_code || overrides.versionCode || selectedQuestionsModelCode.value || 'A'
+  const verObj = examDetails.value?.versions?.find(ver => ver.versionCode === vCode) || examDetails.value?.versions?.[0]
+
+  return {
+    examTitle: customStageTitle.value || exam.title || '',
+    subjectName: exam.subject_name || '',
+    stageName: exam.stage_name || '',
+    yearName: customExamYear.value || exam.year_name || '',
+    governorate: customGovernorate.value || student?.governorate || exam.governorate || '',
+    directorate: customDirectorate.value || student?.directorate || exam.directorate || '',
+    centerName: customCenterName.value || student?.school_name || exam.center_name || exam.school_name || exam.directorate || '',
+    centerCode: student?.school_id || exam.center_code || exam.id || '',
+    versionCode: vCode,
+    studentName: student?.student_name || '',
+    seatNumber: student?.seat_number || '',
+    secretNumber: student?.secret_number || '',
+    isA3: false,
+    questions: verObj?.questions || [],
+    omrElement: null,
+    mode: 'package',
+    isA5: selectedSheetLayout.value === 'compact_a5',
+    ...overrides
+  }
+}
+
 const printCurrentQuestionPaper = async () => {
   if (questionPaperRef.value) {
     const paperEl = questionPaperRef.value.querySelector('.yemeni-official-question-paper') || questionPaperRef.value
@@ -4073,32 +4397,20 @@ const printCurrentQuestionPaper = async () => {
       isA3: selectedQuestionPaperLayout.value === 'a3'
     })
   } else {
-    const verObj = selectedQuestionsVersionObj.value
-    await printExamPackage({
-      examTitle: customStageTitle.value || selectedExam.value?.title || 'اختبار الشهادة الثانوية العامة',
-      subjectName: selectedExam.value?.subject_name || 'الرياضيات',
-      stageName: selectedExam.value?.stage_name || '',
-      yearName: customExamYear.value || selectedExam.value?.year_name || '1445هـ - 2024-2023م',
-      governorate: customGovernorate.value || selectedExam.value?.governorate || 'أمانة العاصمة',
-      directorate: customDirectorate.value || selectedExam.value?.directorate || 'السبعين',
-      centerName: customCenterName.value || activeSheetStudent.value?.school_name || selectedExam.value?.directorate || 'المركز الاختباري الرئيسي',
-      centerCode: activeSheetStudent.value?.school_id || selectedExam.value?.id || '3026',
-      versionCode: selectedQuestionsModelCode.value,
-      studentName: sheetGenerationMode.value === 'student' ? activeSheetStudent.value?.student_name : '',
-      seatNumber: sheetGenerationMode.value === 'student' ? activeSheetStudent.value?.seat_number : '',
-      secretNumber: sheetGenerationMode.value === 'student' ? activeSheetStudent.value?.secret_number : '60',
-      isA3: selectedQuestionPaperLayout.value === 'a3',
-      questions: verObj?.questions || [],
-      mode: 'questions_only'
-    })
+    const config = resolveExamPackageConfig(
+      sheetGenerationMode.value === 'student' ? activeSheetStudent.value : null,
+      {
+        versionCode: selectedQuestionsModelCode.value,
+        isA3: selectedQuestionPaperLayout.value === 'a3',
+        mode: 'questions_only'
+      }
+    )
+    await printExamPackage(config)
   }
 }
 
 const printCurrentExamPackage = async () => {
   const st = activeSheetStudent.value
-  const vCode = st?.model_code || selectedBlankVersionCode.value || selectedQuestionsModelCode.value || 'A'
-  const verObj = examDetails.value?.versions?.find(ver => ver.versionCode === vCode) || examDetails.value?.versions?.[0]
-
   let omrEl = null
   if (sheetArtboardRef.value) {
     omrEl = sheetArtboardRef.value.querySelector('.yemeni-audit-report-sheet') ||
@@ -4110,25 +4422,12 @@ const printCurrentExamPackage = async () => {
             batchStreamRef.value.querySelector('svg')
   }
 
-  await printExamPackage({
-    examTitle: customStageTitle.value || selectedExam.value?.title || 'اختبار الشهادة الثانوية العامة',
-    subjectName: selectedExam.value?.subject_name || 'الرياضيات',
-    stageName: selectedExam.value?.stage_name || '',
-    yearName: customExamYear.value || selectedExam.value?.year_name || '1445هـ - 2024-2023م',
-    governorate: customGovernorate.value || selectedExam.value?.governorate || 'أمانة العاصمة',
-    directorate: customDirectorate.value || selectedExam.value?.directorate || 'السبعين',
-    centerName: customCenterName.value || st?.school_name || selectedExam.value?.directorate || 'المركز الاختباري الرئيسي',
-    centerCode: st?.school_id || selectedExam.value?.id || '3026',
-    versionCode: vCode,
-    studentName: st?.student_name || '',
-    seatNumber: st?.seat_number || '',
-    secretNumber: st?.secret_number || '60',
-    isA3: false,
-    questions: verObj?.questions || [],
+  const config = resolveExamPackageConfig(st, {
+    versionCode: st?.model_code || selectedBlankVersionCode.value || selectedQuestionsModelCode.value || 'A',
     omrElement: omrEl,
-    mode: 'package',
-    isA5: selectedSheetLayout.value === 'compact_a5'
+    mode: 'package'
   })
+  await printExamPackage(config)
 }
 
 // State & Methods for Tab 2: Question Booklets
@@ -4196,24 +4495,12 @@ const openPreviewQuestionPaper = (modelCode) => {
 const printQuestionPaperForModel = async (modelCode) => {
   selectedQuestionsModelCode.value = modelCode
   await nextTick()
-  const verObj = examDetails.value?.versions?.find(ver => ver.versionCode === modelCode) || examDetails.value?.versions?.[0]
-  await printExamPackage({
-    examTitle: customStageTitle.value || selectedExam.value?.title || 'اختبار الشهادة العامة',
-    subjectName: selectedExam.value?.subject_name || 'الرياضيات',
-    stageName: selectedExam.value?.stage_name || '',
-    yearName: customExamYear.value || selectedExam.value?.year_name || '1446هـ - 2024-2025م',
-    governorate: customGovernorate.value || selectedExam.value?.governorate || 'أمانة العاصمة',
-    directorate: customDirectorate.value || selectedExam.value?.directorate || 'السبعين',
-    centerName: customCenterName.value || selectedExam.value?.school_name || selectedExam.value?.directorate || 'المركز الاختباري الرئيسي',
-    centerCode: selectedExam.value?.id || '3026',
+  const config = resolveExamPackageConfig(null, {
     versionCode: modelCode,
-    studentName: '',
-    seatNumber: '',
-    secretNumber: '',
     isA3: selectedQuestionPaperLayout.value === 'a3',
-    questions: verObj?.questions || [],
     mode: 'questions_only'
   })
+  await printExamPackage(config)
 }
 
 const printAllQuestionPapers = async () => {
@@ -4312,37 +4599,161 @@ const openPreviewPackage = (student) => {
 }
 
 const printSingleStudentPackage = async (student) => {
-  const vCode = student?.model_code || 'A'
-  const verObj = examDetails.value?.versions?.find(ver => ver.versionCode === vCode) || examDetails.value?.versions?.[0]
-  await printExamPackage({
-    examTitle: customStageTitle.value || selectedExam.value?.title || 'اختبار الشهادة العامة',
-    subjectName: selectedExam.value?.subject_name || 'الرياضيات',
-    stageName: selectedExam.value?.stage_name || '',
-    yearName: customExamYear.value || selectedExam.value?.year_name || '1446هـ - 2024-2025م',
-    governorate: customGovernorate.value || selectedExam.value?.governorate || 'أمانة العاصمة',
-    directorate: customDirectorate.value || selectedExam.value?.directorate || 'السبعين',
-    centerName: customCenterName.value || student?.school_name || selectedExam.value?.directorate || 'المركز الاختباري الرئيسي',
-    centerCode: student?.school_id || selectedExam.value?.id || '3026',
-    versionCode: vCode,
-    studentName: student?.student_name || '',
-    seatNumber: student?.seat_number || '',
-    secretNumber: student?.secret_number || '60',
-    isA3: false,
-    questions: verObj?.questions || [],
-    omrElement: null,
-    mode: 'package',
-    isA5: selectedSheetLayout.value === 'compact_a5'
-  })
+  const config = resolveExamPackageConfig(student, { mode: 'package' })
+  await printExamPackage(config)
 }
 
 const batchPrintSelectedPackages = async () => {
+  const rawTargets = selectedPackageStudentIds.value.length > 0
+    ? filteredPackageStudents.value.filter(s => selectedPackageStudentIds.value.includes(s.id))
+    : filteredPackageStudents.value
+
+  if (!rawTargets || rawTargets.length === 0) {
+    batchPrintNotification.value = {
+      show: true,
+      color: 'warning',
+      message: 'لا يوجد طلاب مسجلون محددون لطباعة حزم الاختبار.'
+    }
+    return
+  }
+
+  // 1. المحافظة الصارمة على ترتيب الطلاب حسب رقم الجلوس أو الترتيب المعتمد
+  const sortedTargets = [...rawTargets].sort((a, b) => {
+    const numA = Number(a.seat_number)
+    const numB = Number(b.seat_number)
+    if (!isNaN(numA) && !isNaN(numB)) return numA - numB
+    return String(a.seat_number || '').localeCompare(String(b.seat_number || ''))
+  })
+
+  // 2. إمكانية الاستئناف دون إعادة طباعة ما سبق
+  const alreadyPrinted = sortedTargets.filter(s => s.is_printed)
+  let targetsToProcess = sortedTargets
+  if (alreadyPrinted.length > 0 && alreadyPrinted.length < sortedTargets.length) {
+    targetsToProcess = sortedTargets.filter(s => !s.is_printed)
+    batchPrintNotification.value = {
+      show: true,
+      color: 'info',
+      message: `استئناف الطباعة الجماعية: سيتم استكمال ${targetsToProcess.length} طالباً متبقياً (تم استبعاد ${alreadyPrinted.length} طالباً سبق توثيق طباعتهم لمنع التكرار).`
+    }
+  }
+
+  if (targetsToProcess.length === 0) {
+    batchPrintNotification.value = {
+      show: true,
+      color: 'info',
+      message: 'جميع الطلاب المحددين تمت طباعة حزمهم مسبقاً وموثقون في السجل التشغيلي.'
+    }
+    return
+  }
+
+  // 3. تقسيم المعالجة إلى مجموعات محددة الحجم (Chunking) لمنع تجمد المتصفح
+  const CHUNK_SIZE = 25
+  const chunks = []
+  for (let i = 0; i < targetsToProcess.length; i += CHUNK_SIZE) {
+    chunks.push(targetsToProcess.slice(i, i + CHUNK_SIZE))
+  }
+
   printingPackages.value = true
+  let successfulChunks = 0
+  const failedChunks = []
+
   try {
-    const targets = selectedPackageStudentIds.value.length > 0
-      ? filteredPackageStudents.value.filter(s => selectedPackageStudentIds.value.includes(s.id))
-      : filteredPackageStudents.value
-    for (const st of targets) {
-      await printSingleStudentPackage(st)
+    for (let chunkIdx = 0; chunkIdx < chunks.length; chunkIdx++) {
+      const chunk = chunks[chunkIdx]
+
+      // 4. التحقق من اكتمال كل مجموعة قبل إرسالها للطباعة
+      const invalidStudents = []
+      for (const st of chunk) {
+        const vCode = st?.model_code || 'A'
+        const verObj = examDetails.value?.versions?.find(ver => ver.versionCode === vCode) || examDetails.value?.versions?.[0]
+        if (!verObj || !verObj.questions || verObj.questions.length === 0) {
+          invalidStudents.push(`${st.student_name || 'بدون اسم'} (${st.seat_number || ''})`)
+        }
+      }
+
+      if (invalidStudents.length > 0) {
+        failedChunks.push({
+          chunkIndex: chunkIdx + 1,
+          error: `نقص أسئلة النموذج للطلاب: ${invalidStudents.slice(0, 3).join(', ')}${invalidStudents.length > 3 ? '...' : ''}`
+        })
+        break
+      }
+
+      // 5. إنشاء حزمة واحدة موحدة للمجموعة ترسل إلى أمر طباعة واحد فقط
+      const packagesOptionsList = chunk.map(st => resolveExamPackageConfig(st, { mode: 'package' }))
+
+      const chunkTitle = `حزم_اختبار_${selectedExam.value?.uniqueCode || 'OMR'}_المجموعة_${chunkIdx + 1}_من_${chunks.length}`
+      await printExamPackagesBatch(packagesOptionsList, { title: chunkTitle })
+
+      // 6. تسجيل نجاح وفشل كل جزء على الخادم وحفظ أرقام الدفعات
+      const chunkBatchId = `PKG-CHUNK-${selectedExam.value?.uniqueCode || selectedExamId.value}-${Date.now()}-${chunkIdx + 1}`
+      const chunkStudentIds = chunk.map(s => s.id)
+
+      if (selectedExamId.value && chunkStudentIds.length > 0) {
+        try {
+          const resp = await api.post(`/api/omr/exam-linking/${selectedExamId.value}/mark-printed/`, {
+            student_ids: chunkStudentIds,
+            batch_id: chunkBatchId,
+            notes: `طباعة حزم مجمعة - المجموعة ${chunkIdx + 1} من ${chunks.length} (${chunk.length} طالب)`
+          })
+
+          if (resp.data && resp.data.success) {
+            const printTime = new Date().toLocaleTimeString('ar-YE')
+            chunk.forEach(st => {
+              st.is_printed = true
+              st.printed_at = printTime
+              st.print_batch = chunkBatchId
+            })
+
+            if (selectedExam.value && resp.data.total_printed_count !== undefined) {
+              selectedExam.value.printed_count = resp.data.total_printed_count
+              selectedExam.value.is_completed = !!resp.data.is_completed
+              selectedExam.value.print_status = resp.data.print_status || (resp.data.is_completed ? 'full' : 'partial')
+            }
+            successfulChunks++
+          } else {
+            failedChunks.push({
+              chunkIndex: chunkIdx + 1,
+              error: resp.data?.message || 'تعذر توثيق المجموعة بالخادم'
+            })
+            break
+          }
+        } catch (postErr) {
+          console.error(`[OMR Registry] خطأ في توثيق المجموعة ${chunkIdx + 1} بالخادم:`, postErr)
+          failedChunks.push({
+            chunkIndex: chunkIdx + 1,
+            error: postErr?.message || postErr
+          })
+          break
+        }
+      } else {
+        successfulChunks++
+      }
+    }
+
+    // 7. إظهار تقرير الإنجاز النهائي وتحديث السجل
+    if (failedChunks.length === 0) {
+      batchPrintNotification.value = {
+        show: true,
+        color: 'success',
+        message: `اكتملت طباعة وتوثيق جميع حزم الطلاب بنجاح! تم إرسال ${chunks.length} مجموعات بإجمالي ${targetsToProcess.length} طالب.`
+      }
+      selectedPackageStudentIds.value = []
+      fetchBatches()
+    } else {
+      batchPrintNotification.value = {
+        show: true,
+        color: 'warning',
+        message: `تمت طباعة ${successfulChunks} من أصل ${chunks.length} مجموعات بنجاح. توقفت العملية عند المجموعة ${failedChunks[0]?.chunkIndex}: ${failedChunks[0]?.error}. يمكنك الاستئناف مباشرة للطلاب المتبقين.`
+      }
+      fetchBatches()
+    }
+  } catch (err) {
+    console.error('Batch package print error:', err)
+    batchPrintNotification.value = {
+      show: true,
+      color: 'error',
+      message: `حدث خطأ أثناء طباعة حزم الطلاب: ${err?.message || err}`
     }
   } finally {
     printingPackages.value = false
@@ -4376,7 +4787,11 @@ const printSingleSheet = async () => {
       isA5: selectedSheetLayout.value === 'compact_a5'
     })
   } else {
-    window.print()
+    batchPrintNotification.value = {
+      show: true,
+      color: 'error',
+      message: 'تعذر العثور على عنصر ورقة التظليل القابل للطباعة في نافذة المعاينة.'
+    }
   }
 }
 

@@ -241,7 +241,7 @@ defineEmits(['update:modelValue'])
 const triggerPrint = () => {
   const manifestEl = document.getElementById('printableManifest')
   if (!manifestEl) {
-    window.print()
+    console.error('[PrintOrderManifestDialog] لم يتم العثور على عنصر إذن الصرف printableManifest')
     return
   }
 
@@ -251,12 +251,15 @@ const triggerPrint = () => {
   const iframe = document.createElement('iframe')
   iframe.id = 'manifest-print-frame'
   iframe.style.position = 'fixed'
-  iframe.style.right = '0'
-  iframe.style.bottom = '0'
-  iframe.style.width = '0'
-  iframe.style.height = '0'
+  iframe.style.left = '-10000px'
+  iframe.style.top = '-10000px'
+  iframe.style.width = '1024px'
+  iframe.style.height = '768px'
   iframe.style.border = '0'
-  iframe.style.visibility = 'hidden'
+  iframe.style.opacity = '0.01'
+  iframe.style.pointerEvents = 'none'
+  iframe.style.zIndex = '-9999'
+  iframe.setAttribute('aria-hidden', 'true')
   document.body.appendChild(iframe)
 
   const clonedManifest = sanitizePrintNode(manifestEl.cloneNode(true))
@@ -303,11 +306,15 @@ const triggerPrint = () => {
         iframe.contentWindow?.focus()
         iframe.contentWindow?.print()
       } catch (err) {
-        window.print()
+        console.error('[PrintOrderManifestDialog] خطأ أثناء فتح مربع حوار الطباعة للإطار:', err)
+      } finally {
+        setTimeout(() => {
+          if (iframe.parentNode) iframe.parentNode.removeChild(iframe)
+        }, 1500)
       }
     }, 200)
   } else {
-    window.print()
+    console.error('[PrintOrderManifestDialog] تعذر الوصول إلى وثيقة إطار الطباعة')
   }
 }
 </script>
