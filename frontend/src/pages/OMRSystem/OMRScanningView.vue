@@ -1324,8 +1324,8 @@
                   <!-- رقم السؤال -->
                   <template v-if="key === 'question_number'">
                     <div class="text-center py-1">
-                      <span class="font-weight-black text-body-2 text-primary bg-blue-lighten-5 px-3 py-1 rounded-pill border">
-                        #{{ item.question_number }}
+                      <span class="font-weight-bold text-body-2 text-high-emphasis">
+                        {{ item.question_number }}
                       </span>
                     </div>
                   </template>
