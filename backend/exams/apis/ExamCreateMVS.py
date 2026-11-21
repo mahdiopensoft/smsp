@@ -43,7 +43,7 @@ class ExamCreateMVS(AllMVS):
         active_unit_ids = [u.get('id') for u in blueprint.get('units', []) if u.get('percentage', 0) > 0]
 
         candidate_qs = Question.objects.filter(
-            status='معتمد',
+            status__in=['معتمد', 'approved'],
             is_deleted=False
         )
 
@@ -1072,6 +1072,8 @@ class ExamCreateMVS(AllMVS):
         institute_subject_id = data.get('instituteSubjectId') or data.get('instituteSubject')
         inst_type = data.get('institution_type') or 'school'
         unit_id = data.get('unitId')
+        lesson_id = data.get('lessonId')
+        scope = data.get('scope', 'lesson')  # 'lesson', 'unit', 'all'
         difficulty = data.get('difficulty')
         bloom_level = data.get('bloomLevel')
         q_type = data.get('questionType')
@@ -1079,12 +1081,16 @@ class ExamCreateMVS(AllMVS):
         search_query = data.get('searchQuery', '').strip()
         limit = int(data.get('limit', 15))
 
-        qs = Question.objects.filter(status='معتمد', is_deleted=False).select_related('lesson__unit').prefetch_related('options')
+        qs = Question.objects.filter(status__in=['معتمد', 'approved'], is_deleted=False).select_related('lesson__unit').prefetch_related('options')
 
         if inst_type and inst_type != 'all':
             qs = qs.filter(institution_type=inst_type)
 
-        if unit_id:
+        if scope == 'lesson' and lesson_id:
+            qs = qs.filter(lesson_id=lesson_id)
+        elif (scope == 'unit' or not scope) and unit_id:
+            qs = qs.filter(lesson__unit_id=unit_id)
+        elif unit_id and scope != 'all':
             qs = qs.filter(lesson__unit_id=unit_id)
         elif semester_subject_id:
             qs = qs.filter(lesson__unit__semester_subject_id=semester_subject_id)
@@ -1104,20 +1110,21 @@ class ExamCreateMVS(AllMVS):
             qs = qs.filter(content__icontains=search_query)
 
         if q_type:
-            if q_type in ['single_choice', 'mcq', 'Single Choice']:
-                qs = qs.filter(questionType__in=['Single Choice', 'اختيار من متعدد'])
-            elif q_type in ['true_false', 'tf', 'True/False']:
-                qs = qs.filter(questionType__in=['True/False', 'صح وخطأ', 'صح/خطأ'])
-            elif q_type in ['multiple_choice', 'Multiple Choice']:
-                qs = qs.filter(questionType__in=['Multiple Choice', 'اختيارات متعددة'])
-            elif q_type in ['essay', 'Essay']:
-                qs = qs.filter(questionType__in=['Essay', 'مقالي'])
-            elif q_type in ['fill_blanks', 'Fill in the Blanks']:
-                qs = qs.filter(questionType__in=['Fill in the Blanks', 'إكمال الفراغ', 'إكمال الفراغات'])
-            elif q_type in ['matching', 'Matching']:
-                qs = qs.filter(questionType__in=['Matching', 'مطابقة', 'توصيل'])
-            elif q_type in ['ordering', 'Ordering']:
-                qs = qs.filter(questionType__in=['Ordering', 'ترتيب'])
+            q_type_str = str(q_type).lower().strip()
+            if any(k in q_type_str for k in ['single', 'mcq', 'متعدد', 'اختيار']):
+                qs = qs.filter(questionType__in=['Single Choice', 'اختيار من متعدد', 'mcq', 'single_choice', 'single'])
+            elif any(k in q_type_str for k in ['true', 'false', 'tf', 'صح', 'خطأ', 'صواب']):
+                qs = qs.filter(questionType__in=['True/False', 'صح وخطأ', 'صح/خطأ', 'true_false', 'tf', 'صواب أو خطأ'])
+            elif 'multiple' in q_type_str:
+                qs = qs.filter(questionType__in=['Multiple Choice', 'اختيارات متعددة', 'multiple_choice'])
+            elif any(k in q_type_str for k in ['essay', 'مقال', 'انشائ']):
+                qs = qs.filter(questionType__in=['Essay', 'مقالي', 'essay'])
+            elif any(k in q_type_str for k in ['blank', 'فراغ', 'اكمال']):
+                qs = qs.filter(questionType__in=['Fill in the Blanks', 'إكمال الفراغ', 'إكمال الفراغات', 'fill_blanks'])
+            elif any(k in q_type_str for k in ['match', 'توصيل', 'طابق']):
+                qs = qs.filter(questionType__in=['Matching', 'مطابقة', 'توصيل', 'matching'])
+            elif any(k in q_type_str for k in ['order', 'ترتيب']):
+                qs = qs.filter(questionType__in=['Ordering', 'ترتيب', 'ordering'])
 
         strict_qs = qs
         if difficulty is not None:
@@ -1135,6 +1142,52 @@ class ExamCreateMVS(AllMVS):
         if not matched_questions and difficulty is not None:
             is_relaxed = True
             matched_questions = list(qs[:limit])
+
+        if not matched_questions and scope == 'lesson' and unit_id:
+            # Fallback to the rest of the unit if the lesson has no unused candidates
+            is_relaxed = True
+            unit_qs = Question.objects.filter(
+                status__in=['معتمد', 'approved'],
+                is_deleted=False,
+                lesson__unit_id=unit_id
+            ).select_related('lesson__unit').prefetch_related('options')
+            if inst_type and inst_type != 'all':
+                unit_qs = unit_qs.filter(institution_type=inst_type)
+            if exclude_ids:
+                unit_qs = unit_qs.exclude(id__in=exclude_ids)
+            if search_query:
+                unit_qs = unit_qs.filter(content__icontains=search_query)
+            if q_type:
+                q_type_str = str(q_type).lower().strip()
+                if any(k in q_type_str for k in ['single', 'mcq', 'متعدد', 'اختيار']):
+                    unit_qs = unit_qs.filter(questionType__in=['Single Choice', 'اختيار من متعدد', 'mcq', 'single_choice', 'single'])
+                elif any(k in q_type_str for k in ['true', 'false', 'tf', 'صح', 'خطأ', 'صواب']):
+                    unit_qs = unit_qs.filter(questionType__in=['True/False', 'صح وخطأ', 'صح/خطأ', 'true_false', 'tf', 'صواب أو خطأ'])
+            matched_questions = list(unit_qs[:limit])
+
+        if not matched_questions and unit_id:
+            # Fallback across the whole subject if the specific unit has no unused candidates
+            is_relaxed = True
+            fallback_qs = Question.objects.filter(status__in=['معتمد', 'approved'], is_deleted=False).select_related('lesson__unit').prefetch_related('options')
+            if inst_type and inst_type != 'all':
+                fallback_qs = fallback_qs.filter(institution_type=inst_type)
+            if subject_id:
+                fallback_qs = fallback_qs.filter(
+                    Q(lesson__unit__class_subject__subject_id=subject_id) |
+                    Q(lesson__unit__semester_subject__fk_subject_id=subject_id) |
+                    Q(lesson__subject_id=subject_id)
+                )
+            if exclude_ids:
+                fallback_qs = fallback_qs.exclude(id__in=exclude_ids)
+            if search_query:
+                fallback_qs = fallback_qs.filter(content__icontains=search_query)
+            if q_type:
+                q_type_str = str(q_type).lower().strip()
+                if any(k in q_type_str for k in ['single', 'mcq', 'متعدد', 'اختيار']):
+                    fallback_qs = fallback_qs.filter(questionType__in=['Single Choice', 'اختيار من متعدد', 'mcq', 'single_choice', 'single'])
+                elif any(k in q_type_str for k in ['true', 'false', 'tf', 'صح', 'خطأ', 'صواب']):
+                    fallback_qs = fallback_qs.filter(questionType__in=['True/False', 'صح وخطأ', 'صح/خطأ', 'true_false', 'tf', 'صواب أو خطأ'])
+            matched_questions = list(fallback_qs[:limit])
 
         serialized = [self._serialize_question_for_staging(q) for q in matched_questions]
 

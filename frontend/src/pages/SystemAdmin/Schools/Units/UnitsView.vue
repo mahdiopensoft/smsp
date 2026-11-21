@@ -24,15 +24,18 @@
           cols="3"
           :add="false"
           :disabled="!filterStage"
+          @update:model-value="onClassTrackChange"
         />
 
         <!-- Subject Filter -->
         <auto-list
           v-model="filterSubject"
           name="Subject"
+          :param="filterClassTrack"
           placeholder="المادة الدراسية"
           cols="3"
           :add="false"
+          @update:model-value="onSubjectChange"
         />
 
         <!-- Semester Filter -->
@@ -42,6 +45,7 @@
           placeholder="الفصل الدراسي"
           cols="3"
           :add="false"
+          @update:model-value="onSemesterChange"
         />
 
         <!-- Active Status Filter -->
@@ -182,6 +186,19 @@ export default {
 
     onStageChange() {
       this.filterClassTrack = null;
+      this.getData();
+    },
+
+    onClassTrackChange() {
+      this.getData();
+    },
+
+    onSubjectChange() {
+      this.getData();
+    },
+
+    onSemesterChange() {
+      this.getData();
     },
 
     applyFilters() {

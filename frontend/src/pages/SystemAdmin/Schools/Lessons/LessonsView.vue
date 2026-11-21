@@ -58,6 +58,7 @@
           cols="3"
           :add="false"
           :disabled="!filterSubject"
+          @update:model-value="onUnitChange"
         />
 
         <!-- Active Status Filter -->
@@ -220,19 +221,27 @@ export default {
       this.filterClassTrack = null;
       this.filterSubject = null;
       this.filterUnit = null;
+      this.getData();
     },
 
     onClassTrackChange() {
       this.filterSubject = null;
       this.filterUnit = null;
+      this.getData();
     },
 
     onSubjectChange() {
       this.filterUnit = null;
+      this.getData();
     },
 
     onSemesterChange() {
       this.filterUnit = null;
+      this.getData();
+    },
+
+    onUnitChange() {
+      this.getData();
     },
 
     applyFilters() {

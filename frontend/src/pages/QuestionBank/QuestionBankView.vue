@@ -1075,6 +1075,14 @@ export default {
   },
 
   async created() {
+    const q = this.$route?.query;
+    if (q) {
+      if (q.institution_type) this.filterInstitutionType = q.institution_type;
+      if (q.stage) this.filterStage = Number(q.stage) || q.stage;
+      if (q.class_track) this.filterClassTrack = Number(q.class_track) || q.class_track;
+      if (q.subject) this.filterSubject = Number(q.subject) || q.subject;
+      if (q.unit) this.filterUnit = Number(q.unit) || q.unit;
+    }
     await this.fetchData();
   },
 

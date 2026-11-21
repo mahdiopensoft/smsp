@@ -28,6 +28,14 @@
   font-size: var(--font-size-sm) !important;
 }
 
+/* Extra Small Size */
+.v-btn:not(.v-btn--icon).v-btn--size-x-small {
+  border-radius: 4px !important;
+  padding-inline: 0.5rem !important;
+  line-height: 1rem !important;
+  font-size: var(--font-size-xs, 0.75rem) !important;
+}
+
 /* Large Size */
 .v-btn:not(.v-btn--icon).v-btn--size-large {
   border-radius: 8px !important;

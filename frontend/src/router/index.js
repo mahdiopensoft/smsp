@@ -217,6 +217,28 @@ var routes_paths = {
       meta: { requiresAuth: true, title: "المحذوفات من المنهج" },
     },
     {
+      path: "question-bank",
+      name: "question-bank",
+      component: () => import("../pages/QuestionBank/QuestionBankView.vue"),
+      meta: { requiresAuth: true, title: "بنك الأسئلة" },
+    },
+    {
+      path: "QuestionBank/QuestionBankView",
+      component: () => import("../pages/QuestionBank/QuestionBankView.vue"),
+      meta: { requiresAuth: true, title: "بنك الأسئلة" },
+    },
+    {
+      path: "question-bank-new",
+      name: "question-bank-new",
+      component: () => import("../pages/QuestionBank/QuestionNewView.vue"),
+      meta: { requiresAuth: true, title: "إضافة سؤال جديد" },
+    },
+    {
+      path: "QuestionBank/QuestionNewView",
+      component: () => import("../pages/QuestionBank/QuestionNewView.vue"),
+      meta: { requiresAuth: true, title: "إضافة سؤال جديد" },
+    },
+    {
       path: "question-bank-import",
       name: "question-bank-import",
       component: () => import("../pages/QuestionBank/QuestionImportView.vue"),

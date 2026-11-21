@@ -1,0 +1,2376 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>خطة الفحص والاختبار الشاملة لشاشات المنظومة (117 شاشة) - وثيقة التسليم الرسمية</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+
+        @page {
+            size: A4 landscape;
+            margin: 5mm 6mm 5mm 6mm;
+            @top-center { content: ""; }
+            @bottom-center { content: ""; }
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        body {
+            font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
+            margin: 0;
+            padding: 6px;
+            background-color: #ffffff;
+            color: #000000;
+            font-size: 8.8px;
+            line-height: 1.3;
+            direction: rtl;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                padding: 0 !important;
+                background: #ffffff !important;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+            tr {
+                page-break-inside: avoid;
+            }
+        }
+
+        .print-floating-bar {
+            position: fixed;
+            top: 12px;
+            left: 20px;
+            z-index: 9999;
+            background: #ffffff;
+            border: 1px solid #333333;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            border-radius: 4px;
+            padding: 8px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .print-btn {
+            background: #1e3a8a;
+            color: #ffffff;
+            border: none;
+            padding: 6px 14px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 13px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .print-btn:hover {
+            background: #1d4ed8;
+        }
+
+        /* ترويسة رسمية عادية وبسيطة */
+        .official-header {
+            border: 1.5px solid #333333;
+            border-radius: 4px;
+            padding: 8px 14px;
+            background: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: none;
+            margin-bottom: 6px;
+        }
+        .header-table td {
+            border: none;
+            padding: 1px 4px;
+            vertical-align: middle;
+        }
+
+        .inst-title-1 {
+            font-size: 13px;
+            font-weight: 800;
+            color: #000000;
+        }
+        .inst-title-2 {
+            font-size: 11px;
+            font-weight: 700;
+            color: #222222;
+        }
+        .inst-title-3 {
+            font-size: 9px;
+            font-weight: 600;
+            color: #444444;
+        }
+
+        .doc-title-main {
+            font-size: 15px;
+            font-weight: 800;
+            color: #1e3a8a;
+            text-align: center;
+        }
+        .doc-title-sub {
+            font-size: 11px;
+            font-weight: 700;
+            color: #333333;
+            text-align: center;
+        }
+
+        .doc-meta {
+            font-size: 8.5px;
+            line-height: 1.4;
+            direction: ltr;
+            text-align: left;
+            color: #222222;
+        }
+
+        /* شريط ملخص إحصائي بسيط */
+        .summary-bar-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #333333;
+            text-align: center;
+            font-size: 8.5px;
+            margin-top: 4px;
+        }
+        .summary-bar-table th {
+            background: #e2e8f0;
+            border: 1px solid #333333;
+            padding: 3px;
+            color: #000000;
+            font-weight: 700;
+        }
+        .summary-bar-table td {
+            border: 1px solid #333333;
+            padding: 4px;
+            font-weight: 700;
+            color: #111111;
+            background: #ffffff;
+        }
+
+        /* تسطير الجدول الرئيسي العادي المعتمد */
+        .main-schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1.5px solid #000000;
+            font-size: 8.8px;
+            background: #ffffff;
+        }
+
+        .main-schedule-table th {
+            background-color: #f1f5f9;
+            color: #000000;
+            font-weight: 800;
+            font-size: 9px;
+            padding: 5px 3px;
+            border: 1px solid #333333;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .main-schedule-table td {
+            border: 1px solid #475569;
+            padding: 3px 4px;
+            vertical-align: middle;
+            color: #000000;
+        }
+
+        /* تمييز صف عنوان المنظومة */
+        .module-header-row td {
+            background-color: #e2e8f0 !important;
+            color: #1e3a8a !important;
+            font-weight: 800 !important;
+            font-size: 9.5px !important;
+            padding: 4px 6px !important;
+            border: 1.5px solid #333333 !important;
+            text-align: right !important;
+        }
+
+        /* أعمدة الجدول */
+        .col-id {
+            width: 30px;
+            text-align: center;
+            font-weight: 700;
+        }
+        .col-title {
+            width: 160px;
+            font-weight: 700;
+        }
+        .col-code {
+            width: 155px;
+            direction: ltr;
+            text-align: left;
+            font-family: Consolas, monospace;
+            font-size: 8px;
+        }
+        .col-subsystem {
+            width: 110px;
+            text-align: center;
+            font-size: 8.5px;
+        }
+        .col-testing-scope {
+            width: auto;
+            text-align: right;
+            line-height: 1.35;
+        }
+        .col-executor {
+            width: 110px;
+            text-align: center;
+            font-size: 8.5px;
+        }
+        .col-priority {
+            width: 50px;
+            text-align: center;
+            font-weight: 700;
+        }
+        .col-duration {
+            width: 45px;
+            text-align: center;
+            font-weight: 700;
+        }
+        .col-acceptance {
+            width: 170px;
+            text-align: right;
+            font-size: 8.5px;
+            line-height: 1.3;
+        }
+
+        /* تسطير جدول التوزيع الإحصائي */
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1.5px solid #000000;
+            margin-top: 10px;
+            margin-bottom: 14px;
+            font-size: 9.5px;
+            text-align: center;
+        }
+        .matrix-table th {
+            background-color: #f1f5f9;
+            border: 1px solid #333333;
+            padding: 6px;
+            font-weight: 800;
+            color: #000000;
+        }
+        .matrix-table td {
+            border: 1px solid #475569;
+            padding: 6px;
+            color: #000000;
+        }
+        .matrix-table .total-row td {
+            background-color: #e2e8f0;
+            font-weight: 800;
+        }
+
+        /* تسطير بلوك التوقيعات */
+        .signatures-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1.5px solid #333333;
+            margin-top: 10px;
+            page-break-inside: avoid;
+        }
+        .signatures-table th {
+            background: #f1f5f9;
+            border: 1px solid #333333;
+            padding: 6px;
+            font-size: 9.5px;
+            font-weight: 800;
+            text-align: center;
+            color: #1e3a8a;
+        }
+        .signatures-table td {
+            border: 1px solid #333333;
+            padding: 16px 8px;
+            vertical-align: top;
+            text-align: center;
+            background: #ffffff;
+            font-size: 9px;
+            width: 25%;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="print-floating-bar no-print">
+        <button class="print-btn" onclick="window.print()">
+            🖨️ طباعة جدول خطة الاختبار (أو حفظ بصيغة PDF)
+        </button>
+        <span style="font-size: 11px; color: #333333; font-weight: 600;">
+            تسطير رسمي عادي واضح — مقاس A4 أفقي Landscape — خالٍ من التعقيدات والألوان السوداء
+        </span>
+    </div>
+
+    <!-- الترويسة الرسمية -->
+    <div class="official-header">
+        <table class="header-table">
+            <tr>
+                <td style="width: 33%; text-align: right;">
+                    <div class="inst-title-1">الجمهورية اليمنية</div>
+                    <div class="inst-title-2">وزارة التربية والتعليم والبحث العلمي</div>
+                    <div class="inst-title-3">قطاع المناهج والتوجيه والتقويم — الإدارة العامة للاختبارات المركزية</div>
+                </td>
+                <td style="width: 34%; text-align: center;">
+                    <div class="doc-title-main">خطة وجدول فحص واختبار شاشات المنظومة</div>
+                    <div class="doc-title-sub">مشروع بنك الأسئلة الموحد وإدارة الامتحانات والتصحيح الآلي (OMR)</div>
+                </td>
+                <td style="width: 33%; text-align: left;">
+                    <div class="doc-meta">
+                        <strong>Document No:</strong> QA-EXAM-117-2026<br>
+                        <strong>Release Date:</strong> 19 November 2026<br>
+                        <strong>Scope:</strong> 11 Systems / 117 Master Screens
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- شريط الملخص الإحصائي البسيط -->
+        <table class="summary-bar-table">
+            <tr>
+                <th>إجمالي الشاشات</th>
+                <th>عدد المنظومات</th>
+                <th>إجمالي زمن الفحص</th>
+                <th>شاشات حرجة (P1)</th>
+                <th>شاشات أساسية (P2)</th>
+                <th>شاشات مساندة (P3)</th>
+            </tr>
+            <tr>
+                <td style="font-size: 13px; color: #1e3a8a;">117 شاشة</td>
+                <td style="font-size: 12px;">11 منظومات</td>
+                <td style="font-size: 12px; color: #047857;">44.3 ساعة (6.3 أيام عمل)</td>
+                <td style="color: #b91c1c;">61 شاشة</td>
+                <td style="color: #1d4ed8;">52 شاشة</td>
+                <td style="color: #4b5563;">4 شاشات</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- الجدول الرئيسي بالتسطير العادي البسيط -->
+    <table class="main-schedule-table">
+        <thead>
+            <tr>
+                <th class="col-id">#</th>
+                <th class="col-title">اسم الشاشة بالعربية</th>
+                <th class="col-code">المكون والمسار البرمجي</th>
+                <th class="col-subsystem">المنظومة / الوحدة</th>
+                <th class="col-testing-scope">نطاق وفحص الشاشة (Testing Scope)</th>
+                <th class="col-executor">الدور المنفذ</th>
+                <th class="col-priority">الأولوية</th>
+                <th class="col-duration">المدة</th>
+                <th class="col-acceptance">معيار القبول والنجاح</th>
+            </tr>
+        </thead>
+        <tbody>
+
+            <tr class="module-header-row">
+                <td colspan="9">
+                    المنظومة 1: المصادقة، الدخول، وتحديد المنظومات — (6 شاشة | إجمالي المدة: 85 دقيقة / 1.4 ساعة)
+                </td>
+            </tr>
+    
+            <tr>
+                <td class="col-id">1</td>
+                <td class="col-title">تسجيل الدخول العادي</td>
+                <td class="col-code">
+                    <strong>LogIn.vue</strong><br>
+                    <span style="color:#4b5563;">/login</span>
+                </td>
+                <td class="col-subsystem">المصادقة</td>
+                <td class="col-testing-scope">التحقق من صحة بيانات الدخول، رسائل الخطأ، قفل المحاولات الفاشلة، وحفظ التوكن JWT</td>
+                <td class="col-executor">مدير النظام / كافة الأدوار</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">تسجيل دخول آمن ومنع التجاوز وتوليد التوكن ونقل المستخدم للوحة القيادة</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">2</td>
+                <td class="col-title">الدخول الموحد (SSO)</td>
+                <td class="col-code">
+                    <strong>shared.SSOLoginPage</strong><br>
+                    <span style="color:#4b5563;">/sso-login</span>
+                </td>
+                <td class="col-subsystem">المصادقة</td>
+                <td class="col-testing-scope">التحقق من التوجيه لبوابة SSO الخارجية ومعالجة كود الاستجابة /sso/callback</td>
+                <td class="col-executor">مدير النظام</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">مصادقة عبر البوابة المركزية والعودة للجلسة بنجاح</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">3</td>
+                <td class="col-title">محدد الأنظمة والمنظومات</td>
+                <td class="col-code">
+                    <strong>shared.SystemSelector</strong><br>
+                    <span style="color:#4b5563;">/system-selector</span>
+                </td>
+                <td class="col-subsystem">المصادقة</td>
+                <td class="col-testing-scope">التحقق من عرض المنظومات المتاحة وفق صلاحيات المستخدم والتبديل بينها</td>
+                <td class="col-executor">كافة الأدوار</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">10 د</td>
+                <td class="col-acceptance">حصر المنظومات المسموحة والانتقال إلى النظام الفرعي النشط</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">4</td>
+                <td class="col-title">لوحة القيادة والمؤشرات العامة</td>
+                <td class="col-code">
+                    <strong>DashBoard.vue</strong><br>
+                    <span style="color:#4b5563;">/</span>
+                </td>
+                <td class="col-subsystem">المصادقة</td>
+                <td class="col-testing-scope">تحميل العدادات الحية، رسوم البيانات الإحصائية، سرعة الاستجابة وعزل الصلاحيات</td>
+                <td class="col-executor">كافة الأدوار</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">ظهور بطاقات المؤشرات متوافقة مع الصلاحيات الممنوحة للمستخدم</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">5</td>
+                <td class="col-title">إدارة الجلسات الحية</td>
+                <td class="col-code">
+                    <strong>SessionsView.vue</strong><br>
+                    <span style="color:#4b5563;">sessions</span>
+                </td>
+                <td class="col-subsystem">المصادقة</td>
+                <td class="col-testing-scope">عرض الجلسات المتصلة، بيانات الأجهزة وIPs، وإنهاء الجلسات النشطة فورياً</td>
+                <td class="col-executor">مدير النظام</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">إسقاط الجلسة فوراً ومنع توكن المستخدم من إكمال الطلبات</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">6</td>
+                <td class="col-title">الملف الشخصي للمستخدم</td>
+                <td class="col-code">
+                    <strong>ProfileView.vue</strong><br>
+                    <span style="color:#4b5563;">profile</span>
+                </td>
+                <td class="col-subsystem">المصادقة</td>
+                <td class="col-testing-scope">تحديث البيانات الشخصية، تغيير كلمة المرور، التحقق من ضوابط التعقيد وسجل النشاط</td>
+                <td class="col-executor">كافة الأدوار</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">تحديث البيانات وحفظ كلمة المرور الجديدة وتحديث الجلسة</td>
+            </tr>
+        
+            <tr class="module-header-row">
+                <td colspan="9">
+                    المنظومة 2: إدارة المستخدمين، الصلاحيات، والهيكل الإداري — (6 شاشة | إجمالي المدة: 125 دقيقة / 2.1 ساعة)
+                </td>
+            </tr>
+    
+            <tr>
+                <td class="col-id">7</td>
+                <td class="col-title">المستخدمون (جدول الحسابات)</td>
+                <td class="col-code">
+                    <strong>UserView.vue</strong><br>
+                    <span style="color:#4b5563;">users</span>
+                </td>
+                <td class="col-subsystem">إدارة المستخدمين</td>
+                <td class="col-testing-scope">استعراض جدول الحسابات، البحث باسم المستخدم والبريد، والفلترة بالحالة والمستوى</td>
+                <td class="col-executor">مدير النظام</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">عرض بيانات المستخدمين والتصفية الدقيقة وفق المعايير</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">8</td>
+                <td class="col-title">إضافة وتعديل مستخدم (الدرج)</td>
+                <td class="col-code">
+                    <strong>AddUser.vue</strong><br>
+                    <span style="color:#4b5563;">users (Drawer)</span>
+                </td>
+                <td class="col-subsystem">إدارة المستخدمين</td>
+                <td class="col-testing-scope">التحقق من الحقول الإلزامية، منع تكرار البريد والاسم، وضبط كلمة المرور والمستوى</td>
+                <td class="col-executor">مدير النظام</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">حفظ المستخدم بنجاح مع منع التكرار</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">9</td>
+                <td class="col-title">مجموعات المستخدمين والصلاحيات</td>
+                <td class="col-code">
+                    <strong>GroupsUserView.vue</strong><br>
+                    <span style="color:#4b5563;">group-user</span>
+                </td>
+                <td class="col-subsystem">إدارة المستخدمين</td>
+                <td class="col-testing-scope">إنشاء مجموعة صلاحيات، ضبط أذونات الشاشات، وإسناد المستخدمين للمجموعات</td>
+                <td class="col-executor">مدير النظام</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">تطبيق صلاحيات المجموعة على المستخدمين التابعين لها فوراً</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">10</td>
+                <td class="col-title">تصنيفات وأنواع المستخدمين</td>
+                <td class="col-code">
+                    <strong>TypeUserView.vue</strong><br>
+                    <span style="color:#4b5563;">type-user</span>
+                </td>
+                <td class="col-subsystem">إدارة المستخدمين</td>
+                <td class="col-testing-scope">تعريف الرتب والأنواع (معلم، موجه، مدخل بيانات، رئيس لجنة)، والربط الوظيفي</td>
+                <td class="col-executor">مدير النظام</td>
+                <td class="col-priority" style="color:#374151;">P3</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">حفظ النوع الوظيفي وتوفره لربطه بالمستخدمين</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">11</td>
+                <td class="col-title">إدارة الشاشات والصلاحيات المباشرة</td>
+                <td class="col-code">
+                    <strong>ScreenView.vue</strong><br>
+                    <span style="color:#4b5563;">screens</span>
+                </td>
+                <td class="col-subsystem">إدارة المستخدمين</td>
+                <td class="col-testing-scope">تسجيل الشاشات، ضبط العمليات (قراءة، إضافة، تعديل، حذف، طباعة)، وحجب الحقول</td>
+                <td class="col-executor">مدير النظام</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">حجب أي إجراء غير مصرح به في واجهة المستخدم والـ API</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">12</td>
+                <td class="col-title">صلاحيات الهيكل الشجري الموسعة</td>
+                <td class="col-code">
+                    <strong>TreeNodePermission.vue</strong><br>
+                    <span style="color:#4b5563;">tree-permissions</span>
+                </td>
+                <td class="col-subsystem">إدارة المستخدمين</td>
+                <td class="col-testing-scope">ضبط وتوريث الصلاحيات على مستوى العقد الشجرية للمؤسسات والمحافظات والإدارات</td>
+                <td class="col-executor">مدير النظام</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">توريث دقيق للصلاحيات على الفروع مع إمكانية التخصيص والاستثناء</td>
+            </tr>
+        
+            <tr class="module-header-row">
+                <td colspan="9">
+                    المنظومة 3: الهيكل الجغرافي والمؤسسي وسجلات الطلاب — (11 شاشة | إجمالي المدة: 220 دقيقة / 3.7 ساعة)
+                </td>
+            </tr>
+    
+            <tr>
+                <td class="col-id">13</td>
+                <td class="col-title">إدارة الدول</td>
+                <td class="col-code">
+                    <strong>CountryView.vue</strong><br>
+                    <span style="color:#4b5563;">countries</span>
+                </td>
+                <td class="col-subsystem">الهيكل الجغرافي والمؤسسي وسجلات الطلاب</td>
+                <td class="col-testing-scope">إضافة وتعديل بيانات الدول ورموز الاتصال الدولية والعملات</td>
+                <td class="col-executor">مدير النظام</td>
+                <td class="col-priority" style="color:#374151;">P3</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">تسجيل الدولة بنجاح ومنع تكرار رمز ISO</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">14</td>
+                <td class="col-title">إدارة المحافظات</td>
+                <td class="col-code">
+                    <strong>GovernorateView.vue</strong><br>
+                    <span style="color:#4b5563;">governorates</span>
+                </td>
+                <td class="col-subsystem">الهيكل الجغرافي والمؤسسي وسجلات الطلاب</td>
+                <td class="col-testing-scope">تعريف المحافظات وربطها بالدولة وضبط الكود الجغرافي الموحد</td>
+                <td class="col-executor">مدير النظام</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">سلامة الربط مع الدولة وظهور المحافظة في القوائم</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">15</td>
+                <td class="col-title">إدارة المديريات</td>
+                <td class="col-code">
+                    <strong>DirectorateView.vue</strong><br>
+                    <span style="color:#4b5563;">directorate</span>
+                </td>
+                <td class="col-subsystem">الهيكل الجغرافي والمؤسسي وسجلات الطلاب</td>
+                <td class="col-testing-scope">إضافة المديريات تحت كل محافظة والتأكد من التبعية الجغرافية</td>
+                <td class="col-executor">مدير النظام</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">ربط المديريات وعرضها مفلترة بالمحافظة بدقة</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">16</td>
+                <td class="col-title">إدارة العُزل والمناطق</td>
+                <td class="col-code">
+                    <strong>RegionView.vue</strong><br>
+                    <span style="color:#4b5563;">regions</span>
+                </td>
+                <td class="col-subsystem">الهيكل الجغرافي والمؤسسي وسجلات الطلاب</td>
+                <td class="col-testing-scope">تعريف العزل والقرى والأحياء الحضرية والربط بالمديرية</td>
+                <td class="col-executor">مدير النظام</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">تسجيل العزلة وربطها بالمديرية لضبط المراكز الامتحانية</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">17</td>
+                <td class="col-title">شجرة التسلسل الهرمي الجغرافي والإداري</td>
+                <td class="col-code">
+                    <strong>GeographicalHierarchyView.vue</strong><br>
+                    <span style="color:#4b5563;">geographical-hierarchy</span>
+                </td>
+                <td class="col-subsystem">الهيكل الجغرافي والمؤسسي وسجلات الطلاب</td>
+                <td class="col-testing-scope">استعراض الشجرة التفاعلية لكافة مستويات الدولة والمحافظات والمديريات والمراكز</td>
+                <td class="col-executor">مدير النظام</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">بناء العقد الشجرية بسلاسة والتوسع والطي بدون بطء</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">18</td>
+                <td class="col-title">المؤسسات والمدارس التعليمية</td>
+                <td class="col-code">
+                    <strong>OrganizationView.vue</strong><br>
+                    <span style="color:#4b5563;">organizations</span>
+                </td>
+                <td class="col-subsystem">الهيكل الجغرافي والمؤسسي وسجلات الطلاب</td>
+                <td class="col-testing-scope">استعراض جدول المدارس والمراكز، الفلترة حسب المديرية والنوع (حكومي/أهلي)</td>
+                <td class="col-executor">مدير النظام / إدارة التعليم</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">عرض المدارس وتصنيفها والبحث السريع برقم المدرسة</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">19</td>
+                <td class="col-title">إضافة وتعديل مدرسة / مؤسسة</td>
+                <td class="col-code">
+                    <strong>AddOrganizationView.vue</strong><br>
+                    <span style="color:#4b5563;">organizations (Drawer)</span>
+                </td>
+                <td class="col-subsystem">الهيكل الجغرافي والمؤسسي وسجلات الطلاب</td>
+                <td class="col-testing-scope">إدخال بيانات المدرسة، العنوان، الطاقة الاستيعابية، واعتماد رمز الوزارة</td>
+                <td class="col-executor">مدير النظام</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">حفظ المدرسة والتحقق من عدم تكرار الكود الوزاري</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">20</td>
+                <td class="col-title">الفصول والشُعب المدرسية</td>
+                <td class="col-code">
+                    <strong>SchoolSectionsView.vue</strong><br>
+                    <span style="color:#4b5563;">school-sections</span>
+                </td>
+                <td class="col-subsystem">الهيكل الجغرافي والمؤسسي وسجلات الطلاب</td>
+                <td class="col-testing-scope">توزيع الفصول الدراسية وتحديد القاعات والشُعب لكل مرحلة</td>
+                <td class="col-executor">إدارة المدرسة</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">إنشاء الشُعب وتحديد سعتها القصوى ومنع التضارب</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">21</td>
+                <td class="col-title">سجلات الطلاب والممتحنين المركزية</td>
+                <td class="col-code">
+                    <strong>StudentsView.vue</strong><br>
+                    <span style="color:#4b5563;">students</span>
+                </td>
+                <td class="col-subsystem">الهيكل الجغرافي والمؤسسي وسجلات الطلاب</td>
+                <td class="col-testing-scope">عرض بيانات الطلاب، رقم الجلوس، المدرسة، الصف، وتصفية الحالات الخاصة</td>
+                <td class="col-executor">شؤون الطلاب / الكنترول</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">عرض السجلات واستيراد وتصدير بيانات الطلاب</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">22</td>
+                <td class="col-title">إضافة وتعديل بيانات طالب</td>
+                <td class="col-code">
+                    <strong>AddStudents.vue</strong><br>
+                    <span style="color:#4b5563;">students/create</span>
+                </td>
+                <td class="col-subsystem">الهيكل الجغرافي والمؤسسي وسجلات الطلاب</td>
+                <td class="col-testing-scope">إدخال بيانات الطالب الشخصية والأكاديمية والرقم الوطني والصورة الشخصية</td>
+                <td class="col-executor">شؤون الطلاب</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">التحقق من صحة الرقم الوطني ورقم الجلوس وحفظ السجل</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">23</td>
+                <td class="col-title">إدارة وتوزيع الطلاب على الشُعب</td>
+                <td class="col-code">
+                    <strong>StudentsMasterView.vue</strong><br>
+                    <span style="color:#4b5563;">students-master</span>
+                </td>
+                <td class="col-subsystem">الهيكل الجغرافي والمؤسسي وسجلات الطلاب</td>
+                <td class="col-testing-scope">توزيع الطلاب على القاعات والشُعب آلياً وإصدار كشوفات المناداة وتوليد أرقام الجلوس</td>
+                <td class="col-executor">الكنترول المركزي</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">توزيع متوازن للطلاب دون تجاوز سعة القاعات وتوليد أرقام جلوس فريدة</td>
+            </tr>
+        
+            <tr class="module-header-row">
+                <td colspan="9">
+                    المنظومة 4: تهيئة التعليم المدرسي العام ومصفوفة المناهج — (12 شاشة | إجمالي المدة: 260 دقيقة / 4.3 ساعة)
+                </td>
+            </tr>
+    
+            <tr>
+                <td class="col-id">24</td>
+                <td class="col-title">الأعوام الدراسية المركزية</td>
+                <td class="col-code">
+                    <strong>AcademicYearsView.vue</strong><br>
+                    <span style="color:#4b5563;">academic-years</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم المدرسي العام ومصفوفة المناهج</td>
+                <td class="col-testing-scope">استعراض الأعوام وتعيين العام الدراسي الفعال (Active Year) على مستوى النظام</td>
+                <td class="col-executor">مدير النظام</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">تفعيل عام واحد فقط وتحديث كافة العمليات وفق العام النشط</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">25</td>
+                <td class="col-title">إضافة وتفعيل عام دراسي</td>
+                <td class="col-code">
+                    <strong>AddAcademicYears.vue</strong><br>
+                    <span style="color:#4b5563;">academic-years/create</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم المدرسي العام ومصفوفة المناهج</td>
+                <td class="col-testing-scope">إدخال تاريخ بدء ونهاية العام، فترات التسجيل، ومواعيد الاختبارات</td>
+                <td class="col-executor">مدير النظام</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">التحقق من صحة التواريخ وعدم التداخل مع أعوام أخرى</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">26</td>
+                <td class="col-title">المراحل التعليمية</td>
+                <td class="col-code">
+                    <strong>EducationalStagesView.vue</strong><br>
+                    <span style="color:#4b5563;">educational-stages</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم المدرسي العام ومصفوفة المناهج</td>
+                <td class="col-testing-scope">تهيئة المراحل (أساسي، ثانوية عامة)، وتحديد المعايير التقييمية لكل مرحلة</td>
+                <td class="col-executor">المناهج والتوجيه</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">حفظ المراحل وضبط ترتيبها الهرمي في النظام</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">27</td>
+                <td class="col-title">الصفوف الدراسية</td>
+                <td class="col-code">
+                    <strong>LevelsView.vue</strong><br>
+                    <span style="color:#4b5563;">levels</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم المدرسي العام ومصفوفة المناهج</td>
+                <td class="col-testing-scope">تعريف الصفوف من الأول حتى الثالث الثانوي وربطها بالمراحل</td>
+                <td class="col-executor">المناهج والتوجيه</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">تسجيل الصفوف وتحديد الترقيم التسلسلي لكل صف</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">28</td>
+                <td class="col-title">المسارات التعليمية العامة</td>
+                <td class="col-code">
+                    <strong>TracksView.vue</strong><br>
+                    <span style="color:#4b5563;">tracks</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم المدرسي العام ومصفوفة المناهج</td>
+                <td class="col-testing-scope">إدارة مسارات الثانوية العامة (علمي، أدبي، مهني)</td>
+                <td class="col-executor">المناهج والتوجيه</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">تعريف المسارات بنجاح لفرز مواد التخصص</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">29</td>
+                <td class="col-title">مسارات الصفوف الدراسية</td>
+                <td class="col-code">
+                    <strong>ClassTracksView.vue</strong><br>
+                    <span style="color:#4b5563;">class-tracks</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم المدرسي العام ومصفوفة المناهج</td>
+                <td class="col-testing-scope">ربط كل صف بالمسار المعتمد وضبط قواعد الانتقال والتشعيب</td>
+                <td class="col-executor">المناهج والتوجيه</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">حفظ علاقة الصف بالمسار بدقة تامة</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">30</td>
+                <td class="col-title">المواد والمقررات المدرسية</td>
+                <td class="col-code">
+                    <strong>SubjectsView.vue</strong><br>
+                    <span style="color:#4b5563;">subjects</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم المدرسي العام ومصفوفة المناهج</td>
+                <td class="col-testing-scope">تعريف المواد، الرمز الوزاري، لغة التدريس، والوزن النسبي</td>
+                <td class="col-executor">المناهج والتوجيه</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">حفظ المادة وضبط كود المادة لمنع التكرار</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">31</td>
+                <td class="col-title">ربط المواد بمسارات الصفوف</td>
+                <td class="col-code">
+                    <strong>ClassSubjectsView.vue</strong><br>
+                    <span style="color:#4b5563;">class-subjects</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم المدرسي العام ومصفوفة المناهج</td>
+                <td class="col-testing-scope">تخصيص المواد لكل صف ومسار وتحديد النهاية الكبرى والصغرى للدرجات</td>
+                <td class="col-executor">المناهج والتوجيه</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">تطبيق خطة المواد وضبط درجة النجاح والرسوب</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">32</td>
+                <td class="col-title">الفصول والفترات الدراسية</td>
+                <td class="col-code">
+                    <strong>SemestersView.vue</strong><br>
+                    <span style="color:#4b5563;">semesters</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم المدرسي العام ومصفوفة المناهج</td>
+                <td class="col-testing-scope">تقسيم العام الدراسي إلى فصول دراسية (فصل أول، فصل ثانٍ)</td>
+                <td class="col-executor">المناهج والتوجيه</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">حفظ الفصول الدراسية وتواريخ بدايتها ونهايتها</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">33</td>
+                <td class="col-title">الوحدات التعليمية للمقررات</td>
+                <td class="col-code">
+                    <strong>UnitsView.vue</strong><br>
+                    <span style="color:#4b5563;">units</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم المدرسي العام ومصفوفة المناهج</td>
+                <td class="col-testing-scope">تقسيم منهج المادة إلى وحدات دراسية وتحديد الأهمية النسبية وعدد الحصص</td>
+                <td class="col-executor">المناهج والتوجيه</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">بناء هيكل الوحدات لربط الأسئلة ببنك الأسئلة</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">34</td>
+                <td class="col-title">الدروس والموضوعات التفصيلية</td>
+                <td class="col-code">
+                    <strong>LessonsView.vue</strong><br>
+                    <span style="color:#4b5563;">lessons</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم المدرسي العام ومصفوفة المناهج</td>
+                <td class="col-testing-scope">إضافة الدروس تحت كل وحدة، تحديد الصفحات والمحتوى المعرفي</td>
+                <td class="col-executor">المناهج والتوجيه</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">حفظ الدروس وتوفيرها كمعيار تصنيف في جدول المواصفات</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">35</td>
+                <td class="col-title">نواتج ومخرجات التعلم الأكاديمية</td>
+                <td class="col-code">
+                    <strong>LearningOutcomesView.vue</strong><br>
+                    <span style="color:#4b5563;">learning-outcomes</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم المدرسي العام ومصفوفة المناهج</td>
+                <td class="col-testing-scope">صياغة مخرجات التعلم وفق مستويات بلوم (تذكر، فهم، تطبيق، تحليل، تركيب، تقويم)</td>
+                <td class="col-executor">المناهج والتقويم</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">30 د</td>
+                <td class="col-acceptance">ربط نواتج التعلم بالدروس لضمان المواءمة الأكاديمية</td>
+            </tr>
+        
+            <tr class="module-header-row">
+                <td colspan="9">
+                    المنظومة 5: تهيئة التعليم الجامعي والأكاديمي والأنظمة التقديرية — (11 شاشة | إجمالي المدة: 215 دقيقة / 3.6 ساعة)
+                </td>
+            </tr>
+    
+            <tr>
+                <td class="col-id">36</td>
+                <td class="col-title">الكليات الجامعية</td>
+                <td class="col-code">
+                    <strong>CollegesView.vue</strong><br>
+                    <span style="color:#4b5563;">colleges</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم الجامعي والأكاديمي والأنظمة التقديرية</td>
+                <td class="col-testing-scope">إضافة وتعديل بيانات الكليات، عمادة الكلية، والرمز الجامعي المعتمد</td>
+                <td class="col-executor">شؤون الجامعات</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">حفظ الكليات والتأكد من صحة التبعية للجامعة</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">37</td>
+                <td class="col-title">الأقسام الأكاديمية</td>
+                <td class="col-code">
+                    <strong>DepartmentsView.vue</strong><br>
+                    <span style="color:#4b5563;">departments</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم الجامعي والأكاديمي والأنظمة التقديرية</td>
+                <td class="col-testing-scope">إنشاء الأقسام الأكاديمية داخل كل كلية وتعيين رئاسة القسم</td>
+                <td class="col-executor">شؤون الجامعات</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">تسجيل القسم الأكاديمي وربطه بالكلية المعنية</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">38</td>
+                <td class="col-title">البرامج والتخصصات الأكاديمية</td>
+                <td class="col-code">
+                    <strong>SpecializationsView.vue</strong><br>
+                    <span style="color:#4b5563;">specializations</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم الجامعي والأكاديمي والأنظمة التقديرية</td>
+                <td class="col-testing-scope">تعريف البرامج (بكالوريوس، ماجستير، دكتوراه)، وتحديد سنوات الدراسة</td>
+                <td class="col-executor">شؤون الجامعات</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">حفظ التخصص وتحديد الخطة الدراسية المعتمدة</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">39</td>
+                <td class="col-title">الدرجات والمستويات الجامعية</td>
+                <td class="col-code">
+                    <strong>EducationalLevelsView.vue</strong><br>
+                    <span style="color:#4b5563;">educational-levels</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم الجامعي والأكاديمي والأنظمة التقديرية</td>
+                <td class="col-testing-scope">تعريف المستويات الأكاديمية (مستوى أول، ثانٍ، ثالث، رابع، امتياز)</td>
+                <td class="col-executor">شؤون الجامعات</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">تسجيل المستويات وضبط الترتيب التصاعدي للترقية</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">40</td>
+                <td class="col-title">أنظمة الدراسة الجامعية</td>
+                <td class="col-code">
+                    <strong>StudySystemsView.vue</strong><br>
+                    <span style="color:#4b5563;">study-systems</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم الجامعي والأكاديمي والأنظمة التقديرية</td>
+                <td class="col-testing-scope">ضبط أنظمة التعليم (نظام فصلي، ساعات معتمدة، تعليم عن بعد، انتساب)</td>
+                <td class="col-executor">شؤون الجامعات</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">حفظ معايير النظام الدراسي وحساب العبء الدراسي</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">41</td>
+                <td class="col-title">الأنظمة التقديرية وموازين الدرجات</td>
+                <td class="col-code">
+                    <strong>GradingSystemsView.vue</strong><br>
+                    <span style="color:#4b5563;">grading-systems</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم الجامعي والأكاديمي والأنظمة التقديرية</td>
+                <td class="col-testing-scope">تحديد موازين التقديرات (ممتاز، جيد جداً، جيد، راسب) والمعدل التراكمي GPA</td>
+                <td class="col-executor">الكنترول الجامعي</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">حساب التقديرات والمعدلات دون أخطاء تقريب</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">42</td>
+                <td class="col-title">المقررات الدراسية الجامعية</td>
+                <td class="col-code">
+                    <strong>UniversityCoursesView.vue</strong><br>
+                    <span style="color:#4b5563;">university-courses</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم الجامعي والأكاديمي والأنظمة التقديرية</td>
+                <td class="col-testing-scope">تعريف المقررات، كود المقرر، الساعات المعتمدة، والمتطلبات السابقة</td>
+                <td class="col-executor">المناهج الجامعية</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">حفظ المقرر وربط المتطلب السابق لمنع التسجيل المخالف</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">43</td>
+                <td class="col-title">الفصول الأكاديمية الجامعية</td>
+                <td class="col-code">
+                    <strong>SemestersView.vue</strong><br>
+                    <span style="color:#4b5563;">semesters-university</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم الجامعي والأكاديمي والأنظمة التقديرية</td>
+                <td class="col-testing-scope">تهيئة الفصول (خريف، ربيع، صيفي) ومواعيد الإضافة والحذف</td>
+                <td class="col-executor">شؤون الجامعات</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">ضبط التقويم الجامعي لكل فصل دراسي</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">44</td>
+                <td class="col-title">مقررات الفصول والتخصصات</td>
+                <td class="col-code">
+                    <strong>SemesterSubjectsView.vue</strong><br>
+                    <span style="color:#4b5563;">semester-subjects</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم الجامعي والأكاديمي والأنظمة التقديرية</td>
+                <td class="col-testing-scope">توزيع المقررات على الفصول والمستويات وإلزامية واختيارية المقرر</td>
+                <td class="col-executor">شؤون الجامعات</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">بناء مصفوفة المقررات وفق خطة التخصص الأكاديمي</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">45</td>
+                <td class="col-title">الفترات الامتحانية الجامعية</td>
+                <td class="col-code">
+                    <strong>ExamPeriodsView.vue</strong><br>
+                    <span style="color:#4b5563;">exam-periods</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم الجامعي والأكاديمي والأنظمة التقديرية</td>
+                <td class="col-testing-scope">جدولة فترات الامتحانات (نصفي، نهائي، دور ثانٍ) ومراكز الاختبارات</td>
+                <td class="col-executor">لجنة الامتحانات</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">تحديد فترات الاختبار ومنع تعارض المواعيد</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">46</td>
+                <td class="col-title">لوحة الفحص الشامل للتعليم الجامعي</td>
+                <td class="col-code">
+                    <strong>UniversitySetupView.vue</strong><br>
+                    <span style="color:#4b5563;">university-setup</span>
+                </td>
+                <td class="col-subsystem">تهيئة التعليم الجامعي والأكاديمي والأنظمة التقديرية</td>
+                <td class="col-testing-scope">التحقق من تكامل بيانات الكليات والأقسام والخطط الدراسية قبل بدء الامتحانات</td>
+                <td class="col-executor">مدير النظام</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">إظهار تنبيهات النقص في الخطط وتأكيد الجاهزية بنسبة 100%</td>
+            </tr>
+        
+            <tr class="module-header-row">
+                <td colspan="9">
+                    المنظومة 6: تهيئة المعاهد الفنية والمهنية والخطط التدريبية — (13 شاشة | إجمالي المدة: 240 دقيقة / 4.0 ساعة)
+                </td>
+            </tr>
+    
+            <tr>
+                <td class="col-id">47</td>
+                <td class="col-title">المجالات المهنية والتقنية</td>
+                <td class="col-code">
+                    <strong>InstituteFieldsView.vue</strong><br>
+                    <span style="color:#4b5563;">institutes-fields</span>
+                </td>
+                <td class="col-subsystem">تهيئة المعاهد الفنية والمهنية والخطط التدريبية</td>
+                <td class="col-testing-scope">تعريف المجالات الكبرى (صناعي، تجاري، زراعي، فندقي، حاسوب وتقنية)</td>
+                <td class="col-executor">التعليم الفني</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">حفظ وتصنيف المجالات التقنية بنجاح</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">48</td>
+                <td class="col-title">أنظمة التعليم والتدريب الفني</td>
+                <td class="col-code">
+                    <strong>InstituteEducationSystemsView.vue</strong><br>
+                    <span style="color:#4b5563;">institutes-education-systems</span>
+                </td>
+                <td class="col-subsystem">تهيئة المعاهد الفنية والمهنية والخطط التدريبية</td>
+                <td class="col-testing-scope">تهيئة أنظمة التدريب (نظام مهني سنتان، دبلوم تقني 3 سنوات، تلمذة صناعية)</td>
+                <td class="col-executor">التعليم الفني</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">حفظ أنظمة التدريب وساعات الورش العملية</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">49</td>
+                <td class="col-title">التخصصات المهنية والتقنية</td>
+                <td class="col-code">
+                    <strong>InstituteSpecializationsView.vue</strong><br>
+                    <span style="color:#4b5563;">institutes-specializations</span>
+                </td>
+                <td class="col-subsystem">تهيئة المعاهد الفنية والمهنية والخطط التدريبية</td>
+                <td class="col-testing-scope">إضافة التخصصات التفصيلية (كهرباء، ميكانيكا، برمجة، شبكات، تمريض)</td>
+                <td class="col-executor">التعليم الفني</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">حفظ التخصص وضبط معايير الكفاءة المهنية</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">50</td>
+                <td class="col-title">شروط وضوابط القبول والتسجيل</td>
+                <td class="col-code">
+                    <strong>InstituteAdmissionRequirementsView.vue</strong><br>
+                    <span style="color:#4b5563;">institutes-admission-requirements</span>
+                </td>
+                <td class="col-subsystem">تهيئة المعاهد الفنية والمهنية والخطط التدريبية</td>
+                <td class="col-testing-scope">إدارة شروط الالتحاق، المؤهل المطلوب، والحد الأدنى للنسبة المئوية</td>
+                <td class="col-executor">شؤون الطلاب بالمعاهد</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">تطبيق شروط القبول آلياً أثناء استيراد الطلاب</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">51</td>
+                <td class="col-title">الخطط الدراسية للمعاهد</td>
+                <td class="col-code">
+                    <strong>InstituteCurriculaView.vue</strong><br>
+                    <span style="color:#4b5563;">institutes-curricula</span>
+                </td>
+                <td class="col-subsystem">تهيئة المعاهد الفنية والمهنية والخطط التدريبية</td>
+                <td class="col-testing-scope">بناء الخطط التدريبية المعتمدة وتحديد إجمالي الساعات النظرية والعملية</td>
+                <td class="col-executor">الشؤون التعليمية بالمعاهد</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">حفظ الخطة وتوزيع الساعات بالمستويات</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">52</td>
+                <td class="col-title">الدفعات والأفواج الطلابية</td>
+                <td class="col-code">
+                    <strong>InstituteBatchesView.vue</strong><br>
+                    <span style="color:#4b5563;">institutes-batches</span>
+                </td>
+                <td class="col-subsystem">تهيئة المعاهد الفنية والمهنية والخطط التدريبية</td>
+                <td class="col-testing-scope">إدارة الأفواج التدريبية وتواريخ التخرج وتوزيع المجموعات المعملية</td>
+                <td class="col-executor">شؤون المتدربين</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">تسكين المتدربين بالأفواج وتحديد جدول التدريب</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">53</td>
+                <td class="col-title">المستويات الدراسية للمعاهد</td>
+                <td class="col-code">
+                    <strong>InstituteLevelsView.vue</strong><br>
+                    <span style="color:#4b5563;">institutes-levels</span>
+                </td>
+                <td class="col-subsystem">تهيئة المعاهد الفنية والمهنية والخطط التدريبية</td>
+                <td class="col-testing-scope">تعريف مستويات التدريب (مستوى أول، ثانٍ، تخصصي) وتحديد التتابع</td>
+                <td class="col-executor">الشؤون التعليمية</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">ضبط الترقية للمتدربين وفق مستويات النجاح</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">54</td>
+                <td class="col-title">الفصول والفترات للمعاهد</td>
+                <td class="col-code">
+                    <strong>InstituteSemestersView.vue</strong><br>
+                    <span style="color:#4b5563;">institutes-semesters</span>
+                </td>
+                <td class="col-subsystem">تهيئة المعاهد الفنية والمهنية والخطط التدريبية</td>
+                <td class="col-testing-scope">إدارة الفصول التدريبية والتدريب الصيفي الميداني والتقويم الفني</td>
+                <td class="col-executor">الشؤون التعليمية</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">تفعيل الفترات التدريبية وجدولة اختبارات التقييم</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">55</td>
+                <td class="col-title">المواد والمقررات التدريبية</td>
+                <td class="col-code">
+                    <strong>InstituteSubjectsView.vue</strong><br>
+                    <span style="color:#4b5563;">institutes-subjects</span>
+                </td>
+                <td class="col-subsystem">تهيئة المعاهد الفنية والمهنية والخطط التدريبية</td>
+                <td class="col-testing-scope">إضافة المواد النظرية والتطبيقية، معامل الورشة، والرموز المهنية</td>
+                <td class="col-executor">مشرف المواد المهنية</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">حفظ المادة وتحديد نوع تقييمها (نظري/عملي)</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">56</td>
+                <td class="col-title">مقررات الخطط والفصول</td>
+                <td class="col-code">
+                    <strong>InstituteCurriculumSubjectsView.vue</strong><br>
+                    <span style="color:#4b5563;">institutes-curriculum-subjects</span>
+                </td>
+                <td class="col-subsystem">تهيئة المعاهد الفنية والمهنية والخطط التدريبية</td>
+                <td class="col-testing-scope">فحص شريط البحث النصي، إسناد المواد للخطة، وضبط ساعات العملي والتحريري</td>
+                <td class="col-executor">مشرف المعاهد الفنية</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">30 د</td>
+                <td class="col-acceptance">ربط المواد بمقررات الخطة وعمل شريط البحث بدقة</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">57</td>
+                <td class="col-title">الدورات التدريبية القصيرة</td>
+                <td class="col-code">
+                    <strong>InstituteShortCoursesView.vue</strong><br>
+                    <span style="color:#4b5563;">institutes-short-courses</span>
+                </td>
+                <td class="col-subsystem">تهيئة المعاهد الفنية والمهنية والخطط التدريبية</td>
+                <td class="col-testing-scope">إدارة برامج التعليم المستمر، ورش العمل، وشهادات الكفاءة السريعة</td>
+                <td class="col-executor">إدارة التعليم المستمر</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">تسجيل الدورات وإصدار شهادات اجتياز التقييم</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">58</td>
+                <td class="col-title">تحقيق المهنة والمسارات الخاصة</td>
+                <td class="col-code">
+                    <strong>InstituteSpecialTracksView.vue</strong><br>
+                    <span style="color:#4b5563;">institutes-special-tracks</span>
+                </td>
+                <td class="col-subsystem">تهيئة المعاهد الفنية والمهنية والخطط التدريبية</td>
+                <td class="col-testing-scope">إدارة مسارات الترخيص والاعتماد المهني وضوابط الاختبارات الشاملة</td>
+                <td class="col-executor">إدارة الاعتماد المهني</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">ربط شروط الاعتماد بالامتحان الوزاري الشامل</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">59</td>
+                <td class="col-title">لوحة التحقق الشامل للمعاهد</td>
+                <td class="col-code">
+                    <strong>InstitutesSetupView.vue</strong><br>
+                    <span style="color:#4b5563;">institutes-setup</span>
+                </td>
+                <td class="col-subsystem">تهيئة المعاهد الفنية والمهنية والخطط التدريبية</td>
+                <td class="col-testing-scope">لوحة التحقق الشامل من تكامل الهيكل المهني والورش والمعامل</td>
+                <td class="col-executor">مدير النظام</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">عرض حالة اكتمال التخصصات والخطط التدريبية الفنية</td>
+            </tr>
+        
+            <tr class="module-header-row">
+                <td colspan="9">
+                    المنظومة 7: بنك الأسئلة المركزي والتأليف والتحكيم الأكاديمي — (7 شاشة | إجمالي المدة: 215 دقيقة / 3.6 ساعة)
+                </td>
+            </tr>
+    
+            <tr>
+                <td class="col-id">60</td>
+                <td class="col-title">بنك الأسئلة الرئيسي (جدول التصفية)</td>
+                <td class="col-code">
+                    <strong>QuestionBankView.vue</strong><br>
+                    <span style="color:#4b5563;">question-bank</span>
+                </td>
+                <td class="col-subsystem">بنك الأسئلة المركزي والتأليف والتحكيم الأكاديمي</td>
+                <td class="col-testing-scope">استعراض الأسئلة، فلاتر الصعوبة، نوع السؤال، مستويات بلوم، وحالة التحكيم</td>
+                <td class="col-executor">مؤلف / محكّم أكاديمي</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">35 د</td>
+                <td class="col-acceptance">تصفية دقيقة للأسئلة ومعاينة السؤال والإجابة</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">61</td>
+                <td class="col-title">إضافة وتعديل سؤال (المحرر الكامل)</td>
+                <td class="col-code">
+                    <strong>QuestionNewView.vue</strong><br>
+                    <span style="color:#4b5563;">question-bank-new</span>
+                </td>
+                <td class="col-subsystem">بنك الأسئلة المركزي والتأليف والتحكيم الأكاديمي</td>
+                <td class="col-testing-scope">اختيار إضافة MCQ، صح/خطأ، مقالي، محرر LaTeX للمعادلات، والبدائل المشتتة</td>
+                <td class="col-executor">مؤلف الأسئلة الأكاديمي</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">40 د</td>
+                <td class="col-acceptance">حفظ السؤال مع صياغة المعادلة وتحديد الإجابة الصحيحة بدقة</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">62</td>
+                <td class="col-title">الإدخال السريع للأسئلة</td>
+                <td class="col-code">
+                    <strong>QuestionFastEntryView.vue</strong><br>
+                    <span style="color:#4b5563;">fast-entry</span>
+                </td>
+                <td class="col-subsystem">بنك الأسئلة المركزي والتأليف والتحكيم الأكاديمي</td>
+                <td class="col-testing-scope">إدخال دفعات أسئلة متتالية واختصار زمن الحفظ التلقائي والتنقل بلوحة المفاتيح</td>
+                <td class="col-executor">مدخل البيانات / المؤلف</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">حفظ السجلات بسرعة دون الحاجة لإعادة فتح الحقول لكل سؤال</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">63</td>
+                <td class="col-title">استيراد الأسئلة من Excel</td>
+                <td class="col-code">
+                    <strong>QuestionImportView.vue</strong><br>
+                    <span style="color:#4b5563;">question-bank-import</span>
+                </td>
+                <td class="col-subsystem">بنك الأسئلة المركزي والتأليف والتحكيم الأكاديمي</td>
+                <td class="col-testing-scope">رفع ملف Excel وفق القالب، فحص صحة الأعمدة، والتحقق من صحة الخيارات</td>
+                <td class="col-executor">مسؤول بنك الأسئلة</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">30 د</td>
+                <td class="col-acceptance">استيراد دفعات الأسئلة وعرض تقرير الأخطاء حال وجود خلل</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">64</td>
+                <td class="col-title">استكمال بيانات الأسئلة المستوردة</td>
+                <td class="col-code">
+                    <strong>QuestionBulkCompleteView.vue</strong><br>
+                    <span style="color:#4b5563;">question-bulk-complete</span>
+                </td>
+                <td class="col-subsystem">بنك الأسئلة المركزي والتأليف والتحكيم الأكاديمي</td>
+                <td class="col-testing-scope">إسناد جماعي للوحدات ونواتج التعلم ومستويات الصعوبة للأسئلة الناقصة</td>
+                <td class="col-executor">المراجع الأكاديمي</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">تحديث الخصائص المجمعة للأسئلة بنقرة واحدة</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">65</td>
+                <td class="col-title">طابور المراجعة والتحكيم الأكاديمي</td>
+                <td class="col-code">
+                    <strong>ReviewQueueView.vue</strong><br>
+                    <span style="color:#4b5563;">review-queue</span>
+                </td>
+                <td class="col-subsystem">بنك الأسئلة المركزي والتأليف والتحكيم الأكاديمي</td>
+                <td class="col-testing-scope">قائمة الأسئلة المعلقة بانتظار الاعتماد، التحقق من عدم التكرار، والقبول والرفض</td>
+                <td class="col-executor">المحكّم الأكاديمي المعتمد</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">35 د</td>
+                <td class="col-acceptance">تغيير حالة السؤال من مسودة إلى معتمد أو مرفوض مع التعليل</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">66</td>
+                <td class="col-title">فحص وتدقيق السؤال والاعتماد الفردي</td>
+                <td class="col-code">
+                    <strong>ReviewDetailView.vue</strong><br>
+                    <span style="color:#4b5563;">review-detail/:id</span>
+                </td>
+                <td class="col-subsystem">بنك الأسئلة المركزي والتأليف والتحكيم الأكاديمي</td>
+                <td class="col-testing-scope">معاينة السؤال بوضعية الطالب، فحص مؤشرات الصعوبة والتمييز التاريخية، وإدراج ملاحظات التحكيم</td>
+                <td class="col-executor">رئيس لجنة التحكيم</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">تسجيل القرار النهائي وختم الاعتماد الأكاديمي</td>
+            </tr>
+        
+            <tr class="module-header-row">
+                <td colspan="9">
+                    المنظومة 8: توليد الاختبارات، النماذج، والطباعة والتوزيع — (9 شاشة | إجمالي المدة: 250 دقيقة / 4.2 ساعة)
+                </td>
+            </tr>
+    
+            <tr>
+                <td class="col-id">67</td>
+                <td class="col-title">معالج توليد الاختبارات الآلية</td>
+                <td class="col-code">
+                    <strong>ExamCreateView.vue</strong><br>
+                    <span style="color:#4b5563;">exams-create</span>
+                </td>
+                <td class="col-subsystem">توليد الاختبارات</td>
+                <td class="col-testing-scope">خطوات المعالج الأربع: الإعدادات، مصفوفة الوزن النسبي، المعاينة، وتوليد النماذج المتكافئة</td>
+                <td class="col-executor">لجنة الامتحانات المركزية</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">40 د</td>
+                <td class="col-acceptance">توليد نماذج اختبار متوازنة تطابق المعايير وتمنع تكرار الأسئلة بين النماذج</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">68</td>
+                <td class="col-title">جدول مواصفات الاختبار (TOS)</td>
+                <td class="col-code">
+                    <strong>TableOfSpecificationsView.vue</strong><br>
+                    <span style="color:#4b5563;">table-of-specifications</span>
+                </td>
+                <td class="col-subsystem">توليد الاختبارات</td>
+                <td class="col-testing-scope">ضبط مصفوفة الوحدات مقابل مستويات بلوم، توزيع الدرجات، وحساب الأهمية النسبية</td>
+                <td class="col-executor">خبير القياس والتقويم</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">35 د</td>
+                <td class="col-acceptance">تطابق مجموع النسب مع 100% وتوليد جدول مواصفات متزن</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">69</td>
+                <td class="col-title">المحذوفات من المنهج والمقررات</td>
+                <td class="col-code">
+                    <strong>CurriculumExclusionsView.vue</strong><br>
+                    <span style="color:#4b5563;">curriculum-exclusions</span>
+                </td>
+                <td class="col-subsystem">توليد الاختبارات</td>
+                <td class="col-testing-scope">تسجيل الموضوعات والدروس المحذوفة بقرار وزاري وحجب أسئلتها نهائياً من التوليد</td>
+                <td class="col-executor">التوجيه والتقويم</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">منع ظهور أي سؤال ينتمي لمحذوف في أي اختبار مولد قطعياً</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">70</td>
+                <td class="col-title">إدارة ومراجعة نماذج الاختبار المولدة</td>
+                <td class="col-code">
+                    <strong>ExamModelsView.vue</strong><br>
+                    <span style="color:#4b5563;">exams-models</span>
+                </td>
+                <td class="col-subsystem">توليد الاختبارات</td>
+                <td class="col-testing-scope">استعراض النماذج (أ، ب، ج، د)، خلط الأسئلة وخيارات الإجابة، ومعاينة النماذج</td>
+                <td class="col-executor">لجنة الامتحانات</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">30 د</td>
+                <td class="col-acceptance">تأكيد تكافؤ النماذج وإعادة ترتيب البدائل بنجاح</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">71</td>
+                <td class="col-title">أرشيف وسجل الاختبارات المركزية</td>
+                <td class="col-code">
+                    <strong>ExamArchiveView.vue</strong><br>
+                    <span style="color:#4b5563;">exams-archive</span>
+                </td>
+                <td class="col-subsystem">توليد الاختبارات</td>
+                <td class="col-testing-scope">استعراض الاختبارات السابقة، تصفيتها حسب العام والمادة والصف، واسترجاع المسودات</td>
+                <td class="col-executor">لجنة الامتحانات</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">أرشفة آمنة واسترجاع فوري للاختبارات ووثائقها</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">72</td>
+                <td class="col-title">تصدير وتوزيع الاختبارات للمراكز</td>
+                <td class="col-code">
+                    <strong>ExamDispatchView.vue</strong><br>
+                    <span style="color:#4b5563;">exam-dispatch</span>
+                </td>
+                <td class="col-subsystem">توليد الاختبارات</td>
+                <td class="col-testing-scope">تخصيص طرود الاختبارات المشفرة للمحافظات والمراكز، وتوليد كشوفات التسليم</td>
+                <td class="col-executor">إدارة التوزيع والامتحانات</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">30 د</td>
+                <td class="col-acceptance">حزم الاختبارات المشفرة ومطابقة أعداد الطلاب لكل مركز</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">73</td>
+                <td class="col-title">طباعة كراسة ورقة الأسئلة</td>
+                <td class="col-code">
+                    <strong>ExamPrintQuestionsView.vue</strong><br>
+                    <span style="color:#4b5563;">exams-print-questions</span>
+                </td>
+                <td class="col-subsystem">توليد الاختبارات</td>
+                <td class="col-testing-scope">تصدير وطباعة كراسة الأسئلة بتنسيق رسمي مع ترويسة الوزارة والباركود الأمني</td>
+                <td class="col-executor">المطبعة السرية</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">مخرجات PDF عالية الدقة جاهزة للطباعة مع معايير الأمان</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">74</td>
+                <td class="col-title">طباعة مفتاح الإجابة الرسمي</td>
+                <td class="col-code">
+                    <strong>ExamPrintKeyView.vue</strong><br>
+                    <span style="color:#4b5563;">exams-print-key</span>
+                </td>
+                <td class="col-subsystem">توليد الاختبارات</td>
+                <td class="col-testing-scope">طباعة نماذج الإجابة الرسمية للكنترول متضمنة الحلول المعتمدة وتوزيع الدرجات</td>
+                <td class="col-executor">الكنترول والمطبعة السرية</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">تطابق مفتاح الإجابة مع أسئلة النموذج بدقة 100%</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">75</td>
+                <td class="col-title">طباعة نماذج أوراق التظليل المخصصة</td>
+                <td class="col-code">
+                    <strong>ExamPrintSheetsView.vue</strong><br>
+                    <span style="color:#4b5563;">exams-print-sheets</span>
+                </td>
+                <td class="col-subsystem">توليد الاختبارات</td>
+                <td class="col-testing-scope">طباعة أوراق إجابة مخصصة تحمل اسم الطالب ورقم الجلوس وباركود النموذج المشفر</td>
+                <td class="col-executor">الكنترول المركزي</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">طباعة أوراق تظليل فردية خالية من أخطاء المحاذاة والباركود</td>
+            </tr>
+        
+            <tr class="module-header-row">
+                <td colspan="9">
+                    المنظومة 9: نظام التصحيح الآلي وقراءة التظليل OMR والتدقيق البشري — (15 شاشة | إجمالي المدة: 445 دقيقة / 7.4 ساعة)
+                </td>
+            </tr>
+    
+            <tr>
+                <td class="col-id">76</td>
+                <td class="col-title">لوحة تحكم ومؤشرات التصحيح OMR</td>
+                <td class="col-code">
+                    <strong>OMRDashboardView.vue</strong><br>
+                    <span style="color:#4b5563;">omr-dashboard</span>
+                </td>
+                <td class="col-subsystem">نظام التصحيح الآلي وقراءة التظليل OMR والتدقيق البشري</td>
+                <td class="col-testing-scope">متابعة تدفق التصحيح الحي، عدد الأوراق المصححة، نسبة الخطأ، وسرعة المعالجة</td>
+                <td class="col-executor">مدير الكنترول المركزي</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">تحديث العدادات ورسوم بيانية لسرعة التصحيح ونسب الإنجاز</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">77</td>
+                <td class="col-title">مكتبة قوالب التصحيح وسياسات OMR</td>
+                <td class="col-code">
+                    <strong>OMRTemplatesView.vue</strong><br>
+                    <span style="color:#4b5563;">omr-templates</span>
+                </td>
+                <td class="col-subsystem">نظام التصحيح الآلي وقراءة التظليل OMR والتدقيق البشري</td>
+                <td class="col-testing-scope">إدارة القوالب المعتمدة (40، 60، 100 سؤال)، وضبط حساسية عتبة التظليل والذكاء الاصطناعي</td>
+                <td class="col-executor">مهندس الكنترول</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">30 د</td>
+                <td class="col-acceptance">حفظ القالب وإعدادات خوارزميات كشف الدوائر</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">78</td>
+                <td class="col-title">مصمم قوالب أوراق الإجابة OMR</td>
+                <td class="col-code">
+                    <strong>OMRTemplateBuilderView.vue</strong><br>
+                    <span style="color:#4b5563;">omr-template-builder</span>
+                </td>
+                <td class="col-subsystem">نظام التصحيح الآلي وقراءة التظليل OMR والتدقيق البشري</td>
+                <td class="col-testing-scope">المصمم التفاعلي: شبكة الفقاعات، علامات الزوايا (Fiducial Marks)، وتحديد مناطق الباركود</td>
+                <td class="col-executor">مهندس الكنترول والتصميم</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">45 د</td>
+                <td class="col-acceptance">توليد ملفات JSON الهندسية وتوافق القالب مع الماسحات الضوئية</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">79</td>
+                <td class="col-title">استعراض نماذج البابل شيت المعيارية</td>
+                <td class="col-code">
+                    <strong>OMRBubbleSheetsView.vue</strong><br>
+                    <span style="color:#4b5563;">omr-bubble-sheets</span>
+                </td>
+                <td class="col-subsystem">نظام التصحيح الآلي وقراءة التظليل OMR والتدقيق البشري</td>
+                <td class="col-testing-scope">معاينة أوراق التظليل المعتمدة في النظام حسب السعات (30، 60، 100) وتنزيل نماذج تجريبية</td>
+                <td class="col-executor">لجنة الامتحانات</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">معاينة واضحة وتنزيل ملفات PDF صالحة للتجربة الميدانية</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">80</td>
+                <td class="col-title">استلام الاختبارات وتجهيز الكشوفات</td>
+                <td class="col-code">
+                    <strong>OMRExamsView.vue</strong><br>
+                    <span style="color:#4b5563;">omr-exams</span>
+                </td>
+                <td class="col-subsystem">نظام التصحيح الآلي وقراءة التظليل OMR والتدقيق البشري</td>
+                <td class="col-testing-scope">مطابقة حزم أوراق الإجابة الواردة من المراكز مع كشوفات المناداة وتجهيزها للمسح</td>
+                <td class="col-executor">لجنة استلام الكنترول</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">تسجيل الحزم ومطابقة عدد الأوراق المسلمة مع سجل المركز</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">81</td>
+                <td class="col-title">سجل طباعة وحزم أوراق الإجابة</td>
+                <td class="col-code">
+                    <strong>OMRPrintRegistryView.vue</strong><br>
+                    <span style="color:#4b5563;">omr-print-registry</span>
+                </td>
+                <td class="col-subsystem">نظام التصحيح الآلي وقراءة التظليل OMR والتدقيق البشري</td>
+                <td class="col-testing-scope">تتبع أوامر الطباعة، تدقيق تسلسل أرقام الجلوس، وحفظ شهادات الفحص الهندسي للطباعة</td>
+                <td class="col-executor">المطبعة المركزية</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">توثيق كل دفعة مطبوعة بأرقام تسلسلية مشفرة تمنع التزوير</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">82</td>
+                <td class="col-title">مسح وتصحيح الأوراق الضوئية</td>
+                <td class="col-code">
+                    <strong>OMRScanningView.vue</strong><br>
+                    <span style="color:#4b5563;">omr-scanner</span>
+                </td>
+                <td class="col-subsystem">نظام التصحيح الآلي وقراءة التظليل OMR والتدقيق البشري</td>
+                <td class="col-testing-scope">رفع ملفات الصور/PDF، تشغيل محرك المعالجة، كشف الميلان (Deskew)، وتصحيح الإجابات</td>
+                <td class="col-executor">أخصائي المسح الضوئي</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">45 د</td>
+                <td class="col-acceptance">تصحيح الدفعة بمعدل خطأ أقل من 0.01% والتعرف على الباركود</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">83</td>
+                <td class="col-title">مختبر المسح التجريبي والفحص البصري</td>
+                <td class="col-code">
+                    <strong>OMRScannerLabView.vue</strong><br>
+                    <span style="color:#4b5563;">omr-scanner-lab</span>
+                </td>
+                <td class="col-subsystem">نظام التصحيح الآلي وقراءة التظليل OMR والتدقيق البشري</td>
+                <td class="col-testing-scope">فحص العينات الحقيقية وتجربة أوراق رديئة الجودة لمعايرة حساسية القراءة وكشف التظليل الخفيف</td>
+                <td class="col-executor">خبير الجودة والكنترول</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">30 د</td>
+                <td class="col-acceptance">ضبط العتبة وتفادي القراءة الخاطئة للتظليل المتردد أو الممسوح</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">84</td>
+                <td class="col-title">المطابقة والتحقق الهندسي للعلامات</td>
+                <td class="col-code">
+                    <strong>OMRVerificationView.vue</strong><br>
+                    <span style="color:#4b5563;">omr-verification</span>
+                </td>
+                <td class="col-subsystem">نظام التصحيح الآلي وقراءة التظليل OMR والتدقيق البشري</td>
+                <td class="col-testing-scope">كشف الأوراق المشوهة، علامات الزوايا المفقودة، وانحراف أبعاد الورقة أثناء السحب</td>
+                <td class="col-executor">أخصائي المعايرة</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">30 د</td>
+                <td class="col-acceptance">عزل الأوراق غير المطابقة هندسياً وتوجيهها للمسح اليدوي</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">85</td>
+                <td class="col-title">المراجعة البشرية للحالات المشكوك فيها</td>
+                <td class="col-code">
+                    <strong>OMRHumanReviewView.vue</strong><br>
+                    <span style="color:#4b5563;">omr-human-review</span>
+                </td>
+                <td class="col-subsystem">نظام التصحيح الآلي وقراءة التظليل OMR والتدقيق البشري</td>
+                <td class="col-testing-scope">فحص حالات التظليل المزدوج، المسح غير المكتمل، تمزق الورقة، وتثبيت القرار بالصورة المكبرة</td>
+                <td class="col-executor">لجنة التدقيق والبت البشري</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">40 د</td>
+                <td class="col-acceptance">عرض مكبر لموضع الشك وتسجيل قرار المدقق مع التوثيق الجنائي</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">86</td>
+                <td class="col-title">سجل ومستودع أوراق الإجابة المصححة</td>
+                <td class="col-code">
+                    <strong>OMRSubmissionsView.vue</strong><br>
+                    <span style="color:#4b5563;">omr-submissions</span>
+                </td>
+                <td class="col-subsystem">نظام التصحيح الآلي وقراءة التظليل OMR والتدقيق البشري</td>
+                <td class="col-testing-scope">أرشيف كامل لكافة أوراق الطلاب المصححة مع صورها الضوئية والدرجة المستحقة</td>
+                <td class="col-executor">أمانة سر الكنترول</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">30 د</td>
+                <td class="col-acceptance">استرجاع ورقة أي طالب برقم الجلوس في أقل من ثانية</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">87</td>
+                <td class="col-title">تفاصيل فحص وتدقيق ورقة الإجابة الفردية</td>
+                <td class="col-code">
+                    <strong>OMRSubmissionDetailView.vue</strong><br>
+                    <span style="color:#4b5563;">omr-submissions/:id</span>
+                </td>
+                <td class="col-subsystem">نظام التصحيح الآلي وقراءة التظليل OMR والتدقيق البشري</td>
+                <td class="col-testing-scope">فحص تفصيلي لورقة إجابة الطالب: صورة الورقة الأصلية، تطابق كل فقرة مع مفتاح الإجابة، ودرجة كل سؤال</td>
+                <td class="col-executor">لجنة التظلمات والكنترول</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">عرض شفاف وشامل لبيانات التظليل والمطابقة مع مفتاح الإجابة المعتمد</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">88</td>
+                <td class="col-title">الاستخراج البصري الكامل عالي الدقة</td>
+                <td class="col-code">
+                    <strong>OMRFullExtractionView.vue</strong><br>
+                    <span style="color:#4b5563;">omr-full-extraction</span>
+                </td>
+                <td class="col-subsystem">نظام التصحيح الآلي وقراءة التظليل OMR والتدقيق البشري</td>
+                <td class="col-testing-scope">استخراج إحداثيات ومصفوفات الكثافة الضوئية الخام لكافة دوائر التظليل للتحليل الإحصائي</td>
+                <td class="col-executor">مهندس النظم والذكاء الاصطناعي</td>
+                <td class="col-priority" style="color:#374151;">P3</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">تصدير مصفوفة الكثافة الضوئية بدقة رياضية كاملة</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">89</td>
+                <td class="col-title">بيئة العرض والمحاكاة التجريبية للتصحيح</td>
+                <td class="col-code">
+                    <strong>OMRDemoView.vue</strong><br>
+                    <span style="color:#4b5563;">omr-demo</span>
+                </td>
+                <td class="col-subsystem">نظام التصحيح الآلي وقراءة التظليل OMR والتدقيق البشري</td>
+                <td class="col-testing-scope">محاكاة تصحيح ورقة إجابة تفاعلياً وتغيير التظليل وعرض النتيجة الحية لشرح آلية العمل للجان</td>
+                <td class="col-executor">فريق التدريب والكنترول</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">محاكاة فورية وتفاعلية توضح قرارات الذكاء الاصطناعي بدقة</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">90</td>
+                <td class="col-title">كشف الدرجات ورصد الكنترول النهائي</td>
+                <td class="col-code">
+                    <strong>OMRGradebookView.vue</strong><br>
+                    <span style="color:#4b5563;">omr-gradebook</span>
+                </td>
+                <td class="col-subsystem">نظام التصحيح الآلي وقراءة التظليل OMR والتدقيق البشري</td>
+                <td class="col-testing-scope">رصد وتجميع الدرجات، كشوفات الأوائل، نسب النجاح والرسوب، وتصدير النتائج المعتمدة للوزارة</td>
+                <td class="col-executor">رئيس الكنترول المركزي</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">35 د</td>
+                <td class="col-acceptance">إقفال الدرجات ومنع التعديل وإصدار وثيقة النتائج الرسمية</td>
+            </tr>
+        
+            <tr class="module-header-row">
+                <td colspan="9">
+                    المنظومة 10: التقارير الإحصائية والتحليلية وسجل الرقابة والتدقيق — (16 شاشة | إجمالي المدة: 405 دقيقة / 6.8 ساعة)
+                </td>
+            </tr>
+    
+            <tr>
+                <td class="col-id">91</td>
+                <td class="col-title">تقرير جودة وموثوقية الاختبار</td>
+                <td class="col-code">
+                    <strong>ExamPapersReportView.vue</strong><br>
+                    <span style="color:#4b5563;">reports-exam-quality</span>
+                </td>
+                <td class="col-subsystem">التقارير الإحصائية والتحليلية وسجل الرقابة والتدقيق</td>
+                <td class="col-testing-scope">تحليل معاملات الصعوبة والتمييز وكرونباخ ألفا لموثوقية نماذج الاختبارات</td>
+                <td class="col-executor">خبير القياس والتقويم</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">30 د</td>
+                <td class="col-acceptance">استخراج المؤشرات السيكومترية والرسوم البيانية بدقة</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">92</td>
+                <td class="col-title">تقرير أداء وإنتاجية مؤلفي الأسئلة</td>
+                <td class="col-code">
+                    <strong>AuthorsReportView.vue</strong><br>
+                    <span style="color:#4b5563;">reports-authors</span>
+                </td>
+                <td class="col-subsystem">التقارير الإحصائية والتحليلية وسجل الرقابة والتدقيق</td>
+                <td class="col-testing-scope">إحصائيات إسهامات المؤلفين، معدلات القبول والرفض، وسرعة إنجاز بنود الاختبار</td>
+                <td class="col-executor">إدارة بنك الأسئلة</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">تقييم أداء المؤلفين وتصدير كشف المكافآت الأكاديمية</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">93</td>
+                <td class="col-title">تقرير التغطية الأكاديمية للمقررات</td>
+                <td class="col-code">
+                    <strong>CurriculumReportView.vue</strong><br>
+                    <span style="color:#4b5563;">reports-curriculum</span>
+                </td>
+                <td class="col-subsystem">التقارير الإحصائية والتحليلية وسجل الرقابة والتدقيق</td>
+                <td class="col-testing-scope">نسبة تغطية الأسئلة لوحدات ودروس المنهج والكشف عن الفجوات المعرفية</td>
+                <td class="col-executor">التوجيه والمناهج</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">إظهار خريطة حرارية (Heatmap) لتغطية المنهج الدراسي</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">94</td>
+                <td class="col-title">تقرير الحالة الراهنة لبنك الأسئلة</td>
+                <td class="col-code">
+                    <strong>BankStatusReportView.vue</strong><br>
+                    <span style="color:#4b5563;">reports-bank-status</span>
+                </td>
+                <td class="col-subsystem">التقارير الإحصائية والتحليلية وسجل الرقابة والتدقيق</td>
+                <td class="col-testing-scope">رصيد الأسئلة المعتمدة، المسودات، الأسئلة قيد التحكيم، وتصنيفها حسب المواد</td>
+                <td class="col-executor">المشرف العام على البنك</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">عرض دقيق للرصيد الاستراتيجي من الأسئلة لكل صف ومادة</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">95</td>
+                <td class="col-title">مصفوفة المواءمة الأكاديمية ونواتج التعلم</td>
+                <td class="col-code">
+                    <strong>AlignmentMatrixReportView.vue</strong><br>
+                    <span style="color:#4b5563;">reports-alignment-matrix</span>
+                </td>
+                <td class="col-subsystem">التقارير الإحصائية والتحليلية وسجل الرقابة والتدقيق</td>
+                <td class="col-testing-scope">ربط الأسئلة بمستويات بلوم المعرفية ومخرجات التعلم المستهدفة (CLOs)</td>
+                <td class="col-executor">خبير الاعتماد والتقويم</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">30 د</td>
+                <td class="col-acceptance">تحقق المواءمة بنسبة 100% بين محتوى الاختبار ومخرجات المنهج</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">96</td>
+                <td class="col-title">التقرير الإقليمي والجغرافي للاختبارات</td>
+                <td class="col-code">
+                    <strong>RegionalReportView.vue</strong><br>
+                    <span style="color:#4b5563;">reports-regional</span>
+                </td>
+                <td class="col-subsystem">التقارير الإحصائية والتحليلية وسجل الرقابة والتدقيق</td>
+                <td class="col-testing-scope">مقارنة نتائج الطلاب ونسب النجاح عبر المحافظات والمديريات والمراكز</td>
+                <td class="col-executor">وكيل الوزارة / الإحصاء</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">رسوم بيانية وخرائط جغرافية توضح الفروق الإقليمية في الأداء</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">97</td>
+                <td class="col-title">تقرير الأسئلة التفصيلي وتحليل الإجابات</td>
+                <td class="col-code">
+                    <strong>QuestionsDetailReportView.vue</strong><br>
+                    <span style="color:#4b5563;">reports-questions-detail</span>
+                </td>
+                <td class="col-subsystem">التقارير الإحصائية والتحليلية وسجل الرقابة والتدقيق</td>
+                <td class="col-testing-scope">تحليل بدائل الإجابة لكل سؤال (Distractor Analysis) والبدائل الجاذبة والمضللة</td>
+                <td class="col-executor">فريق القياس والتقويم</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">30 د</td>
+                <td class="col-acceptance">كشف الخلل في البدائل المشتتة للأسئلة لتحسين صياغتها مستقبلاً</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">98</td>
+                <td class="col-title">تقرير الأسئلة المرفوضة ومبررات الاستبعاد</td>
+                <td class="col-code">
+                    <strong>RejectedQuestionsReportView.vue</strong><br>
+                    <span style="color:#4b5563;">reports-rejected-questions</span>
+                </td>
+                <td class="col-subsystem">التقارير الإحصائية والتحليلية وسجل الرقابة والتدقيق</td>
+                <td class="col-testing-scope">حصر الأسئلة المستبعدة من التحكيم وأسباب الرفض (صياغة، خطأ علمي، مخالفة للمنهج)</td>
+                <td class="col-executor">لجنة التحكيم المركزية</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">استعراض مبررات الرفض لتدريب المؤلفين على تجنبها</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">99</td>
+                <td class="col-title">تقرير الاختبارات المركزية المولدة</td>
+                <td class="col-code">
+                    <strong>ExamsGeneratedReportView.vue</strong><br>
+                    <span style="color:#4b5563;">reports-exams-generated</span>
+                </td>
+                <td class="col-subsystem">التقارير الإحصائية والتحليلية وسجل الرقابة والتدقيق</td>
+                <td class="col-testing-scope">سجل كافة الاختبارات المنشأة بواسطة النظام وتواريخ توليدها وأرقام النسخ والنماذج</td>
+                <td class="col-executor">أمانة سر الامتحانات</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">حصر تاريخي لاختبارات العام الدراسي وتفاصيل توليدها</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">100</td>
+                <td class="col-title">تقرير توزيع وإرسال طرود الاختبارات</td>
+                <td class="col-code">
+                    <strong>ExamDistributionReportView.vue</strong><br>
+                    <span style="color:#4b5563;">reports-exam-distribution</span>
+                </td>
+                <td class="col-subsystem">التقارير الإحصائية والتحليلية وسجل الرقابة والتدقيق</td>
+                <td class="col-testing-scope">تتبع خطوط سير طرود الأسئلة ومطابقة استلام لجان الاختبار بالمحافظات</td>
+                <td class="col-executor">اللجنة الأمنية للامتحانات</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">تأكيد وصول الطرود بسلام وتوثيق محاضر الفتح الرسمية</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">101</td>
+                <td class="col-title">تقرير المحذوفات والموضوعات المستبعدة</td>
+                <td class="col-code">
+                    <strong>CurriculumExclusionsReportView.vue</strong><br>
+                    <span style="color:#4b5563;">reports-curriculum-exclusions</span>
+                </td>
+                <td class="col-subsystem">التقارير الإحصائية والتحليلية وسجل الرقابة والتدقيق</td>
+                <td class="col-testing-scope">بيان رسمي بالمحذوفات المعتمدة من قطاع المناهج وتأكيد خلو بنك الاختبارات منها</td>
+                <td class="col-executor">إدارة المناهج والرقابة</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">تأكيد عدم اشتمال أي اختبار على جزئيات ملغية</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">102</td>
+                <td class="col-title">تقرير تسجيلات وقيد الطلاب المركزية</td>
+                <td class="col-code">
+                    <strong>StudentRegistrationsReportView.vue</strong><br>
+                    <span style="color:#4b5563;">reports-student-registrations</span>
+                </td>
+                <td class="col-subsystem">التقارير الإحصائية والتحليلية وسجل الرقابة والتدقيق</td>
+                <td class="col-testing-scope">إحصائيات المتقدمين للاختبارات الوزارية، المقبولين، والمحرومين، وتوزيعهم</td>
+                <td class="col-executor">لجنة النظام والمراقبة</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">مطابقة إجمالي المتقدمين مع أرقام الجلوس المصدرة</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">103</td>
+                <td class="col-title">تقرير الطلاب والنتائج الأكاديمية</td>
+                <td class="col-code">
+                    <strong>StudentsReportView.vue</strong><br>
+                    <span style="color:#4b5563;">reports-students</span>
+                </td>
+                <td class="col-subsystem">التقارير الإحصائية والتحليلية وسجل الرقابة والتدقيق</td>
+                <td class="col-testing-scope">كشوفات الدرجات التفصيلية لكل طالب في جميع المواد وبيان حالة الرسوب والنجاح</td>
+                <td class="col-executor">الكنترول المركزي</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">طباعة شهادات الدرجات وكشوفات الدرجات المعتمدة</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">104</td>
+                <td class="col-title">تقرير نتائج التصحيح الآلي والنسب المئوية</td>
+                <td class="col-code">
+                    <strong>OMRResultsReportView.vue</strong><br>
+                    <span style="color:#4b5563;">reports-omr-results</span>
+                </td>
+                <td class="col-subsystem">التقارير الإحصائية والتحليلية وسجل الرقابة والتدقيق</td>
+                <td class="col-testing-scope">المخرجات الشاملة لمحرك OMR: متوسط الدرجات، الانحراف المعياري، ونسب النجاح للمواد</td>
+                <td class="col-executor">رئيس الكنترول العام</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">30 د</td>
+                <td class="col-acceptance">استخراج المؤشرات العامة للنتائج الوزارية تمهيداً للإعلان الرسمي</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">105</td>
+                <td class="col-title">تقرير أسئلة مراجعة وتدقيق التصحيح</td>
+                <td class="col-code">
+                    <strong>OMRReviewQuestionsReportView.vue</strong><br>
+                    <span style="color:#4b5563;">reports-omr-review</span>
+                </td>
+                <td class="col-subsystem">التقارير الإحصائية والتحليلية وسجل الرقابة والتدقيق</td>
+                <td class="col-testing-scope">تقرير الأسئلة التي ألغيت أو تم توزيع درجتها بسبب خلل في الصياغة أو تضارب الإجابات</td>
+                <td class="col-executor">اللجنة العليا للاختبارات</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">إعادة احتساب الدرجات آلياً وفق قرارات اللجنة العليا وتحديث السجلات</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">106</td>
+                <td class="col-title">سجل الرقابة والتدقيق التاريخي للعمليات</td>
+                <td class="col-code">
+                    <strong>AuditLogsView.vue</strong><br>
+                    <span style="color:#4b5563;">audit-logs</span>
+                </td>
+                <td class="col-subsystem">التقارير الإحصائية والتحليلية وسجل الرقابة والتدقيق</td>
+                <td class="col-testing-scope">السجل الأمني الشامل لكافة عمليات النظام (Logins, Creations, Updates, Deletions, Exports)</td>
+                <td class="col-executor">المراجع العام / أمن المعلومات</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">30 د</td>
+                <td class="col-acceptance">استرجاع مسار أي معاملة أو حركة بتفاصيل الـ IP وتاريخ التنفيذ بدقة ثانية</td>
+            </tr>
+        
+            <tr class="module-header-row">
+                <td colspan="9">
+                    المنظومة 11: المزامنة والربط والتواصل والتعميمات والإرشادات — (11 شاشة | إجمالي المدة: 200 دقيقة / 3.3 ساعة)
+                </td>
+            </tr>
+    
+            <tr>
+                <td class="col-id">107</td>
+                <td class="col-title">شاشة المزامنة المركزية الفورية</td>
+                <td class="col-code">
+                    <strong>SyncView.vue</strong><br>
+                    <span style="color:#4b5563;">sync</span>
+                </td>
+                <td class="col-subsystem">المزامنة والربط والتواصل والتعميمات والإرشادات</td>
+                <td class="col-testing-scope">مزامنة البيانات الحية بين السيرفر المركزي ومخدمات المحافظات والمديريات دون اتصال دائم</td>
+                <td class="col-executor">مدير الشبكات والمزامنة</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">25 د</td>
+                <td class="col-acceptance">نقل البيانات ومعالجة التعارضات (Conflict Resolution) دون فقدان سجلات</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">108</td>
+                <td class="col-title">إعدادات وسياسات المزامنة</td>
+                <td class="col-code">
+                    <strong>ScreenSyncView.vue</strong><br>
+                    <span style="color:#4b5563;">screen-sync</span>
+                </td>
+                <td class="col-subsystem">المزامنة والربط والتواصل والتعميمات والإرشادات</td>
+                <td class="col-testing-scope">ضبط فترات التزامن التلقائي، حجم الحزم، التشفير، وأولوية جداول المزامنة</td>
+                <td class="col-executor">مهندس النظم</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">حفظ الإعدادات وتطبيقها على خدمات المزامنة الخلفية</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">109</td>
+                <td class="col-title">مجموعات وقنوات المزامنة الميدانية</td>
+                <td class="col-code">
+                    <strong>ScreenGroupsView.vue</strong><br>
+                    <span style="color:#4b5563;">screen-groups</span>
+                </td>
+                <td class="col-subsystem">المزامنة والربط والتواصل والتعميمات والإرشادات</td>
+                <td class="col-testing-scope">تقسيم مراكز الامتحانات إلى مجموعات مزامنة بحسب النطاق الجغرافي وسرعة الاتصال</td>
+                <td class="col-executor">مدير الشبكات</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">عزل قنوات المزامنة لمنع الضغط الزائد على السيرفر المركزي</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">110</td>
+                <td class="col-title">سجل وأرشيف عمليات المزامنة</td>
+                <td class="col-code">
+                    <strong>SyncLogsView.vue</strong><br>
+                    <span style="color:#4b5563;">sync-logs</span>
+                </td>
+                <td class="col-subsystem">المزامنة والربط والتواصل والتعميمات والإرشادات</td>
+                <td class="col-testing-scope">استعراض سجلات المزامنة وتتبع الحزم الفاشلة وإعادة إرسالها آلياً</td>
+                <td class="col-executor">أخصائي الدعم الفني</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">تحديد سبب فشل أي حزمة وتأكيد اكتمال التزامن 100%</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">111</td>
+                <td class="col-title">المحادثات والرسائل الفورية للجان</td>
+                <td class="col-code">
+                    <strong>ChattingView.vue</strong><br>
+                    <span style="color:#4b5563;">chatting-view</span>
+                </td>
+                <td class="col-subsystem">المزامنة والربط والتواصل والتعميمات والإرشادات</td>
+                <td class="col-testing-scope">غرف تواصل مشفرة بين قيادة الكنترول المركزي ورؤساء اللجان والمراكز الامتحانية</td>
+                <td class="col-executor">لجان الامتحانات والكنترول</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">تراسل فوري مشفر مع تبادل الملاحظات الطارئة أثناء سير الامتحانات</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">112</td>
+                <td class="col-title">قواعد وسياسات جهات الاتصال</td>
+                <td class="col-code">
+                    <strong>ContactRulesView.vue</strong><br>
+                    <span style="color:#4b5563;">contact-rules-view</span>
+                </td>
+                <td class="col-subsystem">المزامنة والربط والتواصل والتعميمات والإرشادات</td>
+                <td class="col-testing-scope">تحديد من يتواصل مع من ومنع التواصل غير المصرح به بين المراكز والمصححين</td>
+                <td class="col-executor">أمن الكنترول</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">عزل الاتصالات بين لجان التصحيح والمراكز الميدانية لضمان النزاهة</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">113</td>
+                <td class="col-title">مركز الإشعارات والتنبيهات المباشرة</td>
+                <td class="col-code">
+                    <strong>NotificationsView.vue</strong><br>
+                    <span style="color:#4b5563;">notifications-view</span>
+                </td>
+                <td class="col-subsystem">المزامنة والربط والتواصل والتعميمات والإرشادات</td>
+                <td class="col-testing-scope">بث التنبيهات الفورية للأحداث الحرجة (اكتمال تصحيح، طلب تدقيق، فتح مظاريف)</td>
+                <td class="col-executor">كافة المستخدمين</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">توصيل الإشعارات الفورية وتحديث شارة الجرس في الواجهة</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">114</td>
+                <td class="col-title">إدارة التعميمات والقرارات الوزارية</td>
+                <td class="col-code">
+                    <strong>GeneralizationsView.vue</strong><br>
+                    <span style="color:#4b5563;">generalizations-view</span>
+                </td>
+                <td class="col-subsystem">المزامنة والربط والتواصل والتعميمات والإرشادات</td>
+                <td class="col-testing-scope">نشر التعميمات واللوائح والقرارات الامتحانية للمدارس والمحافظات مع إشعار استلام</td>
+                <td class="col-executor">الوزير / قطاع المناهج</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">نشر التعميم وإلزام المستخدمين بقراءته قبل متابعة العمل</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">115</td>
+                <td class="col-title">متابعة واستلام ردود التعميمات</td>
+                <td class="col-code">
+                    <strong>GeneralizationRepliesView.vue</strong><br>
+                    <span style="color:#4b5563;">generalizations/:id/replies</span>
+                </td>
+                <td class="col-subsystem">المزامنة والربط والتواصل والتعميمات والإرشادات</td>
+                <td class="col-testing-scope">استلام محاضر الإقرار واستجابة المدارس والمراكز لتعليمات الكنترول</td>
+                <td class="col-executor">أمانة سر الامتحانات</td>
+                <td class="col-priority" style="color:#1d4ed8;">P2</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">حصر المتخلفين عن الرد وتوليد كشف المتابعة الميدانية</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">116</td>
+                <td class="col-title">الفترات الامتحانية المركزية والجدولة</td>
+                <td class="col-code">
+                    <strong>ExamPeriodsView.vue</strong><br>
+                    <span style="color:#4b5563;">exam-periods-general</span>
+                </td>
+                <td class="col-subsystem">المزامنة والربط والتواصل والتعميمات والإرشادات</td>
+                <td class="col-testing-scope">إدارة تقويم الامتحانات المركزية، مواعيد انطلاق الاختبارات، وفترات الكنترول والتصحيح</td>
+                <td class="col-executor">اللجنة العليا للاختبارات</td>
+                <td class="col-priority" style="color:#b91c1c;">P1</td>
+                <td class="col-duration">20 د</td>
+                <td class="col-acceptance">حفظ التقويم الامتحاني العام وضبط التوقيتات المركزية لكافة المنظومات</td>
+            </tr>
+        
+            <tr>
+                <td class="col-id">117</td>
+                <td class="col-title">دليل التعليمات والإرشادات التشغيلية للنظام</td>
+                <td class="col-code">
+                    <strong>InstructionsView.vue</strong><br>
+                    <span style="color:#4b5563;">instructions</span>
+                </td>
+                <td class="col-subsystem">المزامنة والربط والتواصل والتعميمات والإرشادات</td>
+                <td class="col-testing-scope">دليل الاستخدام التفاعلي، خطوات التصحيح، إرشادات اللجان، وميثاق العمل الرسمي</td>
+                <td class="col-executor">كافة الأدوار</td>
+                <td class="col-priority" style="color:#374151;">P3</td>
+                <td class="col-duration">15 د</td>
+                <td class="col-acceptance">عرض فهارس المساعدة والكتيب الإرشادي بصيغة واضحة للمستخدمين</td>
+            </tr>
+        
+        </tbody>
+    </table>
+
+    <!-- صفحة الاعتماد والختام الرسمية -->
+    <div class="page-break"></div>
+
+    <div style="padding: 10px 4px;">
+        <div style="border-bottom: 2px solid #1e3a8a; padding-bottom: 6px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 14px; font-weight: 800; color: #1e3a8a;">
+                📊 جدول التوزيع الإحصائي للأزمنة والأولويات حسب المنظومات الـ 11
+            </div>
+            <div style="font-size: 10px; color: #475569; font-weight: 700;">
+                الجمهورية اليمنية — قطاع المناهج والتوجيه والتقويم — الإدارة العامة للاختبارات المركزية
+            </div>
+        </div>
+
+        <table class="matrix-table">
+            <thead>
+                <tr>
+                    <th style="width: 35px;">م</th>
+                    <th style="text-align: right; padding-right: 10px;">المنظومة / الوحدة البرمجية</th>
+                    <th>عدد الشاشات</th>
+                    <th>P1 (حرجة)</th>
+                    <th>P2 (أساسية)</th>
+                    <th>P3 (مساندة)</th>
+                    <th>إجمالي الدقائق</th>
+                    <th>إجمالي الساعات</th>
+                    <th>النسبة من الخطة</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                    <td>1</td>
+                    <td style="text-align: right; font-weight: 700; padding-right: 10px;">المصادقة، الدخول، وتحديد المنظومات</td>
+                    <td style="font-weight: 700;">6</td>
+                    <td style="color: #b91c1c; font-weight: 700;">3</td>
+                    <td style="color: #1d4ed8; font-weight: 700;">3</td>
+                    <td style="color: #4b5563;">0</td>
+                    <td>85 دقيقة</td>
+                    <td style="font-weight: 700; color: #047857;">1.4 ساعة</td>
+                    <td>3.2%</td>
+                </tr>
+    
+                <tr>
+                    <td>2</td>
+                    <td style="text-align: right; font-weight: 700; padding-right: 10px;">إدارة المستخدمين، الصلاحيات، والهيكل الإداري</td>
+                    <td style="font-weight: 700;">6</td>
+                    <td style="color: #b91c1c; font-weight: 700;">3</td>
+                    <td style="color: #1d4ed8; font-weight: 700;">2</td>
+                    <td style="color: #4b5563;">1</td>
+                    <td>125 دقيقة</td>
+                    <td style="font-weight: 700; color: #047857;">2.1 ساعة</td>
+                    <td>4.7%</td>
+                </tr>
+    
+                <tr>
+                    <td>3</td>
+                    <td style="text-align: right; font-weight: 700; padding-right: 10px;">الهيكل الجغرافي والمؤسسي وسجلات الطلاب</td>
+                    <td style="font-weight: 700;">11</td>
+                    <td style="color: #b91c1c; font-weight: 700;">4</td>
+                    <td style="color: #1d4ed8; font-weight: 700;">6</td>
+                    <td style="color: #4b5563;">1</td>
+                    <td>220 دقيقة</td>
+                    <td style="font-weight: 700; color: #047857;">3.7 ساعة</td>
+                    <td>8.3%</td>
+                </tr>
+    
+                <tr>
+                    <td>4</td>
+                    <td style="text-align: right; font-weight: 700; padding-right: 10px;">تهيئة التعليم المدرسي العام ومصفوفة المناهج</td>
+                    <td style="font-weight: 700;">12</td>
+                    <td style="color: #b91c1c; font-weight: 700;">7</td>
+                    <td style="color: #1d4ed8; font-weight: 700;">5</td>
+                    <td style="color: #4b5563;">0</td>
+                    <td>260 دقيقة</td>
+                    <td style="font-weight: 700; color: #047857;">4.3 ساعة</td>
+                    <td>9.8%</td>
+                </tr>
+    
+                <tr>
+                    <td>5</td>
+                    <td style="text-align: right; font-weight: 700; padding-right: 10px;">تهيئة التعليم الجامعي والأكاديمي والأنظمة التقديرية</td>
+                    <td style="font-weight: 700;">11</td>
+                    <td style="color: #b91c1c; font-weight: 700;">3</td>
+                    <td style="color: #1d4ed8; font-weight: 700;">8</td>
+                    <td style="color: #4b5563;">0</td>
+                    <td>215 دقيقة</td>
+                    <td style="font-weight: 700; color: #047857;">3.6 ساعة</td>
+                    <td>8.1%</td>
+                </tr>
+    
+                <tr>
+                    <td>6</td>
+                    <td style="text-align: right; font-weight: 700; padding-right: 10px;">تهيئة المعاهد الفنية والمهنية والخطط التدريبية</td>
+                    <td style="font-weight: 700;">13</td>
+                    <td style="color: #b91c1c; font-weight: 700;">5</td>
+                    <td style="color: #1d4ed8; font-weight: 700;">8</td>
+                    <td style="color: #4b5563;">0</td>
+                    <td>240 دقيقة</td>
+                    <td style="font-weight: 700; color: #047857;">4.0 ساعة</td>
+                    <td>9.0%</td>
+                </tr>
+    
+                <tr>
+                    <td>7</td>
+                    <td style="text-align: right; font-weight: 700; padding-right: 10px;">بنك الأسئلة المركزي والتأليف والتحكيم الأكاديمي</td>
+                    <td style="font-weight: 700;">7</td>
+                    <td style="color: #b91c1c; font-weight: 700;">5</td>
+                    <td style="color: #1d4ed8; font-weight: 700;">2</td>
+                    <td style="color: #4b5563;">0</td>
+                    <td>215 دقيقة</td>
+                    <td style="font-weight: 700; color: #047857;">3.6 ساعة</td>
+                    <td>8.1%</td>
+                </tr>
+    
+                <tr>
+                    <td>8</td>
+                    <td style="text-align: right; font-weight: 700; padding-right: 10px;">توليد الاختبارات، النماذج، والطباعة والتوزيع</td>
+                    <td style="font-weight: 700;">9</td>
+                    <td style="color: #b91c1c; font-weight: 700;">8</td>
+                    <td style="color: #1d4ed8; font-weight: 700;">1</td>
+                    <td style="color: #4b5563;">0</td>
+                    <td>250 دقيقة</td>
+                    <td style="font-weight: 700; color: #047857;">4.2 ساعة</td>
+                    <td>9.4%</td>
+                </tr>
+    
+                <tr>
+                    <td>9</td>
+                    <td style="text-align: right; font-weight: 700; padding-right: 10px;">نظام التصحيح الآلي وقراءة التظليل OMR والتدقيق البشري</td>
+                    <td style="font-weight: 700;">15</td>
+                    <td style="color: #b91c1c; font-weight: 700;">10</td>
+                    <td style="color: #1d4ed8; font-weight: 700;">4</td>
+                    <td style="color: #4b5563;">1</td>
+                    <td>445 دقيقة</td>
+                    <td style="font-weight: 700; color: #047857;">7.4 ساعة</td>
+                    <td>16.7%</td>
+                </tr>
+    
+                <tr>
+                    <td>10</td>
+                    <td style="text-align: right; font-weight: 700; padding-right: 10px;">التقارير الإحصائية والتحليلية وسجل الرقابة والتدقيق</td>
+                    <td style="font-weight: 700;">16</td>
+                    <td style="color: #b91c1c; font-weight: 700;">11</td>
+                    <td style="color: #1d4ed8; font-weight: 700;">5</td>
+                    <td style="color: #4b5563;">0</td>
+                    <td>405 دقيقة</td>
+                    <td style="font-weight: 700; color: #047857;">6.8 ساعة</td>
+                    <td>15.2%</td>
+                </tr>
+    
+                <tr>
+                    <td>11</td>
+                    <td style="text-align: right; font-weight: 700; padding-right: 10px;">المزامنة والربط والتواصل والتعميمات والإرشادات</td>
+                    <td style="font-weight: 700;">11</td>
+                    <td style="color: #b91c1c; font-weight: 700;">2</td>
+                    <td style="color: #1d4ed8; font-weight: 700;">8</td>
+                    <td style="color: #4b5563;">1</td>
+                    <td>200 دقيقة</td>
+                    <td style="font-weight: 700; color: #047857;">3.3 ساعة</td>
+                    <td>7.5%</td>
+                </tr>
+    
+                <tr class="total-row">
+                    <td colspan="2" style="text-align: center;">الإجمالي العام المعتمد لكافة شاشات المشروع</td>
+                    <td>117 شاشة</td>
+                    <td style="color: #b91c1c;">61</td>
+                    <td style="color: #1d4ed8;">52</td>
+                    <td style="color: #4b5563;">4</td>
+                    <td>2660 دقيقة</td>
+                    <td style="color: #047857;">44.3 ساعة</td>
+                    <td>100%</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>
