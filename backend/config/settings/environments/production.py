@@ -9,10 +9,15 @@
 """
 import sys
 import logging
+from pathlib import Path
 
 from decouple import config
 
 logger = logging.getLogger(__name__)
+
+_PROD_LOGS_DIR = Path(__file__).resolve().parent.parent.parent.parent / 'logs'
+_PROD_LOGS_DIR.mkdir(parents=True, exist_ok=True)
+_SECURITY_LOG_FILE = str(_PROD_LOGS_DIR / 'security.log')
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -99,7 +104,7 @@ LOGGING = {
         'security_file': {
             'level': 'WARNING',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'logs/security.log',
+            'filename': _SECURITY_LOG_FILE,
             'maxBytes': 10 * 1024 * 1024,  # 10 MB
             'backupCount': 5,
             'formatter': 'production',

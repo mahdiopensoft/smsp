@@ -134,7 +134,7 @@
           />
         </template>
         <template v-slot:label>
-          <span v-if="text" style="font-weight: bold !important">
+          <span v-if="text && data.label && data.label !== 'undefined'" style="font-weight: bold !important">
             {{ data.label + "  " }}
           </span>
           <span style="font-size: 15px" v-if="isRequired"> * </span>

@@ -55,7 +55,7 @@ class OMRVerificationMVS(ViewSet):
     شاشة المطابقة والتحقق من الأوراق المفقودة والرقابة الشاملة.
     Endpoint: /api/omr/verification/
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request):
         """

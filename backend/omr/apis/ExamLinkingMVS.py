@@ -19,7 +19,7 @@ class ExamLinkingMVS(ViewSet):
     Endpoint: /api/omr/exam-linking/
     Used by: OMRExamsView.vue (شاشة ربط الاختبارات والتصحيح)
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     @staticmethod
     def _resolve_subject_filter(subj_val):

@@ -11,7 +11,7 @@ class OMRPrintRegistryMVS(ViewSet):
     ViewSet for tracking printed OMR sheets and batches.
     Endpoint: /api/omr/print-registry/
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request):
         """

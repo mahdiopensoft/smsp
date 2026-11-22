@@ -119,25 +119,32 @@ class DashboardMVS(ViewSet):
                     "count": cnt
                 })
 
-        # 3. Question Types Distribution (with percentages)
+        # 3. Question Types Distribution (with percentages and unified aggregation)
         type_counts = base_qs.values('questionType').annotate(count=Count('id'))
         type_labels_map = {
             'Single Choice': 'اختيار من متعدد',
             'Multiple Choice': 'اختيارات متعددة',
             'True/False': 'صح وخطأ',
+            'mcq': 'اختيار من متعدد',
+            'true_false': 'صح وخطأ',
             'Essay': 'مقالي',
+            'essay': 'مقالي',
             'Fill in the Blanks': 'إكمال الفراغ',
             'Matching': 'مطابقة',
             'Ordering': 'ترتيب',
         }
-        question_types = []
+        aggregated_types = {}
         for tc in type_counts:
             raw_t = tc['questionType']
-            cnt = tc['count']
+            norm_name = type_labels_map.get(raw_t, raw_t or 'غير محدد')
+            aggregated_types[norm_name] = aggregated_types.get(norm_name, 0) + tc['count']
+
+        question_types = []
+        for norm_name, cnt in aggregated_types.items():
             pct = round((cnt / total_questions * 100), 1) if total_questions > 0 else 0
             question_types.append({
-                "type": raw_t,
-                "name": type_labels_map.get(raw_t, raw_t or 'غير محدد'),
+                "type": norm_name,
+                "name": norm_name,
                 "count": cnt,
                 "percentage": pct
             })

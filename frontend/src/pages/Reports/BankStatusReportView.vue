@@ -22,8 +22,9 @@
             <auto-list
               v-model="filterStage"
               name="Stage"
+              label="المرحلة الدراسية"
               placeholder="المرحلة الدراسية"
-              cols="2"
+              cols="3"
               :add="false"
               @update:model-value="onStageChange"
             />
@@ -31,8 +32,9 @@
               v-model="filterClassTrack"
               name="ClassTrackByStage"
               :param="filterStage"
+              label="الصف والمسار"
               placeholder="الصف والمسار"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterStage"
               @update:model-value="onClassTrackChange"
@@ -41,8 +43,9 @@
               v-model="filterSubject"
               name="Subject"
               :param="subjectFilterParam"
+              label="المادة الدراسية"
               placeholder="المادة الدراسية"
-              cols="2"
+              cols="3"
               :add="false"
               @update:model-value="onSubjectChange"
             />
@@ -351,8 +354,17 @@ const applyFilters = async (tableParams = {}) => {
     const res = await reportsService.getBankStatusOverview(query)
     if (res) {
       overviewData.value = res
+      const formatInstitutionType = (type) => {
+        const map = {
+          'school': 'تعليم مدرسي',
+          'university': 'تعليم جامعي',
+          'institute': 'تعليم مهني ومعاهد'
+        }
+        return map[type] || type || '—'
+      }
       const results = (res.results || res.subjectProgress || []).map(s => ({
         ...s,
+        institutionType: formatInstitutionType(s.institutionType),
         coverageLabel: `${s.coverage}%`
       }))
       setResponse({

@@ -364,8 +364,8 @@ class OMRHumanReviewMVS(AllMVS):
                 sheet.unanswered = sum(1 for q in all_q if not q.final_marked_choice)
                 sheet.ambiguous_count = sum(1 for q in all_q if q.needs_review)
 
-                computed_score = sum(float(q.marks_awarded or 0.0) for q in all_q if q.is_correct)
-                sheet.mcq_score = round(computed_score, 2)
+                computed_score = sum(float(q.marks_awarded or 0.0) for q in all_q)
+                sheet.mcq_score = round(max(0.0, computed_score), 2)
                 sheet.save()
 
                 if hasattr(sheet, 'submission') and sheet.submission:

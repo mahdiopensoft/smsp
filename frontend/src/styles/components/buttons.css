@@ -5,8 +5,7 @@
 
 .v-btn {
   font-family: var(--font-family-sans) !important;
-  text-transform: capitalize !important;
-  letter-spacing: 0.0269rem !important;
+  letter-spacing: normal !important;
   font-weight: var(--font-weight-medium) !important;
   transition: all 0.135s ease !important;
 }
