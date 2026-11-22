@@ -13,6 +13,8 @@
 # ==============================================================================
 node_modules/
 **/node_modules/
+shared-project-v4/
+**/shared-project-v4/
 dist/
 dist-ssr/
 *.local

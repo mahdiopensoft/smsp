@@ -5,7 +5,9 @@ node_modules/
 
 shared-project
 shared-project/
-# /shared-project
+shared-project-v3
+shared-project-v4
+shared-project-v4/
 
 # components
 /dist
