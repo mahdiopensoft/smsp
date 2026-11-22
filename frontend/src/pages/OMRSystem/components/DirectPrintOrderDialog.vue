@@ -121,9 +121,13 @@
                 color="primary"
                 density="compact"
                 hide-details
+                :disabled="totalTargetCount === 0"
               >
                 <template #label>
-                  <span class="text-body-2 font-weight-medium">أوراق إجابة OMR ({{ totalTargetCount }} طالب)</span>
+                  <span class="text-body-2 font-weight-medium">
+                    أوراق إجابة OMR ({{ totalTargetCount }} طالب)
+                    <span v-if="totalTargetCount === 0" class="text-error text-caption ms-1">(لا توجد سجلات)</span>
+                  </span>
                 </template>
               </v-checkbox>
             </v-col>
@@ -145,9 +149,13 @@
                 color="primary"
                 density="compact"
                 hide-details
+                :disabled="totalTargetCount === 0"
               >
                 <template #label>
-                  <span class="text-body-2 font-weight-medium">كشوف المناداة ومحاضر المراكز</span>
+                  <span class="text-body-2 font-weight-medium">
+                    كشوف المناداة ومحاضر المراكز
+                    <span v-if="totalTargetCount === 0" class="text-error text-caption ms-1">(لا توجد سجلات)</span>
+                  </span>
                 </template>
               </v-checkbox>
             </v-col>
@@ -211,6 +219,23 @@
 
           <!-- تنبيه واقعي واضح -->
           <v-alert
+            v-if="totalTargetCount === 0"
+            type="warning"
+            variant="tonal"
+            density="compact"
+            rounded="lg"
+            class="mt-3 py-2 text-caption font-weight-medium"
+          >
+            <template #prepend>
+              <v-icon size="18" color="warning">mdi-shield-alert-outline</v-icon>
+            </template>
+            <div>
+              <strong>تنبيه كنترول:</strong> لا تتوفر سجلات طلاب مقيدين في قاعدة البيانات لهذا الاختبار. تم تعطيل سحب أوراق OMR وكشوف المناداة لمنع توليد بيانات افتراضية. يمكنك سحب كراسات الأسئلة أو إذن الصرف فقط.
+            </div>
+          </v-alert>
+
+          <v-alert
+            v-else
             type="primary"
             variant="tonal"
             density="compact"
@@ -277,8 +302,8 @@
               v-model.number="actualPrintedCount"
               type="number"
               :min="0"
-              :max="totalTargetCount"
-              label="عدد الأوراق السليمة التي خرجت فعلياً من الماكينة"
+              :max="remainingToPrint > 0 ? remainingToPrint : totalTargetCount"
+              label="عدد الأوراق السليمة التي خرجت فعلياً من الماكينة في هذه الدفعة"
               icon="counter"
               suffix="ورقة"
               cols="12"
@@ -286,21 +311,22 @@
               class="mb-2"
             />
             
-            <!-- مؤشر حالة السحب التفاعلي -->
+            <!-- مؤشر حالة السحب التفاعلي والتراكمي -->
             <div class="d-flex align-center justify-space-between mt-2 flex-wrap gap-2">
-              <div v-if="actualPrintedCount >= totalTargetCount" class="center-count-badge unified-badge-primary px-3 py-1 text-caption font-weight-bold">
-                ✓ سحب مكتمل بالكامل (100% - {{ totalTargetCount }} من {{ totalTargetCount }})
+              <div v-if="cumulativeExpected >= totalTargetCount" class="center-count-badge unified-badge-primary px-3 py-1 text-caption font-weight-bold">
+                ✓ سحب مكتمل بالكامل (100% — {{ totalTargetCount }} من {{ totalTargetCount }})
               </div>
               <div v-else-if="actualPrintedCount > 0" class="center-count-badge unified-badge-warning px-3 py-1 text-caption font-weight-bold">
-                ⚠ سحب جزئي: تم طباعة {{ actualPrintedCount }} ورقة، وسيتبقى {{ totalTargetCount - actualPrintedCount }} في قائمة المستحقة
+                ⚠ سحب جزئي: تم طباعة {{ actualPrintedCount }} ورقة إضافية (المطبوع التراكمي: {{ cumulativeExpected }} من {{ totalTargetCount }}، والمتبقي: {{ totalTargetCount - cumulativeExpected }})
               </div>
               <div v-else class="center-count-badge unified-badge-warning px-3 py-1 text-caption font-weight-bold">
-                ✕ لم تطبع أي ورقة (سحب ملغى / تعذر عمل الطابعة)
+                ✕ لم تطبع أي ورقة في هذه الدفعة (سحب ملغى / تعذر عمل الطابعة)
               </div>
 
-              <span class="text-caption text-medium-emphasis">
-                المستهدف الكلي: <strong>{{ totalTargetCount }} ورقة</strong>
-              </span>
+              <div class="d-flex align-center gap-2 text-caption text-medium-emphasis">
+                <span v-if="alreadyPrintedCount > 0">سبق طباعة: <strong>{{ alreadyPrintedCount }}</strong> |</span>
+                <span>المستهدف الكلي: <strong>{{ totalTargetCount }} ورقة</strong></span>
+              </div>
             </div>
           </div>
 
@@ -429,7 +455,19 @@ const options = ref({
 })
 
 const totalTargetCount = computed(() => {
-  return props.exam?.total_registered || props.exam?.total_students || 8
+  return Number(props.exam?.total_registered || props.exam?.total_students || 0)
+})
+
+const alreadyPrintedCount = computed(() => {
+  return Number(props.exam?.printed_count || 0)
+})
+
+const remainingToPrint = computed(() => {
+  return Math.max(0, totalTargetCount.value - alreadyPrintedCount.value)
+})
+
+const cumulativeExpected = computed(() => {
+  return Math.min(totalTargetCount.value, alreadyPrintedCount.value + Number(actualPrintedCount.value || 0))
 })
 
 const orderNumberDisplay = computed(() => {
@@ -440,12 +478,13 @@ const orderNumberDisplay = computed(() => {
 watch(() => props.modelValue, (isOpen) => {
   if (isOpen) {
     currentStep.value = 'prepare'
-    actualPrintedCount.value = totalTargetCount.value
+    // Default to the remaining unprinted count for this batch
+    actualPrintedCount.value = remainingToPrint.value > 0 ? remainingToPrint.value : (totalTargetCount.value > 0 ? totalTargetCount.value : 0)
     operatorNotes.value = ''
     options.value = {
-      sheets: true,
+      sheets: totalTargetCount.value > 0,
       booklets: true,
-      roster: true,
+      roster: totalTargetCount.value > 0,
       manifest: true,
     }
   }
@@ -457,10 +496,15 @@ const close = () => {
 
 // المرحلة 1: تشغيل أمر السحب الفعلي والانتقال للمرحلة 2
 const startPrintDispatch = () => {
-  actualPrintedCount.value = totalTargetCount.value
+  actualPrintedCount.value = remainingToPrint.value > 0 ? remainingToPrint.value : totalTargetCount.value
+  const sanitizedOptions = {
+    ...options.value,
+    sheets: totalTargetCount.value > 0 ? options.value.sheets : false,
+    roster: totalTargetCount.value > 0 ? options.value.roster : false,
+  }
   emit('startPrint', {
     exam: props.exam,
-    options: options.value,
+    options: sanitizedOptions,
   })
   currentStep.value = 'verify'
 }
@@ -478,12 +522,14 @@ const onFailedOrCancelled = () => {
   close()
 }
 
-// المرحلة 2: اعتماد وتوثيق ما خرج فعلياً فقط
+// المرحلة 2: اعتماد وتوثيق ما خرج فعلياً فقط مع رقم عملية فريد يمنع التكرار
 const onConfirmVerification = () => {
+  const uniqueBatchId = `PRN-BAT-${props.exam?.uniqueCode || props.exam?.id || 'EXAM'}-${Date.now()}-${Math.floor(Math.random() * 1000)}`
   emit('confirmExecution', {
     exam: props.exam,
     options: options.value,
     actualPrintedCount: Number(actualPrintedCount.value || 0),
+    batchId: uniqueBatchId,
     notes: operatorNotes.value,
   })
 }

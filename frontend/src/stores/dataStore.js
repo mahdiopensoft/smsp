@@ -66,6 +66,9 @@ export function useDataStore() {
             if (state[entity]) state[entity].push(newItem)
             return newItem
         },
+        setAll(entity, items) {
+            state[entity] = Array.isArray(items) ? [...items] : (items ? [items] : [])
+        },
         
         async _fetchAndCache(entity, fetchFn) {
             state.loading[entity] = true

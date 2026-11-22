@@ -121,14 +121,19 @@ class QuestionMVS(AllMVS):
         if semester_subject:
             qs = qs.filter(lesson__unit__semester_subject_id=semester_subject)
 
-        # 3. School Filters (Guarded: questions currently reference UniversityLesson)
+        # 3. School Filters
         stage = params.get('stage')
         if stage:
-            qs = qs.none()
+            qs = qs.filter(
+                Q(lesson__unit__class_subject__class_track__level__stage_id=stage)
+            )
 
         class_track = params.get('class_track')
         if class_track:
-            qs = qs.none()
+            qs = qs.filter(
+                Q(lesson__unit__class_subject__class_track_id=class_track) |
+                Q(lesson__unit__school_subject__class_subjects__class_track_id=class_track)
+            )
 
         # 4. Institute Filters
         inst_field = params.get('field') or params.get('institute_field')
@@ -136,11 +141,13 @@ class QuestionMVS(AllMVS):
             qs = qs.filter(institution_type='institute')
 
         # 5. Subject & Unit Filter
-        subject = params.get('subject') or params.get('institute_subject')
+        subject = params.get('subject') or params.get('school_subject') or params.get('institute_subject')
         if subject:
             qs = qs.filter(
                 Q(lesson__unit__semester_subject__fk_subject_id=subject) |
                 Q(lesson__subject_id=subject) |
+                Q(lesson__unit__school_subject_id=subject) |
+                Q(lesson__unit__class_subject__school_subject_id=subject) |
                 Q(lesson__unit__semester_subject__course_id=subject)
             )
 

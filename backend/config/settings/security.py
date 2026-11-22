@@ -40,9 +40,16 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 # التوصية: ✅ حدد النطاقات بدقة، لا تستخدم '*' في الإنتاج
 ALLOWED_HOSTS_STR = config('ALLOWED_HOSTS', default='*')
 ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STR.split(',') if host.strip()]
-for h in ['*', 'testserver', '0.0.0.0', 'localhost', '127.0.0.1']:
-    if h not in ALLOWED_HOSTS:
-        ALLOWED_HOSTS.append(h)
+_ENV = config('DJANGO_ENV', default='development').lower()
+if _ENV == 'production':
+    ALLOWED_HOSTS = [h for h in ALLOWED_HOSTS if h != '*']
+    for h in ['testserver', '127.0.0.1', 'localhost']:
+        if h not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(h)
+else:
+    for h in ['*', 'testserver', '0.0.0.0', 'localhost', '127.0.0.1']:
+        if h not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(h)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -11,7 +11,7 @@ class OMRPrintRegistryMVS(ViewSet):
     ViewSet for tracking printed OMR sheets and batches.
     Endpoint: /api/omr/print-registry/
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request):
         """
@@ -23,11 +23,43 @@ class OMRPrintRegistryMVS(ViewSet):
             is_deleted=False, 
             is_printed=True, 
             print_batch__isnull=False
-        ).select_related('examVersion__exam')
+        ).select_related('examVersion__exam', 'examVersion__exam__subject', 'student_profile')
 
         exam_id = request.query_params.get('exam_id')
-        if exam_id:
+        if exam_id and exam_id != 'all':
             qs = qs.filter(examVersion__exam_id=exam_id)
+
+        subj_filter = request.query_params.get('subject') or request.query_params.get('subject_id')
+        if subj_filter and subj_filter != 'all':
+            from omr.apis.ExamGradebookMVS import ExamGradebookMVS
+            s_ids, s_names = ExamGradebookMVS._resolve_subject_filter(subj_filter)
+            s_q = Q(examVersion__exam__subject_id__in=s_ids)
+            for sn in s_names:
+                s_q |= Q(examVersion__exam__subject__name_ar__icontains=sn) | Q(examVersion__exam__subject__name_en__icontains=sn)
+            qs = qs.filter(s_q)
+
+        school_id = request.query_params.get('school_id') or request.query_params.get('school') or request.query_params.get('organization_id')
+        directorate_id = request.query_params.get('directorate_id') or request.query_params.get('directorate')
+        office_id = request.query_params.get('office_id') or request.query_params.get('office') or request.query_params.get('governorate') or request.query_params.get('governorate_id')
+
+        if school_id and school_id != 'all':
+            sch_ids = [int(x) for x in str(school_id).split(',') if x.strip().isdigit()]
+            if sch_ids:
+                qs = qs.filter(student_profile__organization_id__in=sch_ids)
+        elif directorate_id and directorate_id != 'all':
+            dir_ids = [int(x) for x in str(directorate_id).split(',') if x.strip().isdigit()]
+            if dir_ids:
+                from OpenSoftCoreV41.common.models.Branch import Organization as CoreOrg
+                core_dirs = CoreOrg.objects.filter(Q(id__in=dir_ids) | Q(fk_directorate_id__in=dir_ids), company_level=40)
+                all_dir_ids = list(core_dirs.values_list('id', flat=True)) + list(core_dirs.exclude(fk_directorate_id__isnull=True).values_list('fk_directorate_id', flat=True)) + dir_ids
+                qs = qs.filter(Q(student_profile__directorate_id__in=all_dir_ids) | Q(student_profile__organization__fk_parent_organization_id__in=core_dirs.values_list('id', flat=True)))
+        elif office_id and office_id != 'all':
+            off_ids = [int(x) for x in str(office_id).split(',') if x.strip().isdigit()]
+            if off_ids:
+                from OpenSoftCoreV41.common.models.Branch import Organization as CoreOrg
+                core_offs = CoreOrg.objects.filter(Q(id__in=off_ids) | Q(fk_governorate_id__in=off_ids), company_level=30)
+                child_dirs = CoreOrg.objects.filter(company_level=40, fk_parent_organization__in=core_offs.values_list('id', flat=True))
+                qs = qs.filter(Q(student_profile__organization__fk_parent_organization_id__in=child_dirs.values_list('id', flat=True)) | Q(student_profile__directorate__fk_parent_organization_id__in=core_offs.values_list('id', flat=True)))
 
         if search:
             if search.isdigit():
@@ -43,7 +75,15 @@ class OMRPrintRegistryMVS(ViewSet):
                 )
 
         # Aggregate by batch and exam
-        batches = qs.values('print_batch', 'examVersion__exam__id', 'examVersion__exam__title').annotate(
+        batches = qs.values(
+            'print_batch', 
+            'examVersion__exam__id', 
+            'examVersion__exam__title',
+            'examVersion__exam__uniqueCode',
+            'examVersion__exam__subject_id',
+            'examVersion__exam__subject__name_ar',
+            'examVersion__exam__subject__name_en'
+        ).annotate(
             total_papers=Count('id'),
             first_printed=Min('printed_at'),
             last_printed=Max('printed_at')
@@ -55,6 +95,9 @@ class OMRPrintRegistryMVS(ViewSet):
                 "batch_id": b['print_batch'],
                 "exam_id": b['examVersion__exam__id'],
                 "exam_title": b['examVersion__exam__title'],
+                "exam_code": b['examVersion__exam__uniqueCode'],
+                "subject_id": b['examVersion__exam__subject_id'],
+                "subject_name": b['examVersion__exam__subject__name_ar'] or b['examVersion__exam__subject__name_en'] or "",
                 "total_papers": b['total_papers'],
                 "print_date": b['first_printed'].strftime("%Y-%m-%d %H:%M") if b['first_printed'] else "",
                 "status": "مكتمل"

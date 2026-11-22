@@ -1,8 +1,8 @@
 from OpenSoftCoreV41.utils.model_view_set.__all__ import AllMVS
-from rest_framework.response import Response
 from django.db.models import Q
 from omr.models.OMRQuestionResult import OMRQuestionResult
 from omr.serializers.OMRQuestionResult import OMRQuestionResultSerializer
+from utils.report_pagination import paginate_records, paginated_report_response
 
 
 class OMRReviewQuestionsReportMVS(AllMVS):
@@ -33,6 +33,7 @@ class OMRReviewQuestionsReportMVS(AllMVS):
         review_priority = request.query_params.get('review_priority')
         is_manually_overridden = request.query_params.get('is_manually_overridden')
         bubble_state = request.query_params.get('bubble_state')
+        search = request.query_params.get('search')
 
         if exam_id:
             qs = qs.filter(sheet_result__submission__exam_id=exam_id)
@@ -44,9 +45,17 @@ class OMRReviewQuestionsReportMVS(AllMVS):
             qs = qs.filter(is_manually_overridden=(is_manually_overridden in ['true', 'True', '1', True]))
         if bubble_state:
             qs = qs.filter(bubble_state=bubble_state)
+        if search:
+            qs = qs.filter(
+                Q(sheet_result__submission__registration__student_profile__name_ar__icontains=search) |
+                Q(sheet_result__submission__registration__student_profile__name_en__icontains=search) |
+                Q(sheet_result__submission__exam__title__icontains=search)
+            )
+
+        paginated_qs, pagination_meta = paginate_records(qs, request, default_size=20)
 
         results = []
-        for r in qs[:300]:
+        for r in paginated_qs:
             student_name = ''
             exam_title = ''
             if r.sheet_result and r.sheet_result.submission:
@@ -70,5 +79,4 @@ class OMRReviewQuestionsReportMVS(AllMVS):
                 'isManuallyOverridden': r.is_manually_overridden,
             })
 
-        return Response({'results': results, 'count': len(results)})
-
+        return paginated_report_response(results, pagination_meta)

@@ -36,11 +36,18 @@ export default {
         getAttrs(data, attrs) {
             if (!attrs) return {};
             if (typeof attrs === 'object') return attrs;
-            try {
-                return eval("(" + attrs + ")");
-            } catch (e) {
-                return {};
+            if (typeof attrs === 'string') {
+                try {
+                    return JSON.parse(attrs);
+                } catch (e) {
+                    try {
+                        return JSON.parse(attrs.replace(/(['"])?([a-zA-Z0-9_]+)(['"])?:/g, '"$2":').replace(/'/g, '"'));
+                    } catch {
+                        return {};
+                    }
+                }
             }
+            return {};
         },
 
         processFieldsRules(fields) {

@@ -1,6 +1,6 @@
 <template>
   <div class="student-registrations-report-page pa-4 pa-md-6">
-    <filter-fields label="معايير التصفية والبحث في سجل تسجيلات الطلاب" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
+    <filter-fields label="معايير التصفية والبحث في تسجيلات الطلاب في الاختبارات" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
       <template #fields>
         <!-- 1. اختيار نوع المؤسسة التعليمية الموحد -->
         <v-col cols="12" sm="6" md="3">
@@ -39,7 +39,7 @@
           <v-select
             v-model="filterIsPresent"
             :items="[
-              { text: 'الكل', value: '' },
+              { text: 'الكل (حضور/غياب)', value: '' },
               { text: 'حاضر', value: 'true' },
               { text: 'غائب', value: 'false' }
             ]"
@@ -56,9 +56,9 @@
           <v-select
             v-model="filterIsPrinted"
             :items="[
-              { text: 'الكل', value: '' },
-              { text: 'مطبوع', value: 'true' },
-              { text: 'غير مطبوع', value: 'false' }
+              { text: 'الكل (حالة الطباعة)', value: '' },
+              { text: 'تمت الطباعة', value: 'true' },
+              { text: 'لم تطبع', value: 'false' }
             ]"
             item-title="text"
             item-value="value"
@@ -72,12 +72,13 @@
         <v-col cols="12" md="3">
           <v-text-field
             v-model="filterSearch"
-            placeholder="بحث باسم الطالب أو رقم الجلوس..."
-            prepend-inner-icon="mdi-magnify"
-            clearable
+            placeholder="بحث برقم الجلوس أو اسم الطالب..."
             density="compact"
             variant="outlined"
+            prepend-inner-icon="mdi-magnify"
             hide-details
+            clearable
+            @keyup.enter="applyFilters"
           />
         </v-col>
 
@@ -109,9 +110,9 @@
         class="bg-transparent"
       >
         <template v-slot:item-slot="{ item, key, index }">
-          <template v-if="key === 'index'">
+          <template v-if="key === 'numbering'">
             <div class="d-flex justify-center align-center">
-              <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+              <span class="font-weight-bold text-caption text-medium-emphasis">{{ ((items?.pagination?.current_page || 1) - 1) * (items?.pagination?.page_size || 20) + (index ?? 0) + 1 }}</span>
             </div>
           </template>
           <template v-else-if="key === 'isPresent'">
@@ -141,12 +142,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { reportsService } from '@/services/reportsService'
+import { useReportPagination } from '@/composables/useReportPagination'
 
-const loading = ref(false)
-const items = ref({
-  results: [],
-  count: 0,
-})
+const {
+  loading,
+  items,
+  extractParams,
+  setResponse,
+  resetPagination
+} = useReportPagination(20)
 
 // خيارات نوع المؤسسة بدون "الكل"
 const filterInstitutionType = ref('school')
@@ -165,22 +169,21 @@ const examParam = computed(() => {
 const onInstitutionTypeChange = () => {
   filterExam.value = null
   filterVersion.value = null
+  resetPagination()
   applyFilters()
 }
 
 const headers = [
-  { title: '#', key: 'index', sortable: false, width: '60px' },
   { title: 'اسم الطالب', key: 'studentName', sortable: true },
-  { title: 'الرقم الأكاديمي', key: 'academicNumber', sortable: true },
-  { title: 'رقم الجلوس', key: 'seatNumber', sortable: true },
-  { title: 'الرقم السري', key: 'secretNumber', sortable: true },
+  { title: 'الرقم الأكاديمي', key: 'academicNumber', sortable: true, align: 'center' },
+  { title: 'رقم الجلوس', key: 'seatNumber', sortable: true, align: 'center' },
+  { title: 'الرقم السري', key: 'secretNumber', sortable: true, align: 'center' },
   { title: 'الاختبار', key: 'examTitle', sortable: true },
   { title: 'النموذج', key: 'versionCode', sortable: true, align: 'center' },
   { title: 'المادة', key: 'subject', sortable: true },
-  { title: 'الصف / التخصص', key: 'classTrack', sortable: true },
-  { title: 'حالة الحضور', key: 'isPresent', sortable: true, align: 'center' },
+  { title: 'الحضور', key: 'isPresent', sortable: true, align: 'center' },
   { title: 'حالة الطباعة', key: 'isPrinted', sortable: true, align: 'center' },
-  { title: 'تاريخ التسجيل', key: 'createdAt', sortable: true },
+  { title: 'تاريخ الطباعة', key: 'printedAt', sortable: true, align: 'center' },
 ]
 
 const buildParams = () => {
@@ -196,15 +199,23 @@ const buildParams = () => {
   return p
 }
 
-const applyFilters = async () => {
+const applyFilters = async (tableParams = {}) => {
+  const p = extractParams(tableParams)
   loading.value = true
   try {
-    const res = await reportsService.getStudentRegistrationsReport(buildParams())
-    const results = Array.isArray(res) ? res : (res?.results || [])
-    const count = res?.count !== undefined ? res.count : results.length
-    items.value = { results, count }
+    const query = {
+      ...buildParams(),
+      page: p.page,
+      page_size: p.page_size,
+    }
+    if (p.search) query.search = p.search
+    if (p.sort_by) query.sort_by = p.sort_by
+
+    const res = await reportsService.getStudentRegistrationsReport(query)
+    setResponse(res)
   } catch (e) {
     console.error(e)
+    setResponse({ results: [], count: 0 })
   } finally {
     loading.value = false
   }
@@ -217,6 +228,7 @@ const resetFilters = () => {
   filterIsPresent.value = ''
   filterIsPrinted.value = ''
   filterSearch.value = ''
+  resetPagination()
   applyFilters()
 }
 

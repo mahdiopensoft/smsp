@@ -19,6 +19,7 @@
           v-model="filterExam"
           name="Exam"
           :param="examParam"
+          label="الاختبار"
           placeholder="الاختبار"
           cols="2"
           :add="false"
@@ -29,6 +30,7 @@
           v-model="filterVersion"
           name="ExamVersionByExam"
           :param="filterExam"
+          label="النموذج"
           placeholder="النموذج"
           cols="2"
           :add="false"
@@ -41,12 +43,11 @@
             :items="[
               { text: 'جميع الحالات', value: '' },
               { text: 'ناجح', value: 'success' },
-              { text: 'بانتظار المراجعة', value: 'needs_review' },
-              { text: 'خطأ', value: 'error' }
+              { text: 'بانتظار مراجعة', value: 'needs_review' }
             ]"
             item-title="text"
             item-value="value"
-            placeholder="حالة المعالجة"
+            placeholder="الحالة"
             hide-details
             density="compact"
             variant="outlined"
@@ -57,14 +58,14 @@
           <v-select
             v-model="filterConfidenceMin"
             :items="[
-              { text: 'جميع مستويات الثقة', value: '' },
-              { text: 'أكثر من 90%', value: '0.90' },
-              { text: 'أكثر من 70%', value: '0.70' },
-              { text: 'أقل من 70%', value: '0' }
+              { text: 'أي دقة', value: '' },
+              { text: 'أعلى من 90%', value: '0.90' },
+              { text: 'أعلى من 80%', value: '0.80' },
+              { text: 'أقل من 80%', value: '0.79' }
             ]"
             item-title="text"
             item-value="value"
-            placeholder="مستوى الثقة"
+            placeholder="الحد الأدنى للثقة"
             hide-details
             density="compact"
             variant="outlined"
@@ -99,9 +100,9 @@
         class="bg-transparent"
       >
         <template v-slot:item-slot="{ item, key, index }">
-          <template v-if="key === 'index'">
+          <template v-if="key === 'numbering'">
             <div class="d-flex justify-center align-center">
-              <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+              <span class="font-weight-bold text-caption text-medium-emphasis">{{ ((items?.pagination?.current_page || 1) - 1) * (items?.pagination?.page_size || 20) + (index ?? 0) + 1 }}</span>
             </div>
           </template>
           <template v-else-if="key === 'confidence'">
@@ -131,12 +132,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { reportsService } from '@/services/reportsService'
+import { useReportPagination } from '@/composables/useReportPagination'
 
-const loading = ref(false)
-const items = ref({
-  results: [],
-  count: 0,
-})
+const {
+  loading,
+  items,
+  extractParams,
+  setResponse,
+  resetPagination
+} = useReportPagination(20)
 
 // خيارات نوع المؤسسة بدون "الكل"
 const filterInstitutionType = ref('school')
@@ -154,23 +158,20 @@ const examParam = computed(() => {
 const onInstitutionTypeChange = () => {
   filterExam.value = null
   filterVersion.value = null
+  resetPagination()
   applyFilters()
 }
 
 const headers = [
-  { title: '#', key: 'index', sortable: false, width: '60px' },
   { title: 'اسم الطالب', key: 'studentName', sortable: true },
   { title: 'الاختبار', key: 'examTitle', sortable: true },
   { title: 'النموذج', key: 'versionCode', sortable: true, align: 'center' },
   { title: 'إجمالي الأسئلة', key: 'totalQuestions', sortable: true, align: 'center' },
-  { title: 'الصحيحة', key: 'correctAnswers', sortable: true, align: 'center' },
-  { title: 'الخاطئة', key: 'wrongAnswers', sortable: true, align: 'center' },
-  { title: 'غير المجابة', key: 'unanswered', sortable: true, align: 'center' },
-  { title: 'الملتبسة', key: 'ambiguousCount', sortable: true, align: 'center' },
-  { title: 'الدرجة', key: 'mcqScore', sortable: true, align: 'center' },
-  { title: 'الدرجة العظمى', key: 'mcqMaxScore', sortable: true, align: 'center' },
-  { title: 'نسبة الثقة', key: 'confidence', sortable: true, align: 'center' },
-  { title: 'حالة المعالجة', key: 'status', sortable: true, align: 'center' },
+  { title: 'الإجابات الصحيحة', key: 'correctAnswers', sortable: true, align: 'center' },
+  { title: 'الإجابات الخاطئة', key: 'wrongAnswers', sortable: true, align: 'center' },
+  { title: 'الدرجة المحسوبة', key: 'mcqScore', sortable: true, align: 'center' },
+  { title: 'دقة القراءة', key: 'confidence', sortable: true, align: 'center' },
+  { title: 'الحالة', key: 'status', sortable: true, align: 'center' },
 ]
 
 const buildParams = () => {
@@ -185,13 +186,20 @@ const buildParams = () => {
   return p
 }
 
-const applyFilters = async () => {
+const applyFilters = async (tableParams = {}) => {
+  const p = extractParams(tableParams)
   loading.value = true
   try {
-    const res = await reportsService.getOMRResultsReport(buildParams())
-    const results = Array.isArray(res) ? res : (res?.results || [])
-    const count = res?.count !== undefined ? res.count : results.length
-    items.value = { results, count }
+    const query = {
+      ...buildParams(),
+      page: p.page,
+      page_size: p.page_size,
+    }
+    if (p.search) query.search = p.search
+    if (p.sort_by) query.sort_by = p.sort_by
+
+    const res = await reportsService.getOMRResultsReport(query)
+    setResponse(res)
   } catch (e) {
     console.error(e)
   } finally {
@@ -205,6 +213,7 @@ const resetFilters = () => {
   filterVersion.value = null
   filterStatus.value = ''
   filterConfidenceMin.value = ''
+  resetPagination()
   applyFilters()
 }
 

@@ -1,8 +1,8 @@
 from OpenSoftCoreV41.utils.model_view_set.__all__ import AllMVS
-from rest_framework.response import Response
-from django.db.models import Count, Q
+from django.db.models import Q
 from exams.models.Exam import Exam
 from exams.serializers.Exam import ExamSerializer
+from utils.report_pagination import paginate_records, paginated_report_response
 
 
 class ExamsGeneratedReportMVS(AllMVS):
@@ -12,9 +12,8 @@ class ExamsGeneratedReportMVS(AllMVS):
     Used by: ExamsGeneratedReportView.vue
     """
     queryset = Exam.objects.filter(is_deleted=False).select_related(
-        'subject', 'class_track__level', 'class_track__track', 'governorate', 'directorate',
-        'approved_by', 'year',
-    ).prefetch_related('versions').order_by('-created_at')
+        'subject', 'class_track', 'year', 'governorate', 'directorate', 'approved_by',
+    ).prefetch_related('versions', 'versions__question_orders').order_by('-created_at')
     serializer_class = ExamSerializer
 
     def list(self, request, *args, **kwargs):
@@ -25,23 +24,21 @@ class ExamsGeneratedReportMVS(AllMVS):
             qs = qs.filter(institution_type=inst_type)
 
         year_id = request.query_params.get('year')
-        stage_id = request.query_params.get('stage')
-        class_track_id = request.query_params.get('class_track')
         subject_id = request.query_params.get('subject')
+        class_track_id = request.query_params.get('class_track')
         is_approved = request.query_params.get('is_approved')
         governorate_id = request.query_params.get('governorate')
         directorate_id = request.query_params.get('directorate')
         date_from = request.query_params.get('date_from')
         date_to = request.query_params.get('date_to')
+        search = request.query_params.get('search')
 
         if year_id:
             qs = qs.filter(year_id=year_id)
-        if stage_id:
-            qs = qs.filter(class_track__level__stage_id=stage_id)
-        if class_track_id:
-            qs = qs.filter(class_track_id=class_track_id)
         if subject_id:
             qs = qs.filter(subject_id=subject_id)
+        if class_track_id:
+            qs = qs.filter(class_track_id=class_track_id)
         if is_approved is not None and is_approved != '':
             qs = qs.filter(is_approved=(is_approved in ['true', 'True', '1', True]))
         if governorate_id:
@@ -52,9 +49,17 @@ class ExamsGeneratedReportMVS(AllMVS):
             qs = qs.filter(created_at__date__gte=date_from)
         if date_to:
             qs = qs.filter(created_at__date__lte=date_to)
+        if search:
+            qs = qs.filter(
+                Q(title__icontains=search) |
+                Q(uniqueCode__icontains=search) |
+                Q(subject__name_ar__icontains=search)
+            )
+
+        paginated_qs, pagination_meta = paginate_records(qs, request, default_size=20)
 
         results = []
-        for exam in qs[:200]:
+        for exam in paginated_qs:
             versions_count = exam.versions.count() if hasattr(exam, 'versions') else 0
             subject_name = ''
             if exam.subject:
@@ -91,5 +96,4 @@ class ExamsGeneratedReportMVS(AllMVS):
                 'createdAt': exam.created_at.strftime('%Y-%m-%d') if exam.created_at else '',
             })
 
-        return Response({'results': results, 'count': len(results)})
-
+        return paginated_report_response(results, pagination_meta)

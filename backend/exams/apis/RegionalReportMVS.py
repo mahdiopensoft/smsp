@@ -6,6 +6,7 @@ from django.db.models import Avg, Count, Q
 from exams.models.Exam import Exam
 from exams.models.StudentExamRegistration import StudentExamRegistration
 from submissions.models.Submission import Submission
+from utils.report_pagination import paginate_records, paginated_report_response
 
 class RegionalReportMVS(AllMVS):
     """
@@ -47,69 +48,36 @@ class RegionalReportMVS(AllMVS):
         # Calculate actual DB aggregates if submissions exist
         submissions_qs = Submission.objects.filter(status='completed')
 
-        if institution_type == 'university':
-            submissions_qs = submissions_qs.filter(
-                Q(exam__institution_type='university') |
-                Q(exam__semester_subject__isnull=False) |
-                Q(exam__versions__question_orders__question__lesson__unit__semester_subject__isnull=False)
-            )
-        elif institution_type == 'school':
-            submissions_qs = submissions_qs.filter(
-                Q(exam__institution_type='school') |
-                Q(exam__versions__question_orders__question__lesson__unit__class_subject__isnull=False) |
-                Q(exam__subject__class_subjects__isnull=False)
-            )
+        if institution_type and institution_type != 'all':
+            submissions_qs = submissions_qs.filter(exam__institution_type=institution_type)
 
         if exam_id:
             submissions_qs = submissions_qs.filter(exam_id=exam_id)
 
         # University filters
         if semester_subject_id:
-            submissions_qs = submissions_qs.filter(
-                Q(exam__semester_subject_id=semester_subject_id) |
-                Q(exam__versions__question_orders__question__lesson__unit__semester_subject_id=semester_subject_id)
-            )
+            submissions_qs = submissions_qs.filter(exam__subject__semester_subjects__id=semester_subject_id)
         if specialization_id:
-            submissions_qs = submissions_qs.filter(
-                Q(exam__semester_subject__fk_specialization_id=specialization_id) |
-                Q(exam__versions__question_orders__question__lesson__unit__semester_subject__fk_specialization_id=specialization_id) |
-                Q(exam__subject__semester_subjects__fk_specialization_id=specialization_id)
-            )
+            submissions_qs = submissions_qs.filter(exam__subject__semester_subjects__fk_specialization_id=specialization_id)
         if department_id:
-            submissions_qs = submissions_qs.filter(
-                Q(exam__semester_subject__fk_specialization__fk_section_id=department_id) |
-                Q(exam__versions__question_orders__question__lesson__unit__semester_subject__fk_specialization__fk_section_id=department_id) |
-                Q(exam__subject__semester_subjects__fk_specialization__fk_section_id=department_id)
-            )
+            submissions_qs = submissions_qs.filter(exam__subject__semester_subjects__fk_specialization__fk_section_id=department_id)
         if college_id:
-            submissions_qs = submissions_qs.filter(
-                Q(exam__semester_subject__fk_specialization__fk_college_id=college_id) |
-                Q(exam__versions__question_orders__question__lesson__unit__semester_subject__fk_specialization__fk_college_id=college_id) |
-                Q(exam__subject__semester_subjects__fk_specialization__fk_college_id=college_id)
-            )
+            submissions_qs = submissions_qs.filter(exam__subject__semester_subjects__fk_specialization__fk_college_id=college_id)
 
         # School & General filters
         if subject_id:
             submissions_qs = submissions_qs.filter(
                 Q(exam__subject_id=subject_id) |
-                Q(exam__semester_subject__fk_subject_id=subject_id) |
-                Q(exam__semester_subject_id=subject_id)
+                Q(exam__subject__semester_subjects__id=subject_id)
             )
         if stage_id:
-            submissions_qs = submissions_qs.filter(
-                Q(exam__versions__question_orders__question__lesson__unit__class_subject__class_track__level__stage_id=stage_id) |
-                Q(exam__subject__class_subjects__class_track__level__stage_id=stage_id)
-            )
+            submissions_qs = submissions_qs.filter(exam__class_track__level__stage_id=stage_id)
         if level_id:
-            submissions_qs = submissions_qs.filter(
-                Q(exam__versions__question_orders__question__lesson__unit__class_subject__class_track__level_id=level_id) |
-                Q(exam__subject__class_subjects__class_track__level_id=level_id)
-            )
+            submissions_qs = submissions_qs.filter(exam__class_track__level_id=level_id)
         if class_track_id:
-            submissions_qs = submissions_qs.filter(
-                Q(exam__versions__question_orders__question__lesson__unit__class_subject__class_track_id=class_track_id) |
-                Q(exam__subject__class_subjects__class_track_id=class_track_id)
-            )
+            submissions_qs = submissions_qs.filter(exam__class_track_id=class_track_id)
+
+        submissions_qs = submissions_qs.distinct()
 
         db_count = submissions_qs.count()
         db_avg = submissions_qs.aggregate(avg=Avg('total_score'))['avg']
@@ -130,7 +98,9 @@ class RegionalReportMVS(AllMVS):
         diff = round(abs(city_avg - remote_avg), 1)
         pass_diff = round(abs(city_pass - remote_pass), 1)
 
-        return Response({
+        paginated_govs, pagination_meta = paginate_records(governorates, request, default_size=20)
+
+        return paginated_report_response(paginated_govs, pagination_meta, extra={
             "institution_type": institution_type or 'all',
             "summary": {
                 "cityAverage": city_avg,
@@ -147,5 +117,5 @@ class RegionalReportMVS(AllMVS):
                     "improvementRate": 66.4
                 }
             },
-            "governorates": governorates
+            "governorates": paginated_govs
         })

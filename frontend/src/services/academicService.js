@@ -6,8 +6,8 @@ const fetchAllPages = async (endpoint) => {
     let results = []
     let url = endpoint
     while (url) {
-        // Strip absolute domain and /api/ prefix if url is absolute to maintain Axios baseURL & Bearer Token
-        const cleanUrl = url.replace(/^https?:\/\/[^\/]+\/api\//, '')
+        // Strip absolute domain and keep relative api/ path intact for Axios baseURL
+        const cleanUrl = url.replace(/^https?:\/\/[^\/]+\//, '')
         const { data } = await api.get(cleanUrl)
         if (data && data.results) {
             results = results.concat(data.results)
@@ -198,9 +198,50 @@ export const academicService = {
         await api.delete(`${BASE}units/${id}/`)
     },
 
+    // School Lessons (دروس المدارس)
+    async getSchoolLessons(params = {}) {
+        try {
+            const { data } = await api.get(`${BASE}school-lessons/all/`, { params })
+            const list = Array.isArray(data) ? data : (data?.data || data?.results || [])
+            if (list.length > 0) return list
+        } catch (e) {
+            console.warn("getSchoolLessons all endpoint fallback:", e)
+        }
+        const query = params && Object.keys(params).length ? '?' + new URLSearchParams(params).toString() : ''
+        return await fetchAllPages(`${BASE}school-lessons/${query}`)
+    },
+
     // Lessons (الدروس)
-    async getLessons() {
-        return await fetchAllPages(`${BASE}lessons/`)
+    async getLessons(params = {}) {
+        const isSchool = params.institution_type === 'school' || params.school_subject || params.class_track_id || params.class_track || params.stage_id || params.stage
+        if (isSchool) {
+            return await this.getSchoolLessons(params)
+        }
+        try {
+            const { data } = await api.get(`${BASE}lessons/all/`, { params })
+            const list = Array.isArray(data) ? data : (data?.data || data?.results || [])
+            if (list.length > 0) return list
+        } catch (e) {
+            console.warn("getLessons all endpoint fallback:", e)
+        }
+        // Fallback: load all available lessons
+        try {
+            const [schoolRes, univRes] = await Promise.all([
+                api.get(`${BASE}school-lessons/all/`).catch(() => ({ data: [] })),
+                api.get(`${BASE}lessons/all/`).catch(() => ({ data: [] }))
+            ])
+            const sList = Array.isArray(schoolRes.data) ? schoolRes.data : (schoolRes.data?.data || schoolRes.data?.results || [])
+            const uList = Array.isArray(univRes.data) ? univRes.data : (univRes.data?.data || univRes.data?.results || [])
+            const map = new Map()
+            for (const item of [...(univRes ? uList : []), ...(schoolRes ? sList : [])]) {
+                if (item && item.id) map.set(item.id, item)
+            }
+            if (map.size > 0) return Array.from(map.values())
+        } catch (e) {
+            console.warn("getLessons dual fallback:", e)
+        }
+        const query = params && Object.keys(params).length ? '?' + new URLSearchParams(params).toString() : ''
+        return await fetchAllPages(`${BASE}lessons/${query}`)
     },
     async createLesson(payload) {
         const { data } = await api.post(`${BASE}lessons/`, payload)

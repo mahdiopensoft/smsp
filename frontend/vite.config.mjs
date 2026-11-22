@@ -15,14 +15,15 @@ import settings from "./settings";
 
 // Dynamic detection of shared-project-v4 path across local, Windows, and Linux environments
 const candidatePaths = [
-  fileURLToPath(new URL("./shared-project-v4", import.meta.url)),
-  "C:/Users/ebrahim/Desktop/MyWork/sharing/shared-project-v4",
-  path.resolve("./shared-project-v4"),
-  path.resolve("../shared-project-v4"),
-  path.resolve("../../shared-project-v4"),
+  path.resolve("../../../shared-project-v4"),
   "/home/mahdi/Desktop/m/shared-project-v4",
+  path.resolve("../../shared-project-v4"),
+  path.resolve("../shared-project-v4"),
+  "C:/Users/ebrahim/Desktop/MyWork/sharing/shared-project-v4",
+  fileURLToPath(new URL("./shared-project-v4", import.meta.url)),
 ];
 const sharedProjectPath = candidatePaths.find(p => fs.existsSync(p)) || candidatePaths[0];
+console.log("🔗 [Vite] Using shared-project-v4 from:", sharedProjectPath);
 
 // https://vitejs.dev/config/
 export default defineConfig({

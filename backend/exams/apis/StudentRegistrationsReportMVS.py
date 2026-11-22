@@ -1,8 +1,8 @@
 from OpenSoftCoreV41.utils.model_view_set.__all__ import AllMVS
-from rest_framework.response import Response
 from django.db.models import Q
 from exams.models.StudentExamRegistration import StudentExamRegistration
 from exams.serializers.StudentExamRegistration import StudentExamRegistrationSerializer
+from utils.report_pagination import paginate_records, paginated_report_response
 
 
 class StudentRegistrationsReportMVS(AllMVS):
@@ -12,8 +12,7 @@ class StudentRegistrationsReportMVS(AllMVS):
     Used by: StudentRegistrationsReportView.vue
     """
     queryset = StudentExamRegistration.objects.filter(is_deleted=False).select_related(
-        'student', 'student_profile',
-        'examVersion', 'examVersion__exam', 'examVersion__exam__subject',
+        'student', 'student_profile', 'examVersion', 'examVersion__exam', 'examVersion__exam__subject'
     ).order_by('-created_at')
     serializer_class = StudentExamRegistrationSerializer
 
@@ -44,8 +43,10 @@ class StudentRegistrationsReportMVS(AllMVS):
                 Q(student_profile__academic_number__icontains=search)
             )
 
+        paginated_qs, pagination_meta = paginate_records(qs, request, default_size=20)
+
         results = []
-        for reg in qs[:300]:
+        for reg in paginated_qs:
             student_name = ''
             academic_number = ''
             if reg.student_profile:
@@ -78,5 +79,4 @@ class StudentRegistrationsReportMVS(AllMVS):
                 'printedAt': reg.printed_at.strftime('%Y-%m-%d %H:%M') if reg.printed_at else '',
             })
 
-        return Response({'results': results, 'count': len(results)})
-
+        return paginated_report_response(results, pagination_meta)

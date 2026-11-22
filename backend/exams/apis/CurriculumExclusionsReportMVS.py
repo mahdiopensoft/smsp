@@ -1,8 +1,8 @@
 from OpenSoftCoreV41.utils.model_view_set.__all__ import AllMVS
-from rest_framework.response import Response
 from django.db.models import Q
 from exams.models.CurriculumExclusion import CurriculumExclusion
 from exams.serializers.CurriculumExclusion import CurriculumExclusionSerializer
+from utils.report_pagination import paginate_records, paginated_report_response
 
 
 class CurriculumExclusionsReportMVS(AllMVS):
@@ -28,6 +28,7 @@ class CurriculumExclusionsReportMVS(AllMVS):
         subject_id = request.query_params.get('subject')
         exclusion_type = request.query_params.get('exclusion_type')
         is_active = request.query_params.get('is_active')
+        search = request.query_params.get('search')
 
         if academic_year_id:
             qs = qs.filter(academic_year_id=academic_year_id)
@@ -39,9 +40,18 @@ class CurriculumExclusionsReportMVS(AllMVS):
             qs = qs.filter(exclusion_type=exclusion_type)
         if is_active is not None and is_active != '':
             qs = qs.filter(is_active=(is_active in ['true', 'True', '1', True]))
+        if search:
+            qs = qs.filter(
+                Q(reason__icontains=search) |
+                Q(subject__name_ar__icontains=search) |
+                Q(unit__name_ar__icontains=search) |
+                Q(lesson__name_ar__icontains=search)
+            )
+
+        paginated_qs, pagination_meta = paginate_records(qs, request, default_size=20)
 
         results = []
-        for ex in qs[:300]:
+        for ex in paginated_qs:
             year_name = ''
             if ex.academic_year:
                 year_name = getattr(ex.academic_year, 'name', '') or getattr(ex.academic_year, 'name_ar', '') or str(ex.academic_year)
@@ -64,5 +74,4 @@ class CurriculumExclusionsReportMVS(AllMVS):
                 'createdAt': ex.created_at.strftime('%Y-%m-%d') if ex.created_at else '',
             })
 
-        return Response({'results': results, 'count': len(results)})
-
+        return paginated_report_response(results, pagination_meta)

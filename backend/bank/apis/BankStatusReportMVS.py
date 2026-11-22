@@ -2,6 +2,7 @@ from OpenSoftCoreV41.utils.model_view_set.__all__ import AllMVS
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Count, Q
+from utils.report_pagination import paginate_records, paginated_report_response
 
 from bank.models.Question import Question
 from bank.serializers.Question import QuestionSerializer
@@ -210,7 +211,9 @@ class BankStatusReportMVS(AllMVS):
             unit_count = SchoolUnit.objects.filter(is_deleted=False).count() + Unit.objects.filter(is_deleted=False).count()
             less_count = SchoolLesson.objects.filter(is_deleted=False).count() + Lesson.objects.filter(is_deleted=False).count()
 
-        return Response({
+        paginated_progress, pagination_meta = paginate_records(subject_progress, request, default_size=20)
+
+        return paginated_report_response(paginated_progress, pagination_meta, extra={
             "stats": {
                 "totalQuestions": total_questions,
                 "approved": approved,
@@ -223,5 +226,5 @@ class BankStatusReportMVS(AllMVS):
             "difficultyDistribution": difficulty_distribution,
             "bloomDistribution": bloom_distribution,
             "typeDistribution": type_distribution,
-            "subjectProgress": subject_progress
+            "subjectProgress": paginated_progress
         })

@@ -55,7 +55,7 @@ class OMRVerificationMVS(ViewSet):
     شاشة المطابقة والتحقق من الأوراق المفقودة والرقابة الشاملة.
     Endpoint: /api/omr/verification/
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request):
         """
@@ -160,16 +160,15 @@ class OMRVerificationMVS(ViewSet):
         stage_id = request.query_params.get('stage')
         if stage_id:
             qs = qs.filter(
-                Q(versions__question_orders__question__lesson__unit__class_subject__class_track__level__stage_id=stage_id) |
+                Q(class_track__level__stage_id=stage_id) |
                 Q(subject__class_subjects__class_track__level__stage_id=stage_id)
-            )
+            ).distinct()
         class_track_id = request.query_params.get('class_track')
         if class_track_id:
             qs = qs.filter(
-                Q(versions__question_orders__question__lesson__unit__class_subject__class_track_id=class_track_id) |
                 Q(subject__class_subjects__class_track_id=class_track_id) |
                 Q(class_track_id=class_track_id)
-            )
+            ).distinct()
 
         exams = list(qs[:100])
         exam_ids = [e.id for e in exams]

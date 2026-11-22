@@ -3,14 +3,45 @@
  * Uses an isolated iframe with direct @page CSS rules to avoid parent CSS contamination
  * and prevent unwanted blank pages or layout truncation.
  */
+
+/**
+ * Safely escapes dynamic text strings for injection into HTML printing templates.
+ * Prevents HTML injection, script injection, and cross-site scripting (XSS).
+ */
+export function escapeHtml(str: any): string {
+  if (str === null || str === undefined) return ''
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+/**
+ * Sanitizes a cloned DOM/SVG element before printing by stripping any executable
+ * tags (<script>, <iframe>, <object>, <embed>) and inline event handlers (on*).
+ */
+export function sanitizePrintNode<T extends Element>(node: T): T {
+  if (!node) return node
+  node.querySelectorAll('script, iframe, object, embed, link[rel="import"]').forEach(el => el.remove())
+  node.querySelectorAll('*').forEach(el => {
+    for (const attr of Array.from(el.attributes)) {
+      if (attr.name.toLowerCase().startsWith('on')) {
+        el.removeAttribute(attr.name)
+      }
+    }
+  })
+  return node
+}
+
 export async function printOmrElement(
   targetEl: SVGGraphicsElement | HTMLElement | null,
   options: { title?: string; isA5?: boolean } = {}
 ): Promise<void> {
   if (!targetEl) {
-    console.warn('printOmrElement: Target element not found, falling back to window.print()')
-    window.print()
-    return
+    console.error('printOmrElement: Target element not found')
+    throw new Error('Target element for printOmrElement was not found')
   }
 
   // 1. Clone element so we don't modify DOM
@@ -292,6 +323,8 @@ export async function printOmrElement(
       .font-mono { font-family: monospace, sans-serif !important; }
     `
 
+  sanitizePrintNode(cloned)
+
   const docStyles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
     .map(el => el.outerHTML)
     .join('\n')
@@ -302,7 +335,8 @@ export async function printOmrElement(
     <html dir="rtl" lang="ar">
       <head>
         <meta charset="utf-8">
-        <title>${options.title || 'وثيقة التصحيح OMR'}</title>
+        <meta http-equiv="Content-Security-Policy" content="script-src 'none'; connect-src 'none'; style-src 'unsafe-inline'; img-src data: blob: 'self'; font-src data: 'self';">
+        <title>${escapeHtml(options.title || 'وثيقة التصحيح OMR')}</title>
         ${docStyles}
         <style>${headStyles}</style>
       </head>
@@ -332,8 +366,7 @@ export async function printOmrElement(
         iframe.contentWindow?.focus()
         iframe.contentWindow?.print()
       } catch (e) {
-        console.warn('iframe.print failed, attempting window.print fallback', e)
-        window.print()
+        console.error('printOmrElement iframe.print failed:', e)
         cleanup()
       }
       setTimeout(cleanup, 60000)
@@ -559,6 +592,7 @@ export async function printOmrBatch(
     } else if (cloned instanceof HTMLElement) {
       cloned.querySelectorAll('.d-print-none, .report-action-bar, button, .v-btn').forEach(b => b.remove())
     }
+    sanitizePrintNode(cloned)
     pagesHtml += `<div class="sheet-print-page">${cloned.outerHTML}</div>`
   }
 
@@ -568,7 +602,8 @@ export async function printOmrBatch(
     <html dir="rtl" lang="ar">
       <head>
         <meta charset="utf-8">
-        <title>${options.title || 'طباعة أوراق التظليل دفعة واحدة'}</title>
+        <meta http-equiv="Content-Security-Policy" content="script-src 'none'; connect-src 'none'; style-src 'unsafe-inline'; img-src data: blob: 'self'; font-src data: 'self';">
+        <title>${escapeHtml(options.title || 'طباعة أوراق التظليل دفعة واحدة')}</title>
         ${docStyles}
         <style>${headStyles}</style>
       </head>
@@ -598,8 +633,7 @@ export async function printOmrBatch(
         iframe.contentWindow?.focus()
         iframe.contentWindow?.print()
       } catch (e) {
-        console.warn('iframe.print failed, attempting window.print fallback', e)
-        window.print()
+        console.error('printOmrElement iframe.print failed:', e)
         cleanup()
       }
       setTimeout(cleanup, 60000)
@@ -621,9 +655,8 @@ export async function printOfficialQuestionPaper(
   options: { title?: string; isA3?: boolean } = {}
 ): Promise<void> {
   if (!targetEl) {
-    console.warn('printOfficialQuestionPaper: Target element not found, falling back to window.print()')
-    window.print()
-    return
+    console.error('printOfficialQuestionPaper: Target element not found')
+    throw new Error('Target element for printOfficialQuestionPaper was not found')
   }
 
   const isA3 = options.isA3 === true
@@ -1136,6 +1169,8 @@ export async function printOfficialQuestionPaper(
     .font-mono { font-family: monospace, sans-serif !important; }
   `
 
+  sanitizePrintNode(cloned)
+
   const docStyles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
     .map(el => el.outerHTML)
     .join('\n')
@@ -1146,7 +1181,8 @@ export async function printOfficialQuestionPaper(
     <html dir="${isDocLtr ? 'ltr' : 'rtl'}" lang="${isDocLtr ? 'en' : 'ar'}">
       <head>
         <meta charset="utf-8">
-        <title>${options.title || 'ورقة_الأسئلة_الرسمية'}</title>
+        <meta http-equiv="Content-Security-Policy" content="script-src 'none'; connect-src 'none'; style-src 'unsafe-inline'; img-src data: blob: 'self'; font-src data: 'self';">
+        <title>${escapeHtml(options.title || 'ورقة_الأسئلة_الرسمية')}</title>
         ${docStyles}
         <style>${headStyles}</style>
       </head>
@@ -1176,8 +1212,7 @@ export async function printOfficialQuestionPaper(
         iframe.contentWindow?.focus()
         iframe.contentWindow?.print()
       } catch (e) {
-        console.warn('printOfficialQuestionPaper iframe.print failed, attempting window.print fallback', e)
-        window.print()
+        console.error('printOfficialQuestionPaper iframe.print failed:', e)
         cleanup()
       }
       setTimeout(cleanup, 60000)
@@ -1242,27 +1277,9 @@ export interface ExamPackageOptions {
  * Formats the question paper using the authentic Yemeni Ministry of Education layout.
  * Default is A3 Landscape (single large sheet with 2 columns), strictly matching official ministerial standards.
  */
-export async function printExamPackage(options: ExamPackageOptions): Promise<void> {
-  const totalQuestions = (options.questions || []).length
-  // Only use A3 if explicitly requested AND the exam has more than 18 questions!
-  // Short exams (<= 18 questions) MUST default to standard A4 single page.
-  const isA3 = options.isA3 === true && totalQuestions > 18
-  const iframe = document.createElement('iframe')
-  iframe.style.position = 'fixed'
-  iframe.style.left = '-10000px'
-  iframe.style.top = '-10000px'
-  iframe.style.width = '1024px'
-  iframe.style.height = '768px'
-  iframe.style.border = '0'
-  iframe.style.opacity = '0.01'
-  iframe.style.pointerEvents = 'none'
-  iframe.style.zIndex = '-9999'
-  document.body.appendChild(iframe)
-
-  const doc = iframe.contentWindow?.document
-  if (!doc) return
-
-  // Convert Republic Eagle logo to inline Base64
+let _cachedEagleLogo: string | null = null
+async function fetchEagleLogoBase64(): Promise<string> {
+  if (_cachedEagleLogo) return _cachedEagleLogo
   let eagleBase64 = '/yemen_eagle_official.png'
   try {
     const fullUrl = `${window.location.origin}/yemen_eagle_official.png`
@@ -1279,6 +1296,23 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
   } catch (e) {
     console.warn('Could not inline eagle logo:', e)
   }
+  _cachedEagleLogo = eagleBase64
+  return eagleBase64
+}
+
+/**
+ * Builds HTML components for an authentic Yemeni Exam Package (Booklet + OMR).
+ */
+export async function buildExamPackageHtml(options: ExamPackageOptions, eagleBase64: string): Promise<{
+  packageHtml: string
+  isEnglish: boolean
+  isA3: boolean
+  headStyles: string
+}> {
+  const totalQuestions = (options.questions || []).length
+  // Only use A3 if explicitly requested AND the exam has more than 18 questions!
+  // Short exams (<= 18 questions) MUST default to standard A4 single page.
+  const isA3 = options.isA3 === true && totalQuestions > 18
 
   // Detect if exam is truly an English exam (Subject is English OR almost exclusively Latin without Arabic)
   const isEnglishSubject = (options.subjectName || '').toLowerCase().includes('english') ||
@@ -2269,37 +2303,31 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
     .font-mono { font-family: monospace, sans-serif !important; }
   `
 
-  const docStyles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-    .map(el => el.outerHTML)
-    .join('\n')
-
-  doc.open()
-  doc.write(`
-    <!DOCTYPE html>
-    <html dir="${isEnglish ? 'ltr' : 'rtl'}" lang="${isEnglish ? 'en' : 'ar'}">
-      <head>
-        <meta charset="utf-8">
-        <base href="${window.location.origin}/">
-        <title>${options.title || `حزمة_اختبار_${options.subjectName}_النموذج_${options.versionCode}`}</title>
-        ${docStyles}
-        <style>${headStyles}</style>
-      </head>
-      <body>
+  return {
+    packageHtml: `
+      <div class="student-package-item" data-student-id="${escapeHtml(String(options.seatNumber || ''))}">
         ${questionsBookletHtml}
         ${omrPageHtml}
-      </body>
-    </html>
-  `)
-  doc.close()
+      </div>
+    `,
+    isEnglish,
+    isA3,
+    headStyles
+  }
+}
 
+/**
+ * Helper to dispatch isolated iframe print job cleanly
+ */
+function dispatchIframePrint(iframe: HTMLIFrameElement, logLabel: string): Promise<void> {
   return new Promise<void>((resolve) => {
     let triggered = false
     const cleanup = () => {
       setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe)
+        if (iframe && iframe.parentNode) {
+          iframe.parentNode.removeChild(iframe)
         }
-      }, 1000)
+      }, 1500)
       resolve()
     }
 
@@ -2311,8 +2339,7 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
         iframe.contentWindow?.focus()
         iframe.contentWindow?.print()
       } catch (e) {
-        console.warn('printExamPackage iframe.print failed, attempting window.print fallback', e)
-        window.print()
+        console.error(`${logLabel} iframe.print failed:`, e)
         cleanup()
       }
       setTimeout(cleanup, 60000)
@@ -2323,4 +2350,144 @@ export async function printExamPackage(options: ExamPackageOptions): Promise<voi
     }
     setTimeout(triggerPrint, 600)
   })
+}
+
+/**
+ * Print Questions Booklet along with OMR Answer Sheet for a single student.
+ */
+export async function printExamPackage(options: ExamPackageOptions): Promise<void> {
+  const eagleBase64 = await fetchEagleLogoBase64()
+  const pkg = await buildExamPackageHtml(options, eagleBase64)
+
+  const existingFrame = document.getElementById('package-print-frame')
+  if (existingFrame) existingFrame.remove()
+
+  const iframe = document.createElement('iframe')
+  iframe.id = 'package-print-frame'
+  iframe.style.position = 'fixed'
+  iframe.style.left = '-10000px'
+  iframe.style.top = '-10000px'
+  iframe.style.width = '1024px'
+  iframe.style.height = '768px'
+  iframe.style.border = '0'
+  iframe.style.opacity = '0.01'
+  iframe.style.pointerEvents = 'none'
+  iframe.style.zIndex = '-9999'
+  iframe.setAttribute('aria-hidden', 'true')
+  document.body.appendChild(iframe)
+
+  const doc = iframe.contentWindow?.document || iframe.contentDocument
+  if (!doc) {
+    console.error('Cannot access iframe document for printExamPackage')
+    return
+  }
+
+  const docStyles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+    .map(el => el.outerHTML)
+    .join('\n')
+
+  doc.open()
+  doc.write(`
+    <!DOCTYPE html>
+    <html dir="${pkg.isEnglish ? 'ltr' : 'rtl'}" lang="${pkg.isEnglish ? 'en' : 'ar'}">
+      <head>
+        <meta charset="utf-8">
+        <meta http-equiv="Content-Security-Policy" content="script-src 'none'; connect-src 'none'; style-src 'unsafe-inline'; img-src data: blob: 'self'; font-src data: 'self';">
+        <base href="${window.location.origin}/">
+        <title>${escapeHtml(options.title || `حزمة_اختبار_${options.subjectName}_النموذج_${options.versionCode}`)}</title>
+        ${docStyles}
+        <style>${pkg.headStyles}</style>
+      </head>
+      <body>
+        ${pkg.packageHtml}
+      </body>
+    </html>
+  `)
+  doc.close()
+
+  return dispatchIframePrint(iframe, 'printExamPackage')
+}
+
+/**
+ * Print Multiple Student Exam Packages in a unified batch print job.
+ * Avoids opening hundreds of individual print dialogs by aggregating the student packages
+ * into a single unified document with proper page breaking and student sorting.
+ */
+export async function printExamPackagesBatch(
+  packagesList: ExamPackageOptions[],
+  meta?: { title?: string }
+): Promise<void> {
+  if (!packagesList || packagesList.length === 0) return
+
+  const eagleBase64 = await fetchEagleLogoBase64()
+  const renderedPackages: string[] = []
+  let anyEnglish = false
+  let sharedHeadStyles = ''
+
+  for (const pkgOptions of packagesList) {
+    const pkg = await buildExamPackageHtml(pkgOptions, eagleBase64)
+    renderedPackages.push(pkg.packageHtml)
+    if (pkg.isEnglish) anyEnglish = true
+    if (!sharedHeadStyles) sharedHeadStyles = pkg.headStyles
+  }
+
+  const existingFrame = document.getElementById('batch-package-print-frame')
+  if (existingFrame) existingFrame.remove()
+
+  const iframe = document.createElement('iframe')
+  iframe.id = 'batch-package-print-frame'
+  iframe.style.position = 'fixed'
+  iframe.style.left = '-10000px'
+  iframe.style.top = '-10000px'
+  iframe.style.width = '1024px'
+  iframe.style.height = '768px'
+  iframe.style.border = '0'
+  iframe.style.opacity = '0.01'
+  iframe.style.pointerEvents = 'none'
+  iframe.style.zIndex = '-9999'
+  iframe.setAttribute('aria-hidden', 'true')
+  document.body.appendChild(iframe)
+
+  const doc = iframe.contentWindow?.document || iframe.contentDocument
+  if (!doc) {
+    console.error('Cannot access iframe document for printExamPackagesBatch')
+    return
+  }
+
+  const docStyles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+    .map(el => el.outerHTML)
+    .join('\n')
+
+  const combinedHtml = renderedPackages.join('\n')
+
+  doc.open()
+  doc.write(`
+    <!DOCTYPE html>
+    <html dir="${anyEnglish ? 'ltr' : 'rtl'}" lang="${anyEnglish ? 'en' : 'ar'}">
+      <head>
+        <meta charset="utf-8">
+        <meta http-equiv="Content-Security-Policy" content="script-src 'none'; connect-src 'none'; style-src 'unsafe-inline'; img-src data: blob: 'self'; font-src data: 'self';">
+        <base href="${window.location.origin}/">
+        <title>${escapeHtml(meta?.title || 'حزم_اختبارات_الطلاب_المجمعة')}</title>
+        ${docStyles}
+        <style>
+          ${sharedHeadStyles}
+          .student-package-item {
+            page-break-after: always !important;
+            break-after: page !important;
+          }
+          .student-package-item:last-child {
+            page-break-after: auto !important;
+            break-after: auto !important;
+          }
+        </style>
+      </head>
+      <body>
+        ${combinedHtml}
+      </body>
+    </html>
+  `)
+  doc.close()
+
+  return dispatchIframePrint(iframe, 'printExamPackagesBatch')
 }

@@ -1,8 +1,8 @@
 from OpenSoftCoreV41.utils.model_view_set.__all__ import AllMVS
-from rest_framework.response import Response
 from django.db.models import Q
 from bank.models.Question import Question
 from bank.serializers.Question import QuestionSerializer
+from utils.report_pagination import paginate_records, paginated_report_response
 
 
 class RejectedQuestionsReportMVS(AllMVS):
@@ -88,8 +88,10 @@ class RejectedQuestionsReportMVS(AllMVS):
                 Q(rejectionReason__icontains=search)
             )
 
+        paginated_qs, pagination_meta = paginate_records(qs, request, default_size=20)
+
         results = []
-        for q in qs[:300]:
+        for q in paginated_qs:
             lesson = q.lesson
             unit_name = subject_name = lesson_name = ''
             if lesson:
@@ -122,4 +124,4 @@ class RejectedQuestionsReportMVS(AllMVS):
                 'rejectedAt': q.created_at.strftime('%Y-%m-%d') if q.created_at else '',
             })
 
-        return Response({'results': results, 'count': len(results)})
+        return paginated_report_response(results, pagination_meta)

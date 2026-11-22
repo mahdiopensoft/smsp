@@ -184,9 +184,9 @@
         class="bg-transparent"
       >
         <template v-slot:item-slot="{ item, key, index }">
-          <template v-if="key === 'index'">
+          <template v-if="key === 'numbering'">
             <div class="d-flex justify-center align-center">
-              <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+              <span class="font-weight-bold text-caption text-medium-emphasis">{{ ((items?.pagination?.current_page || 1) - 1) * (items?.pagination?.page_size || 20) + (index ?? 0) + 1 }}</span>
             </div>
           </template>
           <template v-else-if="key === 'coverageStatus'">
@@ -216,12 +216,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { reportsService } from '@/services/reportsService'
+import { useReportPagination } from '@/composables/useReportPagination'
 
-const loading = ref(false)
-const items = ref({
-  results: [],
-  count: 0,
-})
+const {
+  loading,
+  items,
+  extractParams,
+  setResponse,
+  resetPagination
+} = useReportPagination(20)
 
 // خيارات نوع المؤسسة بدون "الكل"
 const filterInstitutionType = ref('school')
@@ -334,7 +337,6 @@ const onInstituteSpecializationChange = () => {
 const onInstituteSubjectChange = () => {}
 
 const headers = [
-  { title: '#', key: 'index', sortable: false, width: '60px' },
   { title: 'نوع المؤسسة', key: 'institutionType', sortable: true, align: 'center', width: '110px' },
   { title: 'المادة / المقرر', key: 'subject', sortable: true },
   { title: 'الوحدة الدراسية', key: 'unit', sortable: true },
@@ -378,13 +380,23 @@ const buildParams = () => {
   return p
 }
 
-const applyFilters = async () => {
+const applyFilters = async (tableParams = {}) => {
+  const p = extractParams(tableParams)
   loading.value = true
   try {
-    const res = await reportsService.getCurriculumReport(buildParams())
-    items.value = res.results || (Array.isArray(res) ? res : [])
+    const query = {
+      ...buildParams(),
+      page: p.page,
+      page_size: p.page_size,
+    }
+    if (p.search) query.search = p.search
+    if (p.sort_by) query.sort_by = p.sort_by
+
+    const res = await reportsService.getCurriculumReport(query)
+    setResponse(res)
   } catch (e) {
     console.error(e)
+    setResponse({ results: [], count: 0 })
   } finally {
     loading.value = false
   }
@@ -405,6 +417,7 @@ const resetFilters = () => {
   filterSubject.value = null
   filterStatus.value = 'all'
   filterSearch.value = ''
+  resetPagination()
   applyFilters()
 }
 

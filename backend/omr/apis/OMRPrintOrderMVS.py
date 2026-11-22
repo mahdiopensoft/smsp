@@ -13,7 +13,7 @@ class OMRPrintOrderMVS(ViewSet):
     ViewSet for managing official OMR print orders, approval, scheduling, and stage transitions.
     Endpoint: /api/omr/print-orders/
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request):
         orders = OMRPrintOrder.objects.filter(is_deleted=False).select_related('exam')

@@ -234,22 +234,21 @@ export default {
   methods: {
     async getData(params = {}) {
       const queryParams = {
-        ...params,
-        governorate: this.filterGovernorate || undefined,
-        directorate: this.filterDirectorate || undefined,
-        organization: this.filterOrganization || undefined,
-        class_track: this.filterClassTrack || undefined,
-        academic_year: this.filterAcademicYear || undefined,
-        is_active: this.filterActive !== null ? this.filterActive : undefined,
+        ...(params?.params || params || {}),
       };
+      if (this.filterGovernorate) queryParams.governorate = this.filterGovernorate;
+      if (this.filterDirectorate) queryParams.directorate = this.filterDirectorate;
+      if (this.filterOrganization) queryParams.organization = this.filterOrganization;
+      if (this.filterClassTrack) queryParams.class_track = this.filterClassTrack;
+      if (this.filterAcademicYear) queryParams.academic_year = this.filterAcademicYear;
+      if (this.filterActive !== null && this.filterActive !== undefined) queryParams.is_active = this.filterActive;
+
       try {
-        const response = await shared.getData({
-          path: this.url,
-          params: queryParams,
-        });
-        this.items = response;
+        const response = await this.$axios.get(this.url, { params: queryParams });
+        this.items = (response && response.data) ? response.data : (response || { results: [], pagination: {} });
       } catch (error) {
         console.error("Error fetching school-sections:", error);
+        this.items = { results: [], pagination: {} };
       }
     },
     onGovernorateChange(val) {

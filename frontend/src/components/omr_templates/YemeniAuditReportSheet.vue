@@ -1,7 +1,7 @@
 <template>
   <div class="yemeni-audit-report-sheet pa-4 bg-white" dir="rtl">
-    <!-- ── Print Action Bar (Hidden on Print) ───────────────────── -->
-    <div class="d-print-none report-action-bar no-print d-flex justify-space-between align-center mb-2 pb-1 border-b">
+    <!-- ── Print Action Bar (Hidden on Print / Optional via Prop) ── -->
+    <div v-if="!hideActionBar" class="d-print-none report-action-bar no-print d-flex justify-space-between align-center mb-2 pb-1 border-b">
       <div class="d-flex align-center gap-2">
         <v-avatar color="primary" variant="tonal" size="28" rounded="lg">
           <v-icon size="16">mdi-file-document-check-outline</v-icon>
@@ -354,6 +354,7 @@ const props = withDefaults(
     rowSpacing?: number
     modelCode?: string | number
     examStageTitle?: string
+    hideActionBar?: boolean
   }>(),
   {
     studentName: 'عمرو عبدالباسط عبدالله قائد الزمر',
@@ -394,6 +395,7 @@ const props = withDefaults(
     questionMarks: () => ({}),
     columnsCount: 4,
     rowSpacing: 5.2,
+    hideActionBar: true,
   }
 )
 

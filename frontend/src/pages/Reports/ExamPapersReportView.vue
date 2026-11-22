@@ -198,9 +198,9 @@
         class="bg-transparent"
       >
         <template v-slot:item-slot="{ item, key, index }">
-          <template v-if="key === 'index'">
+          <template v-if="key === 'numbering'">
             <div class="d-flex justify-center align-center">
-              <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+              <span class="font-weight-bold text-caption text-medium-emphasis">{{ ((items?.pagination?.current_page || 1) - 1) * (items?.pagination?.page_size || 20) + (index ?? 0) + 1 }}</span>
             </div>
           </template>
           <template v-else-if="key === 'isPresent'">
@@ -224,12 +224,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { reportsService } from '@/services/reportsService'
+import { useReportPagination } from '@/composables/useReportPagination'
 
-const loading = ref(false)
-const items = ref({
-  results: [],
-  count: 0,
-})
+const {
+  loading,
+  items,
+  extractParams,
+  setResponse,
+  resetPagination
+} = useReportPagination(20)
 
 // المؤسسة التعليمية
 const filterInstitutionType = ref('school')
@@ -362,7 +365,6 @@ const onInstituteSubjectChange = () => {
 }
 
 const headers = [
-  { title: '#', key: 'index', sortable: false, width: '60px' },
   { title: 'اسم الطالب', key: 'studentName', sortable: true },
   { title: 'رقم الجلوس / الرقم الأكاديمي', key: 'studentCode', sortable: true },
   { title: 'الاختبار', key: 'examTitle', sortable: true },
@@ -402,13 +404,23 @@ const buildParams = () => {
   return p
 }
 
-const applyFilters = async () => {
+const applyFilters = async (tableParams = {}) => {
+  const p = extractParams(tableParams)
   loading.value = true
   try {
-    const res = await reportsService.getExamQualityReport(buildParams())
-    items.value = res.results || (Array.isArray(res) ? res : [])
+    const query = {
+      ...buildParams(),
+      page: p.page,
+      page_size: p.page_size,
+    }
+    if (p.search) query.search = p.search
+    if (p.sort_by) query.sort_by = p.sort_by
+
+    const res = await reportsService.getExamQualityReport(query)
+    setResponse(res)
   } catch (e) {
     console.error(e)
+    setResponse({ results: [], count: 0 })
   } finally {
     loading.value = false
   }
@@ -430,6 +442,7 @@ const resetFilters = () => {
   filterExamId.value = null
   filterIsPresent.value = ''
   filterSearch.value = ''
+  resetPagination()
   applyFilters()
 }
 

@@ -22,8 +22,9 @@
             <auto-list
               v-model="filterStage"
               name="Stage"
+              label="المرحلة الدراسية"
               placeholder="المرحلة الدراسية"
-              cols="2"
+              cols="3"
               :add="false"
               @update:model-value="onStageChange"
             />
@@ -31,8 +32,9 @@
               v-model="filterClassTrack"
               name="ClassTrackByStage"
               :param="filterStage"
+              label="الصف والمسار"
               placeholder="الصف والمسار"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterStage"
               @update:model-value="onClassTrackChange"
@@ -41,8 +43,9 @@
               v-model="filterSubject"
               name="Subject"
               :param="subjectFilterParam"
+              label="المادة الدراسية"
               placeholder="المادة الدراسية"
-              cols="2"
+              cols="3"
               :add="false"
               @update:model-value="onSubjectChange"
             />
@@ -159,9 +162,9 @@
         class="bg-transparent"
       >
         <template v-slot:item-slot="{ item, key, index }">
-          <template v-if="key === 'index'">
+          <template v-if="key === 'numbering'">
             <div class="d-flex justify-center align-center">
-              <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+              <span class="font-weight-bold text-caption text-medium-emphasis">{{ ((items?.pagination?.current_page || 1) - 1) * (items?.pagination?.page_size || 20) + (index ?? 0) + 1 }}</span>
             </div>
           </template>
           <template v-else-if="key === 'coverageLabel'">
@@ -182,8 +185,16 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { reportsService } from '@/services/reportsService'
+import { useReportPagination } from '@/composables/useReportPagination'
 
-const loading = ref(false)
+const {
+  loading,
+  items,
+  extractParams,
+  setResponse,
+  resetPagination
+} = useReportPagination(20)
+
 const overviewData = ref({})
 
 // خيارات نوع المؤسسة بدون "الكل"
@@ -289,7 +300,6 @@ const onInstituteSpecializationChange = () => {
 const onInstituteSubjectChange = () => {}
 
 const headers = [
-  { title: '#', key: 'index', sortable: false, width: '60px' },
   { title: 'المادة / المقرر', key: 'subjectName', sortable: true },
   { title: 'نوع المؤسسة', key: 'institutionType', sortable: true, align: 'center' },
   { title: 'إجمالي الأسئلة', key: 'available', sortable: true, align: 'center' },
@@ -329,21 +339,42 @@ const buildParams = () => {
   return p
 }
 
-const applyFilters = async () => {
+const applyFilters = async (tableParams = {}) => {
+  const p = extractParams(tableParams)
   loading.value = true
   try {
-    const res = await reportsService.getBankStatusOverview(buildParams())
+    const query = {
+      ...buildParams(),
+      page: p.page,
+      page_size: p.page_size,
+    }
+    if (p.search) query.search = p.search
+    if (p.sort_by) query.sort_by = p.sort_by
+
+    const res = await reportsService.getBankStatusOverview(query)
     if (res) {
-      if (res.subjectProgress) {
-        res.subjectProgress = res.subjectProgress.map(s => ({
-          ...s,
-          coverageLabel: `${s.coverage}%`
-        }))
-      }
       overviewData.value = res
+      const formatInstitutionType = (type) => {
+        const map = {
+          'school': 'تعليم مدرسي',
+          'university': 'تعليم جامعي',
+          'institute': 'تعليم مهني ومعاهد'
+        }
+        return map[type] || type || '—'
+      }
+      const results = (res.results || res.subjectProgress || []).map(s => ({
+        ...s,
+        institutionType: formatInstitutionType(s.institutionType),
+        coverageLabel: `${s.coverage}%`
+      }))
+      setResponse({
+        ...res,
+        results
+      })
     }
   } catch (e) {
     console.error(e)
+    setResponse({ results: [], count: 0 })
   } finally {
     loading.value = false
   }
@@ -362,6 +393,7 @@ const resetFilters = () => {
   filterInstituteSpecialization.value = null
   filterInstituteSubject.value = null
   filterSubject.value = null
+  resetPagination()
   applyFilters()
 }
 

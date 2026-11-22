@@ -15,7 +15,7 @@ from templates_engine.validator import TemplateValidatorService
 from rest_framework import permissions
 
 class ExamTemplateMVS(AllMVS):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     queryset = ExamTemplate.objects.filter(is_deleted=False).order_by('-id')
     serializer_class = ExamTemplateSerializer
     enable_actions = ['all', 'select', 'list', 'second_list', 'filter', 'filter_paginate', 'retrieve', 'create', 'update', 'partial_update', 'destroy']

@@ -1,0 +1,1215 @@
+/* ==========================================================================
+   EXECUTIVE ZERO-GRAY DESIGN SYSTEM — SMSP EXAM GENERATOR
+   Standards: Modern Ministerial / Academic Portal Design
+   Principles: Zero dull gray, high visual hierarchy, clean geometry, 4/8px grid
+   ========================================================================== */
+
+.editing-mode-banner {
+  background: rgba(var(--v-theme-warning), 0.08) !important;
+  border: 1.5px solid rgba(var(--v-theme-warning), 0.3) !important;
+  box-shadow: 0 4px 20px rgba(var(--v-theme-warning), 0.06) !important;
+}
+
+.qb-exam-create-v4 {
+  color: rgb(var(--v-theme-on-surface));
+  background: radial-gradient(ellipse at 50% 0%, rgba(var(--v-theme-primary), 0.04) 0%, transparent 70%);
+}
+
+/* ==========================================================================
+   1. Main Container & Structural Cards (No Gray)
+   ========================================================================== */
+.main-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.12) !important;
+  box-shadow: 0 10px 30px rgba(var(--v-theme-primary), 0.04) !important;
+}
+
+.section-group-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.12) !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.02) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.section-group-card:hover {
+  border-color: rgba(var(--v-theme-primary), 0.28) !important;
+  box-shadow: 0 8px 24px rgba(var(--v-theme-primary), 0.06) !important;
+}
+
+.border-subtle {
+  border: 1px solid rgba(var(--v-theme-primary), 0.12) !important;
+  background: rgb(var(--v-theme-surface));
+}
+
+.border-b-subtle {
+  border-bottom: 1px solid rgba(var(--v-theme-primary), 0.12) !important;
+}
+
+.border-t-subtle {
+  border-top: 1px solid rgba(var(--v-theme-primary), 0.12) !important;
+}
+
+/* ==========================================================================
+   2. Connected Stepper Wizard Pipeline (Executive 4-Step Progress)
+   ========================================================================== */
+.premium-wizard-wrapper {
+  position: relative;
+  padding: 24px 36px 20px 36px;
+  background: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.05) 0%, rgb(var(--v-theme-surface)) 100%) !important;
+  border-bottom: 1.5px solid rgba(var(--v-theme-primary), 0.12) !important;
+}
+
+.premium-wizard-container {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.wizard-progress-track {
+  position: absolute;
+  top: 23px;
+  left: 60px;
+  right: 60px;
+  height: 4px;
+  background: rgba(var(--v-theme-primary), 0.1) !important;
+  z-index: 1;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.wizard-progress-fill {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #10b981 0%, rgb(var(--v-theme-primary)) 100%) !important;
+  transition: width 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+}
+
+.wizard-beam-glow {
+  position: absolute;
+  left: 0;
+  top: -2px;
+  bottom: -2px;
+  width: 16px;
+  background: #ffffff;
+  border-radius: 50%;
+  filter: blur(3px);
+  opacity: 0.9;
+  animation: wizard-beam-pulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes wizard-beam-pulse {
+  from { opacity: 0.5; transform: scaleX(0.8); }
+  to { opacity: 1; transform: scaleX(1.3); }
+}
+
+.premium-wizard-node {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  flex: 1;
+  max-width: 250px;
+  transition: all 0.25s ease;
+  user-select: none;
+}
+
+/* Stepper Circle Anchor & Geometry */
+.stepper-circle-anchor {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+
+.stepper-circle {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 2px solid rgba(var(--v-theme-primary), 0.2);
+  color: rgba(var(--v-theme-on-surface), 0.55);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 0 0 6px rgb(var(--v-theme-surface)), 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.node-step-number {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgb(var(--v-theme-surface));
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  font-size: 11px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.25);
+  z-index: 4;
+  transition: all 0.25s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* 1. Active State (قيد الضبط) */
+.premium-wizard-node.is-active .stepper-circle {
+  background: rgb(var(--v-theme-primary)) !important;
+  border-color: rgb(var(--v-theme-primary)) !important;
+  color: #ffffff !important;
+  transform: scale(1.1);
+  box-shadow: 0 0 0 6px rgb(var(--v-theme-surface)), 0 0 0 9px rgba(var(--v-theme-primary), 0.18), 0 4px 14px rgba(var(--v-theme-primary), 0.35);
+}
+
+.premium-wizard-node.is-active .node-step-number {
+  background: rgb(var(--v-theme-primary));
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+/* Active Pulsing Wave Ring */
+.stepper-pulse-ring {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  right: -6px;
+  bottom: -6px;
+  border-radius: 50%;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.pulse-primary {
+  border: 2px solid rgb(var(--v-theme-primary));
+  animation: stepper-ring-expand-blue 1.8s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+}
+
+@keyframes stepper-ring-expand-blue {
+  0% { transform: scale(0.92); opacity: 0.85; }
+  50% { transform: scale(1.22); opacity: 0.3; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.pulse-error {
+  border: 2px solid rgb(var(--v-theme-error));
+  animation: stepper-ring-expand-error 1.4s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+}
+
+@keyframes stepper-ring-expand-error {
+  0% { transform: scale(0.92); opacity: 0.9; }
+  50% { transform: scale(1.25); opacity: 0.35; }
+  100% { transform: scale(1.42); opacity: 0; }
+}
+
+.icon-active-breath {
+  animation: icon-breath-subtle 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes icon-breath-subtle {
+  from { transform: scale(0.94); opacity: 0.9; }
+  to { transform: scale(1.08); opacity: 1; }
+}
+
+/* 2. Completed State (نجاح / مكتمل - علامة الصح والحدود خضراء زمردية) */
+.premium-wizard-node.is-completed .stepper-circle {
+  background: rgb(var(--v-theme-surface)) !important;
+  border-color: #10b981 !important;
+  color: #10b981 !important;
+  box-shadow: 0 0 0 6px rgb(var(--v-theme-surface)), 0 0 0 7px rgba(16, 185, 129, 0.25), 0 3px 10px rgba(16, 185, 129, 0.18);
+}
+
+.premium-wizard-node.is-completed .node-step-number {
+  background: #10b981;
+  color: #ffffff;
+  border-color: rgb(var(--v-theme-surface));
+}
+
+.checkmark-pop {
+  animation: checkmark-pop-anim 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes checkmark-pop-anim {
+  0% { transform: scale(0.3); opacity: 0; }
+  70% { transform: scale(1.25); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 3. Error / Failure State (فشل / تنبيه / غير مكتمل) */
+.premium-wizard-node.is-error .stepper-circle {
+  background: rgba(var(--v-theme-error), 0.08) !important;
+  border-color: rgb(var(--v-theme-error)) !important;
+  color: rgb(var(--v-theme-error)) !important;
+  box-shadow: 0 0 0 3px rgba(var(--v-theme-error), 0.16), 0 3px 12px rgba(var(--v-theme-error), 0.2);
+}
+
+.premium-wizard-node.is-error .node-step-number {
+  background: rgb(var(--v-theme-error));
+  color: #ffffff;
+  border-color: rgb(var(--v-theme-surface));
+}
+
+.error-icon-shake {
+  animation: error-shake-subtle 0.6s ease-in-out;
+}
+
+@keyframes error-shake-subtle {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-3px); }
+  40%, 80% { transform: translateX(3px); }
+}
+
+/* 4. Pending State */
+.premium-wizard-node.is-pending {
+  opacity: 0.72;
+}
+
+.premium-wizard-node.is-pending:hover {
+  opacity: 0.95;
+}
+
+.premium-wizard-node.is-pending:hover .stepper-circle {
+  border-color: rgba(var(--v-theme-primary), 0.4);
+  transform: translateY(-2px);
+}
+
+/* Stepper Node Typography & Titles */
+.node-content {
+  width: 100%;
+}
+
+.node-title {
+  font-size: 0.88rem;
+  line-height: 1.3;
+  color: rgb(var(--v-theme-on-surface));
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.premium-wizard-node.is-active .node-title {
+  color: rgb(var(--v-theme-primary)) !important;
+  font-weight: 900;
+}
+
+.premium-wizard-node.is-error .node-title {
+  color: rgb(var(--v-theme-error)) !important;
+  font-weight: 900;
+}
+
+.node-subtitle {
+  font-size: 0.72rem;
+  line-height: 1.25;
+  color: rgba(var(--v-theme-on-surface), 0.65);
+  margin-top: 2px;
+}
+
+/* Explicit Status Badges (نجاح / فشل / قيد الضبط / انتظار) */
+.node-status-badge-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.node-status-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 6px !important;
+  transition: all 0.25s ease;
+  line-height: 1.2;
+}
+
+.node-status-pill.status-completed {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.node-status-pill.status-active {
+  background: rgba(var(--v-theme-primary), 0.12);
+  color: rgb(var(--v-theme-primary));
+  border: 1px solid rgb(var(--v-theme-primary));
+  animation: pulse-text-glow 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-text-glow {
+  from { opacity: 0.75; }
+  to { opacity: 1; }
+}
+
+.node-status-pill.status-error {
+  background: rgba(var(--v-theme-error), 0.1);
+  color: rgb(var(--v-theme-error));
+  border: 1px solid rgba(var(--v-theme-error), 0.35);
+}
+
+.node-status-pill.status-pending {
+  background: rgba(var(--v-theme-on-surface), 0.05);
+  color: rgba(var(--v-theme-on-surface), 0.5);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+}
+
+/* ==========================================================================
+   3. Step 1 Master-Detail Sidebar Navigation
+   ========================================================================== */
+.step1-sidebar-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.14) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 6px 24px rgba(var(--v-theme-primary), 0.03) !important;
+  position: sticky;
+  top: 24px;
+  z-index: 10;
+}
+
+.step1-nav-item {
+  background: rgb(var(--v-theme-surface));
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.1) !important;
+  border-radius: 14px !important;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.step1-nav-item:hover {
+  border-color: rgba(var(--v-theme-primary), 0.35) !important;
+  transform: translateX(-2px);
+  background: rgba(var(--v-theme-primary), 0.03) !important;
+}
+
+.step1-nav-item.is-active {
+  background: linear-gradient(90deg, rgba(var(--v-theme-primary), 0.08) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  border-color: rgb(var(--v-theme-primary)) !important;
+  border-right: 4px solid rgb(var(--v-theme-primary)) !important;
+  box-shadow: 0 4px 16px rgba(var(--v-theme-primary), 0.1) !important;
+}
+
+.step1-nav-item.has-error {
+  border-color: rgba(var(--v-theme-error), 0.4) !important;
+  background: rgba(var(--v-theme-error), 0.04) !important;
+  border-right: 4px solid rgb(var(--v-theme-error)) !important;
+}
+
+/* ==========================================================================
+   4. Segmented Institution Type Controls (Zero Gray)
+   ========================================================================== */
+.segmented-control {
+  background: rgba(var(--v-theme-primary), 0.04) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.14) !important;
+  border-radius: 16px !important;
+  padding: 6px !important;
+}
+
+.segmented-control-btn {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: rgba(var(--v-theme-on-surface), 0.75);
+  font-weight: 800;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  min-width: 140px;
+}
+
+.segmented-control-btn:hover {
+  color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.08);
+}
+
+.segmented-control-btn.is-active {
+  background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, #1d4ed8 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(var(--v-theme-primary), 0.3) !important;
+}
+
+/* ==========================================================================
+   4.1 Model Group Executive Cards & Unified Soft Neutral Borders
+   ========================================================================== */
+.model-group-card {
+  position: relative;
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 2px solid #cbd5e1 !important; /* Unified soft light gray / slate border */
+  border-inline-start: 6px solid #94a3b8 !important; /* Unified clean neutral slate side accent */
+  border-radius: 20px !important;
+  margin-bottom: 24px !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.model-group-card:hover {
+  border-color: #94a3b8 !important;
+  border-inline-start-color: #64748b !important;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Header Banner inside each Group Card (Unified Soft Light Gray / Neutral) */
+.model-group-header-banner {
+  background: rgba(var(--v-theme-surface), 0.96) !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+}
+
+/* Inner Subsections inside Group Card */
+.model-group-card .group-inner-section {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  transition: all 0.2s ease !important;
+}
+
+.model-group-card .group-inner-section:hover {
+  border-color: #cbd5e1 !important;
+}
+
+/* Elegant Group Divider between consecutive cards */
+.group-divider-line {
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, #cbd5e1, transparent);
+}
+
+.group-divider-badge {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px dashed #cbd5e1 !important;
+  color: #64748b !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
+}
+
+/* ==========================================================================
+   5. Interactive Selection & Model Mode Cards (Zero Gray)
+   ========================================================================== */
+.selection-card,
+.model-mode-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.14) !important;
+  border-radius: 18px !important;
+  padding: 18px 22px !important;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  user-select: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02) !important;
+}
+
+.selection-card:hover,
+.model-mode-card:hover {
+  border-color: rgba(var(--v-theme-primary), 0.4) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(var(--v-theme-primary), 0.08) !important;
+}
+
+.selection-card.is-active,
+.model-mode-card.is-active {
+  border-color: rgb(var(--v-theme-primary)) !important;
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.08) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  box-shadow: 0 4px 18px rgba(var(--v-theme-primary), 0.15) !important;
+}
+
+.model-mode-card.is-active-warning {
+  border-color: #f59e0b !important;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.15) !important;
+}
+
+/* ==========================================================================
+   6. Scope Level Cards Grid (Zero Gray)
+   ========================================================================== */
+.scope-grid {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.scope-card {
+  flex: 1 1 0;
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.14) !important;
+  border-radius: 14px !important;
+  padding: 14px 10px !important;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease !important;
+  user-select: none;
+  min-width: 100px;
+}
+
+.scope-card:hover {
+  border-color: rgba(var(--v-theme-primary), 0.4) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(var(--v-theme-primary), 0.08) !important;
+}
+
+.scope-card.is-active {
+  border-color: rgb(var(--v-theme-primary)) !important;
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.1) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  box-shadow: 0 4px 14px rgba(var(--v-theme-primary), 0.18) !important;
+}
+
+/* ==========================================================================
+   7. Matrix Specification Tabs & Navigation (Step 2)
+   ========================================================================== */
+.matrix-tabs-bar {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.04) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  border-bottom: 1.5px solid rgba(var(--v-theme-primary), 0.14) !important;
+  padding: 8px !important;
+  gap: 8px !important;
+}
+
+.matrix-tab-btn {
+  border-radius: 14px !important;
+  border: 1.5px solid transparent !important;
+  background: transparent !important;
+  color: rgba(var(--v-theme-on-surface), 0.7) !important;
+  font-weight: 800 !important;
+  font-size: 0.92rem !important;
+  min-width: 170px !important;
+  padding: 12px 18px !important;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.matrix-tab-btn:hover {
+  color: rgb(var(--v-theme-primary)) !important;
+  background: rgba(var(--v-theme-primary), 0.06) !important;
+}
+
+.matrix-tab-btn.is-active {
+  background: rgb(var(--v-theme-surface)) !important;
+  border-color: rgba(var(--v-theme-primary), 0.28) !important;
+  color: rgb(var(--v-theme-primary)) !important;
+  box-shadow: 0 4px 16px rgba(var(--v-theme-primary), 0.12) !important;
+}
+
+.executive-table {
+  background: rgb(var(--v-theme-surface)) !important;
+}
+
+.table-header-row {
+  background: rgba(var(--v-theme-primary), 0.06) !important;
+}
+
+/* ==========================================================================
+   8. Units Distribution Tab Executive Styles (Zero Gray)
+   ========================================================================== */
+.units-tab-header {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.06) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.16) !important;
+  border-radius: 18px !important;
+  padding: 18px 24px !important;
+}
+
+.units-header-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(var(--v-theme-primary), 0.12) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.25) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.12);
+}
+
+.model-groups-selector-hub {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.06) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.18) !important;
+  border-radius: 18px !important;
+  padding: 18px 22px !important;
+  box-shadow: 0 4px 20px rgba(var(--v-theme-primary), 0.04) !important;
+}
+
+.hub-bullet-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgb(var(--v-theme-primary));
+  box-shadow: 0 0 8px rgba(var(--v-theme-primary), 0.6);
+}
+
+.group-pills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.group-switch-pill {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.16) !important;
+  border-radius: 14px !important;
+  padding: 12px 16px !important;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative;
+  user-select: none;
+}
+
+.group-switch-pill:hover {
+  border-color: rgba(var(--v-theme-primary), 0.4) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(var(--v-theme-primary), 0.08) !important;
+}
+
+.group-switch-pill.is-active {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.14) 0%, rgba(var(--v-theme-primary), 0.04) 100%) !important;
+  border-color: rgb(var(--v-theme-primary)) !important;
+  box-shadow: 0 4px 18px rgba(var(--v-theme-primary), 0.22) !important;
+}
+
+.group-pill-title {
+  font-size: 0.94rem;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.pill-percentage-badge {
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pill-percentage-badge.is-complete {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.pill-percentage-badge.is-pending {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.active-group-hero-banner {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.12) 0%, rgba(var(--v-theme-primary), 0.03) 60%, rgb(var(--v-theme-surface)) 100%) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.2) !important;
+  border-right: 5px solid rgb(var(--v-theme-primary)) !important;
+  border-radius: 18px !important;
+  padding: 18px 24px !important;
+  box-shadow: 0 6px 24px rgba(var(--v-theme-primary), 0.08) !important;
+}
+
+.active-group-hero-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, #1d4ed8 100%) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(var(--v-theme-primary), 0.35);
+  flex-shrink: 0;
+}
+
+.hero-total-badge {
+  border: 1px solid transparent;
+}
+
+.hero-total-badge.badge-success {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #10b981;
+}
+
+.hero-total-badge.badge-warning {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+}
+
+.modern-unit-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.14) !important;
+  border-radius: 16px !important;
+  padding: 16px 20px !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02) !important;
+}
+
+.modern-unit-card:hover {
+  border-color: rgba(var(--v-theme-primary), 0.35) !important;
+  box-shadow: 0 8px 24px rgba(var(--v-theme-primary), 0.08) !important;
+  transform: translateY(-2px);
+}
+
+.modern-unit-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 4px;
+  background: rgb(var(--v-theme-primary));
+  opacity: 0.85;
+  border-top-right-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+.modern-unit-card.is-excluded {
+  background: rgba(var(--v-theme-error), 0.04) !important;
+  border-color: rgba(var(--v-theme-error), 0.25) !important;
+  opacity: 0.8;
+}
+
+.modern-unit-card.is-excluded::before {
+  background: rgb(var(--v-theme-error));
+}
+
+.unit-stepper-box {
+  background: rgba(var(--v-theme-primary), 0.05);
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.14);
+  border-radius: 12px;
+  padding: 4px 6px;
+}
+
+.unit-percentage-display {
+  min-width: 62px;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: rgb(var(--v-theme-primary));
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: rgba(var(--v-theme-primary), 0.08);
+}
+
+.unit-percentage-display.is-zero {
+  color: rgba(var(--v-theme-on-surface), 0.5);
+  background: transparent;
+}
+
+.unit-percentage-display.is-excluded {
+  color: rgb(var(--v-theme-error));
+}
+
+.term-header-banner {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.08) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.15) !important;
+  border-right: 4px solid rgb(var(--v-theme-primary)) !important;
+  padding: 10px 18px !important;
+  border-radius: 14px !important;
+}
+
+/* ==========================================================================
+   9. Exam Total Marks Command Center & Question Types Cards (Zero Gray)
+   ========================================================================== */
+.exam-total-marks-card {
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.08) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.2) !important;
+  border-right: 5px solid rgb(var(--v-theme-primary)) !important;
+  border-radius: 18px !important;
+  padding: 18px 24px !important;
+  box-shadow: 0 6px 24px rgba(var(--v-theme-primary), 0.06) !important;
+}
+
+.total-marks-icon-box {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  background: rgba(245, 158, 11, 0.12) !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.3) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.score-input-wrapper {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.25) !important;
+}
+
+.score-number-input {
+  width: 64px;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: rgb(var(--v-theme-primary));
+  outline: none;
+  border: none;
+  background: transparent;
+}
+
+.modern-type-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.14) !important;
+  border-radius: 16px !important;
+  padding: 16px 20px !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02) !important;
+}
+
+.modern-type-card:hover {
+  border-color: rgba(var(--v-theme-primary), 0.35) !important;
+  box-shadow: 0 8px 24px rgba(var(--v-theme-primary), 0.08) !important;
+  transform: translateY(-2px);
+}
+
+.modern-type-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 4px;
+  background: rgb(var(--v-theme-primary));
+  opacity: 0.85;
+  border-top-right-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+.type-metrics-bar {
+  background: rgba(var(--v-theme-primary), 0.04) !important;
+  border: 1px solid rgba(var(--v-theme-primary), 0.12) !important;
+  border-radius: 12px;
+  padding: 8px 14px;
+}
+
+/* ==========================================================================
+   10. Step 3 Executive KPI Certification Cards
+   ========================================================================== */
+.kpi-cert-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1.5px solid rgba(var(--v-theme-primary), 0.14) !important;
+  border-radius: 18px !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02) !important;
+}
+
+.kpi-cert-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(var(--v-theme-primary), 0.35) !important;
+  box-shadow: 0 8px 24px rgba(var(--v-theme-primary), 0.08) !important;
+}
+
+.kpi-title {
+  font-size: 1rem;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.kpi-metric {
+  font-size: 1.6rem;
+  line-height: 1.15;
+}
+
+/* ==========================================================================
+   11. Step 4: Interactive Exam Staging Styles (Zero Gray)
+   ========================================================================== */
+.staged-command-hub {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02) !important;
+}
+
+.staged-model-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 10px;
+  background: rgba(var(--v-theme-on-surface), 0.03);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.staged-model-tab:hover {
+  background: rgba(var(--v-theme-primary), 0.06);
+  border-color: rgba(var(--v-theme-primary), 0.2);
+}
+
+.staged-model-tab.is-active {
+  background: rgba(var(--v-theme-primary), 0.08) !important;
+  border-color: rgb(var(--v-theme-primary)) !important;
+  color: rgb(var(--v-theme-primary)) !important;
+}
+
+.staged-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(var(--v-theme-primary), 0.15);
+  color: rgb(var(--v-theme-primary));
+  font-weight: 800;
+  font-size: 0.75rem;
+}
+
+.staged-model-tab.is-active .staged-tab-badge {
+  background: rgb(var(--v-theme-primary));
+  color: white;
+}
+
+.staged-tab-name {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.staged-tab-count {
+  font-size: 0.75rem;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+}
+
+.shadow-success {
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3) !important;
+}
+
+.staged-question-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02) !important;
+  transition: all 0.2s ease !important;
+}
+
+.staged-question-card:hover {
+  border-color: rgba(var(--v-theme-primary), 0.3) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04) !important;
+}
+
+.q-number-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgb(var(--v-theme-primary));
+  color: white;
+  font-weight: 800;
+  font-size: 0.78rem;
+  padding: 0 6px;
+  letter-spacing: -0.5px;
+}
+
+.staged-mark-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid rgba(var(--v-theme-primary), 0.35);
+  color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.05);
+  line-height: 1.4;
+  height: 24px;
+}
+
+.staged-action-btn {
+  border-radius: 5px !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  padding: 0 9px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  letter-spacing: normal !important;
+}
+
+.staged-tag {
+  border-radius: 5px !important;
+  height: 22px !important;
+}
+
+/* True/False Option Pills */
+.tf-option-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.tf-option-pill.is-neutral {
+  background: rgba(var(--v-theme-on-surface), 0.03);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.tf-option-pill.is-correct {
+  background: rgba(16, 185, 129, 0.09) !important;
+  border: 1.5px solid #10b981 !important;
+  color: #065f46 !important;
+  font-weight: 700;
+}
+
+/* MCQ Option Cards */
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 8px;
+  max-width: 860px;
+}
+
+.mcq-option-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.mcq-option-card.is-neutral {
+  background: rgba(var(--v-theme-on-surface), 0.02);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.09);
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.mcq-option-card.is-correct {
+  background: rgba(16, 185, 129, 0.09) !important;
+  border: 1.5px solid #10b981 !important;
+  color: #065f46 !important;
+}
+
+.opt-letter-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  background: rgba(var(--v-theme-on-surface), 0.08);
+  color: rgb(var(--v-theme-on-surface));
+  flex-shrink: 0;
+}
+
+.opt-letter-avatar.is-correct {
+  background: #10b981;
+  color: white;
+}
+
+/* Question Swap Dialog Custom Styles */
+.swap-target-box {
+  background: rgba(var(--v-theme-primary), 0.03) !important;
+  border: 1px solid rgba(var(--v-theme-primary), 0.16) !important;
+  border-radius: 10px !important;
+  padding: 12px 16px !important;
+}
+
+.swap-scope-pill {
+  border-radius: 5px !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  letter-spacing: normal !important;
+}
+
+.swap-candidate-card {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1) !important;
+  border-radius: 10px !important;
+  padding: 14px 16px !important;
+  transition: all 0.2s ease !important;
+}
+
+.swap-candidate-card:hover {
+  border-color: rgba(var(--v-theme-primary), 0.35) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* ==========================================================================
+   12. Sticky Wizard Footer
+   ========================================================================== */
+.wizard-footer {
+  backdrop-filter: blur(12px) !important;
+  background: rgba(var(--v-theme-surface), 0.96) !important;
+  border-top: 1.5px solid rgba(var(--v-theme-primary), 0.12) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .premium-wizard-wrapper {
+    padding: 16px 12px;
+  }
+  .premium-wizard-container {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .wizard-progress-track {
+    display: none;
+  }
+  .premium-wizard-node {
+    width: 48%;
+    max-width: none;
+  }
+  .stepper-circle {
+    width: 40px;
+    height: 40px;
+  }
+  .node-title {
+    font-size: 0.8rem;
+  }
+  .node-status-pill {
+    font-size: 0.65rem;
+    padding: 1px 6px;
+  }
+}
+
+/* ==========================================================================
+   Lightweight Formal Transparent Loading Overlay
+   ========================================================================== */
+.formal-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  min-height: 420px;
+  background: rgba(var(--v-theme-surface), 0.72) !important;
+  backdrop-filter: blur(4px) !important;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  pointer-events: all;
+  transition: opacity 0.25s ease;
+}
+
+.formal-loading-pill {
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-border-color), 0.2) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+  position: sticky;
+  top: 40%;
+}
+
+.content-loading-blur {
+  opacity: 0.4 !important;
+  pointer-events: none !important;
+  user-select: none !important;
+  transition: opacity 0.25s ease !important;
+}
+

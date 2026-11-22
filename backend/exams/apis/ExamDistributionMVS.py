@@ -668,7 +668,7 @@ class ExamDistributionMVS(AllMVS):
             "school_status": ExamSchoolDispatchStatusSerializer(dispatch_status).data
         })
 
-    @action(detail=False, methods=['get'], url_path='export-package', permission_classes=[AllowAny])
+    @action(detail=False, methods=['get'], url_path='export-package', permission_classes=[IsAuthenticated])
     def export_package(self, request):
         """
         الـ API المخصص للأنظمة التعليمية المستقلة (نظام المدارس SMS ونظام الجامعات UMS)

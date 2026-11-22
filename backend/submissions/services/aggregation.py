@@ -104,8 +104,9 @@ class SubmissionAggregationService:
                     max_possible_score += weight
                     total_questions += 1
 
+                    awarded = Decimal(str(q.marks_awarded)) if q.marks_awarded is not None else (weight if q.is_correct else Decimal('0.0'))
+                    total_score += awarded
                     if q.is_correct:
-                        total_score += weight
                         total_correct += 1
                     elif q.final_marked_choice is not None:
                         total_wrong += 1

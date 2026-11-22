@@ -96,16 +96,16 @@ class ExamArchiveMVS(AllMVS):
         stage_id = self.request.query_params.get('stage') or self.request.query_params.get('stage_id')
         if stage_id:
             qs = qs.filter(
-                Q(versions__question_orders__question__lesson__unit__class_subject__class_track__level__stage_id=stage_id) |
+                Q(class_track__level__stage_id=stage_id) |
                 Q(subject__class_subjects__class_track__level__stage_id=stage_id)
-            )
+            ).distinct()
 
         class_track_id = self.request.query_params.get('class_track') or self.request.query_params.get('class_track_id')
         if class_track_id:
             qs = qs.filter(
-                Q(versions__question_orders__question__lesson__unit__class_subject__class_track_id=class_track_id) |
-                Q(subject__class_subjects__class_track_id=class_track_id)
-            )
+                Q(subject__class_subjects__class_track_id=class_track_id) |
+                Q(class_track_id=class_track_id)
+            ).distinct()
 
         year_id = self.request.query_params.get('year') or self.request.query_params.get('year_id')
         if year_id:
