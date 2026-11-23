@@ -1,55 +1,32 @@
 <template>
-  <v-dialog
+  <custom-dialog
     :model-value="modelValue"
+    title="استمارة إذن الصرف وأمر الطباعة الرسمي"
+    width="920"
+    height="88vh"
     @update:model-value="$emit('update:modelValue', $event)"
-    max-width="920px"
-    scrollable
   >
-    <v-card class="rounded-2xl overflow-hidden bg-surface elevation-12">
-      <!-- ── شريط الإجراءات والتحكم العلوي (مخفي عند الطباعة) ── -->
-      <div class="d-print-none px-5 py-3.5 d-flex align-center justify-space-between border-b bg-surface">
-        <div class="d-flex align-center gap-2.5">
-          <v-avatar color="primary" variant="tonal" size="38" rounded="lg">
-            <v-icon size="20" color="primary">mdi-file-document-check-outline</v-icon>
-          </v-avatar>
-          <div>
-            <div class="font-weight-black text-subtitle-2 text-high-emphasis">
-              استمارة إذن الصرف وأمر الطباعة الرسمي
-            </div>
-            <div class="text-caption text-medium-emphasis">
-              وثيقة معتمدة وموجهة للمطبعة المنفذة ومحضر استلام رسمي
-            </div>
-          </div>
-        </div>
-
-        <div class="d-flex align-center gap-2">
-          <v-btn
-            color="primary"
-            variant="flat"
-            rounded="lg"
-            size="small"
-            class="font-weight-bold px-4"
-            prepend-icon="mdi-printer"
-            @click="triggerPrint"
-          >
-            طباعة المستند (A4)
-          </v-btn>
-
-          <v-btn
-            icon="mdi-close"
-            variant="text"
-            size="small"
-            density="comfortable"
-            color="medium-emphasis"
-            rounded="lg"
-            @click="$emit('update:modelValue', false)"
-          />
-        </div>
+    <!-- ── شريط الإجراءات والتحكم العلوي (مخفي عند الطباعة) ── -->
+    <div class="d-print-none pb-3 mb-4 d-flex align-center justify-space-between border-b flex-wrap gap-2">
+      <div class="text-caption text-medium-emphasis">
+        وثيقة معتمدة وموجهة للمطبعة المنفذة ومحضر استلام رسمي
       </div>
+      <v-btn
+        color="primary"
+        variant="flat"
+        rounded="lg"
+        size="small"
+        class="font-weight-bold px-4"
+        prepend-icon="mdi-printer"
+        @click="triggerPrint"
+      >
+        طباعة المستند (A4)
+      </v-btn>
+    </div>
 
-      <!-- ── مساحة المستند الرسمي القابل للطباعة ── -->
-      <v-card-text class="pa-4 pa-sm-8 bg-grey-lighten-4 overflow-y-auto" style="max-height: 80vh;">
-        <div id="printableManifest" class="official-manifest-sheet mx-auto bg-white pa-6 pa-sm-10 rounded-xl border elevation-2" dir="rtl">
+    <!-- ── مساحة المستند الرسمي القابل للطباعة ── -->
+    <div class="pa-4 pa-sm-6 bg-grey-lighten-4 rounded-xl">
+      <div id="printableManifest" class="official-manifest-sheet mx-auto bg-white pa-6 pa-sm-10 rounded-xl border elevation-2" dir="rtl">
           <!-- 1. ترويسة الوزارة واللجنة العليا للاختبارات -->
           <div class="manifest-header text-center pb-4 mb-4 border-b-2">
             <h3 class="ministry-title mb-1 font-weight-bold">الجمهورية اليمنية — وزارة التربية والتعليم</h3>
@@ -199,9 +176,8 @@
             </div>
           </div>
         </div>
-      </v-card-text>
-    </v-card>
-  </v-dialog>
+      </div>
+  </custom-dialog>
 </template>
 
 <script setup>

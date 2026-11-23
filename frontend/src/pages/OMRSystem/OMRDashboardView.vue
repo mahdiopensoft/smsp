@@ -82,50 +82,33 @@
     <!-- Unified Filter Fields -->
     <filter-fields label="خيارات التصفية والبحث في الأوراق المعالجة" class="main-card border-0 pa-5 rounded-2xl mb-6">
       <v-row dense class="align-center">
-        <!-- Search Query Input -->
-        <v-col cols="12" sm="6" md="5">
-          <custom-text-field
-            v-model="searchQuery"
-            label="اسم الطالب أو الاختبار"
-            placeholder="بحث باسم الطالب أو الاختبار..."
-            icon="magnify"
-            cols="12"
-            :hideDetails="true"
-            clearable
-          />
-        </v-col>
 
         <!-- Status Filter -->
-        <v-col cols="12" sm="6" md="4">
-          <auto-list
-            v-model="selectedStatus"
-            name="ScreenTypeChoices"
-            :objects="statusObjects"
-            label="حالة التصحيح"
-            placeholder="تصفية بحالة الورقة..."
-            cols="12"
-            :add="false"
-            :hideDetails="true"
-          />
-        </v-col>
+        <auto-list
+          v-model="selectedStatus"
+          name="ScreenTypeChoices"
+          :objects="statusObjects"
+          label="حالة التصحيح"
+          placeholder="تصفية بحالة الورقة..."
+          cols="3"
+          :add="false"
+        />
 
         <!-- Actions -->
-        <v-col cols="12" sm="12" md="3" class="d-flex align-center justify-end gap-2">
+        <v-col cols="auto" class="d-flex align-center gap-2 mb-6">
           <custom-btn
             type="show"
-            label="تصفية النتائج"
+            label="عرض"
             color="primary"
-            icon="mdi-filter"
             class="font-weight-bold px-5"
-            :click="fetchDashboardData"
+            :click="applyDashboardFilters"
           />
           <custom-btn
             type="cancel_filter"
             :click="resetFilters"
             variant="tonal"
             color="error"
-            label="تفريغ الفلاتر"
-            icon="mdi-filter-off"
+            label="إلغاء الفلترة"
             class="font-weight-bold"
           />
         </v-col>
@@ -155,6 +138,9 @@
           getData: getDashboardData,
           headers,
           loading,
+          actionList: (item) => [
+            { title_ar: 'عرض وتدقيق الورقة', title_en: 'View Sheet', click: () => $router.push(`/omr-submissions/${item.id}`) },
+          ],
         }"
         :hasFilter="false"
         :log="false"
@@ -163,14 +149,9 @@
         <template v-slot:item-slot="{ item, key }">
           <!-- Student Name -->
           <template v-if="key === 'student_name'">
-            <div class="d-flex align-center gap-3 py-1">
-              <v-avatar size="36" color="primary" variant="tonal" class="rounded-lg">
-                <v-icon size="20">mdi-account-outline</v-icon>
-              </v-avatar>
-              <div>
-                <div class="font-weight-bold text-body-2 text-on-surface">{{ item.student_name || 'غير محدد' }}</div>
-                <div class="text-caption text-medium-emphasis">رقم الجلوس: {{ item.student_seat_number || item.seat_number || '—' }}</div>
-              </div>
+            <div class="py-1">
+              <div class="font-weight-bold text-body-2 text-on-surface">{{ item.student_name || 'غير محدد' }}</div>
+              <div class="text-caption text-medium-emphasis">رقم الجلوس: {{ item.student_seat_number || item.seat_number || '—' }}</div>
             </div>
           </template>
 
@@ -213,16 +194,6 @@
           </template>
 
           <!-- Actions -->
-          <template v-else-if="key === 'actions'">
-            <div class="d-flex align-center justify-center gap-1">
-              <custom-btn
-                type="show"
-                is-icon
-                label="عرض وتدقيق الورقة"
-                :click="() => $router.push(`/omr-submissions/${item.id}`)"
-              />
-            </div>
-          </template>
         </template>
       </custom-data-table>
     </div>
@@ -265,13 +236,22 @@ const headers = computed(() => [
   { title: "مؤشر الثقة", key: "confidence", sortable: true, align: "center", width: "150px" },
 ])
 
+const appliedSearchQuery = ref('')
+const appliedStatus = ref('all')
+
+const applyDashboardFilters = async () => {
+  appliedSearchQuery.value = searchQuery.value || ''
+  appliedStatus.value = selectedStatus.value || 'all'
+  await fetchDashboardData()
+}
+
 const filteredSubmissions = computed(() => {
   let list = recentSubmissions.value || []
-  if (selectedStatus.value && selectedStatus.value !== 'all') {
-    list = list.filter(s => s.status === selectedStatus.value)
+  if (appliedStatus.value && appliedStatus.value !== 'all') {
+    list = list.filter(s => s.status === appliedStatus.value)
   }
-  if (searchQuery.value && searchQuery.value.trim()) {
-    const q = searchQuery.value.trim().toLowerCase()
+  if (appliedSearchQuery.value && appliedSearchQuery.value.trim()) {
+    const q = appliedSearchQuery.value.trim().toLowerCase()
     list = list.filter(s =>
       (s.student_name && s.student_name.toLowerCase().includes(q)) ||
       (s.exam_name && s.exam_name.toLowerCase().includes(q)) ||
@@ -330,6 +310,8 @@ const tableItems = computed(() => dashboardTableItems.value)
 const resetFilters = () => {
   searchQuery.value = ''
   selectedStatus.value = 'all'
+  appliedSearchQuery.value = ''
+  appliedStatus.value = 'all'
 }
 
 function statusSeverity(status) {

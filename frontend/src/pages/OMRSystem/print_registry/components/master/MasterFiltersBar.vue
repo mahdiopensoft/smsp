@@ -14,19 +14,6 @@
         />
       </v-col>
 
-      <!-- 2. حقل البحث الفوري الموحد -->
-      <v-col cols="12" sm="6" md="3">
-        <custom-text-field
-          v-model="filters.masterSearchQuery.value"
-          label="اسم الاختبار أو الرمز"
-          placeholder="بحث باسم الاختبار، الرمز (Code)..."
-          icon="magnify"
-          cols="12"
-          class="mb-3"
-          :hideDetails="true"
-        />
-      </v-col>
-
       <!-- 3. المحافظة -->
       <v-col cols="12" sm="6" md="3">
         <auto-list
@@ -105,7 +92,6 @@
             placeholder="المادة الدراسية"
             cols="12"
             :add="false"
-            @update:model-value="$emit('apply')"
           />
         </v-col>
       </template>
@@ -158,7 +144,6 @@
             placeholder="مقرر الفصل الجامعي"
             cols="12"
             :add="false"
-            @update:model-value="$emit('apply')"
           />
         </v-col>
       </template>
@@ -199,7 +184,6 @@
             cols="12"
             :add="false"
             :disabled="!filters.filterInstituteEducationSystem.value"
-            @update:model-value="$emit('apply')"
           />
         </v-col>
         <v-col cols="12" sm="6" md="3">
@@ -211,7 +195,6 @@
             placeholder="المادة الدراسية للمعهد"
             cols="12"
             :add="false"
-            @update:model-value="$emit('apply')"
           />
         </v-col>
       </template>
@@ -225,17 +208,15 @@
           label="المادة الدراسية (عام)"
           cols="12"
           :add="false"
-          @update:model-value="$emit('apply')"
         />
       </v-col>
 
       <!-- أزرار الإجراءات -->
-      <v-col cols="12" class="d-flex align-center justify-end gap-2 mb-3">
+      <v-col cols="auto" class="d-flex align-center gap-2 mb-6">
         <custom-btn
           type="show"
-          label="تصفية النتائج"
+          label="عرض"
           color="primary"
-          icon="mdi-filter"
           class="font-weight-bold px-5"
           :loading="loading"
           :click="() => $emit('apply')"
@@ -245,8 +226,7 @@
           :click="() => filters.resetUnifiedFilters()"
           variant="tonal"
           color="error"
-          label="تفريغ الفلاتر"
-          icon="mdi-filter-off"
+          label="إلغاء الفلترة"
           class="font-weight-bold"
         />
       </v-col>

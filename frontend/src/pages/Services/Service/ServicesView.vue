@@ -75,57 +75,41 @@
   <!-- مراحل سير الخدمة -->
   <service-workflow-dialog v-model="dialogs.workflow" :service="selected_service" />
   <!-- Premium Status Toggle Dialog -->
-  <v-dialog
+  <custom-dialog
     v-model="dialogs.status"
-    max-width="500"
+    :title="statusState.isActive ? 'تأكيد تعطيل الخدمة' : 'تأكيد تفعيل الخدمة'"
+    width="500"
+    height="auto"
     persistent
     transition="dialog-bottom-transition"
   >
-    <v-card class="premium-card overflow-hidden" rounded="xl">
-      <div
-        :class="[
-          'pa-6 text-white d-flex align-center',
-          statusState.isActive ? 'header-gradient-error' : 'header-gradient-success',
-        ]"
-      >
-        <v-icon size="32" class="me-4">{{
-          statusState.isActive ? "mdi-close-circle-outline" : "mdi-check-circle-outline"
-        }}</v-icon>
-        <div>
-          <div class="text-h6 font-weight-bold">
-            {{ statusState.isActive ? "تأكيد تعطيل الخدمة" : "تأكيد تفعيل الخدمة" }}
-          </div>
-          <div class="text-caption opacity-80">
-            {{ statusState.serviceName }}
-          </div>
-        </div>
+    <div class="text-center py-2">
+      <div class="text-caption text-medium-emphasis mb-4">
+        {{ statusState.serviceName }}
       </div>
+      <v-icon
+        :color="statusState.isActive ? 'error' : 'success'"
+        size="64"
+        class="mb-4"
+      >
+        {{
+          statusState.isActive ? "mdi-alert-circle-outline" : "mdi-information-outline"
+        }}
+      </v-icon>
+      <div class="text-body-1 font-weight-medium text-grey-darken-2">
+        {{
+          statusState.isActive
+            ? "هل أنت متأكد من رغبتك في تعطيل هذه الخدمة؟"
+            : "هل أنت متأكد من رغبتك في تفعيل هذه الخدمة؟"
+        }}
+      </div>
+      <div class="text-caption text-grey mt-2" v-if="statusState.isActive">
+        ملاحظة: تعطيل الخدمة سيمنع المستخدمين من الوصول إليها.
+      </div>
+    </div>
 
-      <v-card-text class="pa-6 pt-8 text-center">
-        <v-icon
-          :color="statusState.isActive ? 'error' : 'success'"
-          size="64"
-          class="mb-4"
-        >
-          {{
-            statusState.isActive ? "mdi-alert-circle-outline" : "mdi-information-outline"
-          }}
-        </v-icon>
-        <div class="text-body-1 font-weight-medium text-grey-darken-2">
-          {{
-            statusState.isActive
-              ? "هل أنت متأكد من رغبتك في تعطيل هذه الخدمة؟"
-              : "هل أنت متأكد من رغبتك في تفعيل هذه الخدمة؟"
-          }}
-        </div>
-        <div class="text-caption text-grey mt-2" v-if="statusState.isActive">
-          ملاحظة: تعطيل الخدمة سيمنع المستخدمين من الوصول إليها.
-        </div>
-      </v-card-text>
-
-      <v-divider class="border-opacity-25" />
-
-      <v-card-actions class="pa-6 bg-grey-lighten-5">
+    <template #actions>
+      <div class="d-flex align-center justify-space-between w-100">
         <v-btn
           variant="text"
           color="grey-darken-1"
@@ -134,7 +118,6 @@
         >
           إلغاء
         </v-btn>
-        <v-spacer />
         <v-btn
           :color="statusState.isActive ? 'error' : 'success'"
           variant="tonal"
@@ -144,9 +127,9 @@
         >
           {{ statusState.isActive ? "تأكيد التعطيل" : "تأكيد التفعيل" }}
         </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+      </div>
+    </template>
+  </custom-dialog>
 </template>
 
 <script>

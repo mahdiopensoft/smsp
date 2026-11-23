@@ -11,7 +11,6 @@ export const officeMasterHeaders = [
   { title: 'الأوراق الممسوحة', key: 'scanned_count', sortable: true, align: 'center', width: '130px' },
   { title: 'تتطلب تدقيق يدوي', key: 'needs_review_count', sortable: true, align: 'center', width: '140px' },
   { title: 'أوراق معتمدة', key: 'completed_count', sortable: true, align: 'center', width: '130px' },
-  { title: 'إجراءات', key: 'actions', sortable: false, align: 'center', width: '170px' },
 ]
 
 export const directorateMasterHeaders = [
@@ -21,7 +20,6 @@ export const directorateMasterHeaders = [
   { title: 'إجمالي الطلاب', key: 'total_students', sortable: true, align: 'center', width: '120px' },
   { title: 'الأوراق الممسوحة', key: 'scanned_count', sortable: true, align: 'center', width: '130px' },
   { title: 'تتطلب تدقيق يدوي', key: 'needs_review_count', sortable: true, align: 'center', width: '140px' },
-  { title: 'إجراءات', key: 'actions', sortable: false, align: 'center', width: '170px' },
 ]
 
 export const schoolMasterHeaders = [
@@ -30,7 +28,6 @@ export const schoolMasterHeaders = [
   { title: 'إجمالي الطلاب', key: 'total_students', sortable: true, align: 'center', width: '120px' },
   { title: 'الأوراق الممسوحة', key: 'scanned_count', sortable: true, align: 'center', width: '130px' },
   { title: 'تتطلب تدقيق يدوي', key: 'needs_review_count', sortable: true, align: 'center', width: '140px' },
-  { title: 'إجراءات', key: 'actions', sortable: false, align: 'center', width: '140px' },
 ]
 
 export const examMasterHeaders = [
@@ -40,7 +37,6 @@ export const examMasterHeaders = [
   { title: 'الأوراق الممسوحة', key: 'total_scanned', sortable: true, align: 'center', width: '130px' },
   { title: 'تتطلب تدقيق يدوي', key: 'needs_review_count', sortable: true, align: 'center', width: '150px' },
   { title: 'أوراق معتمدة', key: 'completed_count', sortable: true, align: 'center', width: '130px' },
-  { title: 'إجراءات', key: 'actions', sortable: false, align: 'center', width: '180px' },
 ]
 
 export const detailHeaders = [
@@ -50,7 +46,6 @@ export const detailHeaders = [
   { title: 'ملتبسة', key: 'ambiguous_count', sortable: true, align: 'center', width: '110px' },
   { title: 'الدرجة', key: 'score', sortable: true, align: 'center', width: '100px' },
   { title: 'الحالة', key: 'status', sortable: true, align: 'center', width: '130px' },
-  { title: 'إجراءات التدقيق', key: 'actions', sortable: false, align: 'center', width: '200px' },
 ]
 
 export function sliceForPagination(allList: any[], params: any = {}) {

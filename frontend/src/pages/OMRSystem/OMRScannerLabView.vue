@@ -288,20 +288,17 @@
               </v-select>
             </v-col>
 
-            <v-col cols="12" md="3" v-if="selectedExamId && activeExamVersions.length > 0">
-              <v-select
-                v-model="selectedVersionCode"
-                :items="activeExamVersions"
-                item-title="title"
-                item-value="value"
-                label="النموذج المعتمد"
-                variant="outlined"
-                density="comfortable"
-                rounded="lg"
-                hide-details
-                @update:model-value="onVersionSelected"
-              />
-            </v-col>
+            <auto-list
+              v-if="selectedExamId && activeExamVersions.length > 0"
+              v-model="selectedVersionCode"
+              name="LocalOption"
+              :objects="activeExamVersions"
+              cols="3"
+              label="النموذج المعتمد"
+              icon="format-list-bulleted-type"
+              :add="false"
+              @update:model-value="onVersionSelected"
+            />
 
             <v-col cols="12" md="2" v-if="isExamLinked" class="text-center">
               <v-chip color="success" variant="flat" size="small" rounded="md" class="font-weight-bold">
@@ -1477,208 +1474,180 @@
     </div>
 
     <!-- ── Full-size Sheet Preview Dialog (Step 0) ────────────────── -->
-    <v-dialog v-model="showSheetPreviewModal" max-width="840">
-      <v-card class="pa-6 rounded-2xl">
-        <div class="d-flex align-center justify-space-between mb-4 pb-2 border-b">
-          <div class="d-flex align-center gap-2">
-            <v-avatar color="primary" variant="tonal" size="36" rounded="lg">
-              <v-icon color="primary" size="20">mdi-printer-eye</v-icon>
-            </v-avatar>
-            <h3 class="text-h6 font-weight-black mb-0">معاينة ورقة الإجابة المعتمدة (A4 300 DPI)</h3>
-          </div>
-          <v-btn icon size="small" variant="text" @click="showSheetPreviewModal = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </div>
-        <div class="pa-4 bg-grey-lighten-4 rounded-xl d-flex justify-center overflow-auto" style="max-height: 650px;">
-          <div :style="modalSheetWrapperStyle">
-            <YemeniMinistrySheet
-              v-if="isMinistrySheet"
-              :student-name="linkedStudents[0]?.student_name || 'طالب اختبار'"
-              :seat-number="linkedStudents[0]?.seat_number || '418485'"
-              :model-code="selectedVersionCode || 'A'"
-              :center-code="'101'"
-              :school-name="linkedStudents[0]?.school_name || selectedExamObj?.title || 'المؤسسة التعليمية'"
-              :governorate="selectedExamObj?.governorate || 'أمانة العاصمة'"
-              :directorate="selectedExamObj?.directorate || ''"
-              :exam-subject="selectedExamObj?.subject_name || 'المادة'"
-            />
-            <OmrSheetMultigraphics
-              v-else
-              :total-questions="activeQuestionsCount"
-              :questions-per-column="activeTemplateMeta.questionsPerColumn"
-              :total-columns="activeTemplateMeta.totalColumns"
-              :row-spacing="activeTemplateMeta.rowSpacing"
-              :bubble-radius="activeTemplateMeta.bubbleRadius"
-              :choices-per-question="activeChoicesLabels.length"
-              :bubble-type="activeTemplateMeta.bubbleType"
-              :layout-direction="activeTemplateMeta.layoutDirection"
-              :primary-color="activeTemplateMeta.primaryColor"
-              :institution-name="activeTemplateMeta.institutionName"
-              :sub-title="activeTemplateMeta.subTitle"
-              :exam-name="activeTemplateMeta.examName"
-            />
-          </div>
-        </div>
-      </v-card>
-    </v-dialog>
-
-    <!-- ── High-Resolution Annotated Image Zoom Dialog (Step 3) ───── -->
-    <v-dialog v-model="isZoomed" max-width="1400px" width="96vw" scrollable>
-      <v-card class="rounded-2xl d-flex flex-column" style="max-height: 90vh;">
-        <!-- Header -->
-        <div class="pa-4 px-6 border-b d-flex justify-space-between align-center flex-wrap gap-3 bg-surface">
-          <div class="d-flex align-center gap-3">
-            <v-avatar color="primary" variant="tonal" size="40" rounded="lg">
-              <v-icon size="22">mdi-image-search-outline</v-icon>
-            </v-avatar>
-            <div>
-              <h3 class="text-h6 font-weight-black mb-0">فحص الورقة المصححة بدقة بكسل كاملة</h3>
-              <div class="d-flex align-center gap-2 mt-1">
-                <v-chip size="x-small" color="primary" variant="flat" rounded="md" class="font-weight-bold">
-                  {{ result?.meta?.detected_dpi ? `دقة الفحص ${result.meta.detected_dpi} DPI فائقة الوضوح` : 'دقة فائقة الوضوح (UltraHD)' }}
-                </v-chip>
-                <v-chip size="x-small" color="info" variant="tonal" rounded="md" class="font-weight-bold">
-                  {{ isMinistrySheet ? `نموذج وزارة التربية والتعليم (${result?.total_questions || activeQuestionsCount} سؤال - A5)` : 'مقاس الورقة المعتمد' }}
-                </v-chip>
-                <v-chip v-if="result" size="x-small" color="success" variant="tonal" rounded="md" class="font-weight-bold">
-                  {{ result.total_answered }} / {{ result.total_questions || 50 }} إجابة مكتشفة
-                </v-chip>
-              </div>
-            </div>
-          </div>
-
-          <!-- Controls Toolbar -->
-          <div class="d-flex align-center gap-2 flex-wrap">
-            <!-- View Mode Toggles -->
-            <v-btn-toggle
-              v-model="zoomMode"
-              mandatory
-              density="compact"
-              color="primary"
-              variant="outlined"
-              rounded="lg"
-              class="me-2"
-            >
-              <v-btn value="fit" size="small" class="font-weight-bold" prepend-icon="mdi-fit-to-screen-outline">
-                ملاءمة الصفحة
-              </v-btn>
-              <v-btn value="actual" size="small" class="font-weight-bold" prepend-icon="mdi-image-size-select-actual">
-                الحجم الفعلي 100%
-              </v-btn>
-            </v-btn-toggle>
-
-            <!-- Zoom Controls -->
-            <div class="d-flex align-center bg-grey-lighten-4 rounded-lg px-1 border">
-              <v-btn icon size="small" variant="text" :disabled="zoomLevel <= 0.4" @click="zoomOut">
-                <v-icon size="18">mdi-magnify-minus-outline</v-icon>
-              </v-btn>
-              <span class="text-caption font-weight-bold px-2 font-mono" style="min-width: 48px; text-align: center;">
-                {{ Math.round(zoomLevel * 100) }}%
-              </span>
-              <v-btn icon size="small" variant="text" :disabled="zoomLevel >= 3.0" @click="zoomIn">
-                <v-icon size="18">mdi-magnify-plus-outline</v-icon>
-              </v-btn>
-              <v-btn icon size="small" variant="text" title="إعادة الضبط" @click="resetZoom">
-                <v-icon size="16">mdi-refresh</v-icon>
-              </v-btn>
-            </div>
-
-            <v-divider vertical class="mx-1" style="height: 28px;" />
-
-            <!-- Download Button -->
-            <v-btn
-              color="primary"
-              variant="tonal"
-              size="small"
-              rounded="lg"
-              class="font-weight-bold"
-              prepend-icon="mdi-download"
-              @click="downloadAnnotatedImage"
-            >
-              تنزيل الصورة
-            </v-btn>
-
-            <!-- Close Button -->
-            <v-btn icon size="small" variant="text" @click="isZoomed = false">
-              <v-icon>mdi-close</v-icon>
-            </v-btn>
-          </div>
-        </div>
-
-        <!-- Sheet Canvas / Image Viewport -->
-        <div
-          class="omr-zoom-viewport pa-4 overflow-auto text-center"
-          style="max-height: calc(90vh - 80px); min-height: 480px;"
-        >
-          <div class="sheet-paper-container elevation-6 rounded-lg bg-white overflow-hidden d-inline-block position-relative">
-            <img
-              :src="annotatedUrl"
-              class="sheet-annotated-img"
-              :style="sheetImageStyle"
-              alt="الورقة المصححة بدقة كاملة"
-            />
-          </div>
-        </div>
-      </v-card>
-    </v-dialog>
-
-    <!-- ── Official Yemeni Audit & Correction Report Dialog ─────── -->
-    <v-dialog v-model="showAuditReportModal" max-width="1140px" width="96vw" scrollable>
-      <v-card class="pa-4 rounded-2xl">
-        <div class="d-flex align-center justify-space-between mb-3 pb-2 border-b">
-          <div class="d-flex align-center gap-2">
-            <v-avatar color="primary" variant="tonal" size="36" rounded="lg">
-              <v-icon color="primary" size="20">mdi-file-document-check-outline</v-icon>
-            </v-avatar>
-            <h3 class="text-h6 font-weight-black mb-0">نموذج التصحيح والتدقيق الإلكتروني (الرسمي)</h3>
-          </div>
-          <div class="d-flex align-center gap-2">
-            <v-btn
-              color="success"
-              variant="tonal"
-              size="small"
-              rounded="lg"
-              prepend-icon="mdi-shield-check"
-              class="font-weight-bold"
-              @click="loadOfficialKey"
-            >
-              المفتاح النموذجي (100% تطابق)
-            </v-btn>
-            <v-btn color="primary" variant="flat" size="small" rounded="lg" prepend-icon="mdi-printer" @click="printAuditReport">
-              طباعة النموذج
-            </v-btn>
-            <v-btn icon size="small" variant="text" @click="showAuditReportModal = false">
-              <v-icon>mdi-close</v-icon>
-            </v-btn>
-          </div>
-        </div>
-        <div class="overflow-y-auto pa-2 bg-grey-lighten-4 rounded-xl d-flex justify-center" style="max-height: 80vh;">
-          <YemeniAuditReportSheet
-            :annotated-image="annotatedUrl || previewUrl"
-            :questions-results="result?.questions || []"
-            :student-answers="interactiveStudentAnswers"
-            :answer-key="answerKey"
-            :seat-number="result?.student_info?.seat_number || activeTemplateObj?.template_data?.header?.seat_number || '418485'"
-            :student-name="result?.student_info?.student_name || activeTemplateObj?.template_data?.header?.student_name || 'عمرو عبدالباسط عبدالله قائد الزمر'"
-            :exam-subject="result?.student_info?.subject || activeTemplateObj?.template_data?.header?.subject || 'القرآن الكريم'"
-            :exam-year="result?.student_info?.exam_year || activeTemplateObj?.template_data?.header?.exam_year || '1444هـ-2022-2023م'"
-            :center-name="result?.student_info?.center_name || activeTemplateObj?.template_data?.header?.center_name || 'سالم قطن — معين'"
-            :center-code="result?.student_info?.center_code || activeTemplateObj?.template_data?.header?.center_code || '164'"
-            :governorate="result?.student_info?.governorate || activeTemplateObj?.template_data?.header?.governorate || 'أمانة العاصمة'"
-            :directorate="result?.student_info?.directorate || activeTemplateObj?.template_data?.header?.directorate || 'معين'"
-            :serial-number="result?.student_info?.serial_number || activeTemplateObj?.template_data?.header?.serial_number || '148'"
-            :form-number="result?.student_info?.form_number || activeTemplateObj?.template_data?.header?.form_number || '1'"
-            :student-status="result?.student_info?.status || 'حاضر'"
-            :barcode-value="result?.barcode || result?.student_info?.barcode || activeTemplateObj?.template_data?.barcode?.value || '41848501164148'"
-            :qr-value="result?.qr || result?.student_info?.qr || activeTemplateObj?.template_data?.qr?.value || 'YE-MOE-1444-418485-SUB1'"
-            :total-questions="result?.questions?.length || activeQuestionsCount || 50"
-            :sections="activeTemplateObj?.template_data?.questions?.sections || activeTemplateObj?.template_data?.sections || []"
-            :mcq-bubble-type="activeTemplateMeta.bubbleType"
+    <custom-dialog
+      v-model="showSheetPreviewModal"
+      title="معاينة ورقة الإجابة المعتمدة (A4 300 DPI)"
+      width="840"
+      height="85vh"
+    >
+      <div class="pa-4 bg-grey-lighten-4 rounded-xl d-flex justify-center overflow-auto" style="max-height: 70vh;">
+        <div :style="modalSheetWrapperStyle">
+          <YemeniMinistrySheet
+            v-if="isMinistrySheet"
+            :student-name="linkedStudents[0]?.student_name || 'طالب اختبار'"
+            :seat-number="linkedStudents[0]?.seat_number || '418485'"
+            :model-code="selectedVersionCode || 'A'"
+            :center-code="'101'"
+            :school-name="linkedStudents[0]?.school_name || selectedExamObj?.title || 'المؤسسة التعليمية'"
+            :governorate="selectedExamObj?.governorate || 'أمانة العاصمة'"
+            :directorate="selectedExamObj?.directorate || ''"
+            :exam-subject="selectedExamObj?.subject_name || 'المادة'"
+          />
+          <OmrSheetMultigraphics
+            v-else
+            :total-questions="activeQuestionsCount"
+            :questions-per-column="activeTemplateMeta.questionsPerColumn"
+            :total-columns="activeTemplateMeta.totalColumns"
+            :row-spacing="activeTemplateMeta.rowSpacing"
+            :bubble-radius="activeTemplateMeta.bubbleRadius"
+            :choices-per-question="activeChoicesLabels.length"
+            :bubble-type="activeTemplateMeta.bubbleType"
+            :layout-direction="activeTemplateMeta.layoutDirection"
+            :primary-color="activeTemplateMeta.primaryColor"
+            :institution-name="activeTemplateMeta.institutionName"
+            :sub-title="activeTemplateMeta.subTitle"
+            :exam-name="activeTemplateMeta.examName"
           />
         </div>
-      </v-card>
-    </v-dialog>
+      </div>
+    </custom-dialog>
+
+    <!-- ── High-Resolution Annotated Image Zoom Dialog (Step 3) ───── -->
+    <custom-dialog
+      v-model="isZoomed"
+      title="فحص الورقة المصححة بدقة بكسل كاملة"
+      width="1400"
+      height="92vh"
+    >
+      <!-- Toolbar & Meta Badges -->
+      <div class="pb-3 mb-3 border-b d-flex justify-space-between align-center flex-wrap gap-3">
+        <div class="d-flex align-center gap-2 flex-wrap">
+          <v-chip size="x-small" color="primary" variant="flat" rounded="md" class="font-weight-bold">
+            {{ result?.meta?.detected_dpi ? `دقة الفحص ${result.meta.detected_dpi} DPI فائقة الوضوح` : 'دقة فائقة الوضوح (UltraHD)' }}
+          </v-chip>
+          <v-chip size="x-small" color="info" variant="tonal" rounded="md" class="font-weight-bold">
+            {{ isMinistrySheet ? `نموذج وزارة التربية والتعليم (${result?.total_questions || activeQuestionsCount} سؤال - A5)` : 'مقاس الورقة المعتمد' }}
+          </v-chip>
+          <v-chip v-if="result" size="x-small" color="success" variant="tonal" rounded="md" class="font-weight-bold">
+            {{ result.total_answered }} / {{ result.total_questions || 50 }} إجابة مكتشفة
+          </v-chip>
+        </div>
+
+        <!-- Controls Toolbar -->
+        <div class="d-flex align-center gap-2 flex-wrap">
+          <!-- View Mode Toggles -->
+          <v-btn-toggle
+            v-model="zoomMode"
+            mandatory
+            density="compact"
+            color="primary"
+            variant="outlined"
+            rounded="lg"
+            class="me-2"
+          >
+            <v-btn value="fit" size="small" class="font-weight-bold" prepend-icon="mdi-fit-to-screen-outline">
+              ملاءمة الصفحة
+            </v-btn>
+            <v-btn value="actual" size="small" class="font-weight-bold" prepend-icon="mdi-image-size-select-actual">
+              الحجم الفعلي 100%
+            </v-btn>
+          </v-btn-toggle>
+
+          <!-- Zoom Controls -->
+          <div class="d-flex align-center bg-grey-lighten-4 rounded-lg px-1 border">
+            <v-btn icon size="small" variant="text" :disabled="zoomLevel <= 0.4" @click="zoomOut">
+              <v-icon size="18">mdi-magnify-minus-outline</v-icon>
+            </v-btn>
+            <span class="text-caption font-weight-bold px-2 font-mono" style="min-width: 48px; text-align: center;">
+              {{ Math.round(zoomLevel * 100) }}%
+            </span>
+            <v-btn icon size="small" variant="text" :disabled="zoomLevel >= 3.0" @click="zoomIn">
+              <v-icon size="18">mdi-magnify-plus-outline</v-icon>
+            </v-btn>
+            <v-btn icon size="small" variant="text" title="إعادة الضبط" @click="resetZoom">
+              <v-icon size="16">mdi-refresh</v-icon>
+            </v-btn>
+          </div>
+
+          <!-- Download Button -->
+          <v-btn
+            color="primary"
+            variant="tonal"
+            size="small"
+            rounded="lg"
+            class="font-weight-bold"
+            prepend-icon="mdi-download"
+            @click="downloadAnnotatedImage"
+          >
+            تنزيل الصورة
+          </v-btn>
+        </div>
+      </div>
+
+      <!-- Sheet Canvas / Image Viewport -->
+      <div
+        class="omr-zoom-viewport pa-4 overflow-auto text-center rounded-xl"
+        style="min-height: 480px;"
+      >
+        <div class="sheet-paper-container elevation-6 rounded-lg bg-white overflow-hidden d-inline-block position-relative">
+          <img
+            :src="annotatedUrl"
+            class="sheet-annotated-img"
+            :style="sheetImageStyle"
+            alt="الورقة المصححة بدقة كاملة"
+          />
+        </div>
+      </div>
+    </custom-dialog>
+
+    <!-- ── Official Yemeni Audit & Correction Report Dialog ─────── -->
+    <custom-dialog
+      v-model="showAuditReportModal"
+      title="نموذج التصحيح والتدقيق الإلكتروني (الرسمي)"
+      width="1140"
+      height="92vh"
+    >
+      <div class="d-flex align-center justify-end gap-2 mb-3 pb-2 border-b">
+        <v-btn
+          color="success"
+          variant="tonal"
+          size="small"
+          rounded="lg"
+          prepend-icon="mdi-shield-check"
+          class="font-weight-bold"
+          @click="loadOfficialKey"
+        >
+          المفتاح النموذجي (100% تطابق)
+        </v-btn>
+        <v-btn color="primary" variant="flat" size="small" rounded="lg" prepend-icon="mdi-printer" @click="printAuditReport">
+          طباعة النموذج
+        </v-btn>
+      </div>
+      <div class="overflow-y-auto pa-2 bg-grey-lighten-4 rounded-xl d-flex justify-center">
+        <YemeniAuditReportSheet
+          :annotated-image="annotatedUrl || previewUrl"
+          :questions-results="result?.questions || []"
+          :student-answers="interactiveStudentAnswers"
+          :answer-key="answerKey"
+          :seat-number="result?.student_info?.seat_number || activeTemplateObj?.template_data?.header?.seat_number || '418485'"
+          :student-name="result?.student_info?.student_name || activeTemplateObj?.template_data?.header?.student_name || 'عمرو عبدالباسط عبدالله قائد الزمر'"
+          :exam-subject="result?.student_info?.subject || activeTemplateObj?.template_data?.header?.subject || 'القرآن الكريم'"
+          :exam-year="result?.student_info?.exam_year || activeTemplateObj?.template_data?.header?.exam_year || '1444هـ-2022-2023م'"
+          :center-name="result?.student_info?.center_name || activeTemplateObj?.template_data?.header?.center_name || 'سالم قطن — معين'"
+          :center-code="result?.student_info?.center_code || activeTemplateObj?.template_data?.header?.center_code || '164'"
+          :governorate="result?.student_info?.governorate || activeTemplateObj?.template_data?.header?.governorate || 'أمانة العاصمة'"
+          :directorate="result?.student_info?.directorate || activeTemplateObj?.template_data?.header?.directorate || 'معين'"
+          :serial-number="result?.student_info?.serial_number || activeTemplateObj?.template_data?.header?.serial_number || '148'"
+          :form-number="result?.student_info?.form_number || activeTemplateObj?.template_data?.header?.form_number || '1'"
+          :student-status="result?.student_info?.status || 'حاضر'"
+          :barcode-value="result?.barcode || result?.student_info?.barcode || activeTemplateObj?.template_data?.barcode?.value || '41848501164148'"
+          :qr-value="result?.qr || result?.student_info?.qr || activeTemplateObj?.template_data?.qr?.value || 'YE-MOE-1444-418485-SUB1'"
+          :total-questions="result?.questions?.length || activeQuestionsCount || 50"
+          :sections="activeTemplateObj?.template_data?.questions?.sections || activeTemplateObj?.template_data?.sections || []"
+          :mcq-bubble-type="activeTemplateMeta.bubbleType"
+        />
+      </div>
+    </custom-dialog>
 
     <!-- ── Notification Snackbar ─────────────────────────────────── -->
     <v-snackbar v-model="showToast" :color="toastType === 'error' ? 'error' : 'success'" rounded="xl" elevation="4">

@@ -4,19 +4,17 @@
     <div class="main-card rounded-2xl pa-4 mb-4">
       <!-- Row 1: Model Selection & Core Model Actions -->
       <div class="d-flex align-center justify-space-between flex-wrap gap-3 pb-3 border-b">
-        <!-- Model Selector Dropdown (يدعم أي عدد من النماذج للجامعات والمعاهد دون انكسار الواجهة) -->
-        <div style="min-width: 200px; max-width: 260px;">
-          <v-select
+        <!-- Model Selector AutoList (يدعم أي عدد من النماذج للجامعات والمعاهد دون انكسار الواجهة) -->
+        <div style="min-width: 220px; max-width: 280px;">
+          <auto-list
             :model-value="activeVersionTab"
-            :items="versionSelectOptions"
-            item-title="title"
-            item-value="value"
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            hide-details
-            prepend-inner-icon="mdi-format-list-bulleted-type"
+            name="ExamHubModel"
+            :objects="versionSelectOptions"
+            cols="12"
+            class="pa-0"
             label="النموذج المعروض"
+            :add="false"
+            :clearable="false"
             @update:model-value="(val) => $emit('update:activeVersionTab', val)"
           />
         </div>
@@ -62,71 +60,46 @@
 
     <div v-if="currentVersionObj">
       <!-- Unified Filter Fields for Questions -->
-      <filter-fields label="خيارات تصفية والبحث في أسئلة النموذج" class="main-card border-0 pa-5 rounded-2xl mb-4">
-        <v-row dense class="align-center">
-          <!-- Search Query -->
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="questionSearchQuery"
-              label="البحث في نص السؤال أو الخيارات"
-              placeholder="بحث بنص السؤال أو البدائل..."
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              class="mb-3"
-              hide-details
-              clearable
-              prepend-inner-icon="mdi-magnify"
-            />
-          </v-col>
+      <filter-fields label="خيارات تصفية والبحث في أسئلة النموذج" class="main-card border-0 pa-4 rounded-2xl mb-4">
+        <template #fields>
 
           <!-- Bloom Level -->
-          <v-col cols="12" sm="6" md="3">
-            <v-select
-              v-model="filterBloomLevel"
-              :items="bloomLevelOptions"
-              item-title="title"
-              item-value="value"
-              label="المستوى المعرفي"
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              class="mb-3"
-              hide-details
-              prepend-inner-icon="mdi-brain"
-            />
-          </v-col>
+          <auto-list
+            v-model="filterBloomLevel"
+            name="ExamHubBloomLevel"
+            :objects="bloomLevelOptions"
+            cols="3"
+            :add="false"
+          />
 
           <!-- Question Type -->
-          <v-col cols="12" sm="6" md="2">
-            <v-select
-              v-model="filterQuestionType"
-              :items="questionTypeFilterOptions"
-              item-title="title"
-              item-value="value"
-              label="نوع السؤال"
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              class="mb-3"
-              hide-details
-              prepend-inner-icon="mdi-format-list-checks"
-            />
-          </v-col>
+          <auto-list
+            v-model="filterQuestionType"
+            name="ExamHubQuestionType"
+            :objects="questionTypeFilterOptions"
+            cols="3"
+            :add="false"
+          />
 
-          <!-- Cancel Filter -->
-          <v-col cols="12" sm="12" md="1" class="d-flex justify-center mb-3">
+          <!-- Actions -->
+          <v-col cols="auto" class="d-flex align-center gap-2 mb-6">
+            <custom-btn
+              type="show"
+              label="عرض"
+              color="primary"
+              class="font-weight-bold px-5"
+              :click="applyQuestionFilters"
+            />
             <custom-btn
               type="cancel_filter"
               :click="resetQuestionFilters"
               variant="tonal"
               color="error"
-              label="تفريغ"
-              icon="mdi-filter-off"
-              class="font-weight-bold w-100"
+              label="إلغاء الفلترة"
+              class="font-weight-bold"
             />
           </v-col>
-        </v-row>
+        </template>
       </filter-fields>
 
       <!-- Unified Custom Data Table for Questions -->
@@ -137,7 +110,7 @@
             getData: getQuestionsData,
             headers: questionsHeaders,
           }"
-          :search="false"
+          :search="true"
           :hasFilter="false"
           :log="false"
           :restore="false"
@@ -145,15 +118,13 @@
           <template v-slot:item-slot="{ item, key }">
             <!-- Question Number -->
             <template v-if="key === 'orderIndex'">
-              <v-chip size="small" variant="tonal" color="primary" class="font-weight-bold font-mono unified-table-chip">
-                {{ item.orderIndex }}
-              </v-chip>
+              <span class="font-weight-bold font-mono text-body-2">{{ item.orderIndex }}</span>
             </template>
 
             <!-- Question Content & Options -->
             <template v-else-if="key === 'question_content'">
               <div class="py-2 text-start">
-                <div class="text-body-2 font-weight-bold mb-2 text-on-surface" v-html="item.content"></div>
+                <div class="text-body-2 font-weight-bold mb-2 text-on-surface" v-html="$sanitizeHtml(item.content)"></div>
                 <!-- Options Badges -->
                 <div class="d-flex flex-wrap gap-2">
                   <div
@@ -176,9 +147,7 @@
 
             <!-- Bloom Level -->
             <template v-else-if="key === 'bloom_level'">
-              <v-chip size="small" color="secondary" variant="tonal" class="font-weight-bold unified-table-chip">
-                {{ item.bloomLevel || 'عام' }}
-              </v-chip>
+              <span class="text-body-2 font-weight-medium">{{ item.bloomLevel || 'عام' }}</span>
             </template>
 
             <!-- Correct Answer -->
@@ -250,22 +219,32 @@ const questionTypeFilterOptions = [
   { title: 'اختيار من متعدد', value: 'mcq' },
 ]
 
+const appliedQuestionSearch = ref('')
+const appliedBloomLevel = ref(null)
+const appliedQuestionType = ref(null)
+
+const applyQuestionFilters = () => {
+  appliedQuestionSearch.value = questionSearchQuery.value || ''
+  appliedBloomLevel.value = filterBloomLevel.value
+  appliedQuestionType.value = filterQuestionType.value
+}
+
 const filteredQuestions = computed(() => {
   let list = currentVersionObj.value?.questions || []
-  if (filterBloomLevel.value) {
-    list = list.filter(q => q.bloomLevel === filterBloomLevel.value)
+  if (appliedBloomLevel.value) {
+    list = list.filter(q => q.bloomLevel === appliedBloomLevel.value)
   }
-  if (filterQuestionType.value) {
+  if (appliedQuestionType.value) {
     list = list.filter(q => {
       const typeStr = (q.question_type || q.type || '').toLowerCase()
-      if (filterQuestionType.value === 'true_false') {
+      if (appliedQuestionType.value === 'true_false') {
         return typeStr.includes('true') || typeStr.includes('tf') || typeStr.includes('صح')
       }
       return !typeStr.includes('true') && !typeStr.includes('tf') && !typeStr.includes('صح')
     })
   }
-  if (questionSearchQuery.value && questionSearchQuery.value.trim()) {
-    const s = questionSearchQuery.value.trim().toLowerCase()
+  if (appliedQuestionSearch.value && appliedQuestionSearch.value.trim()) {
+    const s = appliedQuestionSearch.value.trim().toLowerCase()
     list = list.filter(q => {
       const contentMatch = (q.content || q.text || '').toLowerCase().includes(s)
       const optionsMatch = (q.options || []).some(o => (o.text || '').toLowerCase().includes(s))
@@ -333,6 +312,9 @@ const resetQuestionFilters = () => {
   questionSearchQuery.value = ''
   filterBloomLevel.value = null
   filterQuestionType.value = null
+  appliedQuestionSearch.value = ''
+  appliedBloomLevel.value = null
+  appliedQuestionType.value = null
 }
 </script>
 

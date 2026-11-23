@@ -78,7 +78,6 @@
             :label="activeProfile.labels.institution"
             cols="12"
             icon="domain"
-            :hideDetails="true"
             :clearable="false"
           />
           <custom-text-field
@@ -86,7 +85,6 @@
             :label="activeProfile.labels.subTitle"
             cols="12"
             icon="text"
-            :hideDetails="true"
             :clearable="false"
           />
           <custom-text-field
@@ -94,7 +92,6 @@
             :label="activeProfile.labels.examStage"
             cols="6"
             icon="school-outline"
-            :hideDetails="true"
             :clearable="false"
           />
           <custom-text-field
@@ -102,7 +99,6 @@
             :label="activeProfile.labels.academicYear"
             cols="6"
             icon="calendar-clock"
-            :hideDetails="true"
             :clearable="false"
           />
         </v-row>
@@ -117,7 +113,6 @@
             :label="activeProfile.labels.examSubject"
             cols="12"
             icon="book-open-outline"
-            :hideDetails="true"
             :clearable="false"
           />
           <custom-text-field
@@ -125,7 +120,6 @@
             :label="activeProfile.labels.area1"
             cols="6"
             icon="map-marker-outline"
-            :hideDetails="true"
             :clearable="false"
           />
           <custom-text-field
@@ -133,7 +127,6 @@
             :label="activeProfile.labels.area2"
             cols="6"
             icon="city-variant-outline"
-            :hideDetails="true"
             :clearable="false"
           />
           <custom-text-field
@@ -141,7 +134,6 @@
             :label="activeProfile.labels.centerName"
             cols="6"
             icon="domain"
-            :hideDetails="true"
             :clearable="false"
           />
           <custom-text-field
@@ -149,7 +141,6 @@
             :label="activeProfile.labels.centerCode"
             cols="6"
             icon="pound"
-            :hideDetails="true"
             :clearable="false"
           />
         </v-row>
@@ -166,7 +157,6 @@
             :label="activeProfile.labels.seatNumber"
             cols="7"
             icon="card-account-details-outline"
-            :hideDetails="true"
             :clearable="false"
           />
           <custom-text-field
@@ -174,7 +164,6 @@
             :label="activeProfile.labels.serialNumber"
             cols="5"
             icon="numeric"
-            :hideDetails="true"
             :clearable="false"
           />
         </v-row>

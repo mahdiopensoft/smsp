@@ -189,7 +189,6 @@
                     :placeholder="'اكتب خيار الإجابة (' + String.fromCharCode(65 + index) + ')'"
                     variant="outlined"
                     density="compact"
-                    hide-details="auto"
                     :color="activeFormulaTarget?.id === `option_${index}` ? 'primary' : (isCorrectOption(index) ? 'success' : undefined)"
                     :rules="[rules.required]"
                     @focus="setActiveFormulaTarget(`option_${index}`, `الخيار (${String.fromCharCode(65 + index)})`, index)"
@@ -202,7 +201,7 @@
                   >
                     <v-icon size="13" color="primary">mdi-variable</v-icon>
                     <span class="text-medium-emphasis">معاينة الرمز:</span>
-                    <span class="font-weight-bold" v-html="renderOptionMarkup(form.options[index])"></span>
+                    <span class="font-weight-bold" v-html="$sanitizeHtml(renderOptionMarkup(form.options[index]))"></span>
                   </div>
                 </div>
 
@@ -297,7 +296,7 @@
                 >
                   <v-icon size="13" color="primary">mdi-variable</v-icon>
                   <span class="text-medium-emphasis">معاينة الرموز:</span>
-                  <span class="font-weight-bold" v-html="renderOptionMarkup(form.options[0])"></span>
+                  <span class="font-weight-bold" v-html="$sanitizeHtml(renderOptionMarkup(form.options[0]))"></span>
                 </div>
               </div>
             </div>
@@ -323,8 +322,7 @@
                 </div>
                 <div class="flex-grow-1">
                   <custom-text-field v-model="form.options[index]"
-                    :placeholder="'الكلمة المفقودة للفراغ (' + (index + 1) + ')'" variant="outlined" density="compact"
-                    hide-details="auto" :rules="[rules.required]" />
+                    :placeholder="'الكلمة المفقودة للفراغ (' + (index + 1) + ')'" variant="outlined" density="compact" :rules="[rules.required]" />
                   <!-- Scientific Preview for Blanks -->
                   <div
                     v-if="hasScientificMarkup(form.options[index])"
@@ -332,7 +330,7 @@
                   >
                     <v-icon size="13" color="primary">mdi-variable</v-icon>
                     <span class="text-medium-emphasis">معاينة الرمز:</span>
-                    <span class="font-weight-bold" v-html="renderOptionMarkup(form.options[index])"></span>
+                    <span class="font-weight-bold" v-html="$sanitizeHtml(renderOptionMarkup(form.options[index]))"></span>
                   </div>
                 </div>
                 <v-btn
@@ -589,7 +587,7 @@
               <label class="text-caption font-weight-bold text-medium-emphasis mb-1 d-block">درجة السؤال
                 المستحقة</label>
               <custom-text-field v-model.number="form.defaultScore" type="number" min="1" icon="star-circle-outline"
-                variant="outlined" density="compact" hide-details="auto"
+                variant="outlined" density="compact"
                 :rules="[rules.required, rules.positive]" />
             </div>
 
@@ -598,7 +596,7 @@
               <label class="text-caption font-weight-bold text-medium-emphasis mb-1 d-block">الزمن المتوقع للحل
                 (بالدقائق)</label>
               <custom-text-field v-model.number="form.expectedTimeMinutes" type="number" min="1" icon="clock-outline"
-                variant="outlined" density="compact" hide-details="auto"
+                variant="outlined" density="compact"
                 :rules="[rules.required, rules.positive]" />
             </div>
 
@@ -650,20 +648,16 @@
     </v-form>
 
     <!-- Dialog for Image Preview -->
-    <v-dialog v-model="previewImageDialog" max-width="650">
-      <v-card class="pa-4 rounded-2xl">
-        <div class="d-flex justify-space-between align-center mb-3">
-          <div class="font-weight-bold text-subtitle-1 d-flex align-center gap-2">
-            <v-icon color="primary" size="20">mdi-image-outline</v-icon>
-            معاينة الصورة المساعدة
-          </div>
-          <v-btn icon="mdi-close" variant="text" size="small" @click="previewImageDialog = false" />
-        </div>
-        <div class="d-flex justify-center align-center pa-2 rounded-xl overflow-hidden" style="background: rgba(var(--v-theme-surface-variant), 0.3);">
-          <img :src="form.image" alt="الصورة المساعدة" style="max-height: 480px; max-width: 100%; object-fit: contain; border-radius: 8px;" />
-        </div>
-      </v-card>
-    </v-dialog>
+    <custom-dialog
+      v-model="previewImageDialog"
+      title="معاينة الصورة المساعدة"
+      width="650"
+      height="auto"
+    >
+      <div class="d-flex justify-center align-center pa-2 rounded-xl overflow-hidden" style="background: rgba(var(--v-theme-surface-variant), 0.3);">
+        <img :src="form.image" alt="الصورة المساعدة" style="max-height: 480px; max-width: 100%; object-fit: contain; border-radius: 8px;" />
+      </div>
+    </custom-dialog>
   </div>
 </template>
 

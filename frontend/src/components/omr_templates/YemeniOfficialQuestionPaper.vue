@@ -827,6 +827,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { printOfficialQuestionPaper } from '@/pages/OMRSystem/utils/omrPrint'
+import { sanitizeHtml } from '@/utils/sanitizeHtml'
 
 const paperRootRef = ref<HTMLElement | null>(null)
 
@@ -1212,7 +1213,7 @@ function formatQuestionContent(content: string): string {
   )
   // Ensure trailing question mark following English terms or tags stays at the natural Arabic end
   clean = clean.replace(/([A-Za-z0-9\)\}\]»”"]|<\/strong>|<\/b>|<\/span>)\s*(؟|\?)/g, '$1&rlm;&nbsp;؟&rlm;')
-  return clean
+  return sanitizeHtml(clean)
 }
 
 function formatOptionContent(text: string): string {
@@ -1223,7 +1224,7 @@ function formatOptionContent(text: string): string {
     /\(([A-Za-z0-9\s,._+\-*/%&]+)\)/g,
     '&rlm;<span class="latin-term" dir="ltr">($1)</span>&rlm;'
   )
-  return clean
+  return sanitizeHtml(clean)
 }
 
 async function printOfficialPaper() {

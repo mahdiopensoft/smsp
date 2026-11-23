@@ -25,71 +25,58 @@
             </v-btn>
           </v-btn-toggle>
 
-          <!-- Model Filter Dropdown when all_students is active (يدعم أي عدد من النماذج دون تشتت) -->
-          <div v-if="sheetGenerationMode === 'all_students'" style="min-width: 150px; max-width: 190px;">
-            <v-select
+          <!-- Model Filter AutoList when all_students is active -->
+          <div v-if="sheetGenerationMode === 'all_students'" style="min-width: 170px; max-width: 210px;">
+            <auto-list
               v-model="filterStreamModelCode"
-              :items="modelFilterSelectOptions"
-              item-title="title"
-              item-value="value"
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              hide-details
-              prepend-inner-icon="mdi-layers-outline"
+              name="ExamHubModel"
+              :objects="modelFilterSelectOptions"
+              cols="12"
+              class="pa-0"
               label="تصفية النموذج"
+              icon="layers-outline"
+              :add="false"
+              :clearable="false"
             />
           </div>
 
-          <!-- School/Institute/College Filter Dropdown (Active in all_students and student modes) -->
-          <div v-if="sheetGenerationMode !== 'blank' && schoolFilterOptions.length > 1" style="min-width: 170px; max-width: 220px;">
-            <v-select
+          <!-- School/Institute/College Filter AutoList (Active in all_students and student modes) -->
+          <div v-if="sheetGenerationMode !== 'blank' && schoolFilterOptions.length > 1" style="min-width: 190px; max-width: 240px;">
+            <auto-list
               v-model="filterSchoolName"
-              :items="schoolFilterOptions"
-              item-title="title"
-              item-value="value"
-              :placeholder="institutionLabels.entityAll"
+              name="ExamHubSchool"
+              :objects="schoolFilterOptions"
+              cols="12"
+              class="pa-0"
               :label="institutionLabels.entityFilter"
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              hide-details
-              clearable
-              :prepend-inner-icon="institutionLabels.icon"
+              :icon="institutionLabels.icon.replace('mdi-', '')"
+              :add="false"
             />
           </div>
 
-          <!-- Student Picker -->
-          <div v-if="sheetGenerationMode === 'student'" style="min-width: 220px; max-width: 320px;" class="flex-grow-1">
-            <v-autocomplete
+          <!-- Student Picker AutoList -->
+          <div v-if="sheetGenerationMode === 'student'" style="min-width: 240px; max-width: 360px;" class="flex-grow-1">
+            <auto-list
               v-model="selectedStudentId"
-              :items="filteredStreamStudents"
-              item-title="student_name"
-              item-value="id"
-              :placeholder="filteredStreamStudents.length ? 'ابحث عن الطالب بالاسم أو رقم الجلوس...' : 'لا يوجد طلاب ضمن المدرسة المختارة'"
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              hide-details
-              prepend-inner-icon="mdi-account-search"
-            >
-              <template #item="{ props: iProps, item }">
-                <v-list-item v-bind="iProps" :subtitle="`رقم الجلوس: ${item.raw.seat_number} | النموذج: ${item.raw.model_code}`" />
-              </template>
-            </v-autocomplete>
+              name="ExamHubStudent"
+              :objects="studentSelectOptions"
+              cols="12"
+              class="pa-0"
+              :add="false"
+            />
           </div>
 
-          <!-- Blank Model Picker -->
-          <div v-else-if="sheetGenerationMode === 'blank'" style="min-width: 160px; max-width: 200px;">
-            <v-select
+          <!-- Blank Model Picker AutoList -->
+          <div v-else-if="sheetGenerationMode === 'blank'" style="min-width: 170px; max-width: 210px;">
+            <auto-list
               v-model="selectedBlankVersionCode"
-              :items="versionCodeOptions"
+              name="ExamHubModel"
+              :objects="blankVersionSelectOptions"
+              cols="12"
+              class="pa-0"
               label="اختيار النموذج"
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              hide-details
-              prepend-inner-icon="mdi-format-list-bulleted-type"
+              :add="false"
+              :clearable="false"
             />
           </div>
 
@@ -129,80 +116,57 @@
 
       <!-- Collapsible Live Adjustments Panel -->
       <v-expand-transition>
-        <div v-if="showAdjustmentsPanel" class="pa-4 my-3 bg-grey-lighten-4 rounded-xl border">
-          <div class="text-caption font-weight-black text-primary mb-3 d-flex align-center gap-1">
-            <v-icon size="16">mdi-auto-fix</v-icon>
-            تعديل بيانات الترويسة فورياً (تنعكس التعديلات لحظياً على كافة أوراق الطلاب قبل نقلها للطباعة)
-          </div>
-          <v-row dense>
-            <v-col cols="12" sm="4">
-              <v-text-field
+        <div v-if="showAdjustmentsPanel" class="my-3">
+          <filter-fields label="تعديل بيانات الترويسة فورياً (تنعكس التعديلات لحظياً على كافة أوراق الطلاب قبل نقلها للطباعة)" class="main-card border-0 pa-4 rounded-2xl">
+            <template #fields>
+              <custom-text-field
                 v-model="customCenterName"
+                cols="4"
                 label="اسم المركز الامتحاني / المدرسة"
-                density="compact"
-                variant="outlined"
-                rounded="lg"
-                hide-details
+                icon="school-outline"
                 :placeholder="activeExam?.directorate || 'المركز الامتحاني الرئيسي'"
               />
-            </v-col>
-            <v-col cols="12" sm="4">
-              <v-text-field
+              <custom-text-field
                 v-model="customDirectorate"
+                cols="4"
                 label="المديرية"
-                density="compact"
-                variant="outlined"
-                rounded="lg"
-                hide-details
+                icon="map-marker-outline"
                 :placeholder="activeExam?.directorate || 'السبعين'"
               />
-            </v-col>
-            <v-col cols="12" sm="4">
-              <v-text-field
+              <custom-text-field
                 v-model="customGovernorate"
+                cols="4"
                 label="المحافظة"
-                density="compact"
-                variant="outlined"
-                rounded="lg"
-                hide-details
+                icon="map-marker-radius-outline"
                 :placeholder="activeExam?.governorate || 'أمانة العاصمة'"
               />
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field
+              <custom-text-field
                 v-model="customStageTitle"
+                cols="6"
                 label="عنوان الاختبار والمرحلة"
-                density="compact"
-                variant="outlined"
-                rounded="lg"
-                hide-details
+                icon="text-box-outline"
                 :placeholder="activeExam?.title || 'اختبار الشهادة العامة'"
               />
-            </v-col>
-            <v-col cols="12" sm="3">
-              <v-text-field
+              <custom-text-field
                 v-model="customExamYear"
+                cols="3"
                 label="العام الدراسي"
-                density="compact"
-                variant="outlined"
-                rounded="lg"
-                hide-details
+                icon="calendar-range"
                 :placeholder="activeExam?.year_name || '2026'"
               />
-            </v-col>
-            <v-col cols="12" sm="3" class="d-flex align-center">
-              <v-btn
-                size="small"
-                variant="text"
-                color="error"
-                class="font-weight-bold"
-                prepend-icon="mdi-restore"
-                @click="resetHeaderOverrides"
-              >
-                استعادة البيانات الأصلية
-              </v-btn>
-            </v-col>
-          </v-row>
+              <v-col cols="12" md="3" class="d-flex align-center py-2">
+                <custom-btn
+                  type="cancel_filter"
+                  :click="resetHeaderOverrides"
+                  variant="tonal"
+                  color="error"
+                  label="استعادة البيانات الأصلية"
+                  icon="mdi-restore"
+                  class="font-weight-bold w-100"
+                />
+              </v-col>
+            </template>
+          </filter-fields>
         </div>
       </v-expand-transition>
 
@@ -266,19 +230,16 @@
             </v-btn>
           </div>
 
-          <!-- Jump to Student Direct Dropdown -->
-          <div style="min-width: 170px; max-width: 240px;">
-            <v-autocomplete
+          <!-- Jump to Student Direct AutoList -->
+          <div style="min-width: 200px; max-width: 260px;">
+            <auto-list
               v-model="jumpToStudentIndex"
-              :items="studentJumpOptions"
-              item-title="title"
-              item-value="value"
-              placeholder="انتقال مباشر لطالب..."
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              hide-details
-              prepend-inner-icon="mdi-account-search"
+              name="ExamHubStudent"
+              :objects="studentJumpOptions"
+              cols="12"
+              class="pa-0"
+              label="انتقال مباشر لطالب"
+              :add="false"
               @update:model-value="onJumpToStudent"
             />
           </div>
@@ -683,6 +644,20 @@ const versionCodeOptions = computed(() => {
     return props.examDetails.versions.map(v => v.versionCode || 'A')
   }
   return ['A', 'B', 'C', 'D']
+})
+
+const blankVersionSelectOptions = computed(() => {
+  return versionCodeOptions.value.map(code => ({
+    title: `النموذج ${code}`,
+    value: code,
+  }))
+})
+
+const studentSelectOptions = computed(() => {
+  return filteredStreamStudents.value.map(st => ({
+    title: `${st.student_name} — جلوس: ${st.seat_number} (نموذج ${st.model_code || 'A'})`,
+    value: st.id,
+  }))
 })
 
 const getQuestionsCountForVersion = (versionCode) => {

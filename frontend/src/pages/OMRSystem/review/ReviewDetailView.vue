@@ -79,7 +79,7 @@
     <filter-fields label="خيارات تصفية أوراق إجابة الطلاب" class="main-card border-0 pa-4 rounded-2xl mb-6 elevation-1">
       <v-row dense class="align-center">
         <!-- فلتر المديرية -->
-        <v-col cols="12" sm="6" md="2" v-if="institutionType === 'school'">
+        <v-col cols="12" sm="6" md="3" v-if="institutionType === 'school'">
           <auto-list
             v-model="detailFilterDirectorate"
             name="Directorate"
@@ -88,13 +88,11 @@
             placeholder="إدارة التربية (المديرية)"
             cols="12"
             :add="false"
-            :hideDetails="true"
-            @update:model-value="emitFilterChange"
           />
         </v-col>
 
         <!-- فلتر المدرسة / الكلية / المعهد -->
-        <v-col cols="12" sm="6" :md="institutionType === 'school' ? 3 : 4">
+        <v-col cols="12" sm="6" md="3">
           <auto-list
             v-model="detailFilterSchool"
             :name="institutionType === 'university' ? 'College' : (institutionType === 'institute' ? 'Institute' : 'Organization')"
@@ -103,13 +101,11 @@
             :placeholder="institutionType === 'university' ? 'الكلية / المركز' : (institutionType === 'institute' ? 'المعهد / المركز' : 'المدرسة / المركز الامتحاني')"
             cols="12"
             :add="false"
-            :hideDetails="true"
-            @update:model-value="emitFilterChange"
           />
         </v-col>
 
         <!-- فلتر حالة المراجعة -->
-        <v-col cols="12" sm="6" md="2">
+        <v-col cols="12" sm="6" md="3">
           <auto-list
             v-model="detailFilterStatus"
             name="ScreenTypeChoices"
@@ -118,33 +114,16 @@
             placeholder="حالة المراجعة"
             cols="12"
             :add="false"
-            :hideDetails="true"
-            @update:model-value="emitFilterChange"
-          />
-        </v-col>
-
-        <!-- حقل البحث السريع بالاسم أو رقم الجلوس -->
-        <v-col cols="12" sm="6" :md="institutionType === 'school' ? 3 : 4">
-          <custom-text-field
-            v-model="searchQuery"
-            label="اسم الطالب أو رقم الجلوس"
-            placeholder="بحث برقم الجلوس أو اسم الطالب..."
-            icon="magnify"
-            cols="12"
-            :hideDetails="true"
-            clearable
-            @update:model-value="onSearchInput"
           />
         </v-col>
 
         <!-- أزرار الإجراءات -->
-        <v-col cols="12" sm="12" md="2" class="d-flex align-center justify-end gap-2 mb-2">
+        <v-col cols="auto" class="d-flex align-center gap-2 mb-6">
           <custom-btn
             type="show"
-            label="تصفية"
+            label="عرض"
             color="primary"
-            icon="mdi-filter"
-            class="font-weight-bold px-4"
+            class="font-weight-bold px-5"
             :loading="loadingDetail"
             :click="emitFilterChange"
           />
@@ -154,7 +133,6 @@
             variant="tonal"
             color="error"
             label="إلغاء الفلترة"
-            icon="mdi-filter-off"
             class="font-weight-bold"
           />
         </v-col>
@@ -176,7 +154,8 @@
           log: false,
           restore: false,
         }"
-      >
+      
+        :actionList="(item) => ([ { label: 'تدقيق وتعديل الورقة', icon: 'shield-search', color: 'primary', onClick: () => $emit('review-sheet', item) }, { label: 'اعتماد ومصادقة النتيجة', icon: 'check-circle-outline', color: 'success', show: item.status !== 'verified', onClick: () => $emit('approve-sheet', item) }, { label: 'تم الاعتماد مسبقاً', icon: 'check-decagram', color: 'success', show: item.status === 'verified', disabled: true }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
         <template v-slot:item-slot="{ item, key }">
           <!-- Student Info & Seat Number -->
           <template v-if="key === 'student_info'">
@@ -216,28 +195,19 @@
 
           <!-- Confidence -->
           <template v-else-if="key === 'confidence'">
-            <v-chip
-              size="small"
-              :color="item.confidence >= 0.85 ? 'success' : 'warning'"
-              variant="tonal"
-              class="font-weight-bold unified-table-chip"
+            <span
+              class="font-mono font-weight-bold text-body-2"
+              :class="item.confidence >= 0.85 ? 'text-success' : 'text-warning'"
             >
               {{ Math.round((item.confidence || 0) * 100) }}%
-            </v-chip>
+            </span>
           </template>
 
           <!-- Ambiguous questions -->
           <template v-else-if="key === 'ambiguous_count'">
-            <v-chip
-              v-if="item.ambiguous_count > 0"
-              size="small"
-              color="error"
-              variant="tonal"
-              class="font-weight-bold unified-table-chip"
-            >
-              <v-icon start size="13">mdi-alert-circle-outline</v-icon>
+            <span v-if="item.ambiguous_count > 0" class="font-weight-bold text-error text-body-2">
               {{ item.ambiguous_count }} أسئلة
-            </v-chip>
+            </span>
             <span v-else class="text-medium-emphasis text-caption">-</span>
           </template>
 
@@ -256,42 +226,14 @@
               size="small"
               :color="item.status === 'verified' ? 'success' : 'warning'"
               variant="tonal"
-              class="font-weight-bold unified-table-chip"
+              class="font-weight-bold"
             >
-              <v-icon start size="14">{{ item.status === 'verified' ? 'mdi-check-circle' : 'mdi-clock-outline' }}</v-icon>
               {{ item.status === 'verified' ? 'معتمد' : 'قيد التدقيق' }}
             </v-chip>
           </template>
 
           <!-- Actions -->
-          <template v-else-if="key === 'actions'">
-            <div class="d-flex align-center justify-center gap-1">
-              <v-btn
-                size="small"
-                color="primary"
-                variant="flat"
-                class="font-weight-bold px-3"
-                prepend-icon="mdi-shield-search"
-                @click="$emit('review-sheet', item)"
-              >
-                تدقيق وتعديل
-              </v-btn>
-              <custom-btn
-                v-if="item.status !== 'verified'"
-                type="ok"
-                is-icon
-                label="اعتماد ومصادقة النتيجة"
-                :click="() => $emit('approve-sheet', item)"
-              />
-              <custom-btn
-                v-else
-                type="done"
-                is-icon
-                label="تم الاعتماد مسبقاً"
-                disabled
-              />
-            </div>
-          </template>
+          
         </template>
       </custom-data-table>
     </div>

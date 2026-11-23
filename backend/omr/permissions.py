@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import permissions
 
 class IsControlOfficer(permissions.BasePermission):
@@ -13,6 +14,8 @@ class IsControlOfficer(permissions.BasePermission):
         user_type = getattr(request.user, 'fk_user_type', None)
         if user_type and user_type.name_ar in ['موظف', 'مدرس', 'كنترول', 'إدارة', 'أكاديمي']:
             return True
-        if request.user.groups.filter(name__icontains='control').exists():
+        if request.user.groups.filter(
+            Q(name_en__icontains='control') | Q(name_ar__icontains='كنترول') | Q(name_ar__icontains='control')
+        ).exists():
             return True
         return False

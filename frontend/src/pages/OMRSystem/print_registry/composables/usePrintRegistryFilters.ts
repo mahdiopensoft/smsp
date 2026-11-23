@@ -103,7 +103,7 @@ export function usePrintRegistryFilters(options: { onFilterChange?: () => void }
     return null
   })
 
-  // ── Change Handlers ──
+  // ── Change Handlers (cascading resets only — filtering happens on Show button click) ──
   const onInstitutionTypeChange = (newType?: string) => {
     if (newType !== undefined) {
       institutionType.value = newType
@@ -122,64 +122,52 @@ export function usePrintRegistryFilters(options: { onFilterChange?: () => void }
     filterInstituteEducationSystem.value = null
     filterInstituteSpecialization.value = null
     filterInstituteSubject.value = null
-    triggerChange()
   }
 
   const onGovernorateChange = () => {
     filterDirectorate.value = null
     filterOrganization.value = null
-    triggerChange()
   }
 
   const onDirectorateChange = () => {
     filterOrganization.value = null
-    triggerChange()
   }
 
-  const onOrganizationChange = () => {
-    triggerChange()
-  }
+  const onOrganizationChange = () => {}
 
   const onStageChange = () => {
     filterClassTrack.value = null
     filterSubject.value = null
-    triggerChange()
   }
 
   const onClassTrackChange = () => {
     filterSubject.value = null
-    triggerChange()
   }
 
   const onCollegeChange = () => {
     filterDepartment.value = null
     filterSpecialization.value = null
     filterSemesterSubject.value = null
-    triggerChange()
   }
 
   const onDepartmentChange = () => {
     filterSpecialization.value = null
     filterSemesterSubject.value = null
-    triggerChange()
   }
 
   const onSpecializationChange = () => {
     filterSemesterSubject.value = null
-    triggerChange()
   }
 
   const onInstituteFieldChange = () => {
     filterInstituteEducationSystem.value = null
     filterInstituteSpecialization.value = null
     filterInstituteSubject.value = null
-    triggerChange()
   }
 
   const onInstituteEducationSystemChange = () => {
     filterInstituteSpecialization.value = null
     filterInstituteSubject.value = null
-    triggerChange()
   }
 
   const resetUnifiedFilters = async () => {

@@ -19,7 +19,6 @@
               placeholder="نوع المؤسسة التعليمية"
               cols="12"
               :add="false"
-              :hideDetails="true"
               @update:model-value="onSectorChange"
             />
           </v-col>
@@ -36,7 +35,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onOfficeFilterChange"
               />
             </v-col>
@@ -51,7 +49,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onDirectorateFilterChange"
               />
             </v-col>
@@ -66,8 +63,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
-                @update:model-value="onSchoolFilterChange"
               />
             </v-col>
 
@@ -80,8 +75,6 @@
                 placeholder="تصفية حسب المادة..."
                 cols="12"
                 :add="false"
-                :hideDetails="true"
-                @update:model-value="onSubjectFilterChange"
               />
             </v-col>
           </template>
@@ -98,8 +91,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
-                @update:model-value="onSchoolFilterChange"
               />
             </v-col>
 
@@ -112,8 +103,6 @@
                 placeholder="تصفية حسب المادة..."
                 cols="12"
                 :add="false"
-                :hideDetails="true"
-                @update:model-value="onSubjectFilterChange"
               />
             </v-col>
           </template>
@@ -130,8 +119,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
-                @update:model-value="onSchoolFilterChange"
               />
             </v-col>
 
@@ -144,14 +131,12 @@
                 placeholder="تصفية حسب المادة..."
                 cols="12"
                 :add="false"
-                :hideDetails="true"
-                @update:model-value="onSubjectFilterChange"
               />
             </v-col>
           </template>
 
           <!-- فلتر حالة المطابقة والرقابة للاختبارات -->
-          <v-col cols="12" sm="6" :md="institutionType === 'school' ? 3 : 3">
+          <v-col cols="12" sm="6" md="3">
             <auto-list
               v-model="masterFilterStatus"
               name="ScreenTypeChoices"
@@ -160,18 +145,15 @@
               placeholder="كل الحالات..."
               cols="12"
               :add="false"
-              :hideDetails="true"
-              @update:model-value="loadMasterData"
             />
           </v-col>
 
           <!-- أزرار الإجراءات -->
-          <v-col cols="12" sm="6" :md="institutionType === 'school' ? 9 : 9" class="d-flex align-center justify-end gap-2 mb-3">
+          <v-col cols="auto" class="d-flex align-center gap-2 mb-6">
             <custom-btn
               type="show"
-              label="تصفية النتائج"
+              label="عرض"
               color="primary"
-              icon="mdi-filter"
               class="font-weight-bold px-5"
               :loading="loadingMaster"
               :click="loadMasterData"
@@ -181,8 +163,7 @@
               :click="resetHierarchyFilters"
               variant="tonal"
               color="error"
-              label="تفريغ الفلاتر"
-              icon="mdi-filter-off"
+              label="إلغاء الفلترة"
               class="font-weight-bold"
             />
           </v-col>
@@ -257,19 +238,14 @@
               :restore="false"
               :numbering="true"
               :showSelect="true"
-              :actions="false"
               :search="true"
-            >
+            
+        :actionList="(item) => ([ { label: 'عرض المديريات', icon: 'map-marker-radius-outline', color: 'primary', onClick: () => drillDownToDirectorates(item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
               <template v-slot:item-slot="{ item, key }">
                 <template v-if="key === 'office_name'">
-                  <div class="d-flex align-center py-2" style="min-width: 220px;">
-                    <v-avatar color="primary" variant="tonal" size="36" class="me-3 rounded-lg flex-shrink-0">
-                      <v-icon color="primary" size="20">mdi-office-building-outline</v-icon>
-                    </v-avatar>
-                    <div>
-                      <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.office_name }}</div>
-                      <div class="text-caption text-medium-emphasis">{{ item.governorate_name }}</div>
-                    </div>
+                  <div class="py-1" style="min-width: 200px;">
+                    <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.office_name }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ item.governorate_name }}</div>
                   </div>
                 </template>
 
@@ -278,21 +254,17 @@
                 </template>
 
                 <template v-else-if="key === 'printed_count'">
-                  <v-chip size="small" color="secondary" variant="tonal" class="font-weight-bold">
-                    {{ item.printed_count || 0 }} ورقة
-                  </v-chip>
+                  <span class="text-body-2 font-mono">{{ item.printed_count || 0 }} ورقة</span>
                 </template>
 
                 <template v-else-if="key === 'scanned_count'">
-                  <v-chip size="small" color="teal" variant="tonal" class="font-weight-bold">
-                    {{ item.scanned_count || 0 }} ورقة
-                  </v-chip>
+                  <span class="text-body-2 font-mono text-teal">{{ item.scanned_count || 0 }} ورقة</span>
                 </template>
 
                 <template v-else-if="key === 'missing_count'">
-                  <v-chip size="small" :color="(item.missing_count || 0) > 0 ? 'error' : 'success'" variant="flat" class="font-weight-bold">
+                  <span class="font-weight-bold font-mono" :class="(item.missing_count || 0) > 0 ? 'text-error' : 'text-success'">
                     {{ item.missing_count || 0 }} مفقود
-                  </v-chip>
+                  </span>
                 </template>
 
                 <template v-else-if="key === 'absent_count'">
@@ -312,21 +284,7 @@
                   </div>
                 </template>
 
-                <template v-else-if="key === 'actions'">
-                  <div class="d-flex align-center justify-center gap-2">
-                    <v-btn
-                      size="small"
-                      color="primary"
-                      variant="tonal"
-                      rounded="lg"
-                      class="font-weight-bold"
-                      prepend-icon="mdi-map-marker-radius-outline"
-                      @click="drillDownToDirectorates(item)"
-                    >
-                      المديريات
-                    </v-btn>
-                  </div>
-                </template>
+                
               </template>
             </custom-data-table>
           </v-window-item>
@@ -345,19 +303,14 @@
               :restore="false"
               :numbering="true"
               :showSelect="true"
-              :actions="false"
               :search="true"
-            >
+            
+        :actionList="(item) => ([ { label: 'عرض المدارس', icon: 'school', color: 'teal', onClick: () => drillDownToSchools(item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
               <template v-slot:item-slot="{ item, key }">
                 <template v-if="key === 'name'">
-                  <div class="d-flex align-center py-2" style="min-width: 220px;">
-                    <v-avatar color="teal" variant="tonal" size="36" class="me-3 rounded-lg flex-shrink-0">
-                      <v-icon color="teal" size="20">mdi-map-marker-radius-outline</v-icon>
-                    </v-avatar>
-                    <div>
-                      <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name }}</div>
-                      <div class="text-caption text-medium-emphasis">{{ item.office_name }}</div>
-                    </div>
+                  <div class="py-1" style="min-width: 200px;">
+                    <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ item.office_name }}</div>
                   </div>
                 </template>
 
@@ -366,21 +319,17 @@
                 </template>
 
                 <template v-else-if="key === 'printed_count'">
-                  <v-chip size="small" color="secondary" variant="tonal" class="font-weight-bold">
-                    {{ item.printed_count || 0 }} ورقة
-                  </v-chip>
+                  <span class="text-body-2 font-mono">{{ item.printed_count || 0 }} ورقة</span>
                 </template>
 
                 <template v-else-if="key === 'scanned_count'">
-                  <v-chip size="small" color="teal" variant="tonal" class="font-weight-bold">
-                    {{ item.scanned_count || 0 }} ورقة
-                  </v-chip>
+                  <span class="text-body-2 font-mono text-teal">{{ item.scanned_count || 0 }} ورقة</span>
                 </template>
 
                 <template v-else-if="key === 'missing_count'">
-                  <v-chip size="small" :color="(item.missing_count || 0) > 0 ? 'error' : 'success'" variant="flat" class="font-weight-bold">
+                  <span class="font-weight-bold font-mono" :class="(item.missing_count || 0) > 0 ? 'text-error' : 'text-success'">
                     {{ item.missing_count || 0 }} مفقود
-                  </v-chip>
+                  </span>
                 </template>
 
                 <template v-else-if="key === 'absent_count'">
@@ -400,21 +349,7 @@
                   </div>
                 </template>
 
-                <template v-else-if="key === 'actions'">
-                  <div class="d-flex align-center justify-center gap-2">
-                    <v-btn
-                      size="small"
-                      color="teal"
-                      variant="tonal"
-                      rounded="lg"
-                      class="font-weight-bold"
-                      prepend-icon="mdi-school"
-                      @click="drillDownToSchools(item)"
-                    >
-                      المدارس
-                    </v-btn>
-                  </div>
-                </template>
+                
               </template>
             </custom-data-table>
           </v-window-item>
@@ -433,19 +368,14 @@
               :restore="false"
               :numbering="true"
               :showSelect="true"
-              :actions="false"
               :search="true"
-            >
+            
+        :actionList="(item) => ([ { label: 'عرض الاختبارات', icon: 'file-find-outline', color: 'indigo', onClick: () => drillDownToExams(item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
               <template v-slot:item-slot="{ item, key }">
                 <template v-if="key === 'name' || key === 'school_name'">
-                  <div class="d-flex align-center py-2" style="min-width: 220px;">
-                    <v-avatar color="indigo" variant="tonal" size="36" class="me-3 rounded-lg flex-shrink-0">
-                      <v-icon color="indigo" size="20">mdi-school-outline</v-icon>
-                    </v-avatar>
-                    <div>
-                      <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name || item.school_name }}</div>
-                      <div class="text-caption text-medium-emphasis">{{ item.directorate_name }} - {{ item.governorate_name }}</div>
-                    </div>
+                  <div class="py-1" style="min-width: 200px;">
+                    <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name || item.school_name }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ item.directorate_name }} - {{ item.governorate_name }}</div>
                   </div>
                 </template>
 
@@ -454,21 +384,17 @@
                 </template>
 
                 <template v-else-if="key === 'printed_count'">
-                  <v-chip size="small" color="secondary" variant="tonal" class="font-weight-bold">
-                    {{ item.printed_count || 0 }} ورقة
-                  </v-chip>
+                  <span class="text-body-2 font-mono">{{ item.printed_count || 0 }} ورقة</span>
                 </template>
 
                 <template v-else-if="key === 'scanned_count'">
-                  <v-chip size="small" color="teal" variant="tonal" class="font-weight-bold">
-                    {{ item.scanned_count || 0 }} ورقة
-                  </v-chip>
+                  <span class="text-body-2 font-mono text-teal">{{ item.scanned_count || 0 }} ورقة</span>
                 </template>
 
                 <template v-else-if="key === 'missing_count'">
-                  <v-chip size="small" :color="(item.missing_count || 0) > 0 ? 'error' : 'success'" variant="flat" class="font-weight-bold">
+                  <span class="font-weight-bold font-mono" :class="(item.missing_count || 0) > 0 ? 'text-error' : 'text-success'">
                     {{ item.missing_count || 0 }} مفقود
-                  </v-chip>
+                  </span>
                 </template>
 
                 <template v-else-if="key === 'absent_count'">
@@ -488,21 +414,7 @@
                   </div>
                 </template>
 
-                <template v-else-if="key === 'actions'">
-                  <div class="d-flex align-center justify-center gap-2">
-                    <v-btn
-                      size="small"
-                      color="indigo"
-                      variant="flat"
-                      rounded="lg"
-                      class="font-weight-bold text-white"
-                      prepend-icon="mdi-file-find-outline"
-                      @click="drillDownToExams(item)"
-                    >
-                      الاختبارات
-                    </v-btn>
-                  </div>
-                </template>
+                
               </template>
             </custom-data-table>
           </v-window-item>
@@ -521,18 +433,15 @@
               :restore="false"
               :numbering="true"
               :showSelect="true"
-              :actions="false"
               :search="true"
-            >
+            
+        :actionList="(item) => ([ { label: 'كشف تدقيق الطلاب', icon: 'shield-search', color: 'primary', onClick: () => openExamVerificationDetail(item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
               <template v-slot:item-slot="{ item, key }">
                 <template v-if="key === 'title' || key === 'exam_title'">
-                  <div class="py-2" style="min-width: 220px;">
+                  <div class="py-1" style="min-width: 200px;">
                     <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.title }}</div>
-                    <div class="d-flex align-center gap-2 mt-1">
-                      <v-chip size="x-small" color="primary" variant="tonal" class="font-mono font-weight-bold">
-                        {{ item.uniqueCode || item.code }}
-                      </v-chip>
-                      <span class="text-caption text-medium-emphasis">{{ item.subject_name }}</span>
+                    <div class="text-caption text-medium-emphasis mt-0.5">
+                      <span class="font-mono">{{ item.uniqueCode || item.code }}</span> • {{ item.subject_name }}
                     </div>
                   </div>
                 </template>
@@ -542,21 +451,17 @@
                 </template>
 
                 <template v-else-if="key === 'total_printed'">
-                  <v-chip size="small" color="secondary" variant="tonal" class="font-weight-bold">
-                    {{ item.total_printed || 0 }} ورقة
-                  </v-chip>
+                  <span class="text-body-2 font-mono">{{ item.total_printed || 0 }} ورقة</span>
                 </template>
 
                 <template v-else-if="key === 'total_scanned'">
-                  <v-chip size="small" color="teal" variant="tonal" class="font-weight-bold">
-                    {{ item.total_scanned || 0 }} ورقة
-                  </v-chip>
+                  <span class="text-body-2 font-mono text-teal">{{ item.total_scanned || 0 }} ورقة</span>
                 </template>
 
                 <template v-else-if="key === 'missing_count'">
-                  <v-chip size="small" :color="(item.missing_count || 0) > 0 ? 'error' : 'success'" variant="flat" class="font-weight-bold">
+                  <span class="font-weight-bold font-mono" :class="(item.missing_count || 0) > 0 ? 'text-error' : 'text-success'">
                     {{ item.missing_count || 0 }} مفقود
-                  </v-chip>
+                  </span>
                 </template>
 
                 <template v-else-if="key === 'status'">
@@ -571,21 +476,7 @@
                   </div>
                 </template>
 
-                <template v-else-if="key === 'actions'">
-                  <div class="d-flex align-center justify-center gap-2">
-                    <v-btn
-                      size="small"
-                      color="primary"
-                      variant="flat"
-                      rounded="lg"
-                      class="font-weight-bold shadow-sm"
-                      prepend-icon="mdi-shield-search"
-                      @click="openExamVerificationDetail(item)"
-                    >
-                      كشف تدقيق الطلاب
-                    </v-btn>
-                  </div>
-                </template>
+                
               </template>
             </custom-data-table>
           </v-window-item>
@@ -713,7 +604,7 @@
       <filter-fields label="خيارات تدقيق وتصفية كشف الطلاب" class="main-card border-0 pa-4 rounded-2xl mb-4 elevation-1">
         <v-row dense class="align-center">
           <!-- فلتر حالة المطابقة -->
-          <v-col cols="12" sm="6" md="2">
+          <v-col cols="12" sm="6" md="3">
             <auto-list
               v-model="detailFilterStatus"
               name="ScreenTypeChoices"
@@ -722,13 +613,11 @@
               placeholder="كافة الحالات..."
               cols="12"
               :add="false"
-              :hideDetails="true"
-              @update:model-value="applyDetailFilters"
             />
           </v-col>
 
           <!-- فلتر الحضور والسلوك -->
-          <v-col cols="12" sm="6" md="2">
+          <v-col cols="12" sm="6" md="3">
             <auto-list
               v-model="detailFilterAttendance"
               name="ScreenTypeChoices"
@@ -737,13 +626,11 @@
               placeholder="كافة الحالات..."
               cols="12"
               :add="false"
-              :hideDetails="true"
-              @update:model-value="applyDetailFilters"
             />
           </v-col>
 
           <!-- فلتر النتيجة الأكاديمية -->
-          <v-col cols="12" sm="6" md="2">
+          <v-col cols="12" sm="6" md="3">
             <auto-list
               v-model="detailFilterResult"
               name="ScreenTypeChoices"
@@ -752,13 +639,11 @@
               placeholder="كافة النتائج..."
               cols="12"
               :add="false"
-              :hideDetails="true"
-              @update:model-value="applyDetailFilters"
             />
           </v-col>
 
           <!-- فلتر النموذج -->
-          <v-col cols="12" sm="6" md="2">
+          <v-col cols="12" sm="6" md="3">
             <auto-list
               v-model="detailFilterVersion"
               name="ScreenTypeChoices"
@@ -767,13 +652,11 @@
               placeholder="كافة النماذج..."
               cols="12"
               :add="false"
-              :hideDetails="true"
-              @update:model-value="applyDetailFilters"
             />
           </v-col>
 
           <!-- فلتر المديرية (إدارة التربية) -->
-          <v-col cols="12" sm="6" md="2" v-if="institutionType === 'school'">
+          <v-col cols="12" sm="6" md="3" v-if="institutionType === 'school'">
             <auto-list
               v-model="detailFilterDirectorate"
               name="Directorate"
@@ -782,13 +665,12 @@
               placeholder="كافة المديريات..."
               cols="12"
               :add="false"
-              :hideDetails="true"
-              @update:model-value="onDetailDirectorateChange"
+              @update:model-value="detailFilterSchool = null"
             />
           </v-col>
 
           <!-- فلتر المدرسة / المركز -->
-          <v-col cols="12" sm="6" :md="institutionType === 'school' ? 2 : 4">
+          <v-col cols="12" sm="6" md="3">
             <auto-list
               v-model="detailFilterSchool"
               :name="institutionType === 'university' ? 'College' : (institutionType === 'institute' ? 'Institute' : 'Organization')"
@@ -797,35 +679,25 @@
               placeholder="كافة المراكز..."
               cols="12"
               :add="false"
-              :hideDetails="true"
-              @update:model-value="applyDetailFilters"
             />
           </v-col>
 
-          <!-- بحث سريع برقم الجلوس أو اسم الطالب -->
-          <v-col cols="12" sm="6" md="3">
-            <custom-text-field
-              v-model="detailSearchQuery"
-              label="رقم الجلوس أو اسم الطالب"
-              placeholder="ابحث برقم الجلوس أو اسم الطالب..."
-              icon="magnify"
-              cols="12"
-              :hideDetails="true"
-              clearable
-              @update:model-value="applyDetailFilters"
+          <!-- أزرار العرض وإلغاء الفلترة -->
+          <v-col cols="auto" class="d-flex align-center gap-2 mb-6">
+            <custom-btn
+              type="show"
+              label="عرض"
+              color="primary"
+              class="font-weight-bold px-5"
+              :click="applyDetailFilters"
             />
-          </v-col>
-
-          <!-- زر تفريغ الفلاتر التفصيلية -->
-          <v-col cols="12" sm="6" md="2" class="d-flex align-center justify-end gap-2">
             <custom-btn
               type="cancel_filter"
               :click="resetDetailFilters"
               variant="tonal"
               color="error"
-              label="تفريغ الفلاتر"
-              icon="mdi-filter-off"
-              class="font-weight-bold flex-grow-1"
+              label="إلغاء الفلترة"
+              class="font-weight-bold"
             />
           </v-col>
         </v-row>
@@ -845,8 +717,8 @@
           :restore="false"
           :numbering="true"
           :showSelect="true"
-          :actions="false"
-        >
+        
+        :actionList="(item) => ([ { label: 'معاينة ورقة الطالب الممسوحة', icon: 'file-eye-outline', color: 'teal', show: Boolean(item.has_scanned && (item.original_image || item.aligned_image)), onClick: () => previewScannedSheet(item), }, { label: 'تفاصيل الطالب', icon: 'information-outline', color: 'primary', onClick: () => openStudentRecordDetails(item), }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
           <template v-slot:item-slot="{ item, key }">
             <template v-if="key === 'seat_number'">
               <span class="font-weight-black font-mono text-subtitle-2">{{ item.seat_number }}</span>
@@ -864,32 +736,20 @@
             </template>
 
             <template v-else-if="key === 'version_code'">
-              <v-chip size="x-small" color="primary" variant="flat" class="font-weight-black font-mono">
-                {{ item.version_code || 'A' }}
-              </v-chip>
+              <span class="font-weight-bold font-mono text-body-2">{{ item.version_code || 'A' }}</span>
             </template>
 
             <template v-else-if="key === 'print_status'">
-              <v-chip size="small" :color="item.is_printed ? 'secondary' : 'grey'" variant="tonal" class="font-weight-bold">
+              <span class="text-body-2" :class="item.is_printed ? 'text-high-emphasis font-weight-medium' : 'text-medium-emphasis'">
                 {{ item.print_status_display || (item.is_printed ? (item.has_scanned ? 'طُبعت ومُسحت' : 'طُبعت') : 'لم تُطبع') }}
-              </v-chip>
+              </span>
             </template>
 
             <template v-else-if="key === 'scan_status'">
-              <div v-if="item.has_scanned">
-                <v-chip v-if="item.scan_status === 'completed'" size="small" color="teal" variant="tonal" class="font-weight-bold">
-                  ممسوحة ({{ Math.round((item.scan_confidence || 0.95) * 100) }}%)
-                </v-chip>
-                <v-chip v-else-if="item.scan_status === 'failed'" size="small" color="error" variant="flat" class="font-weight-bold">
-                  فشل المسح
-                </v-chip>
-                <v-chip v-else size="small" color="warning" variant="flat" class="font-weight-bold">
-                  يحتاج مراجعة
-                </v-chip>
-              </div>
-              <v-chip v-else size="small" color="grey" variant="tonal" class="font-weight-bold">
-                لم تُمسح
-              </v-chip>
+              <span v-if="item.has_scanned" class="text-body-2 font-weight-medium" :class="item.scan_status === 'completed' ? 'text-teal' : item.scan_status === 'failed' ? 'text-error' : 'text-warning'">
+                {{ item.scan_status === 'completed' ? `ممسوحة (${Math.round((item.scan_confidence || 0.95) * 100)}%)` : item.scan_status === 'failed' ? 'فشل المسح' : 'يحتاج مراجعة' }}
+              </span>
+              <span v-else class="text-body-2 text-medium-emphasis">لم تُمسح</span>
             </template>
 
             <template v-else-if="key === 'attendance_status'">
@@ -920,30 +780,7 @@
               </v-chip>
             </template>
 
-            <template v-else-if="key === 'actions'">
-              <div class="d-flex align-center justify-center gap-1">
-                <!-- زر معاينة الورقة الممسوحة -->
-                <v-btn
-                  v-if="item.has_scanned && (item.original_image || item.aligned_image)"
-                  size="small"
-                  color="teal"
-                  variant="tonal"
-                  rounded="lg"
-                  icon="mdi-file-eye-outline"
-                  title="معاينة ورقة الطالب الممسوحة"
-                  @click="previewScannedSheet(item)"
-                />
-                <v-btn
-                  size="small"
-                  color="primary"
-                  variant="tonal"
-                  rounded="lg"
-                  icon="mdi-information-outline"
-                  title="تفاصيل الطالب"
-                  @click="openStudentRecordDetails(item)"
-                />
-              </div>
-            </template>
+            
           </template>
         </custom-data-table>
       </div>
@@ -952,72 +789,63 @@
     <!-- ══════════════════════════════════════════════════════════════ -->
     <!-- 3. DIALOG: معاينة صورة ورقة الطالب الممسوحة والمحاذاة           -->
     <!-- ══════════════════════════════════════════════════════════════ -->
-    <v-dialog v-model="imagePreviewDialog" max-width="900px" scrollable>
-      <v-card class="rounded-2xl elevation-4 overflow-hidden">
-        <v-card-title class="pa-4 border-b d-flex align-center justify-space-between bg-surface">
-          <div class="d-flex align-center">
-            <v-avatar color="teal" variant="tonal" size="40" class="me-3 rounded-xl">
-              <v-icon size="22">mdi-file-eye-outline</v-icon>
-            </v-avatar>
-            <div>
-              <div class="text-subtitle-1 font-weight-black">{{ previewStudent?.student_name }}</div>
-              <div class="text-caption text-medium-emphasis">
-                رقم الجلوس: <span class="font-mono font-weight-bold text-primary">{{ previewStudent?.seat_number }}</span> |
-                النموذج: <span class="font-mono font-weight-bold">{{ previewStudent?.version_code }}</span> |
-                الدرجة: <span class="font-weight-bold text-success" dir="ltr">{{ previewStudent?.score }} / {{ previewStudent?.max_score }}</span>
-              </div>
-            </div>
-          </div>
-          <v-btn icon="mdi-close" variant="text" size="small" @click="imagePreviewDialog = false" />
-        </v-card-title>
+    <custom-dialog
+      v-model="imagePreviewDialog"
+      :title="previewStudent?.student_name || 'معاينة صورة ورقة الطالب'"
+      width="900"
+      height="85vh"
+    >
+      <div class="text-caption text-medium-emphasis mb-4 pb-3 border-b d-flex align-center gap-2 flex-wrap">
+        <span>رقم الجلوس: <span class="font-mono font-weight-bold text-primary">{{ previewStudent?.seat_number }}</span></span>
+        <span>|</span>
+        <span>النموذج: <span class="font-mono font-weight-bold">{{ previewStudent?.version_code }}</span></span>
+        <span>|</span>
+        <span>الدرجة: <span class="font-weight-bold text-success" dir="ltr">{{ previewStudent?.score }} / {{ previewStudent?.max_score }}</span></span>
+      </div>
 
-        <v-card-text class="pa-4 bg-grey-lighten-4 text-center">
-          <div v-if="previewStudent?.original_image || previewStudent?.aligned_image" class="d-flex justify-center">
-            <v-img
-              :src="previewStudent?.aligned_image || previewStudent?.original_image"
-              max-height="650"
-              contain
-              class="rounded-xl elevation-2 bg-white"
-            >
-              <template v-slot:placeholder>
-                <div class="d-flex align-center justify-center fill-height">
-                  <v-progress-circular indeterminate color="primary" />
-                </div>
-              </template>
-            </v-img>
-          </div>
-          <div v-else class="py-12 text-medium-emphasis font-weight-bold">
-            لا توجد صورة ممسوحة متاحة لهذه الورقة.
-          </div>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
+      <div class="pa-4 bg-grey-lighten-4 rounded-xl text-center">
+        <div v-if="previewStudent?.original_image || previewStudent?.aligned_image" class="d-flex justify-center">
+          <v-img
+            :src="previewStudent?.aligned_image || previewStudent?.original_image"
+            max-height="650"
+            contain
+            class="rounded-xl elevation-2 bg-white"
+          >
+            <template v-slot:placeholder>
+              <div class="d-flex align-center justify-center fill-height">
+                <v-progress-circular indeterminate color="primary" />
+              </div>
+            </template>
+          </v-img>
+        </div>
+        <div v-else class="py-12 text-medium-emphasis font-weight-bold">
+          لا توجد صورة ممسوحة متاحة لهذه الورقة.
+        </div>
+      </div>
+    </custom-dialog>
 
     <!-- ══════════════════════════════════════════════════════════════ -->
     <!-- 4. DIALOG: تفاصيل سجل الطالب الكامل                            -->
     <!-- ══════════════════════════════════════════════════════════════ -->
-    <v-dialog v-model="studentDetailsDialog" max-width="600px">
-      <v-card class="rounded-2xl elevation-4">
-        <v-card-title class="pa-4 border-b d-flex align-center justify-space-between bg-surface">
-          <span class="text-h6 font-weight-black">بطاقة تدقيق ورقة الطالب</span>
-          <v-btn icon="mdi-close" variant="text" size="small" @click="studentDetailsDialog = false" />
-        </v-card-title>
-        <v-card-text class="pa-4">
-          <v-list density="compact" class="bg-transparent">
-            <v-list-item title="اسم الطالب" :subtitle="selectedStudentDetails?.student_name" />
-            <v-list-item title="رقم الجلوس" :subtitle="selectedStudentDetails?.seat_number" />
-            <v-list-item title="الرقم السري" :subtitle="selectedStudentDetails?.secret_number" />
-            <v-list-item title="المدرسة / المركز" :subtitle="selectedStudentDetails?.school_name" />
-            <v-list-item title="المديرية والمحافظة" :subtitle="`${selectedStudentDetails?.directorate_name || ''} - ${selectedStudentDetails?.governorate_name || ''}`" />
-            <v-list-item title="كود النموذج" :subtitle="selectedStudentDetails?.version_code" />
-            <v-list-item title="حالة الطباعة" :subtitle="selectedStudentDetails?.is_printed ? `طُبعت بتاريخ ${selectedStudentDetails?.printed_at} (دفعة: ${selectedStudentDetails?.print_batch})` : 'لم تُطبع'" />
-            <v-list-item title="حالة المسح" :subtitle="selectedStudentDetails?.has_scanned ? `ممسوحة بنسبة ثقة ${Math.round((selectedStudentDetails?.scan_confidence || 0.95) * 100)}%` : 'لم تُمسح'" />
-            <v-list-item title="حكم المطابقة" :subtitle="selectedStudentDetails?.verdict_name_ar" />
-            <v-list-item v-if="selectedStudentDetails?.cheating_reason" title="ملاحظة الرقابة" :subtitle="selectedStudentDetails?.cheating_reason" class="text-error" />
-          </v-list>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
+    <custom-dialog
+      v-model="studentDetailsDialog"
+      title="بطاقة تدقيق ورقة الطالب"
+      width="600"
+      height="auto"
+    >
+      <v-list density="compact" class="bg-transparent">
+        <v-list-item title="اسم الطالب" :subtitle="selectedStudentDetails?.student_name" />
+        <v-list-item title="رقم الجلوس" :subtitle="selectedStudentDetails?.seat_number" />
+        <v-list-item title="الرقم السري" :subtitle="selectedStudentDetails?.secret_number" />
+        <v-list-item title="المدرسة / المركز" :subtitle="selectedStudentDetails?.school_name" />
+        <v-list-item title="المديرية والمحافظة" :subtitle="`${selectedStudentDetails?.directorate_name || ''} - ${selectedStudentDetails?.governorate_name || ''}`" />
+        <v-list-item title="كود النموذج" :subtitle="selectedStudentDetails?.version_code" />
+        <v-list-item title="حالة الطباعة" :subtitle="selectedStudentDetails?.is_printed ? `طُبعت بتاريخ ${selectedStudentDetails?.printed_at} (دفعة: ${selectedStudentDetails?.print_batch})` : 'لم تُطبع'" />
+        <v-list-item title="حالة المسح" :subtitle="selectedStudentDetails?.has_scanned ? `ممسوحة بنسبة ثقة ${Math.round((selectedStudentDetails?.scan_confidence || 0.95) * 100)}%` : 'لم تُمسح'" />
+        <v-list-item title="حكم المطابقة" :subtitle="selectedStudentDetails?.verdict_name_ar" />
+        <v-list-item v-if="selectedStudentDetails?.cheating_reason" title="ملاحظة الرقابة" :subtitle="selectedStudentDetails?.cheating_reason" class="text-error" />
+      </v-list>
+    </custom-dialog>
 
   </div>
 </template>
@@ -1105,7 +933,6 @@ export default {
         { title: 'المفقود', key: 'missing_count', sortable: true, align: 'center', width: '130px' },
         { title: 'الغياب', key: 'absent_count', sortable: true, align: 'center', width: '110px' },
         { title: 'نسبة الإنجاز', key: 'completion_rate', sortable: true, align: 'center', width: '140px' },
-        { title: 'إجراءات', key: 'actions', sortable: false, align: 'center', width: '120px' },
       ],
 
       directorateMasterHeaders: [
@@ -1116,7 +943,6 @@ export default {
         { title: 'المفقود', key: 'missing_count', sortable: true, align: 'center', width: '130px' },
         { title: 'الغياب', key: 'absent_count', sortable: true, align: 'center', width: '110px' },
         { title: 'نسبة الإنجاز', key: 'completion_rate', sortable: true, align: 'center', width: '140px' },
-        { title: 'إجراءات', key: 'actions', sortable: false, align: 'center', width: '120px' },
       ],
 
       schoolMasterHeaders: [
@@ -1127,7 +953,6 @@ export default {
         { title: 'المفقود', key: 'missing_count', sortable: true, align: 'center', width: '130px' },
         { title: 'الغياب', key: 'absent_count', sortable: true, align: 'center', width: '110px' },
         { title: 'نسبة الإنجاز', key: 'completion_rate', sortable: true, align: 'center', width: '140px' },
-        { title: 'إجراءات', key: 'actions', sortable: false, align: 'center', width: '130px' },
       ],
 
       examMasterHeaders: [
@@ -1138,7 +963,6 @@ export default {
         { title: 'المفقود', key: 'missing_count', sortable: true, align: 'center', width: '130px' },
         { title: 'حالة المطابقة', key: 'status', sortable: true, align: 'center', width: '160px' },
         { title: 'نسبة النجاح', key: 'pass_rate', sortable: true, align: 'center', width: '110px' },
-        { title: 'إجراءات', key: 'actions', sortable: false, align: 'center', width: '150px' },
       ],
 
       // ── بيانات كشف تدقيق الطلاب (Detail View) ──
@@ -1208,7 +1032,6 @@ export default {
         { title: 'الحضور والسلوك', key: 'attendance_status', sortable: true, align: 'center', width: '130px' },
         { title: 'الدرجة والنسبة', key: 'score', sortable: true, align: 'center', width: '130px' },
         { title: 'حكم المطابقة', key: 'verdict', sortable: true, align: 'center', width: '150px' },
-        { title: 'إجراءات', key: 'actions', sortable: false, align: 'center', width: '100px' },
       ],
 
       studentRecordsData: [],
@@ -1580,18 +1403,15 @@ export default {
       this.selectedDirectorateId = null
       this.selectedSchoolId = null
       this.selectedSubjectId = null
-      this.loadMasterData()
     },
 
     onOfficeFilterChange() {
       this.selectedDirectorateId = null
       this.selectedSchoolId = null
-      this.loadMasterData()
     },
 
     onDirectorateFilterChange() {
       this.selectedSchoolId = null
-      this.loadMasterData()
     },
 
     onSchoolFilterChange() {

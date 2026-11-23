@@ -1,73 +1,55 @@
 <template>
-  <v-dialog
+  <custom-dialog
     :model-value="modelValue"
-    max-width="1680px"
+    :title="activeReviewSheet?.student_name || 'طالب غير محدد (تعذر قراءة الباركود)'"
+    width="1680"
+    height="94vh"
     persistent
-    scrollable
     transition="dialog-bottom-transition"
     :fullscreen="isFullScreen"
     @update:model-value="$emit('update:modelValue', $event)"
   >
-    <v-card class="rounded-2xl overflow-hidden main-card d-flex flex-column" style="height: 94vh; max-height: 96vh;" v-if="activeReviewSheet">
-      <!-- ── رأس نافذة المراجعة والتدقيق ── -->
-      <v-card-title class="d-flex align-center justify-space-between bg-surface px-5 py-3 border-b flex-wrap gap-2">
-        <!-- بيانات الطالب والورقة المحدثة -->
-        <div class="d-flex align-center gap-3 flex-wrap">
-          <v-avatar
-            color="primary"
-            variant="tonal"
-            size="46"
-            rounded="lg"
-            class="border"
-          >
-            <v-icon size="26" color="primary">
-              {{ isStudentIdentified ? 'mdi-account-check-outline' : 'mdi-barcode-scan' }}
-            </v-icon>
-          </v-avatar>
-
-          <div>
-            <div class="d-flex align-center gap-2 flex-wrap">
-              <span class="font-weight-black text-h6 text-high-emphasis">
-                {{ activeReviewSheet.student_name || 'طالب غير محدد (تعذر قراءة الباركود)' }}
-              </span>
-
-              <!-- جلوس الطالب بتصميم الشارة الموحدة المستطيلة الزرقاء -->
-              <div class="center-count-badge unified-badge-primary px-2.5 py-0.5 text-caption font-weight-bold d-inline-flex align-center gap-1">
-                <v-icon size="14">mdi-numeric</v-icon>
-                <span>جلوس:</span>
-                <span class="font-mono">{{ activeReviewSheet.seat_number || 'غير مسجل' }}</span>
-              </div>
-
-              <!-- نموذج الاختبار بتصميم الشارة الموحدة المستطيلة الزرقاء -->
-              <div class="center-count-badge unified-badge-primary px-2.5 py-0.5 text-caption font-weight-bold d-inline-flex align-center gap-1">
-                <v-icon size="14">mdi-layers-outline</v-icon>
-                <span>نموذج</span>
-                <span class="font-mono">{{ activeReviewSheet.version_code || 'A' }}</span>
-              </div>
+    <div v-if="activeReviewSheet" class="d-flex flex-column" style="height: 100%;">
+      <!-- ── شريط بيانات الطالب والتحكم العلوي ── -->
+      <div class="d-flex align-center justify-space-between pb-3 mb-3 border-b flex-wrap gap-2">
+        <div>
+          <div class="d-flex align-center gap-2 flex-wrap">
+            <!-- جلوس الطالب بتصميم الشارة الموحدة المستطيلة الزرقاء -->
+            <div class="center-count-badge unified-badge-primary px-2.5 py-0.5 text-caption font-weight-bold d-inline-flex align-center gap-1">
+              <v-icon size="14">mdi-numeric</v-icon>
+              <span>جلوس:</span>
+              <span class="font-mono">{{ activeReviewSheet.seat_number || 'غير مسجل' }}</span>
             </div>
 
-            <!-- السطر الفرعي للبيانات الأكاديمية بالأيقونات المؤسسية -->
-            <div class="text-caption text-medium-emphasis d-flex align-center gap-2 mt-1 flex-wrap">
-              <div class="d-flex align-center gap-1">
-                <v-icon size="14" color="primary">mdi-book-education-outline</v-icon>
-                <span class="font-weight-medium text-high-emphasis">{{ activeReviewSheet.exam_title || 'الاختبار الأكاديمي الموحد' }}</span>
-              </div>
-              <span v-if="activeReviewSheet.school_name" class="d-flex align-center gap-1">
-                <span class="opacity-50">•</span>
-                <v-icon size="14" color="medium-emphasis">mdi-school-outline</v-icon>
-                <span>{{ activeReviewSheet.school_name }}</span>
-              </span>
-              <span class="d-flex align-center gap-1">
-                <span class="opacity-50">•</span>
-                <v-icon size="14" color="medium-emphasis">mdi-barcode-scan</v-icon>
-                <span>معرف التسليم: <strong class="font-mono text-high-emphasis">#{{ activeReviewSheet.submission || activeReviewSheet.id }}</strong></span>
-              </span>
+            <!-- نموذج الاختبار بتصميم الشارة الموحدة المستطيلة الزرقاء -->
+            <div class="center-count-badge unified-badge-primary px-2.5 py-0.5 text-caption font-weight-bold d-inline-flex align-center gap-1">
+              <v-icon size="14">mdi-layers-outline</v-icon>
+              <span>نموذج</span>
+              <span class="font-mono">{{ activeReviewSheet.version_code || 'A' }}</span>
             </div>
+          </div>
+
+          <!-- السطر الفرعي للبيانات الأكاديمية بالأيقونات المؤسسية -->
+          <div class="text-caption text-medium-emphasis d-flex align-center gap-2 mt-1 flex-wrap">
+            <div class="d-flex align-center gap-1">
+              <v-icon size="14" color="primary">mdi-book-education-outline</v-icon>
+              <span class="font-weight-medium text-high-emphasis">{{ activeReviewSheet.exam_title || 'الاختبار الأكاديمي الموحد' }}</span>
+            </div>
+            <span v-if="activeReviewSheet.school_name" class="d-flex align-center gap-1">
+              <span class="opacity-50">•</span>
+              <v-icon size="14" color="medium-emphasis">mdi-school-outline</v-icon>
+              <span>{{ activeReviewSheet.school_name }}</span>
+            </span>
+            <span class="d-flex align-center gap-1">
+              <span class="opacity-50">•</span>
+              <v-icon size="14" color="medium-emphasis">mdi-barcode-scan</v-icon>
+              <span>معرف التسليم: <strong class="font-mono text-high-emphasis">#{{ activeReviewSheet.submission || activeReviewSheet.id }}</strong></span>
+            </span>
           </div>
         </div>
 
         <!-- أزرار التنقل والحفظ والتحكم بالشاشة -->
-        <div class="d-flex align-center gap-2">
+        <div class="d-flex align-center gap-2 flex-wrap">
           <!-- بطاقة الدرجة المحتسبة بنمط مؤشرات KPI الموحد الأنيق -->
           <div class="px-3 py-1.5 rounded-lg border bg-surface-variant-subtle d-flex align-center gap-3 me-2">
             <div>
@@ -126,19 +108,11 @@
           >
             اعتماد النتيجة
           </v-btn>
-
-          <!-- زر إغلاق النافذة -->
-          <v-btn
-            icon="mdi-close"
-            variant="text"
-            density="comfortable"
-            @click="$emit('update:modelValue', false)"
-          />
         </div>
-      </v-card-title>
+      </div>
 
       <!-- ── مساحة العرض المزدوج (Split-Screen) ── -->
-      <v-card-text class="pa-3 bg-surface flex-grow-1 overflow-hidden">
+      <div class="flex-grow-1 overflow-hidden">
         <div class="review-split-layout d-flex flex-column flex-md-row gap-3 h-100">
           <!-- العمود الأيمن / الأول: فاحص الورقة (صورة الماسح أو SVG التفاعلي) -->
           <div class="viewer-column flex-grow-1" style="flex-basis: 52%; min-width: 0;">
@@ -159,10 +133,11 @@
             />
           </div>
         </div>
-      </v-card-text>
+      </div>
+    </div>
 
-      <!-- ── ذيل النافذة (Footer Actions) ── -->
-      <v-card-actions class="px-5 py-2.5 bg-surface border-t d-flex align-center justify-space-between flex-wrap gap-2">
+    <template #actions>
+      <div v-if="activeReviewSheet" class="d-flex align-center justify-space-between flex-wrap gap-2 w-100">
         <div class="d-flex align-center gap-2 text-caption text-medium-emphasis">
           <v-icon size="16" color="primary">mdi-shield-check-outline</v-icon>
           <span>التدقيق الجنائي والرقابي موثق بنظام OMR Audit Log</span>
@@ -193,9 +168,9 @@
             اعتماد ومصادقة
           </v-btn>
         </div>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+      </div>
+    </template>
+  </custom-dialog>
 </template>
 
 <script setup lang="ts">

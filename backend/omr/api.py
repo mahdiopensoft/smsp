@@ -563,7 +563,7 @@ def _process_and_grade_image_file(
 @csrf_exempt
 @api_view(["POST"])
 @parser_classes([MultiPartParser, FormParser])
-@permission_classes([permissions.AllowAny])
+@permission_classes([permissions.IsAuthenticated])
 def grade_sheet(request):
     """
     رفع ورقة OMR وتصحيحها الفوري — يدعم الصور والـ PDF (صفحة واحدة أو متعدد الصفحات).
@@ -795,7 +795,7 @@ def grade_sheet(request):
 @csrf_exempt
 @api_view(["POST"])
 @parser_classes([MultiPartParser, FormParser])
-@permission_classes([permissions.AllowAny])
+@permission_classes([permissions.IsAuthenticated])
 def batch_scan_api(request):
     """
     المسح والتصحيح الجماعي المباشر (Multi-file / Multipage Batch Scan API)
@@ -938,7 +938,7 @@ def batch_scan_api(request):
 @csrf_exempt
 @api_view(["POST"])
 @parser_classes([MultiPartParser, FormParser])
-@permission_classes([permissions.AllowAny])
+@permission_classes([permissions.IsAuthenticated])
 def detect_template_api(request):
     """
     التعرف التلقائي الفوري على القالب من الورقة المرفوعة مباشرة (يدعم الصور والـ PDF).
@@ -2001,7 +2001,7 @@ def _draw_template_annotated(img, questions, template, dpi):
 
 
 @api_view(["GET"])
-@permission_classes([permissions.AllowAny])
+@permission_classes([permissions.IsAuthenticated])
 def get_result(request, result_id: str):
     """عرض نتيجة محفوظة في الكاش."""
     cached = _RESULT_CACHE.get(result_id)
@@ -2011,7 +2011,7 @@ def get_result(request, result_id: str):
 
 
 @api_view(["GET"])
-@permission_classes([permissions.AllowAny])
+@permission_classes([permissions.IsAuthenticated])
 def get_annotated_image(request, result_id: str):
     """إرجاع الصورة المُعلَّقة كـ PNG مباشرة."""
     cached = _RESULT_CACHE.get(result_id)
@@ -2022,7 +2022,7 @@ def get_annotated_image(request, result_id: str):
 
 
 @api_view(["GET"])
-@permission_classes([permissions.AllowAny])
+@permission_classes([permissions.IsAuthenticated])
 def get_ai_metrics_api(request):
     """
     إرجاع كافة المقاييس الهندسية والمواصفات الرسمية للنموذجين (YOLOv8 و ResNet-CNN)

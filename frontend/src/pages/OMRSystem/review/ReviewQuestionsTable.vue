@@ -33,7 +33,6 @@
           placeholder="ابحث برقم السؤال..."
           icon="magnify"
           cols="12"
-          :hideDetails="true"
         />
       </div>
     </div>
@@ -68,34 +67,17 @@
 
           <!-- نوع السؤال (صح وخطأ vs اختيارات) -->
           <template v-else-if="key === 'question_type'">
-            <div class="d-flex justify-center cursor-pointer py-1" @click="$emit('select-question', item)">
-              <v-chip
-                size="x-small"
-                variant="tonal"
-                :color="item.is_true_false ? 'teal' : 'indigo'"
-                class="font-weight-bold px-2"
-                style="border-radius: 6px !important;"
-              >
-                <v-icon start size="12">{{ item.is_true_false ? 'mdi-check-all' : 'mdi-format-list-bulleted' }}</v-icon>
-                {{ item.is_true_false ? 'صح وخطأ' : 'اختيارات' }}
-              </v-chip>
+            <div class="d-flex justify-center cursor-pointer py-1 text-caption font-weight-medium" @click="$emit('select-question', item)">
+              {{ item.is_true_false ? 'صح وخطأ' : 'اختيارات' }}
             </div>
           </template>
 
           <!-- الإجابة النموذجية -->
           <template v-else-if="key === 'correct_choice'">
             <div class="d-flex justify-center cursor-pointer py-1" @click="$emit('select-question', item)">
-              <v-chip
-                v-if="item.correct_choice_display && item.correct_choice_display !== 'لم تُحدد'"
-                size="x-small"
-                color="success"
-                variant="tonal"
-                class="font-weight-black px-2 border"
-                style="border-radius: 6px !important;"
-              >
-                <v-icon start size="12" color="success">mdi-check-circle-outline</v-icon>
+              <span v-if="item.correct_choice_display && item.correct_choice_display !== 'لم تُحدد'" class="font-weight-bold font-mono text-success text-body-2">
                 {{ item.correct_choice_display }}
-              </v-chip>
+              </span>
               <span v-else class="text-caption text-medium-emphasis">لم تُحدد</span>
             </div>
           </template>
@@ -103,17 +85,9 @@
           <!-- تظليل الطالب -->
           <template v-else-if="key === 'marked_choice'">
             <div class="d-flex justify-center cursor-pointer py-1" @click="$emit('select-question', item)">
-              <v-chip
-                v-if="item.marked_choice && item.marked_choice !== 'لم يُجب (فارغ)'"
-                size="x-small"
-                :color="item.is_correct ? 'success' : 'error'"
-                variant="tonal"
-                class="font-weight-black px-2"
-                style="border-radius: 6px !important;"
-              >
-                <v-icon start size="12">{{ item.is_correct ? 'mdi-check' : 'mdi-close' }}</v-icon>
+              <span v-if="item.marked_choice && item.marked_choice !== 'لم يُجب (فارغ)'" class="font-weight-bold font-mono text-body-2" :class="item.is_correct ? 'text-success' : 'text-error'">
                 {{ item.marked_choice_display || item.marked_choice }}
-              </v-chip>
+              </span>
               <span v-else class="text-caption text-medium-emphasis">فارغ</span>
             </div>
           </template>

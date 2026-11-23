@@ -74,51 +74,53 @@
       </div>
     </v-card-text>
   </v-card>
-  <v-dialog v-model="add_step_dialog" width="400">
-    <v-card>
-      <v-card-title class="my-2"> بيانات الخطوة </v-card-title>
-      <v-card-text>
-        <v-form @submit.prevent ref="form">
-          <v-text-field
-            v-model="step_temp.title"
-            label="ادخل عنوان الخطوة"
-            :rules="[$required]"
-            density="compact"
-            variant="outlined"
-            color="primary"
-            ref="title"
-            autofocus
-          >
-          </v-text-field>
-          <v-text-field
-            v-model="step_temp.subtitle"
-            label="ادخل العنوان الفرعي للخطوة"
-            density="compact"
-            variant="outlined"
-            color="primary"
-          >
-          </v-text-field>
-          <v-text-field
-            v-model="step_temp.icon"
-            label="ادخل ايقونة الخطوة"
-            density="compact"
-            variant="outlined"
-            color="primary"
-          >
-          </v-text-field>
-          <v-btn
-            v-if="!is_update"
-            color="primary"
-            type="submit"
-            @click="addStep"
-            >اضافة</v-btn
-          >
-          <v-btn v-else color="success" @click="updateStep">تعديل</v-btn>
-          <v-btn class="ms-2" variant="tonal" @click="cancel">الغاء</v-btn>
-        </v-form>
-      </v-card-text>
-    </v-card>
-  </v-dialog>
+  <custom-dialog
+    v-model="add_step_dialog"
+    title="بيانات الخطوة"
+    width="420"
+    height="auto"
+  >
+    <v-form @submit.prevent ref="form">
+      <v-text-field
+        v-model="step_temp.title"
+        label="ادخل عنوان الخطوة"
+        :rules="[$required]"
+        density="compact"
+        variant="outlined"
+        color="primary"
+        ref="title"
+        autofocus
+      >
+      </v-text-field>
+      <v-text-field
+        v-model="step_temp.subtitle"
+        label="ادخل العنوان الفرعي للخطوة"
+        density="compact"
+        variant="outlined"
+        color="primary"
+      >
+      </v-text-field>
+      <v-text-field
+        v-model="step_temp.icon"
+        label="ادخل ايقونة الخطوة"
+        density="compact"
+        variant="outlined"
+        color="primary"
+      >
+      </v-text-field>
+    </v-form>
+    <template #actions>
+      <v-btn variant="tonal" @click="cancel">الغاء</v-btn>
+      <v-btn
+        v-if="!is_update"
+        color="primary"
+        type="submit"
+        @click="addStep"
+        >اضافة</v-btn
+      >
+      <v-btn v-else color="success" @click="updateStep">تعديل</v-btn>
+    </template>
+  </custom-dialog>
 </template>
 <script>
 export default {

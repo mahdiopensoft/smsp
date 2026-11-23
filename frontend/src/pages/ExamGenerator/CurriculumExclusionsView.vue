@@ -15,7 +15,6 @@
             density="compact"
             rounded="lg"
             class="w-100 d-flex flex-wrap"
-            @update:model-value="applyFilters"
           >
             <v-btn value="school" class="flex-grow-1 font-weight-bold">
               <v-icon start size="16" color="teal">mdi-school</v-icon>
@@ -33,48 +32,36 @@
         </v-col>
 
         <!-- 2. العام الدراسي -->
-        <v-col cols="12" sm="6" md="4">
-          <auto-list
-            v-model="filterListYear"
-            name="AcademicYear"
-            placeholder="العام الدراسي"
-            label="العام الدراسي"
-            cols="12"
-            :add="false"
-            @update:model-value="applyFilters"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterListYear"
+          name="AcademicYear"
+          placeholder="العام الدراسي"
+          label="العام الدراسي"
+          cols="3"
+          :add="false"
+        />
 
         <!-- 3. نطاق الحذف (وحدة / درس) -->
-        <v-col cols="12" sm="6" md="4">
-          <v-select
-            v-model="filterExclusionType"
-            :items="[
-              { value: null, title: 'كافة النطاقات (وحدات ودروس)' },
-              { value: 'unit', title: 'وحدات دراسية كاملة' },
-              { value: 'lesson', title: 'دروس وموضوعات محددة' }
-            ]"
-            item-value="value"
-            item-title="title"
-            placeholder="نطاق الحذف"
-            label="نطاق الحذف"
-            prepend-inner-icon="mdi-shape-outline"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-            @update:model-value="applyFilters"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterExclusionType"
+          name="LocalOption"
+          :objects="[
+            { value: null, title: 'كافة النطاقات (وحدات ودروس)' },
+            { value: 'unit', title: 'وحدات دراسية كاملة' },
+            { value: 'lesson', title: 'دروس وموضوعات محددة' }
+          ]"
+          cols="3"
+          label="نطاق الحذف"
+          icon="shape-outline"
+          :add="false"
+        />
 
         <!-- 4. أزرار الإجراءات -->
-        <v-col cols="12" sm="12" md="4" class="d-flex align-center justify-end gap-2 mb-6">
+        <v-col cols="auto" class="d-flex align-center gap-2 mb-6">
           <custom-btn
             type="show"
-            label="تصفية النتائج"
+            label="عرض"
             color="primary"
-            icon="mdi-filter"
             class="font-weight-bold px-6"
             :click="applyFilters"
           />
@@ -83,8 +70,7 @@
             :click="resetFilters"
             variant="tonal"
             color="error"
-            label="تفريغ"
-            icon="mdi-filter-off"
+            label="إلغاء الفلترة"
             class="font-weight-bold"
           />
         </v-col>
@@ -107,56 +93,24 @@
       :log="false"
       :restore="false"
       :customLoading="loadingList"
-    >
+    
+        :actionList="(item) => ([ { label: 'إلغاء الحذف وتضمين', icon: 'delete-restore', color: 'error', onClick: () => deleteExclusionItem(item.id) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
       <template v-slot:item-slot="{ item, key }">
         <!-- 1. العام الدراسي -->
         <template v-if="key === 'academic_year_name'">
-          <div class="d-flex align-center gap-1">
-            <v-icon size="16" color="primary">mdi-calendar-range</v-icon>
-            <span class="font-weight-bold text-body-2">{{ item.academic_year_name || '-' }}</span>
-          </div>
+          <span class="font-weight-medium text-body-2">{{ item.academic_year_name || '-' }}</span>
         </template>
 
         <!-- 2. نوع المؤسسة التعليمية -->
         <template v-else-if="key === 'institution_type'">
-          <v-chip
-            v-if="item.institution_type === 'university'"
-            size="small"
-            color="indigo"
-            variant="tonal"
-            class="font-weight-bold"
-          >
-            <v-icon start size="14">mdi-domain</v-icon>
-            جامعي
-          </v-chip>
-          <v-chip
-            v-else-if="item.institution_type === 'institute'"
-            size="small"
-            color="amber-darken-3"
-            variant="tonal"
-            class="font-weight-bold"
-          >
-            <v-icon start size="14">mdi-tools</v-icon>
-            معهد مهني
-          </v-chip>
-          <v-chip
-            v-else
-            size="small"
-            color="teal"
-            variant="tonal"
-            class="font-weight-bold"
-          >
-            <v-icon start size="14">mdi-school</v-icon>
-            مدرسي
-          </v-chip>
+          <span class="text-body-2 font-weight-medium">
+            {{ item.institution_type === 'university' ? 'جامعي' : item.institution_type === 'institute' ? 'معهد مهني' : 'مدرسي' }}
+          </span>
         </template>
 
         <!-- 3. المادة أو المقرر الدراسي -->
         <template v-else-if="key === 'subject_display'">
-          <div class="d-flex align-center gap-1 font-weight-bold">
-            <v-icon size="16" color="slate-600">mdi-book-open-page-variant-outline</v-icon>
-            <span>{{ getSubjectDisplay(item) }}</span>
-          </div>
+          <span class="font-weight-bold text-body-2">{{ getSubjectDisplay(item) }}</span>
         </template>
 
         <!-- 4. التصنيف الأكاديمي والهرمي (الصف / المسار / التخصص) -->
@@ -168,29 +122,18 @@
 
         <!-- 5. نطاق الحذف -->
         <template v-else-if="key === 'exclusion_type'">
-          <v-chip
-            size="x-small"
-            :color="item.exclusion_type === 'unit' ? 'error' : 'deep-orange'"
-            variant="tonal"
-            class="font-weight-bold"
-          >
-            <v-icon start size="12">
-              {{ item.exclusion_type === 'unit' ? 'mdi-folder-remove' : 'mdi-book-cancel' }}
-            </v-icon>
+          <span class="text-body-2 font-weight-medium">
             {{ item.exclusion_type_display || (item.exclusion_type === 'unit' ? 'وحدة كاملة' : 'درس محدد') }}
-          </v-chip>
+          </span>
         </template>
 
         <!-- 6. المحتوى المستبعد بدقة -->
         <template v-else-if="key === 'target_name'">
           <div>
-            <div class="font-weight-bold text-body-2 text-error d-flex align-center gap-1">
-              <v-icon size="16" color="error">
-                {{ item.exclusion_type === 'unit' ? 'mdi-folder-alert' : 'mdi-file-cancel' }}
-              </v-icon>
-              <span>{{ item.exclusion_type === 'unit' ? item.unit_name : item.lesson_name }}</span>
+            <div class="font-weight-bold text-body-2 text-error">
+              {{ item.exclusion_type === 'unit' ? item.unit_name : item.lesson_name }}
             </div>
-            <div v-if="item.exclusion_type === 'lesson' && item.unit_name" class="text-caption text-medium-emphasis ps-5">
+            <div v-if="item.exclusion_type === 'lesson' && item.unit_name" class="text-caption text-medium-emphasis">
               الوحدة الأصل: {{ item.unit_name }}
             </div>
           </div>
@@ -199,7 +142,6 @@
         <!-- 7. رقم أو قرار ومبرر الاستبعاد -->
         <template v-else-if="key === 'reason'">
           <div v-if="item.reason" class="text-caption text-truncate" style="max-width: 260px;" :title="item.reason">
-            <v-icon size="14" color="slate-500" class="me-1">mdi-file-certificate-outline</v-icon>
             {{ item.reason }}
           </div>
           <span v-else class="text-caption text-medium-emphasis">-</span>
@@ -215,19 +157,6 @@
           >
             {{ item.is_active ? 'نشط' : 'معطل' }}
           </v-chip>
-        </template>
-
-        <!-- 9. إجراءات السجل (حذف وإعادة تضمين) -->
-        <template v-else-if="key === 'actions'">
-          <custom-btn
-            type="delete"
-            label="إلغاء الحذف وتضمين"
-            color="error"
-            variant="tonal"
-            size="x-small"
-            class="font-weight-bold"
-            :click="() => deleteExclusionItem(item.id)"
-          />
         </template>
       </template>
     </custom-data-table>

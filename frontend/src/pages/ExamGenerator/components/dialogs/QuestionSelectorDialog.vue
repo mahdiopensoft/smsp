@@ -201,7 +201,7 @@
           </div>
 
           <!-- Question Content -->
-          <div class="text-body-1 font-weight-medium my-2 text-high-emphasis leading-relaxed" v-html="cand.content"></div>
+          <div class="text-body-1 font-weight-medium my-2 text-high-emphasis leading-relaxed" v-html="$sanitizeHtml(cand.content)"></div>
 
           <!-- Options Rendering for Candidate -->
           <!-- 1. True / False Mode -->

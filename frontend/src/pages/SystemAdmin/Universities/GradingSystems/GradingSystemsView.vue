@@ -4,6 +4,7 @@
 
     <!-- Data Table -->
     <custom-data-table
+      actionList
       v-bind="{
         headers,
         items,
@@ -19,34 +20,23 @@
       <template v-slot:item-slot="{ item, key }">
         <!-- Name Arabic -->
         <template v-if="key === 'name_ar'">
-          <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold" v-if="item.name_ar">
-            <v-icon start size="14">mdi-numeric</v-icon>
-            {{ item.name_ar }}
-          </v-chip>
+          <span class="font-weight-bold text-body-2 text-high-emphasis" v-if="item.name_ar">{{ item.name_ar }}</span>
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 
         <!-- Grade Total -->
         <template v-else-if="key === 'grade_total'">
-          <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold">
-            <v-icon start size="14">mdi-counter</v-icon>
-            {{ item.grade_total }}
-          </v-chip>
+          <span class="font-weight-bold font-mono text-body-2">{{ item.grade_total }}</span>
         </template>
 
         <!-- Success Grade -->
         <template v-else-if="key === 'success_grade'">
-          <v-chip size="small" color="teal" variant="tonal" class="font-weight-bold">
-            <v-icon start size="14">mdi-check-decagram-outline</v-icon>
-            {{ item.success_grade }}
-          </v-chip>
+          <span class="font-weight-bold font-mono text-body-2 text-success">{{ item.success_grade }}</span>
         </template>
 
         <!-- Grade System Type -->
         <template v-else-if="key === 'grade_system_type_display'">
-          <v-chip size="small" color="purple" variant="tonal" class="font-weight-bold" v-if="item.grade_system_type_display">
-            {{ item.grade_system_type_display }}
-          </v-chip>
+          <span class="text-body-2 font-weight-medium" v-if="item.grade_system_type_display">{{ item.grade_system_type_display }}</span>
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 
@@ -56,9 +46,8 @@
             size="small"
             :color="item.is_active ? 'success' : 'error'"
             variant="tonal"
-            class="font-weight-bold text-white"
+            class="font-weight-bold"
           >
-            <v-icon start size="14">{{ item.is_active ? 'mdi-check-circle' : 'mdi-close-circle' }}</v-icon>
             {{ item.is_active ? 'مفعل' : 'معطل' }}
           </v-chip>
         </template>

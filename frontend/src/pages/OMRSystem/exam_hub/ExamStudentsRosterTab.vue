@@ -38,75 +38,49 @@
     </div>
 
     <!-- Unified Filter Fields for Students (Backend Filtering) -->
-    <filter-fields label="خيارات تصفية كشف الطلاب والبيانات الامتحانية" class="main-card border-0 pa-5 rounded-2xl mb-4">
-      <v-row dense class="align-center">
-        <!-- Search Query -->
-        <v-col cols="12" md="5">
-          <v-text-field
-            v-model="studentSearchQuery"
-            label="اسم الطالب أو رقم الجلوس أو الرقم السري"
-            placeholder="بحث بالاسم، رقم الجلوس، أو الرقم السري..."
-            prepend-inner-icon="mdi-magnify"
-            clearable
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            class="mb-3"
-            hide-details
-            @update:model-value="onStudentSearchInput"
-            @keydown.enter="applyStudentFilters"
-          />
-        </v-col>
+    <filter-fields label="خيارات تصفية كشف الطلاب والبيانات الامتحانية" class="main-card border-0 pa-4 rounded-2xl mb-4">
+      <template #fields>
 
         <!-- Model Code -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterModelCode"
-            :items="modelFilterOptions"
-            item-title="title"
-            item-value="value"
-            label="النموذج الامتحاني"
-            prepend-inner-icon="mdi-format-list-bulleted-type"
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            class="mb-3"
-            hide-details
-            @update:model-value="applyStudentFilters"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterModelCode"
+          name="ExamHubModel"
+          :objects="modelFilterOptions"
+          cols="3"
+          :add="false"
+          :clearable="false"
+        />
 
         <!-- School Name -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterSchoolName"
-            :items="schoolFilterOptions"
-            item-title="title"
-            item-value="value"
-            :label="institutionLabel"
-            prepend-inner-icon="mdi-school-outline"
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            class="mb-3"
-            hide-details
-            @update:model-value="applyStudentFilters"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterSchoolName"
+          name="ExamHubSchool"
+          :objects="schoolFilterOptions"
+          cols="3"
+          :label="institutionLabel"
+          :add="false"
+          :clearable="false"
+        />
 
-        <!-- Action: Reset -->
-        <v-col cols="12" md="1" class="d-flex align-center mb-3">
+        <!-- Actions -->
+        <v-col cols="auto" class="d-flex align-center gap-2 mb-6">
+          <custom-btn
+            type="show"
+            label="عرض"
+            color="primary"
+            class="font-weight-bold px-5"
+            :click="applyStudentFilters"
+          />
           <custom-btn
             type="cancel_filter"
             :click="resetStudentFilters"
             variant="tonal"
             color="error"
-            label="تفريغ"
-            icon="mdi-filter-off"
-            class="font-weight-bold w-100"
+            label="إلغاء الفلترة"
+            class="font-weight-bold"
           />
         </v-col>
-      </v-row>
+      </template>
     </filter-fields>
 
     <!-- Students Unified Custom Data Table (Server-side Paginated) -->
@@ -123,14 +97,12 @@
         :log="false"
         :restore="false"
         :showSelect="false"
-        :actions="false"
-      >
+      
+        :actionList="(item) => ([ { label: 'معاينة وتوليد ورقة التظليل', icon: 'card-text-outline', color: 'primary', onClick: () => $emit('select-student-for-sheet', item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
         <template v-slot:item-slot="{ item, key }">
           <!-- Seat Number -->
           <template v-if="key === 'seat_number'">
-            <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold font-mono unified-table-chip">
-              {{ item.seat_number }}
-            </v-chip>
+            <span class="font-weight-bold font-mono text-primary">{{ item.seat_number }}</span>
           </template>
 
           <!-- Secret Number -->
@@ -142,12 +114,7 @@
 
           <!-- Student Name -->
           <template v-else-if="key === 'student_name'">
-            <div class="d-flex align-center gap-2 py-1">
-              <v-avatar size="30" color="primary" variant="tonal" class="rounded-lg">
-                <v-icon size="16">mdi-account-outline</v-icon>
-              </v-avatar>
-              <span class="font-weight-bold text-body-2">{{ item.student_name }}</span>
-            </div>
+            <span class="font-weight-bold text-body-2">{{ item.student_name }}</span>
           </template>
 
           <!-- School Info -->
@@ -160,41 +127,23 @@
 
           <!-- Model Code -->
           <template v-else-if="key === 'model_code'">
-            <v-chip
-              size="small"
-              variant="tonal"
-              :color="item.model_code === 'A' ? 'primary' : item.model_code === 'B' ? 'info' : 'secondary'"
-              class="font-weight-bold unified-table-chip"
-            >
-              النموذج {{ item.model_code }}
-            </v-chip>
+            <span class="font-mono font-weight-bold text-body-2">النموذج {{ item.model_code }}</span>
           </template>
 
           <!-- Barcode Value -->
           <template v-else-if="key === 'barcode_val'">
-            <span class="font-mono text-caption text-medium-emphasis border px-2 py-0.5 rounded bg-grey-lighten-4">
-              {{ item.seat_number }}
-            </span>
+            <span class="font-mono text-caption text-medium-emphasis">{{ item.seat_number }}</span>
           </template>
 
           <!-- Attendance -->
           <template v-else-if="key === 'is_present'">
-            <v-icon v-if="item.is_present" size="18" color="success">mdi-check-circle</v-icon>
-            <v-icon v-else size="18" color="medium-emphasis">mdi-minus-circle-outline</v-icon>
+            <v-chip size="x-small" :color="item.is_present ? 'success' : 'grey'" variant="tonal" class="font-weight-bold">
+              {{ item.is_present ? 'حاضر' : 'غائب' }}
+            </v-chip>
           </template>
 
           <!-- Actions -->
-          <template v-else-if="key === 'actions'">
-            <div class="d-flex align-center justify-center gap-1">
-              <custom-btn
-                is-icon
-                icon="card-text-outline"
-                color="primary"
-                label="معاينة وتوليد ورقة التظليل"
-                :click="() => $emit('select-student-for-sheet', item)"
-              />
-            </div>
-          </template>
+          
         </template>
       </custom-data-table>
     </div>
@@ -267,7 +216,6 @@ const studentHeaders = ref([
   { title: 'النموذج', key: 'model_code', sortable: false, width: '100px' },
   { title: 'الباركود', key: 'barcode_val', sortable: false, width: '100px' },
   { title: 'حالة الحضور', key: 'is_present', sortable: false, width: '90px' },
-  { title: 'الإجراءات', key: 'actions', sortable: false, width: '110px' },
 ])
 
 const studentTableItems = computed(() => {

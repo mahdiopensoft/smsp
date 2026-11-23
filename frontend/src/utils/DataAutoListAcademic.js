@@ -1030,6 +1030,40 @@ export default function DataAutoListAcademic(param) {
       value: "id",
     },
 
+    ExamVersionByExam: {
+      label: "النموذج",
+      icon: "file-tree-outline",
+      method: async (p) => {
+        const raw = (p !== undefined && p !== null) ? p : param;
+        if (!raw) return [];
+        let examId = null;
+        if (typeof raw === "object") {
+          examId = raw.exam || raw.exam_id || raw.id;
+        } else {
+          examId = raw;
+        }
+        if (!examId) return [];
+
+        let res = await shared.getData({
+          path: "api/exams/exam-versions/all/",
+          params: { exam: examId },
+        });
+
+        let list = [];
+        if (Array.isArray(res)) list = res;
+        else if (res?.data && Array.isArray(res.data)) list = res.data;
+        else if (res?.results && Array.isArray(res.results)) list = res.results;
+
+        return list.map(item => ({
+          ...item,
+          title: `نموذج (${item.versionCode})`,
+          name_ar: `نموذج (${item.versionCode})`,
+        }));
+      },
+      title: "name_ar",
+      value: "id",
+    },
+
     // ═══════════════════════════════════════════════════════════════════════════════
     // 🏢 قوائم المعاهد ومراكز التدريب المهني (Institutes Auto Lists)
     // ═══════════════════════════════════════════════════════════════════════════════

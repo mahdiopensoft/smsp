@@ -37,7 +37,7 @@
         </v-col>
 
         <!-- 2. المحافظة والمديرية والمؤسسة التعليمية -->
-        <v-col cols="12" sm="6" :md="isSchoolFilter ? 4 : 6">
+        <v-col cols="12" sm="6" md="3">
           <auto-list
             v-model="filterGovernorate"
             name="Governorate"
@@ -50,7 +50,7 @@
         </v-col>
 
         <!-- المديرية: تظهر فقط للمدارس -->
-        <v-col v-if="isSchoolFilter" cols="12" sm="6" md="4">
+        <v-col v-if="isSchoolFilter" cols="12" sm="6" md="3">
           <auto-list
             v-model="filterDirectorate"
             name="Directorate"
@@ -64,7 +64,7 @@
           />
         </v-col>
 
-        <v-col cols="12" sm="6" :md="isSchoolFilter ? 4 : 6">
+        <v-col cols="12" sm="6" md="3">
           <auto-list
             v-model="filterOrganization"
             name="Organization"
@@ -74,7 +74,6 @@
             cols="12"
             :add="false"
             :disabled="isOrgDisabled"
-            @update:model-value="applyFilters"
           />
         </v-col>
 
@@ -103,7 +102,6 @@
               cols="12"
               :add="false"
               :disabled="!filterStage"
-              @update:model-value="applyFilters"
             />
           </v-col>
         </template>
@@ -146,7 +144,6 @@
               cols="12"
               :add="false"
               :disabled="!filterCollege && !filterDepartment"
-              @update:model-value="applyFilters"
             />
           </v-col>
 
@@ -158,7 +155,6 @@
               label="المستوى والدرجة الجامعية"
               cols="12"
               :add="false"
-              @update:model-value="applyFilters"
             />
           </v-col>
         </template>
@@ -187,7 +183,6 @@
               cols="12"
               :add="false"
               :disabled="!filterInstituteField"
-              @update:model-value="applyFilters"
             />
           </v-col>
 
@@ -201,7 +196,6 @@
               cols="12"
               :add="false"
               :disabled="!filterInstituteField"
-              @update:model-value="applyFilters"
             />
           </v-col>
 
@@ -213,50 +207,33 @@
               label="المستوى التدريبي"
               cols="12"
               :add="false"
-              @update:model-value="applyFilters"
             />
           </v-col>
         </template>
 
         <!-- 5. الجنس وحالة التفعيل وأزرار التحكم -->
-        <v-col cols="12" sm="6" md="2">
-          <v-select
-            v-model="filterGender"
-            :items="genderOptions"
-            item-title="text"
-            item-value="value"
-            placeholder="الجنس"
-            label="الجنس"
-            prepend-inner-icon="mdi-gender-male-female"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-3"
-            hide-details
-            @update:model-value="applyFilters"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterGender"
+          name="LocalTextOption"
+          :objects="genderOptions"
+          cols="3"
+          label="الجنس"
+          icon="gender-male-female"
+          :add="false"
+        />
 
-        <v-col cols="12" sm="6" md="2">
-          <v-select
-            v-model="filterActive"
-            :items="activeOptions"
-            item-title="text"
-            item-value="value"
-            placeholder="حالة التفعيل"
-            label="الحالة"
-            prepend-inner-icon="mdi-check-circle-outline"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-3"
-            hide-details
-            @update:model-value="applyFilters"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterActive"
+          name="LocalTextOption"
+          :objects="activeOptions"
+          cols="3"
+          label="حالة التفعيل"
+          icon="check-circle-outline"
+          :add="false"
+        />
 
         <!-- أزرار الإجراءات -->
-        <v-col cols="12" sm="12" md="3" class="d-flex align-center justify-end gap-2 mb-3">
+        <v-col cols="auto" class="d-flex align-center gap-2">
           <custom-btn
             type="show"
             label="تصفية النتائج"
@@ -291,7 +268,8 @@
       :hasFilter="false"
       :log="false"
       :restore="false"
-    >
+    
+        :actionList="(item) => ([ { label: 'عرض الملف الشامل والتفاصيل المخفية', icon: 'eye-outline', color: 'info', onClick: () => openStudentDetailsModal(item) }, { label: 'تعديل بيانات الطالب', icon: 'pencil-outline', color: 'primary', onClick: () => editItem(item) }, { label: 'حذف سجل الطالب', icon: 'delete-outline', color: 'error', divider: true, onClick: () => confirmDeleteStudent(item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
       <template v-slot:item-slot="{ item, key }">
         <!-- 1. معرف الطالب / الرقم الوطني -->
         <template v-if="key === 'student_id'">
@@ -309,40 +287,26 @@
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 
-        <!-- 3. اسم الطالب مع الصورة الرمزية وإمكانية النقر للعرض -->
+        <!-- 3. اسم الطالب مع إمكانية النقر للعرض -->
         <template v-else-if="key === 'name_ar'">
-          <div class="d-flex align-center gap-3 py-1 cursor-pointer" @click="openStudentDetailsModal(item)" title="انقر لعرض الملف الشامل للطالب">
-            <v-avatar size="38" :color="item.gender === 2 ? 'pink' : 'primary'" variant="tonal" class="rounded-lg elevation-1 overflow-hidden flex-shrink-0">
-              <v-img v-if="item.student_image" :src="getImageUrl(item.student_image)" cover />
-              <v-icon v-else size="20">{{ item.gender === 2 ? 'mdi-account-heart-outline' : 'mdi-account-outline' }}</v-icon>
-            </v-avatar>
-            <div class="text-truncate" style="max-width: 200px;">
-              <div class="font-weight-bold text-body-2 text-primary d-flex align-center gap-1 text-truncate">
-                <span>{{ item.name_ar }}</span>
-                <v-icon size="13" class="text-medium-emphasis">mdi-eye-outline</v-icon>
-              </div>
-              <div class="text-caption text-medium-emphasis font-mono text-truncate" v-if="item.name_en">{{ item.name_en }}</div>
+          <div class="py-1 cursor-pointer text-truncate" style="max-width: 220px;" @click="openStudentDetailsModal(item)" title="انقر لعرض الملف الشامل للطالب">
+            <div class="font-weight-bold text-body-2 text-primary text-truncate">
+              {{ item.name_ar }}
             </div>
+            <div class="text-caption text-medium-emphasis font-mono text-truncate" v-if="item.name_en">{{ item.name_en }}</div>
           </div>
         </template>
 
         <!-- 4. الجنس -->
         <template v-else-if="key === 'gender_display'">
-          <v-chip
-            size="small"
-            :color="item.gender === 1 ? 'blue' : 'pink'"
-            variant="tonal"
-            class="font-weight-bold"
-          >
-            <v-icon start size="14">{{ item.gender === 1 ? 'mdi-gender-male' : 'mdi-gender-female' }}</v-icon>
+          <span class="text-body-2 font-weight-medium">
             {{ item.gender_display || (item.gender === 1 ? 'ذكر' : 'أنثى') }}
-          </v-chip>
+          </span>
         </template>
 
         <!-- 5. الجنسية -->
         <template v-else-if="key === 'nationality_name'">
           <span class="text-body-2 font-weight-medium" v-if="item.nationality_name">
-            <v-icon size="14" class="me-1 text-medium-emphasis">mdi-flag-outline</v-icon>
             {{ item.nationality_name }}
           </span>
           <span v-else class="text-medium-emphasis">-</span>
@@ -351,7 +315,6 @@
         <!-- 6. تاريخ الميلاد -->
         <template v-else-if="key === 'birthdate'">
           <span class="text-body-2 font-mono font-weight-medium" v-if="item.birthdate">
-            <v-icon size="14" class="me-1 text-medium-emphasis">mdi-calendar-account-outline</v-icon>
             {{ item.birthdate }}
           </span>
           <span v-else class="text-medium-emphasis">-</span>
@@ -395,7 +358,6 @@
         <template v-else-if="key === 'directorate_name'">
           <div v-if="item.directorate_name || item.governorate_name">
             <div class="text-body-2 font-weight-medium">
-              <v-icon size="14" class="me-1 text-medium-emphasis">mdi-map-marker-outline</v-icon>
               {{ item.directorate_name || item.governorate_name }}
             </div>
             <div class="text-caption text-medium-emphasis" v-if="item.directorate_name && item.governorate_name">
@@ -408,7 +370,6 @@
         <!-- 13. الهاتف -->
         <template v-else-if="key === 'phone_number'">
           <span class="text-body-2 font-weight-medium font-mono" dir="ltr" v-if="item.phone_number">
-            <v-icon size="14" class="me-1 text-medium-emphasis">mdi-phone-outline</v-icon>
             {{ item.phone_number }}
           </span>
           <span v-else class="text-medium-emphasis">-</span>
@@ -422,54 +383,12 @@
             variant="tonal"
             class="font-weight-bold"
           >
-            <v-icon start size="14">{{ item.is_active ? 'mdi-check-circle' : 'mdi-close-circle' }}</v-icon>
             {{ item.is_active ? 'مفعل' : 'معطل' }}
           </v-chip>
         </template>
 
         <!-- 15. العمليات والإجراءات (زر العين لإظهار الحقول المخفية + التعديل + الحذف) -->
-        <template v-else-if="key === 'actions'">
-          <div class="d-flex align-center justify-center gap-1">
-            <!-- زر العين المميز - عرض الملف الشامل وكافة الحقول المخفية -->
-            <v-btn
-              icon
-              size="small"
-              variant="tonal"
-              color="info"
-              class="elevation-0"
-              @click.stop="openStudentDetailsModal(item)"
-            >
-              <v-icon size="18">mdi-eye</v-icon>
-              <v-tooltip activator="parent" location="top">عرض الملف الشامل والتفاصيل المخفية</v-tooltip>
-            </v-btn>
-
-            <!-- زر التعديل -->
-            <v-btn
-              icon
-              size="small"
-              variant="tonal"
-              color="primary"
-              class="elevation-0"
-              @click.stop="editItem(item)"
-            >
-              <v-icon size="18">mdi-pencil-outline</v-icon>
-              <v-tooltip activator="parent" location="top">تعديل بيانات الطالب</v-tooltip>
-            </v-btn>
-
-            <!-- زر الحذف -->
-            <v-btn
-              icon
-              size="small"
-              variant="tonal"
-              color="error"
-              class="elevation-0"
-              @click.stop="confirmDeleteStudent(item)"
-            >
-              <v-icon size="18">mdi-delete-outline</v-icon>
-              <v-tooltip activator="parent" location="top">حذف سجل الطالب</v-tooltip>
-            </v-btn>
-          </div>
-        </template>
+        
       </template>
     </custom-data-table>
 
@@ -1184,46 +1103,39 @@ export default {
       this.filterInstituteEducationSystem = null;
       this.filterInstituteSpecialization = null;
       this.filterInstituteLevel = null;
-      this.getData();
     },
 
     onGovernorateChange(val) {
       this.filterGovernorate = val;
       this.filterDirectorate = null;
       this.filterOrganization = null;
-      this.getData();
     },
 
     onDirectorateChange(val) {
       this.filterDirectorate = val;
       this.filterOrganization = null;
-      this.getData();
     },
 
     onStageChange(val) {
       this.filterStage = val;
       this.filterClassTrack = null;
-      this.getData();
     },
 
     onCollegeChange(val) {
       this.filterCollege = val;
       this.filterDepartment = null;
       this.filterSpecialization = null;
-      this.getData();
     },
 
     onDepartmentChange(val) {
       this.filterDepartment = val;
       this.filterSpecialization = null;
-      this.getData();
     },
 
     onInstituteFieldChange(val) {
       this.filterInstituteField = val;
       this.filterInstituteEducationSystem = null;
       this.filterInstituteSpecialization = null;
-      this.getData();
     },
 
     applyFilters() {

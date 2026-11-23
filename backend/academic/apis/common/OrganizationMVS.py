@@ -1,7 +1,7 @@
 from OpenSoftCoreV41.utils.model_view_set.__all__ import AllMVS
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from academic.models.common.Organization import Organization
 from academic.serializers.common.Organization import OrganizationSerializer
 from OpenSoftCoreV41.common.models.Branch import Organization as CoreOrg
@@ -93,7 +93,7 @@ class OrganizationMVS(AllMVS):
 
         return qs.order_by('name_ar')
 
-    @action(detail=False, methods=['get'], url_path='educational-hierarchy', permission_classes=[AllowAny])
+    @action(detail=False, methods=['get'], url_path='educational-hierarchy', permission_classes=[IsAuthenticated])
     def educational_hierarchy(self, request):
         """
         جلب هيكلية المؤسسات التعليمية (20=وزارة، 30=مكاتب محافظات، 40=إدارات مديريات، 50=مدارس)
@@ -121,7 +121,7 @@ class OrganizationMVS(AllMVS):
             "data": data
         })
 
-    @action(detail=False, methods=['get'], url_path='governorates', permission_classes=[AllowAny])
+    @action(detail=False, methods=['get'], url_path='governorates', permission_classes=[IsAuthenticated])
     def educational_governorates(self, request):
         """
         جلب مكاتب التربية والتعليم بالمحافظات (company_level = 30)
@@ -150,7 +150,7 @@ class OrganizationMVS(AllMVS):
             "data": data
         })
 
-    @action(detail=False, methods=['get'], url_path='directorates', permission_classes=[AllowAny])
+    @action(detail=False, methods=['get'], url_path='directorates', permission_classes=[IsAuthenticated])
     def educational_directorates(self, request):
         """
         جلب إدارات التربية والتعليم بالمديريات (company_level = 40) المفلترة بحسب المحافظة

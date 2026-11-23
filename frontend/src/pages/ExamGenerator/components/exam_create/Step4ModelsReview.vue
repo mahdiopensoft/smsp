@@ -184,7 +184,7 @@
           </div>
 
           <!-- Question Text Content -->
-          <div class="text-body-1 font-weight-medium my-2 text-high-emphasis leading-relaxed" v-html="q.content"></div>
+          <div class="text-body-1 font-weight-medium my-2 text-high-emphasis leading-relaxed" v-html="$sanitizeHtml(q.content)"></div>
 
           <!-- Optional Question Image -->
           <div v-if="q.image" class="my-2">

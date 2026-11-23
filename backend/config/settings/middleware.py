@@ -14,6 +14,7 @@ MIDDLEWARE = [
     
     # Input sanitization — blocks SQL injection, XSS, path traversal
     'OpenSoftCoreV41.utils.middleware.input_sanitization.InputSanitizationMiddleware',
+    'config.security_middleware.BankXSSSanitizationMiddleware',
     
     # Whitenoise للملفات الثابتة (اختياري)
     # 'whitenoise.middleware.WhiteNoiseMiddleware',

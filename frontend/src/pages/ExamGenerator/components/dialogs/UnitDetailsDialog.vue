@@ -85,7 +85,7 @@
               <!-- Question Number & Content -->
               <div class="d-flex align-start gap-2 mb-1">
                 <span class="font-weight-bold text-body-2 text-medium-emphasis">{{ qIdx + 1 }}.</span>
-                <div class="text-body-2 flex-grow-1" v-html="q.content"></div>
+                <div class="text-body-2 flex-grow-1" v-html="$sanitizeHtml(q.content)"></div>
                 <v-btn
                   size="x-small"
                   variant="text"

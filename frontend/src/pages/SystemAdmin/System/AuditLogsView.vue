@@ -4,38 +4,26 @@
     <filter-fields label="خيارات تصفية سجل الرقابة والتدقيق التاريخي" class="main-card border-0 pa-5 rounded-2xl mb-6">
       <v-row dense class="align-center">
         <!-- Action Type Filter -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterAction"
-            :items="actionOptions"
-            item-title="title"
-            item-value="value"
-            placeholder="نوع الإجراء"
-            prepend-inner-icon="mdi-filter-variant"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-          />
-        </v-col>
+        <auto-list
+          v-model="filterAction"
+          name="LocalOption"
+          :objects="actionOptions"
+          cols="3"
+          label="نوع الإجراء"
+          icon="filter-variant"
+          :add="false"
+        />
 
         <!-- Resource Type Filter -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterResourceType"
-            :items="resourceTypeOptions"
-            item-title="title"
-            item-value="value"
-            placeholder="نوع الكيان المستهدف"
-            prepend-inner-icon="mdi-database-outline"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-          />
-        </v-col>
+        <auto-list
+          v-model="filterResourceType"
+          name="LocalOption"
+          :objects="resourceTypeOptions"
+          cols="3"
+          label="نوع الكيان المستهدف"
+          icon="database-outline"
+          :add="false"
+        />
 
         <!-- User Filter -->
         <auto-list
@@ -46,48 +34,28 @@
           :add="false"
         />
 
-        <!-- Search Query -->
-        <v-col cols="12" sm="6" md="3">
-          <v-text-field
-            v-model="searchQuery"
-            placeholder="بحث بالوصف، المعرف، أو IP..."
-            prepend-inner-icon="mdi-magnify"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-          />
-        </v-col>
-
         <!-- Date From -->
-        <v-col cols="12" sm="6" md="3">
-          <v-text-field
-            v-model="filterDateFrom"
-            type="date"
-            placeholder="من تاريخ"
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-          />
-        </v-col>
+        <custom-text-field
+          v-model="filterDateFrom"
+          cols="3"
+          type="date"
+          label="من تاريخ"
+          placeholder="من تاريخ"
+          icon="calendar-start"
+        />
 
         <!-- Date To -->
-        <v-col cols="12" sm="6" md="3">
-          <v-text-field
-            v-model="filterDateTo"
-            type="date"
-            placeholder="إلى تاريخ"
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-          />
-        </v-col>
+        <custom-text-field
+          v-model="filterDateTo"
+          cols="3"
+          type="date"
+          label="إلى تاريخ"
+          placeholder="إلى تاريخ"
+          icon="calendar-end"
+        />
 
         <!-- Filter Actions -->
-        <v-col cols="12" sm="12" md="6" class="d-flex align-center justify-end gap-2">
+        <v-col cols="auto" class="d-flex align-center gap-2">
           <custom-btn
             type="show"
             label="تصفية السجل"
@@ -110,28 +78,23 @@
     <!-- Custom Data Table -->
     <div class="main-card rounded-2xl overflow-hidden mb-8">
       <custom-data-table :headers="headers" :items="tableItems" :getData="getData" :customLoading="loading"
-        class="bg-transparent" :hasFilter="false" :log="false" :restore="false">
+        class="bg-transparent" :hasFilter="false" :log="false" :restore="false"
+        :actionList="(item) => ([ { label: 'عرض تفاصيل العملية', icon: 'eye-outline', color: 'primary', onClick: () => openDetailsDialog(item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
         <template v-slot:item-slot="{ item, key }">
           <!-- Action Type -->
           <template v-if="key === 'action'">
             <v-chip size="small" :color="getActionColor(item.action)" variant="tonal"
-              class="font-weight-bold text-white">
-              <v-icon start size="14">{{ getActionIcon(item.action) }}</v-icon>
+              class="font-weight-bold">
               {{ item.action }}
             </v-chip>
           </template>
 
           <!-- User -->
           <template v-else-if="key === 'user_name'">
-            <div class="d-flex align-center gap-2">
-              <v-avatar size="28" color="primary" variant="tonal">
-                <span class="text-caption font-weight-black">{{ (item.user_name || 'U').charAt(0) }}</span>
-              </v-avatar>
-              <div>
-                <div class="font-weight-bold text-body-2">{{ item.user_name || 'النظام' }}</div>
-                <div v-if="item.ip_address" class="text-caption text-medium-emphasis">
-                  IP: {{ item.ip_address }}
-                </div>
+            <div class="py-1">
+              <div class="font-weight-bold text-body-2">{{ item.user_name || 'النظام' }}</div>
+              <div v-if="item.ip_address" class="text-caption text-medium-emphasis font-mono">
+                IP: {{ item.ip_address }}
               </div>
             </div>
           </template>
@@ -139,10 +102,8 @@
           <!-- Resource Type & ID -->
           <template v-else-if="key === 'resource_type'">
             <div class="d-flex align-center gap-2">
-              <v-chip size="small" variant="tonal" color="indigo" class="font-weight-bold">
-                {{ item.resource_type }}
-              </v-chip>
-              <span v-if="item.resource_id" class="text-caption text-medium-emphasis">#{{ item.resource_id }}</span>
+              <span class="font-weight-bold text-body-2 text-primary">{{ item.resource_type }}</span>
+              <span v-if="item.resource_id" class="text-caption text-medium-emphasis font-mono">#{{ item.resource_id }}</span>
             </div>
           </template>
 
@@ -161,10 +122,7 @@
           </template>
 
           <!-- Actions -->
-          <template v-else-if="key === 'actions'">
-            <custom-btn is-icon icon="eye-outline" color="primary" variant="text" size="small"
-              :click="() => openDetailsDialog(item)" />
-          </template>
+          
         </template>
       </custom-data-table>
     </div>

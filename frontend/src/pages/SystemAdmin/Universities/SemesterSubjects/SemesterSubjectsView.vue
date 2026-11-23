@@ -10,7 +10,7 @@
           v-model="filterSpecialization"
           name="Specialization"
           placeholder="التخصص الأكاديمي"
-          cols="4"
+          cols="3"
           :add="false"
         />
 
@@ -19,12 +19,12 @@
           v-model="filterSubject"
           name="Subject"
           placeholder="المادة الدراسية"
-          cols="4"
+          cols="3"
           :add="false"
         />
 
         <!-- Filter Actions -->
-        <v-col cols="12" sm="6" md="4" class="d-flex align-center gap-2">
+        <v-col cols="auto" class="d-flex align-center gap-2">
           <custom-btn
             type="show"
             label="تصفية"
@@ -46,6 +46,7 @@
 
     <!-- Data Table -->
     <custom-data-table
+      actionList
       :="{
         headers,
         items,
@@ -58,59 +59,39 @@
       <template v-slot:item-slot="{ item, key }">
         <!-- Subject Name -->
         <template v-if="key === 'subject_name'">
-          <div class="d-flex align-center gap-2">
-            <v-avatar color="primary" variant="tonal" size="32" class="rounded-lg">
-              <v-icon size="16">mdi-book-education-outline</v-icon>
-            </v-avatar>
-            <div>
-              <div class="font-weight-bold text-high-emphasis">{{ item.subject_name }}</div>
-              <div class="text-caption text-medium-emphasis" v-if="item.subject_code">{{ item.subject_code }}</div>
-            </div>
+          <div class="py-1">
+            <div class="font-weight-bold text-high-emphasis">{{ item.subject_name }}</div>
+            <div class="text-caption text-medium-emphasis font-mono" v-if="item.subject_code">{{ item.subject_code }}</div>
           </div>
         </template>
 
         <!-- Specialization -->
         <template v-else-if="key === 'specialization_name'">
-          <v-chip size="small" color="secondary" variant="tonal" class="font-weight-bold" v-if="item.specialization_name">
-            <v-icon start size="14">mdi-school-outline</v-icon>
-            {{ item.specialization_name }}
-          </v-chip>
+          <span class="text-body-2 font-weight-medium" v-if="item.specialization_name">{{ item.specialization_name }}</span>
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 
         <!-- Level -->
         <template v-else-if="key === 'level'">
-          <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold">
-            المستوى {{ item.level }}
-          </v-chip>
+          <span class="text-body-2 font-weight-medium">المستوى {{ item.level }}</span>
         </template>
 
         <!-- Semester -->
         <template v-else-if="key === 'semester_name'">
-          <v-chip size="small" color="teal" variant="tonal" class="font-weight-bold" v-if="item.semester_name">
-            <v-icon start size="14">mdi-calendar-range</v-icon>
-            {{ item.semester_name }}
-          </v-chip>
+          <span class="text-body-2 font-weight-medium" v-if="item.semester_name">{{ item.semester_name }}</span>
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 
         <!-- Hours -->
         <template v-else-if="key === 'number_of_hours'">
-          <v-chip size="small" color="blue-grey" variant="tonal" class="font-weight-bold">
-            {{ item.number_of_hours }} س
-          </v-chip>
+          <span class="text-body-2 font-weight-bold font-mono">{{ item.number_of_hours }} س</span>
         </template>
 
         <!-- Core Subject -->
         <template v-else-if="key === 'is_core_subject'">
-          <v-chip
-            size="small"
-            :color="item.is_core_subject ? 'purple' : 'grey'"
-            variant="tonal"
-            class="font-weight-bold"
-          >
+          <span class="text-body-2 font-weight-medium" :class="item.is_core_subject ? 'text-primary' : 'text-medium-emphasis'">
             {{ item.is_core_subject ? 'أساسية' : 'اختيارية' }}
-          </v-chip>
+          </span>
         </template>
 
         <!-- Active Status -->
@@ -119,9 +100,8 @@
             size="small"
             :color="item.is_active ? 'success' : 'error'"
             variant="tonal"
-            class="font-weight-bold text-white"
+            class="font-weight-bold"
           >
-            <v-icon start size="14">{{ item.is_active ? 'mdi-check-circle' : 'mdi-close-circle' }}</v-icon>
             {{ item.is_active ? 'مفعل' : 'معطل' }}
           </v-chip>
         </template>

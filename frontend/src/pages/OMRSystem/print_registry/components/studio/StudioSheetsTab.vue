@@ -194,7 +194,6 @@
                 @update:model-value="$emit('update:customCenterName', $event)"
                 label="اسم المركز الامتحاني / المدرسة"
                 cols="12"
-                :hideDetails="true"
                 :placeholder="selectedExam?.directorate || 'المركز الامتحاني الرئيسي'"
               />
             </v-col>
@@ -204,7 +203,6 @@
                 @update:model-value="$emit('update:customDirectorate', $event)"
                 label="المديرية"
                 cols="12"
-                :hideDetails="true"
                 :placeholder="selectedExam?.directorate || 'السبعين'"
               />
             </v-col>
@@ -214,7 +212,6 @@
                 @update:model-value="$emit('update:customGovernorate', $event)"
                 label="المحافظة"
                 cols="12"
-                :hideDetails="true"
                 :placeholder="selectedExam?.governorate || 'أمانة العاصمة'"
               />
             </v-col>
@@ -224,7 +221,6 @@
                 @update:model-value="$emit('update:customStageTitle', $event)"
                 label="عنوان الاختبار والمرحلة"
                 cols="12"
-                :hideDetails="true"
                 :placeholder="selectedExam?.title || 'اختبار الشهادة العامة'"
               />
             </v-col>
@@ -234,7 +230,6 @@
                 @update:model-value="$emit('update:customExamYear', $event)"
                 label="العام الدراسي"
                 cols="12"
-                :hideDetails="true"
                 :placeholder="selectedExam?.year_name || '2026'"
               />
             </v-col>
@@ -269,7 +264,6 @@
               placeholder="النموذج"
               cols="12"
               :add="false"
-              :hideDetails="true"
             />
           </div>
 
@@ -284,7 +278,6 @@
               placeholder="حالة الطباعة"
               cols="12"
               :add="false"
-              :hideDetails="true"
             />
           </div>
 
@@ -316,10 +309,10 @@
         :restore="false"
         :numbering="true"
         :showSelect="false"
-        :actions="false"
         :search="true"
         class="bg-transparent"
-      >
+      
+        :actionList="(item) => ([ { label: 'معاينة ورقة التظليل', icon: 'eye-outline', color: 'primary', onClick: () => $emit('preview-sheet', item) }, { label: 'طباعة ورقة هذا الطالب فورياً', icon: 'printer', color: 'success', onClick: () => $emit('print-single', item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
         <template v-slot:item-slot="{ item, key, index }">
           <!-- Numbering -->
           <template v-if="key === 'numbering'">
@@ -355,15 +348,8 @@
 
           <!-- Student Info -->
           <template v-else-if="key === 'student_name'">
-            <div class="d-flex align-center gap-2 py-1">
-              <v-avatar size="32" color="primary" variant="tonal" class="text-caption font-weight-black">
-                {{ (item.student_name || 'ط').slice(0, 1) }}
-              </v-avatar>
-              <div>
-                <div class="font-weight-bold text-body-2 text-on-surface">
-                  {{ item.student_name || 'طالب بدون اسم' }}
-                </div>
-              </div>
+            <div class="font-weight-bold text-body-2 text-on-surface py-1">
+              {{ item.student_name || 'طالب بدون اسم' }}
             </div>
           </template>
 
@@ -377,14 +363,9 @@
 
           <!-- Model Code -->
           <template v-else-if="key === 'model_code'">
-            <v-chip
-              size="small"
-              :color="getModelChipColor(item.model_code)"
-              variant="tonal"
-              class="font-weight-black rounded-lg border px-2.5 font-mono"
-            >
+            <span class="font-weight-bold font-mono text-body-2 text-primary">
               نموذج {{ item.model_code || 'A' }}
-            </v-chip>
+            </span>
           </template>
 
           <!-- Print Status -->
@@ -399,39 +380,12 @@
               @click="$emit('toggle-printed', item)"
             >
               <v-progress-circular v-if="item._updating" indeterminate size="12" width="2" class="me-1" />
-              <v-icon v-else start size="14">{{ item.is_printed ? 'mdi-check-circle' : 'mdi-clock-outline' }}</v-icon>
               {{ item._updating ? 'جاري التحديث...' : (item.is_printed ? 'تمت الطباعة' : 'جاهز للطباعة') }}
             </v-chip>
           </template>
 
           <!-- Actions -->
-          <template v-else-if="key === 'actions'">
-            <div class="d-flex align-center justify-center gap-1">
-              <!-- Preview Dialog Button -->
-              <v-btn
-                icon
-                size="small"
-                variant="tonal"
-                color="primary"
-                title="معاينة ورقة التظليل"
-                @click="$emit('preview-sheet', item)"
-              >
-                <v-icon size="18">mdi-eye-outline</v-icon>
-              </v-btn>
-
-              <!-- Direct Print Button -->
-              <v-btn
-                icon
-                size="small"
-                variant="tonal"
-                color="success"
-                title="طباعة ورقة هذا الطالب فورياً"
-                @click="$emit('print-single', item)"
-              >
-                <v-icon size="18">mdi-printer</v-icon>
-              </v-btn>
-            </div>
-          </template>
+          
         </template>
       </custom-data-table>
     </div>

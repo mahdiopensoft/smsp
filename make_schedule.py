@@ -1476,7 +1476,7 @@ modules_data = [
             },
             {
                 "name": "سجل وأرشيف عمليات المزامنة",
-                "code": "SyncLogsView.vue",
+                "code": "SyncLogView.vue",
                 "route": "sync-logs",
                 "scope": "استعراض سجلات المزامنة وتتبع الحزم الفاشلة وإعادة إرسالها آلياً",
                 "role": "أخصائي الدعم الفني",

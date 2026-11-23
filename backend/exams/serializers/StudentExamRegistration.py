@@ -13,6 +13,21 @@ class StudentExamRegistrationSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at', 'deleted_at', 'is_deleted']
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        allowed = False
+        if user and getattr(user, 'is_authenticated', False):
+            if user.is_superuser or user.is_staff:
+                allowed = True
+            else:
+                from omr.permissions import IsControlOfficer
+                allowed = IsControlOfficer().has_permission(request, None)
+        if not allowed:
+            data.pop('secretNumber', None)
+        return data
+
     def get_student_name(self, obj):
         if obj.student:
             full_name = f"{obj.student.first_name or ''} {obj.student.last_name or ''}".strip()
@@ -27,7 +42,7 @@ class StudentExamRegistrationSerializer(serializers.ModelSerializer):
 
     def get_exam_version_code(self, obj):
         try:
-            return f"نموذج {obj.examVersion.version_code}"
+            return f"نموذج {obj.examVersion.versionCode}"
         except Exception:
             return ""
 

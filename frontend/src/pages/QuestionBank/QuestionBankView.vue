@@ -8,27 +8,16 @@
     <filter-fields label="خيارات التصفية المتقدمة" class="main-card border-0 pa-5 rounded-2xl mb-8">
       <v-row dense class="align-center">
         <!-- Institution Type Selector (مدارس / جامعات / معاهد) -->
-        <v-col cols="12" sm="6" :md="filterInstitutionType ? 3 : 4">
-          <v-select
-            v-model="filterInstitutionType"
-            :items="institutionTypeOptions"
-            item-title="text"
-            item-value="value"
-            class="mb-6"
-            label="نوع المؤسسة التعليمية"
-            placeholder="اختر نوع المؤسسة"
-            prepend-inner-icon="mdi-domain"
-            hide-details
-            clearable
-            density="compact"
-            variant="outlined"
-            @update:model-value="onInstitutionTypeChange"
-          >
-            <template v-slot:item="{ props, item }">
-              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
-            </template>
-          </v-select>
-        </v-col>
+        <auto-list
+          v-model="filterInstitutionType"
+          name="LocalTextOption"
+          :objects="institutionTypeOptions"
+          cols="3"
+          label="نوع المؤسسة التعليمية"
+          icon="domain"
+          :add="false"
+          @update:model-value="onInstitutionTypeChange"
+        />
 
         <!-- الظهور مشروط باختيار نوع المؤسسة: مدارس أو جامعات أو معاهد -->
         <template v-if="filterInstitutionType">
@@ -87,11 +76,15 @@
           </template>
 
           <!-- Status -->
-          <v-col cols="3" sm="6" md="3">
-            <v-select v-model="filterStatus" :items="statusOptions" item-title="text" item-value="value" class="mb-6"
-              placeholder="حالة السؤال" prepend-inner-icon="mdi-flag-outline" hide-details clearable density="compact"
-              variant="outlined" />
-          </v-col>
+          <auto-list
+            v-model="filterStatus"
+            name="LocalTextOption"
+            :objects="statusOptions"
+            cols="3"
+            label="حالة السؤال"
+            icon="flag-outline"
+            :add="false"
+          />
 
           <!-- Difficulty & Question Type -->
           <auto-list v-model="filterDifficulty" name="Difficulty" label="مستوى الصعوبة" cols="3" sm="6" md="3"
@@ -100,47 +93,47 @@
             :add="false" />
 
           <!-- Bloom Level -->
-          <v-col cols="3" sm="6" md="3">
-            <v-select v-model="filterBloom" :items="bloomOptions" item-title="title" item-value="value" class="mb-6"
-              placeholder="مستوى بلوم المعرفي" prepend-inner-icon="mdi-brain" hide-details clearable density="compact"
-              variant="outlined" />
-          </v-col>
-
-          <!-- Filter Actions -->
-          <v-col cols="3" sm="12" md="3" class="d-flex align-center gap-2">
-            <custom-btn type="show" label="تصفية" color="primary" class="font-weight-bold flex-grow-1 mb-6"
-              :click="applyFilters" />
-            <custom-btn type="cancel_filter" :click="resetFilters" variant="tonal" color="error" label="تفريغ"
-              class="font-weight-bold mb-6" />
-          </v-col>
+          <auto-list
+            v-model="filterBloom"
+            name="LocalOption"
+            :objects="bloomOptions"
+            cols="3"
+            label="مستوى بلوم المعرفي"
+            icon="brain"
+            :add="false"
+          />
         </template>
+
+        <!-- Filter Actions -->
+        <v-col cols="auto" class="d-flex align-center gap-2">
+          <custom-btn type="show" label="عرض" color="primary" class="font-weight-bold px-6 mb-6"
+            :click="applyFilters" />
+          <custom-btn type="cancel_filter" :click="resetFilters" variant="tonal" color="error" label="إلغاء الفلترة"
+            class="font-weight-bold mb-6" />
+        </v-col>
       </v-row>
     </filter-fields>
 
     <!-- Table View -->
     <div class="main-card rounded-2xl overflow-hidden mb-8">
       <custom-data-table :headers="headers" :items="items" :getData="getData" :customLoading="loading"
-        class="bg-transparent" :hasFilter="false" :log="false" :restore="false">
+        class="bg-transparent" :hasFilter="false" :log="false" :restore="false"
+        :actionList="(item) => [
+          { title_ar: 'معاينة التفاصيل', title_en: 'Preview', click: () => viewQuestion(item) },
+          { title_ar: 'سجل التعديلات والتدقيق', title_en: 'Audit Log', click: () => openAuditDialog(item) },
+          ...(item.status !== 'معتمد' ? [{ title_ar: 'تعديل السؤال', title_en: 'Edit Question', click: () => editQuestion(item) }] : []),
+          { title_ar: 'استنساخ السؤال', title_en: 'Duplicate', click: () => duplicateQuestion(item) },
+          ...(item.status === 'معتمد' ? [{ title_ar: `إنشاء إصدار جديد (v${(item.version_number || 1) + 1})`, title_en: 'New Version', click: () => createQuestionVersion(item) }] : []),
+          ...(item.status === 'مسودة' ? [{ title_ar: 'تقديم للمراجعة', title_en: 'Submit for Review', click: () => updateQuestionStatus(item, 'قيد المراجعة') }] : []),
+          ...(item.status !== 'مؤرشف' ? [{ title_ar: 'أرشفة السؤال', title_en: 'Archive', click: () => archiveQuestion(item) }] : [{ title_ar: 'استعادة من الأرشيف', title_en: 'Restore', click: () => restoreQuestion(item) }]),
+          { title_ar: 'نقل للمهملات', title_en: 'Delete', click: () => openDeleteDialog(item) },
+        ]">
         <template v-slot:item-slot="{ item, key }">
           <!-- Content Snippet -->
           <template v-if="key === 'content'">
-            <div class="d-flex align-center flex-wrap gap-2">
-              <span class="text-truncate font-weight-medium d-inline-block" style="max-width: 360px">
-                {{ stripHtml(item.content) }}
-              </span>
-              <v-chip
-                v-if="item.is_imported || item.import_session"
-                size="x-small"
-                color="teal"
-                variant="tonal"
-                class="font-weight-bold px-1"
-                style="height: 19px; font-size: 0.68rem !important;"
-                title="تم استيراد هذا السؤال من ملف إكسل"
-              >
-                <v-icon start size="11">mdi-file-excel</v-icon>
-                إكسل
-              </v-chip>
-            </div>
+            <span class="text-truncate font-weight-medium d-inline-block" style="max-width: 360px">
+              {{ stripHtml(item.content) }}
+            </span>
           </template>
 
           <template v-else-if="key === 'subject'">
@@ -151,19 +144,13 @@
           </template>
 
           <template v-else-if="key === 'status'">
-            <v-chip :color="getStatusColor(item.status)" variant="tonal" size="small"
-              class="font-weight-bold text-white">
-              <v-icon start size="14">{{ getStatusIcon(item.status) }}</v-icon>
+            <v-chip :color="getStatusColor(item.status)" variant="tonal" size="small" class="font-weight-bold">
               {{ item.status }}
             </v-chip>
           </template>
 
           <template v-else-if="key === 'difficulty'">
-            <v-chip :color="getDifficultyColor(item.difficulty)" variant="tonal" size="small"
-              class="font-weight-bold text-white">
-              <v-icon start size="14">{{ getDifficultyIcon(item.difficulty) }}</v-icon>
-              {{ getDifficultyText(item.difficulty) }}
-            </v-chip>
+            <span class="text-body-2 font-weight-medium">{{ getDifficultyText(item.difficulty) }}</span>
           </template>
 
           <template v-else-if="key === 'questionType'">
@@ -176,172 +163,24 @@
 
           <template v-else-if="key === 'audit'">
             <div
-              class="audit-table-cell d-flex align-center gap-2 py-1 px-2 rounded-lg cursor-pointer"
+              class="audit-table-cell py-1 px-2 rounded-lg cursor-pointer"
               @click="openAuditDialog(item)"
               title="انقر لعرض تفاصيل المنشئ وسجل التعديلات"
             >
-              <v-avatar size="32" :color="(item.is_imported || item.import_session) ? 'teal' : 'primary'" variant="tonal" class="flex-shrink-0">
-                <v-icon size="16" :color="(item.is_imported || item.import_session) ? 'teal-darken-1' : 'primary'">
-                  {{ (item.is_imported || item.import_session) ? 'mdi-file-excel' : 'mdi-account-outline' }}
-                </v-icon>
-              </v-avatar>
-
-              <div class="overflow-hidden flex-grow-1" style="min-width: 125px; max-width: 175px;">
-                <div class="d-flex align-center gap-1">
-                  <span class="font-weight-bold text-caption text-truncate" style="color: rgb(var(--v-theme-on-surface));">
-                    {{ item.author_name || item.created_by_username || 'غير محدد' }}
-                  </span>
-                  <v-chip
-                    v-if="item.is_imported || item.import_session"
-                    size="x-small"
-                    variant="flat"
-                    color="teal"
-                    class="px-1 font-weight-bold"
-                    style="height: 16px; font-size: 0.6rem !important;"
-                    title="مستورد من ملف إكسل"
-                  >
-                    إكسل
-                  </v-chip>
-                  <v-chip
-                    v-if="item.edit_count > 0"
-                    size="x-small"
-                    variant="flat"
-                    color="warning"
-                    class="px-1 font-weight-bold"
-                    style="height: 16px; font-size: 0.6rem !important;"
-                    title="عدد مرات التعديل"
-                  >
-                    {{ item.edit_count }} تعديل
-                  </v-chip>
-                </div>
-
-                <div class="text-caption text-disabled d-flex align-center gap-1 mt-0-5" style="font-size: 0.72rem !important;">
-                  <v-icon size="11">mdi-clock-outline</v-icon>
-                  <span>{{ formatAuditDate(item.last_modified_at || item.created_at) }}</span>
-                  <span
-                    v-if="item.last_modified_by && item.last_modified_by !== item.author_name"
-                    class="text-warning-darken-1 text-truncate"
-                    style="max-width: 75px;"
-                    :title="'آخر من عدّل: ' + item.last_modified_by"
-                  >
-                    • {{ item.last_modified_by }}
-                  </span>
-                </div>
+              <div class="font-weight-bold text-caption text-truncate" style="max-width: 175px;">
+                {{ item.author_name || item.created_by_username || 'غير محدد' }}
+                <span v-if="item.edit_count > 0" class="text-warning-darken-1 ms-1">({{ item.edit_count }} تعديل)</span>
               </div>
-
-              <v-icon size="16" color="primary" class="audit-hover-icon flex-shrink-0">mdi-open-in-new</v-icon>
-            </div>
-          </template>
-
-          <template v-else-if="key === 'actions'">
-            <div class="d-flex align-center justify-center">
-              <v-menu transition="slide-y-transition" location="bottom end" offset="8">
-                <template v-slot:activator="{ props }">
-                  <custom-btn v-bind="props" is-icon icon="dots-vertical" color="secondary" variant="text" />
-                </template>
-
-                <v-card elevation="24" rounded="lg" class="premium-menu-card border-thin overflow-hidden"
-                  style="min-width: 220px">
-                  <div class="pa-3 border-b d-flex align-center"
-                    style="background-color: rgba(var(--v-theme-primary), 0.08)">
-                    <v-icon color="primary" class="me-2" size="20">mdi-dots-horizontal-circle-outline</v-icon>
-                    <div class="text-caption font-weight-bold" style="color: rgb(var(--v-theme-on-surface))">
-                      إجراءات السجل
-                    </div>
-                  </div>
-
-                  <v-card-text class="pa-2">
-                    <v-list density="compact" class="bg-transparent pa-0">
-                      <v-list-item @click="viewQuestion(item)" class="premium-list-item">
-                        <template v-slot:prepend>
-                          <v-icon size="18" color="primary" class="me-2">mdi-eye-outline</v-icon>
-                        </template>
-                        <v-list-item-title class="text-caption font-weight-medium"
-                          style="color: rgba(var(--v-theme-on-surface), 0.7)">
-                          معاينة التفاصيل
-                        </v-list-item-title>
-                      </v-list-item>
-
-                      <v-list-item @click="openAuditDialog(item)" class="premium-list-item">
-                        <template v-slot:prepend>
-                          <v-icon size="18" color="indigo" class="me-2">mdi-history</v-icon>
-                        </template>
-                        <v-list-item-title class="text-caption font-weight-medium text-indigo">
-                          سجل التعديلات والتدقيق
-                        </v-list-item-title>
-                      </v-list-item>
-
-                      <v-list-item v-if="item.status !== 'معتمد'" @click="editQuestion(item)" class="premium-list-item">
-                        <template v-slot:prepend>
-                          <v-icon size="18" color="warning" class="me-2">mdi-pencil-outline</v-icon>
-                        </template>
-                        <v-list-item-title class="text-caption font-weight-medium text-warning">
-                          تعديل السؤال
-                        </v-list-item-title>
-                      </v-list-item>
-
-                      <v-list-item @click="duplicateQuestion(item)" class="premium-list-item">
-                        <template v-slot:prepend>
-                          <v-icon size="18" color="indigo" class="me-2">mdi-content-copy</v-icon>
-                        </template>
-                        <v-list-item-title class="text-caption font-weight-medium text-indigo">
-                          استنساخ السؤال
-                        </v-list-item-title>
-                      </v-list-item>
-
-                      <v-list-item v-if="item.status === 'معتمد'" @click="createQuestionVersion(item)"
-                        class="premium-list-item">
-                        <template v-slot:prepend>
-                          <v-icon size="18" color="teal" class="me-2">mdi-source-branch</v-icon>
-                        </template>
-                        <v-list-item-title class="text-caption font-weight-medium text-teal">
-                          إنشاء إصدار جديد (v{{ (item.version_number || 1) + 1 }})
-                        </v-list-item-title>
-                      </v-list-item>
-
-                      <v-list-item v-if="item.status === 'مسودة'" @click="updateQuestionStatus(item, 'قيد المراجعة')"
-                        class="premium-list-item">
-                        <template v-slot:prepend>
-                          <v-icon size="18" color="info" class="me-2">mdi-send-clock</v-icon>
-                        </template>
-                        <v-list-item-title class="text-caption font-weight-medium text-info">
-                          تقديم للمراجعة
-                        </v-list-item-title>
-                      </v-list-item>
-
-                      <v-list-item v-if="item.status !== 'مؤرشف'" @click="archiveQuestion(item)"
-                        class="premium-list-item">
-                        <template v-slot:prepend>
-                          <v-icon size="18" color="purple" class="me-2">mdi-archive-arrow-down-outline</v-icon>
-                        </template>
-                        <v-list-item-title class="text-caption font-weight-medium text-purple">
-                          أرشفة السؤال
-                        </v-list-item-title>
-                      </v-list-item>
-
-                      <v-list-item v-else @click="restoreQuestion(item)" class="premium-list-item">
-                        <template v-slot:prepend>
-                          <v-icon size="18" color="success" class="me-2">mdi-archive-arrow-up-outline</v-icon>
-                        </template>
-                        <v-list-item-title class="text-caption font-weight-medium text-success">
-                          استعادة من الأرشيف
-                        </v-list-item-title>
-                      </v-list-item>
-
-                      <v-divider class="my-1 opacity-20"></v-divider>
-
-                      <v-list-item @click="openDeleteDialog(item)" class="premium-list-item">
-                        <template v-slot:prepend>
-                          <v-icon size="18" color="error" class="me-2">mdi-trash-can-outline</v-icon>
-                        </template>
-                        <v-list-item-title class="text-caption font-weight-medium text-error">
-                          نقل للمهملات
-                        </v-list-item-title>
-                      </v-list-item>
-                    </v-list>
-                  </v-card-text>
-                </v-card>
-              </v-menu>
+              <div class="text-caption text-disabled" style="font-size: 0.72rem !important;">
+                {{ formatAuditDate(item.last_modified_at || item.created_at) }}
+                <span
+                  v-if="item.last_modified_by && item.last_modified_by !== item.author_name"
+                  class="text-warning-darken-1"
+                  :title="'آخر من عدّل: ' + item.last_modified_by"
+                >
+                  • {{ item.last_modified_by }}
+                </span>
+              </div>
             </div>
           </template>
         </template>
@@ -523,7 +362,7 @@
 
               <!-- Question Text -->
               <div class="question-body-rendered text-body-1 font-weight-bold" style="line-height: 2.1; font-size: 1.15rem !important;"
-                v-html="selectedQuestion.content" />
+                v-html="$sanitizeHtml(selectedQuestion.content)" />
             </div>
           </div>
 
@@ -561,7 +400,7 @@
                   </v-avatar>
 
                   <div class="d-flex flex-column flex-grow-1 overflow-hidden">
-                    <div class="text-body-1 font-weight-medium" v-html="answer.text" />
+                    <div class="text-body-1 font-weight-medium" v-html="$sanitizeHtml(answer.text)" />
                     <v-img v-if="answer.image" :src="answer.image" max-height="120" contain class="mt-2 rounded-lg border" />
                     <div v-if="answer.latex" class="text-caption font-weight-medium mt-1 dir-ltr text-left">
                       <code>{{ answer.latex }}</code>
@@ -639,7 +478,7 @@
                 <v-icon size="20" color="success">mdi-text-box-check-outline</v-icon>
                 <span class="text-subtitle-2 font-weight-bold text-success-darken-1">معايير الإجابة النموذجية وسلّم التقدير</span>
               </div>
-              <div class="text-body-1 font-weight-medium" style="line-height: 1.9;" v-html="selectedQuestion.answerText" />
+              <div class="text-body-1 font-weight-medium" style="line-height: 1.9;" v-html="$sanitizeHtml(selectedQuestion.answerText)" />
             </div>
           </div>
 

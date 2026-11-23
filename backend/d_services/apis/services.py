@@ -7,6 +7,7 @@ from pprint import pprint
 
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.utils.translation import gettext_lazy as _
 from django.db import transaction
@@ -43,7 +44,7 @@ class ServiceMVS(AllMVS):
     """
     queryset = Service.objects.select_related().prefetch_related('versions', 'prerequisites', 'workflow_steps')
     serializer_class = ServiceSerializer
-    permission_classes = []
+    permission_classes = [IsAuthenticated]
     # enable_actions = ['all','select','list','second_list','filter','filter_paginate',]
 
     def get_serializer_context(self):
@@ -596,7 +597,7 @@ class ServiceWorkflowStepMVS(AllMVS):
     serializer_class = ServiceWorkflowStepSerializer
     # enable_actions = ['all','select','list','second_list','filter','filter_paginate',]
 
-    permission_classes=[]
+    permission_classes = [IsAuthenticated]
     def _has_active_requests(self, service):
         return service.requests.filter(
             status__in=['pending', 'in_progress'],
@@ -722,7 +723,7 @@ class WorkflowStepChecklistTemplateMVS(AllMVS):
     )
     serializer_class = WorkflowStepChecklistTemplateSerializer
     enable_actions = ['all','select','list','second_list','filter','filter_paginate',]
-    permission_classes= []
+    permission_classes = [IsAuthenticated]
     def list(self, request, *args, **kwargs):
         from d_services.models.OrganizationServiceConfig import OrganizationServiceConfig
         

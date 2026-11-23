@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import admin
 from django.urls import path, include, re_path
 from rest_framework import permissions
@@ -9,7 +10,19 @@ from django.views.decorators.csrf import csrf_exempt
 import importlib
 import pkgutil
 
+from config.security_hardening import apply_security_hardening
+apply_security_hardening()
+
+_CHOICES_CACHE = {}
+
+
 def dynamic_choices_view(request, choice_name):
+    if choice_name in _CHOICES_CACHE:
+        cached = _CHOICES_CACHE[choice_name]
+        if cached is None:
+            return JsonResponse({"error": "Not found"}, status=404)
+        return JsonResponse({"data": cached})
+
     import OpenSoftCoreV41
     # البحث عن الكلاس المطلوب في جميع ملفات choices داخل OpenSoftCoreV41
     for importer, modname, ispkg in pkgutil.walk_packages(OpenSoftCoreV41.__path__, OpenSoftCoreV41.__name__ + '.', onerror=lambda n: None):
@@ -27,10 +40,18 @@ def dynamic_choices_view(request, choice_name):
                         } 
                         for item in choice_class.choices
                     ]
+                    _CHOICES_CACHE[choice_name] = choices
                     return JsonResponse({"data": choices})
             except Exception:
                 pass
+    _CHOICES_CACHE[choice_name] = None
     return JsonResponse({"error": "Not found"}, status=404)
+
+_DOC_PERMISSIONS = (
+    (permissions.AllowAny,)
+    if settings.DEBUG
+    else (permissions.IsAuthenticated, permissions.IsAdminUser)
+)
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -40,8 +61,8 @@ schema_view = get_schema_view(
         contact=openapi.Contact(email="support@example.com"),
         license=openapi.License(name="MIT"),
     ),
-    public=True,
-    permission_classes=(permissions.AllowAny,),
+    public=settings.DEBUG,
+    permission_classes=_DOC_PERMISSIONS,
 )
 
 urlpatterns = [
@@ -55,9 +76,9 @@ urlpatterns = [
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 
 
-    path('api/schema-s/',SpectacularAPIView.as_view(),name='schema'),
-    path('api/schema/swagger-ui-s/',SpectacularSwaggerView.as_view(url_name='schema'),name='swagger-ui'),
-    path('api/schema/redoc-ss/',SpectacularRedocView.as_view(url_name='schema'),name='redoc'),
+    path('api/schema-s/', SpectacularAPIView.as_view(permission_classes=list(_DOC_PERMISSIONS)), name='schema'),
+    path('api/schema/swagger-ui-s/', SpectacularSwaggerView.as_view(url_name='schema', permission_classes=list(_DOC_PERMISSIONS)), name='swagger-ui'),
+    path('api/schema/redoc-ss/', SpectacularRedocView.as_view(url_name='schema', permission_classes=list(_DOC_PERMISSIONS)), name='redoc'),
 
     path('choices/<str:choice_name>/', dynamic_choices_view),
 ]

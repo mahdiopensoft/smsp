@@ -6,27 +6,16 @@
     <filter-fields label="خيارات التصفية والبحث المتقدم" class="main-card border-0 pa-5 rounded-2xl mb-6">
       <v-row dense class="align-center">
         <!-- Institution Type Selector (مدارس / جامعات / معاهد) -->
-        <v-col cols="12" sm="6" :md="filterInstitutionType ? 3 : 4">
-          <v-select
-            v-model="filterInstitutionType"
-            :items="institutionTypeOptions"
-            item-title="text"
-            item-value="value"
-            class="mb-6"
-            label="نوع المؤسسة التعليمية"
-            placeholder="اختر نوع المؤسسة"
-            prepend-inner-icon="mdi-domain"
-            hide-details
-            clearable
-            density="compact"
-            variant="outlined"
-            @update:model-value="onInstitutionTypeChange"
-          >
-            <template v-slot:item="{ props, item }">
-              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
-            </template>
-          </v-select>
-        </v-col>
+        <auto-list
+          v-model="filterInstitutionType"
+          name="LocalTextOption"
+          :objects="institutionTypeOptions"
+          cols="3"
+          label="نوع المؤسسة التعليمية"
+          icon="domain"
+          :add="false"
+          @update:model-value="onInstitutionTypeChange"
+        />
 
         <!-- الظهور مشروط باختيار نوع المؤسسة: مدارس أو جامعات أو معاهد -->
         <template v-if="filterInstitutionType">
@@ -71,44 +60,41 @@
         <auto-list v-model="filterDifficulty" name="Difficulty" label="مستوى الصعوبة" cols="3" :add="false" />
 
         <!-- Bloom Level -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterBloom"
-            :items="['تذكر', 'فهم', 'تطبيق', 'تحليل', 'تقييم', 'ابتكار']"
-            placeholder="مستوى بلوم"
-            prepend-inner-icon="mdi-brain"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-          />
-        </v-col>
+        <auto-list
+          v-model="filterBloom"
+          name="LocalOption"
+          :objects="[
+            { title: 'تذكر', value: 'تذكر' },
+            { title: 'فهم', value: 'فهم' },
+            { title: 'تطبيق', value: 'تطبيق' },
+            { title: 'تحليل', value: 'تحليل' },
+            { title: 'تقييم', value: 'تقييم' },
+            { title: 'ابتكار', value: 'ابتكار' }
+          ]"
+          cols="3"
+          label="مستوى بلوم"
+          icon="brain"
+          :add="false"
+        />
 
         <!-- Readiness Filter -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterReadiness"
-            :items="readinessOptions"
-            item-title="title"
-            item-value="value"
-            placeholder="حالة الاكتمال"
-            prepend-inner-icon="mdi-filter-check-outline"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-          />
-        </v-col>
+        <auto-list
+          v-model="filterReadiness"
+          name="LocalOption"
+          :objects="readinessOptions"
+          cols="3"
+          label="حالة الاكتمال"
+          icon="filter-check-outline"
+          :add="false"
+        />
 
         <!-- Filter Actions -->
-        <v-col cols="12" sm="6" md="3" class="d-flex align-center gap-2">
+        <v-col cols="auto" class="d-flex align-center gap-2">
           <custom-btn
             type="show"
-            label="تصفية"
+            label="عرض"
             color="primary"
-            class="font-weight-bold flex-grow-1 mb-6"
+            class="font-weight-bold px-6 mb-6"
             :click="loadData"
           />
           <custom-btn
@@ -116,7 +102,7 @@
             :click="resetFilters"
             variant="tonal"
             color="error"
-            label="تفريغ"
+            label="إلغاء الفلترة"
             class="font-weight-bold mb-6"
           />
         </v-col>
@@ -202,7 +188,8 @@
         :hasFilter="false"
         :log="false"
         :restore="false"
-      >
+      
+        :actionList="(item) => ([ { label: 'معاينة السؤال', icon: 'eye-outline', color: 'primary', onClick: () => openPreviewDialog(item) }, { label: 'استكمال وتعيين البيانات', icon: 'pencil-outline', color: 'indigo', onClick: () => openSingleAssign(item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
         <template v-slot:item-slot="{ item, key }">
           <!-- Selection Checkbox -->
           <template v-if="key === 'select'">
@@ -226,14 +213,9 @@
               >
                 {{ stripHtml(item.content) }}
               </div>
-              <div class="d-flex align-center gap-2 mt-1">
-                <span class="text-caption text-medium-emphasis">#{{ item.id }}</span>
-                <v-chip size="x-small" color="secondary" variant="tonal" class="font-weight-medium">
-                  {{ getTypeText(item.questionType) }}
-                </v-chip>
-                <v-chip v-if="item.defaultMark" size="x-small" color="primary" variant="tonal">
-                  {{ item.defaultMark }} درجات
-                </v-chip>
+              <div class="text-caption text-medium-emphasis mt-0.5">
+                #{{ item.id }} • {{ getTypeText(item.questionType) }}
+                <span v-if="item.defaultMark"> • {{ item.defaultMark }} درجات</span>
               </div>
             </div>
           </template>
@@ -244,51 +226,21 @@
               <div class="text-body-2 font-weight-bold text-primary">
                 {{ item.subject_name || getSubjectName(item) || 'غير محدد' }}
               </div>
-              <div class="mt-1">
-                <v-chip
-                  v-if="item.lesson"
-                  size="small"
-                  color="indigo"
-                  variant="tonal"
-                  class="font-weight-bold"
-                >
-                  <v-icon start size="14">mdi-book-open-page-variant</v-icon>
-                  {{ item.lesson_name || `درس #${item.lesson}` }}
-                </v-chip>
-                <v-chip
-                  v-else
-                  size="small"
-                  color="error"
-                  variant="tonal"
-                  class="font-weight-bold text-white"
-                >
-                  <v-icon start size="14">mdi-alert-circle</v-icon>
-                  الدرس غير محدد
-                </v-chip>
+              <div class="text-caption mt-0.5" :class="item.lesson ? 'text-medium-emphasis' : 'text-error font-weight-bold'">
+                {{ item.lesson ? (item.lesson_name || `درس #${item.lesson}`) : 'الدرس غير محدد' }}
               </div>
             </div>
           </template>
 
           <!-- Bloom Level -->
           <template v-else-if="key === 'bloomLevel'">
-            <v-chip size="small" color="purple" variant="tonal" class="font-weight-bold">
-              <v-icon start size="14">mdi-brain</v-icon>
-              {{ item.bloomLevel || 'تذكر' }}
-            </v-chip>
+            <span class="text-body-2 font-weight-medium">{{ item.bloomLevel || 'تذكر' }}</span>
           </template>
 
           <!-- Difficulty -->
           <template v-else-if="key === 'difficulty'">
-            <v-chip
-              size="small"
-              :color="getDifficultyColor(item.difficulty)"
-              variant="tonal"
-              class="font-weight-bold text-white"
-            >
-              {{ getDifficultyText(item.difficulty) }}
-            </v-chip>
+            <span class="text-body-2 font-weight-medium">{{ getDifficultyText(item.difficulty) }}</span>
           </template>
-
 
           <!-- Readiness Status -->
           <template v-else-if="key === 'readiness'">
@@ -296,32 +248,14 @@
               size="small"
               :color="item.lesson ? 'success' : 'warning'"
               variant="tonal"
-              class="font-weight-bold text-white"
+              class="font-weight-bold"
             >
-              <v-icon start size="14">{{ item.lesson ? 'mdi-check-circle' : 'mdi-clock-outline' }}</v-icon>
               {{ item.lesson ? 'جاهز للنقل' : 'ناقص الدرس' }}
             </v-chip>
           </template>
 
           <!-- Actions -->
-          <template v-else-if="key === 'actions'">
-            <div class="d-flex align-center justify-center gap-1">
-              <custom-btn
-                is-icon
-                icon="eye-outline"
-                color="primary"
-                variant="text"
-                :click="() => openPreviewDialog(item)"
-              />
-              <custom-btn
-                is-icon
-                icon="pencil-outline"
-                color="indigo"
-                variant="text"
-                :click="() => openSingleAssign(item)"
-              />
-            </div>
-          </template>
+          
         </template>
       </custom-data-table>
     </div>
@@ -508,27 +442,38 @@
 
       <!-- Bloom Level Assign -->
       <div v-else-if="assignType === 'bloom'">
-        <v-select
+        <auto-list
           v-model="batchForm.bloomLevel"
-          :items="['تذكر', 'فهم', 'تطبيق', 'تحليل', 'تقييم', 'ابتكار']"
+          name="LocalOption"
+          :objects="[
+            { title: 'تذكر', value: 'تذكر' },
+            { title: 'فهم', value: 'فهم' },
+            { title: 'تطبيق', value: 'تطبيق' },
+            { title: 'تحليل', value: 'تحليل' },
+            { title: 'تقييم', value: 'تقييم' },
+            { title: 'ابتكار', value: 'ابتكار' }
+          ]"
+          cols="12"
           label="مستوى بلوم المعرفي *"
-          variant="outlined"
-          density="compact"
+          icon="brain"
+          :add="false"
         />
       </div>
 
       <!-- Difficulty Assign -->
       <div v-else-if="assignType === 'difficulty'">
-        <v-select
+        <auto-list
           v-model="batchForm.difficulty"
-          :items="[
+          name="LocalOption"
+          :objects="[
             { title: 'سهل', value: 1 },
             { title: 'متوسط', value: 2 },
             { title: 'صعب', value: 3 }
           ]"
+          cols="12"
           label="مستوى الصعوبة التقديرية *"
-          variant="outlined"
-          density="compact"
+          icon="speedometer"
+          :add="false"
         />
       </div>
 
@@ -577,7 +522,7 @@
 
         <!-- Question Body Box -->
         <div class="question-preview-box pa-4 rounded-xl mb-4 bg-slate-50 border">
-          <div class="text-body-1 font-weight-medium" style="line-height: 1.8" v-html="previewQuestion.content"></div>
+          <div class="text-body-1 font-weight-medium" style="line-height: 1.8" v-html="$sanitizeHtml(previewQuestion.content)"></div>
         </div>
 
         <!-- Answers / Options -->
@@ -592,7 +537,7 @@
             <v-avatar size="24" :color="ans.isTrue ? 'success' : 'surface-variant'">
               <v-icon size="14" color="white">{{ ans.isTrue ? 'mdi-check' : 'mdi-circle-outline' }}</v-icon>
             </v-avatar>
-            <span class="text-body-2" :class="{ 'font-weight-bold text-success': ans.isTrue }" v-html="ans.text"></span>
+            <span class="text-body-2" :class="{ 'font-weight-bold text-success': ans.isTrue }" v-html="$sanitizeHtml(ans.text)"></span>
           </div>
         </div>
       </template>
@@ -707,7 +652,6 @@ export default {
         { title: "مستوى بلوم", key: "bloomLevel", sortable: true, align: "center" },
         { title: "الصعوبة", key: "difficulty", sortable: true, align: "center" },
         { title: "حالة الاكتمال", key: "readiness", sortable: true, align: "center" },
-        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "100px" },
       ],
     }
   },

@@ -2,7 +2,7 @@ from OpenSoftCoreV41.utils.model_view_set.__all__ import AllMVS
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from django.db import transaction
 
@@ -45,7 +45,7 @@ class ExamDistributionMVS(AllMVS):
             qs = qs.filter(status=status_val)
         return qs
 
-    @action(detail=False, methods=['get', 'post'], url_path='resolve-hierarchy', permission_classes=[AllowAny], pagination_class=None)
+    @action(detail=False, methods=['get', 'post'], url_path='resolve-hierarchy', permission_classes=[IsAuthenticated], pagination_class=None)
     def resolve_hierarchy(self, request):
         """
         يقوم بفك الاستهداف الهرمي وتحويل (الوزارة أو المحافظات أو المديريات)
@@ -850,7 +850,7 @@ class ExamDistributionMVS(AllMVS):
             "packages": packages
         })
 
-    @action(detail=False, methods=['post'], url_path='export-ack', permission_classes=[AllowAny])
+    @action(detail=False, methods=['post'], url_path='export-ack', permission_classes=[IsAuthenticated])
     def export_ack(self, request):
         """
         إشعار التأكيد واستقبال تحديثات الطباعة والتنفيذ من نظام المدرسة المستقل

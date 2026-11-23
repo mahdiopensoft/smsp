@@ -1,10 +1,23 @@
 # -*- coding: utf-8 -*-
+import base64
 import json
+import os
 
 from make_schedule import modules_data
 
-# Filter out module 10 (Services)
-clean_modules = [m for m in modules_data if "الخدمات" not in m["name"]]
+LOGO_PATH = "/home/mahdi/Downloads/06_Media_Files/logo opensot orginal.png"
+logo_data_uri = ""
+if os.path.exists(LOGO_PATH):
+    with open(LOGO_PATH, "rb") as img_f:
+        logo_b64 = base64.b64encode(img_f.read()).decode("ascii")
+        logo_data_uri = f"data:image/png;base64,{logo_b64}"
+
+# Filter out excluded modules (Services, Auth, User Management, Sync & Comms)
+EXCLUDED_KEYWORDS = ("الخدمات", "المصادقة", "إدارة المستخدمين", "المزامنة")
+clean_modules = [
+    m for m in modules_data
+    if not any(kw in m["name"] for kw in EXCLUDED_KEYWORDS)
+]
 
 for idx, m in enumerate(clean_modules, 1):
     m["module_id"] = idx
@@ -342,14 +355,15 @@ html_template = f"""<!DOCTYPE html>
                     <div class="inst-title-3">قطاع المناهج والتوجيه والتقويم — الإدارة العامة للاختبارات المركزية</div>
                 </td>
                 <td style="width: 34%; text-align: center;">
+                    {f'<img src="{logo_data_uri}" alt="Logo" style="height: 64px; width: auto; display: block; margin: 0 auto 4px auto;" />' if logo_data_uri else ''}
                     <div class="doc-title-main">خطة وجدول فحص واختبار شاشات المنظومة</div>
                     <div class="doc-title-sub">مشروع بنك الأسئلة الموحد وإدارة الامتحانات والتصحيح الآلي (OMR)</div>
                 </td>
                 <td style="width: 33%; text-align: left;">
                     <div class="doc-meta">
-                        <strong>Document No:</strong> QA-EXAM-117-2026<br>
-                        <strong>Release Date:</strong> 19 November 2026<br>
-                        <strong>Scope:</strong> 11 Systems / 117 Master Screens
+                        <strong>Document No:</strong> QA-EXAM-{total_screens}-2026<br>
+                        <strong>Release Date:</strong> 23 November 2026<br>
+                        <strong>Scope:</strong> {len(clean_modules)} Systems / {total_screens} Master Screens
                     </div>
                 </td>
             </tr>
@@ -440,7 +454,7 @@ html_template += f"""
     <div style="padding: 10px 4px;">
         <div style="border-bottom: 2px solid #1e3a8a; padding-bottom: 6px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
             <div style="font-size: 14px; font-weight: 800; color: #1e3a8a;">
-                📊 جدول التوزيع الإحصائي للأزمنة والأولويات حسب المنظومات الـ 11
+                📊 جدول التوزيع الإحصائي للأزمنة والأولويات حسب المنظومات الـ {len(clean_modules)}
             </div>
             <div style="font-size: 10px; color: #475569; font-weight: 700;">
                 الجمهورية اليمنية — قطاع المناهج والتوجيه والتقويم — الإدارة العامة للاختبارات المركزية
@@ -511,4 +525,71 @@ html_template += f"""
 with open("docs/SCREEN_TEST_PLAN_SCHEDULE.html", "w", encoding="utf-8") as f:
     f.write(html_template)
 
-print(f"Updated docs/SCREEN_TEST_PLAN_SCHEDULE.html successfully!")
+# Sync docs/SCREEN_TEST_PLAN_SCHEDULE.md
+md_lines = [
+    '<div dir="rtl">',
+    '',
+    f'# وثيقة خطة وجدول فحص واختبار شاشات المنظومة الشاملة ({total_screens} شاشة)',
+    '### الجمهورية اليمنية — وزارة التربية والتعليم والبحث العلمي',
+    '#### قطاع المناهج والتوجيه والتقويم — الإدارة العامة للاختبارات المركزية',
+    '**مشروع بنك الأسئلة الموحد وإدارة الامتحانات والتصحيح الآلي (OMR)**',
+    '',
+    '---',
+    '',
+    '## 📌 ملخص خطة الفحص والتنفيذ الرسمية (Executive Summary)',
+    '',
+    '| المؤشر التخطيطي | القيمة المعتمدة | البيان التوضيحي |',
+    '| :--- | :---: | :--- |',
+    f'| **إجمالي الشاشات المعتمدة** | **{total_screens} شاشة** | شاشات الهيكل والتهيئة الأكاديمية وبنك الأسئلة والاختبارات والتصحيح الآلي والتقارير |',
+    f'| **عدد المنظومات الرئيسية** | **{len(clean_modules)} منظومات** | المنظومات الأكاديمية والامتحانية الأساسية المعتمدة للاختبار |',
+    f'| **الزمن التقديري الإجمالي للفحص** | **{total_hours} ساعة عمل** | ما يعادل **{total_days} أيام عمل رسمية** (بمعدل 7 ساعات/يوم) |',
+    f'| **شاشات حرجة أولوية قصوى (P1)** | **{p1_count} شاشة** | بنك الأسئلة، التوليد، التصحيح الآلي، ورصد الكنترول |',
+    f'| **شاشات أساسية أولوية متوسطة (P2)** | **{p2_count} شاشة** | التهيئة الأكاديمية، الإدخال، والتقارير الإحصائية |',
+    f'| **شاشات مساندة وضبط (P3)** | **{p3_count} شاشات** | الإعدادات والضوابط المساندة |',
+    '',
+    '---',
+    '',
+    f'## 📊 جدول توزيع الشاشات والأزمنة حسب المنظومات الـ {len(clean_modules)}',
+    '',
+    '| م | المنظومة / الوحدة البرمجية | عدد الشاشات | P1 (حرجة) | P2 (أساسية) | P3 (مساندة) | إجمالي الدقائق | إجمالي الساعات | النسبة |',
+    '| :-: | :--- | :-: | :-: | :-: | :-: | :-: | :-: | :-: |',
+]
+
+for m in clean_modules:
+    m_id = m["module_id"]
+    m_name = m["name"]
+    cnt = len(m["screens"])
+    p1 = sum(1 for s in m["screens"] if s["priority"] == "P1")
+    p2 = sum(1 for s in m["screens"] if s["priority"] == "P2")
+    p3 = sum(1 for s in m["screens"] if s["priority"] == "P3")
+    mins = sum(s["duration"] for s in m["screens"])
+    hrs = round(mins / 60, 1)
+    pct = round((mins / total_minutes) * 100, 1)
+    md_lines.append(f'| {m_id} | {m_name} | **{cnt}** | {p1} | {p2} | {p3} | {mins} د | **{hrs} س** | {pct}% |')
+
+md_lines.extend([
+    f'| **-** | **الإجمالي العام المعتمد** | **{total_screens}** | **{p1_count}** | **{p2_count}** | **{p3_count}** | **{total_minutes} د** | **{total_hours} س** | **100%** |',
+    '',
+    '---',
+    '',
+    f'## 📋 جدول خطة الاختبار التفصيلية لكافة الشاشات ({total_screens} شاشة)',
+    '',
+    '| # | اسم الشاشة بالعربية | المكون البرمجي والمسار | المنظومة / الوحدة | نطاق وفحص الشاشة (Testing Scope) | الدور المنفذ | الأولوية | المدة | معيار القبول والنجاح |',
+    '| :-: | :--- | :--- | :--- | :--- | :---: | :-: | :-: | :--- |',
+])
+
+c = 1
+for m in clean_modules:
+    m_name = m["name"]
+    for s in m["screens"]:
+        md_lines.append(
+            f'| {c} | **{s["name"]}** | `{s["code"]}`<br>`{s["route"]}` | {m_name.split("،")[0]} | {s["scope"]} | {s["role"]} | **{s["priority"]}** | {s["duration"]} د | {s["criteria"]} |'
+        )
+        c += 1
+
+md_lines.extend(['', '</div>', ''])
+
+with open("docs/SCREEN_TEST_PLAN_SCHEDULE.md", "w", encoding="utf-8") as f:
+    f.write("\n".join(md_lines))
+
+print(f"Updated HTML & MD successfully! ({len(clean_modules)} modules, {total_screens} screens, {total_hours} hrs)")

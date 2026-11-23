@@ -196,95 +196,90 @@
           </div>
 
           <!-- Formatted Rendered Output -->
-          <div v-else class="scientific-rendered-content text-body-1" v-html="renderedHtml"></div>
+          <div v-else class="scientific-rendered-content text-body-1" v-html="$sanitizeHtml(renderedHtml)"></div>
         </div>
       </div>
     </div>
 
     <!-- Formula Syntax Help Dialog -->
-    <v-dialog v-model="helpDialog" max-width="700">
-      <v-card class="pa-5 rounded-2xl">
-        <div class="d-flex align-center justify-space-between mb-3">
-          <div class="d-flex align-center gap-2">
-            <v-icon color="primary">mdi-school</v-icon>
-            <h3 class="text-h6 font-weight-bold mb-0">دليل كتابة المعادلات والرموز العلمية</h3>
-          </div>
-          <v-btn icon="mdi-close" variant="text" size="small" @click="helpDialog = false" />
-        </div>
+    <custom-dialog
+      v-model="helpDialog"
+      title="دليل كتابة المعادلات والرموز العلمية"
+      width="700"
+      height="auto"
+    >
+      <p class="text-caption text-medium-emphasis mb-4">
+        يدعم النظام كافة صيغ LaTeX ورموز الكيمياء والفيزياء العالمية المعيارية لجميع المراحل المدرسية والجامعية:
+      </p>
 
-        <p class="text-caption text-medium-emphasis mb-4">
-          يدعم النظام كافة صيغ LaTeX ورموز الكيمياء والفيزياء العالمية المعيارية لجميع المراحل المدرسية والجامعية:
-        </p>
+      <v-table density="compact" class="rounded-xl border-subtle">
+        <thead>
+          <tr class="bg-surface-variant">
+            <th class="font-weight-bold">الموضوع العلمي</th>
+            <th class="font-weight-bold">طريقة الكتابة</th>
+            <th class="font-weight-bold">النتيجة في الامتحان</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>الكسور الاعتيادية</td>
+            <td class="font-mono text-caption text-primary">$\frac{a}{b}$ أو $\frac{x+1}{x-1}$</td>
+            <td>كسر هندسي كامل ببسط ومقام وخط أفقي</td>
+          </tr>
+          <tr>
+            <td>الجذور التربيعية والنونية</td>
+            <td class="font-mono text-caption text-primary">$\sqrt{x}$ أو $\sqrt[3]{27}$</td>
+            <td>رمز الجذر مع الخط العلوي الممتد</td>
+          </tr>
+          <tr>
+            <td>الأسس والدليل السفلي</td>
+            <td class="font-mono text-caption text-primary">$x^2$ و $x_i$ و $e^{-x}$</td>
+            <td>قوى وأدلة سفلية منسقة بدقة</td>
+          </tr>
+          <tr>
+            <td>التكاملات والمشتقات</td>
+            <td class="font-mono text-caption text-primary">$\int_{0}^{\pi} \sin(x) dx$</td>
+            <td>رمز التكامل مع حدي التكامل العلوي والسفلي</td>
+          </tr>
+          <tr>
+            <td>النهايات والمجاميع</td>
+            <td class="font-mono text-caption text-primary">$\lim_{x \to \infty} f(x)$ و $\sum_{i=1}^{n} x_i$</td>
+            <td>رمز النهاية والمجموع مع المتغير</td>
+          </tr>
+          <tr>
+            <td>المعادلات الكيميائية</td>
+            <td class="font-mono text-caption text-primary">2H_2 + O_2 -> 2H_2O أو $\rightleftharpoons$</td>
+            <td>أسهم تفاعل كيميائي، اتزان ديناميكي، وحالات المادة (s, l, g, aq)</td>
+          </tr>
+          <tr>
+            <td>الأيونات والشحنات</td>
+            <td class="font-mono text-caption text-primary">$\text{Ca}^{2+} + \text{SO}_4^{2-}$</td>
+            <td>أيونات وشحنات كهربائية دقيقة</td>
+          </tr>
+          <tr>
+            <td>المصفوفات والمحددات</td>
+            <td class="font-mono text-caption text-primary">$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$</td>
+            <td>مصفوفات 2×2 و 3×3 بأقواس دائرية أو خطية</td>
+          </tr>
+          <tr>
+            <td>الرموز الإغريقية</td>
+            <td class="font-mono text-caption text-primary">$\alpha, \beta, \theta, \lambda, \pi, \Omega$</td>
+            <td>ألفا، بيتا، سيتا، لامدا، باي، أوم للمقاومة</td>
+          </tr>
+          <tr>
+            <td>كتل البرمجة (CS)</td>
+            <td class="font-mono text-caption text-primary">```python\nprint("Hello")\n```</td>
+            <td>كتلة كود برمجي بخط أحادي وتنسيق داكن</td>
+          </tr>
+        </tbody>
+      </v-table>
 
-        <v-table density="compact" class="rounded-xl border-subtle mb-4">
-          <thead>
-            <tr class="bg-surface-variant">
-              <th class="font-weight-bold">الموضوع العلمي</th>
-              <th class="font-weight-bold">طريقة الكتابة</th>
-              <th class="font-weight-bold">النتيجة في الامتحان</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>الكسور الاعتيادية</td>
-              <td class="font-mono text-caption text-primary">$\frac{a}{b}$ أو $\frac{x+1}{x-1}$</td>
-              <td>كسر هندسي كامل ببسط ومقام وخط أفقي</td>
-            </tr>
-            <tr>
-              <td>الجذور التربيعية والنونية</td>
-              <td class="font-mono text-caption text-primary">$\sqrt{x}$ أو $\sqrt[3]{27}$</td>
-              <td>رمز الجذر مع الخط العلوي الممتد</td>
-            </tr>
-            <tr>
-              <td>الأسس والدليل السفلي</td>
-              <td class="font-mono text-caption text-primary">$x^2$ و $x_i$ و $e^{-x}$</td>
-              <td>قوى وأدلة سفلية منسقة بدقة</td>
-            </tr>
-            <tr>
-              <td>التكاملات والمشتقات</td>
-              <td class="font-mono text-caption text-primary">$\int_{0}^{\pi} \sin(x) dx$</td>
-              <td>رمز التكامل مع حدي التكامل العلوي والسفلي</td>
-            </tr>
-            <tr>
-              <td>النهايات والمجاميع</td>
-              <td class="font-mono text-caption text-primary">$\lim_{x \to \infty} f(x)$ و $\sum_{i=1}^{n} x_i$</td>
-              <td>رمز النهاية والمجموع مع المتغير</td>
-            </tr>
-            <tr>
-              <td>المعادلات الكيميائية</td>
-              <td class="font-mono text-caption text-primary">2H_2 + O_2 -> 2H_2O أو $\rightleftharpoons$</td>
-              <td>أسهم تفاعل كيميائي، اتزان ديناميكي، وحالات المادة (s, l, g, aq)</td>
-            </tr>
-            <tr>
-              <td>الأيونات والشحنات</td>
-              <td class="font-mono text-caption text-primary">$\text{Ca}^{2+} + \text{SO}_4^{2-}$</td>
-              <td>أيونات وشحنات كهربائية دقيقة</td>
-            </tr>
-            <tr>
-              <td>المصفوفات والمحددات</td>
-              <td class="font-mono text-caption text-primary">$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$</td>
-              <td>مصفوفات 2×2 و 3×3 بأقواس دائرية أو خطية</td>
-            </tr>
-            <tr>
-              <td>الرموز الإغريقية</td>
-              <td class="font-mono text-caption text-primary">$\alpha, \beta, \theta, \lambda, \pi, \Omega$</td>
-              <td>ألفا، بيتا، سيتا، لامدا، باي، أوم للمقاومة</td>
-            </tr>
-            <tr>
-              <td>كتل البرمجة (CS)</td>
-              <td class="font-mono text-caption text-primary">```python\nprint("Hello")\n```</td>
-              <td>كتلة كود برمجي بخط أحادي وتنسيق داكن</td>
-            </tr>
-          </tbody>
-        </v-table>
-
-        <div class="d-flex justify-end">
-          <v-btn color="primary" class="font-weight-bold" rounded="lg" @click="helpDialog = false">
-            فهمت ذلك
-          </v-btn>
-        </div>
-      </v-card>
-    </v-dialog>
+      <template #actions>
+        <v-btn color="primary" class="font-weight-bold" rounded="lg" @click="helpDialog = false">
+          فهمت ذلك
+        </v-btn>
+      </template>
+    </custom-dialog>
   </div>
 </template>
 

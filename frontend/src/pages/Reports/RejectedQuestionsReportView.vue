@@ -25,7 +25,7 @@
             label="المرحلة الدراسية"
             cols="12"
             sm="6"
-            md="2"
+            md="3"
             :add="false"
             @update:model-value="onStageChange"
           />
@@ -37,7 +37,7 @@
             label="الصف والمسار"
             cols="12"
             sm="6"
-            md="2"
+            md="3"
             :add="false"
             :disabled="!filterStage"
             @update:model-value="onClassTrackChange"
@@ -62,7 +62,7 @@
             label="الوحدة الدراسية"
             cols="12"
             sm="6"
-            md="2"
+            md="3"
             :add="false"
             :disabled="!filterSubject"
           />
@@ -77,7 +77,7 @@
             label="الكلية الجامعية"
             cols="12"
             sm="6"
-            md="2"
+            md="3"
             :add="false"
             @update:model-value="onCollegeChange"
           />
@@ -89,7 +89,7 @@
             label="القسم الأكاديمي"
             cols="12"
             sm="6"
-            md="2"
+            md="3"
             :add="false"
             :disabled="!filterCollege"
             @update:model-value="onDepartmentChange"
@@ -102,7 +102,7 @@
             label="التخصص والبرنامج"
             cols="12"
             sm="6"
-            md="2"
+            md="3"
             :add="false"
             :disabled="!filterDepartment"
             @update:model-value="onSpecializationChange"
@@ -128,7 +128,7 @@
             label="مفردة / موضوع المقرر"
             cols="12"
             sm="6"
-            md="2"
+            md="3"
             :add="false"
             :disabled="!filterSemesterSubject"
           />
@@ -143,7 +143,7 @@
             label="المجال المهني / التقني"
             cols="12"
             sm="6"
-            md="2"
+            md="3"
             :add="false"
             @update:model-value="onInstituteFieldChange"
           />
@@ -155,7 +155,7 @@
             label="نظام التعليم والتدريب"
             cols="12"
             sm="6"
-            md="2"
+            md="3"
             :add="false"
             :disabled="!filterInstituteField"
             @update:model-value="onInstituteEducationSystemChange"
@@ -168,7 +168,7 @@
             label="التخصص المهني"
             cols="12"
             sm="6"
-            md="2"
+            md="3"
             :add="false"
             :disabled="!filterInstituteEducationSystem"
             @update:model-value="onInstituteSpecializationChange"
@@ -193,7 +193,7 @@
             label="الوحدة / التدريب العملي"
             cols="12"
             sm="6"
-            md="2"
+            md="3"
             :add="false"
             :disabled="!filterInstituteSubject"
           />
@@ -205,7 +205,7 @@
           label="من تاريخ"
           cols="12"
           sm="6"
-          md="2"
+          md="3"
           hide-details
         />
 
@@ -214,7 +214,7 @@
           label="إلى تاريخ"
           cols="12"
           sm="6"
-          md="2"
+          md="3"
           hide-details
         />
 
@@ -362,7 +362,6 @@ const onInstitutionTypeChange = () => {
   filterInstituteSubject.value = null
   filterSubject.value = null
   filterUnit.value = null
-  applyFilters()
 }
 
 const onStageChange = () => {

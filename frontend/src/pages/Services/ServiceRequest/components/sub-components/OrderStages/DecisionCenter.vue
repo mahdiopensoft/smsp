@@ -52,7 +52,6 @@
           v-model="dialog.return_reason"
           icon="pen-outline"
           label="سبب الإرجاع"
-          :hideDetails="auto"
           placeholder="أدخل عنواناً موجزاً لسبب الإرجاع..."
           :rules="[$required, $max_value(100)]"
           class="mb-4"

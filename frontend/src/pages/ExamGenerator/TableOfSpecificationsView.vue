@@ -25,27 +25,16 @@
     <filter-fields label="خيارات التصفية والبحث في جداول المواصفات" class="main-card border-0 pa-5 rounded-2xl mb-6">
       <v-row dense class="align-center">
         <!-- Institution Type Selector (مدارس / جامعات / معاهد) -->
-        <v-col cols="12" sm="6" :md="filterInstitutionType ? 3 : 4">
-          <v-select
-            v-model="filterInstitutionType"
-            :items="institutionTypeOptions"
-            item-title="text"
-            item-value="value"
-            class="mb-6"
-            label="نوع المؤسسة التعليمية"
-            placeholder="اختر نوع المؤسسة"
-            prepend-inner-icon="mdi-domain"
-            hide-details
-            clearable
-            density="compact"
-            variant="outlined"
-            @update:model-value="onInstitutionTypeChange"
-          >
-            <template v-slot:item="{ props, item }">
-              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
-            </template>
-          </v-select>
-        </v-col>
+        <auto-list
+          v-model="filterInstitutionType"
+          name="LocalTextOption"
+          :objects="institutionTypeOptions"
+          cols="3"
+          label="نوع المؤسسة التعليمية"
+          icon="domain"
+          :add="false"
+          @update:model-value="onInstitutionTypeChange"
+        />
 
         <!-- الظهور مشروط باختيار نوع المؤسسة: مدارس أو جامعات أو معاهد -->
         <template v-if="filterInstitutionType">
@@ -161,7 +150,6 @@
               cols="3"
               :add="false"
               :disabled="!filterInstituteCurriculum"
-              @update:model-value="loadTables"
             />
           </template>
 
@@ -177,25 +165,11 @@
           />
         </template>
 
-        <!-- Search Query -->
-        <v-col cols="12" sm="6" md="3">
-          <v-text-field
-            v-model="searchQuery"
-            placeholder="بحث بالعنوان أو المادة..."
-            prepend-inner-icon="mdi-magnify"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-          />
-        </v-col>
-
         <!-- Filter Actions -->
-        <v-col cols="12" sm="12" md="6" class="d-flex align-center justify-end gap-2">
+        <v-col cols="auto" class="d-flex align-center gap-2">
           <custom-btn
             type="show"
-            label="تصفية الجداول"
+            label="عرض"
             color="primary"
             class="font-weight-bold px-6 mb-6"
             :click="loadTables"

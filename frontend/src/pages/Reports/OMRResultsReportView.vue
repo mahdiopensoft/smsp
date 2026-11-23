@@ -3,7 +3,7 @@
     <filter-fields label="معايير التصفية والبحث في نتائج التصحيح الآلي (OMR)" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
       <template #fields>
         <!-- 1. اختيار نوع المؤسسة التعليمية الموحد -->
-        <v-col cols="12" sm="6" md="3">
+        <v-col cols="12" sm="6" md="3" class="pa-0">
           <auto-list
             v-model="filterInstitutionType"
             name="InstitutionType"
@@ -15,62 +15,60 @@
           />
         </v-col>
 
-        <auto-list
-          v-model="filterExam"
-          name="Exam"
-          :param="examParam"
-          label="الاختبار"
-          placeholder="الاختبار"
-          cols="2"
-          :add="false"
-          @update:model-value="filterVersion = null"
-        />
-
-        <auto-list
-          v-model="filterVersion"
-          name="ExamVersionByExam"
-          :param="filterExam"
-          label="النموذج"
-          placeholder="النموذج"
-          cols="2"
-          :add="false"
-          :disabled="!filterExam"
-        />
-
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filterStatus"
-            :items="[
-              { text: 'جميع الحالات', value: '' },
-              { text: 'ناجح', value: 'success' },
-              { text: 'بانتظار مراجعة', value: 'needs_review' }
-            ]"
-            item-title="text"
-            item-value="value"
-            placeholder="الحالة"
-            hide-details
-            density="compact"
-            variant="outlined"
+        <v-col cols="12" sm="6" md="3" class="pa-0">
+          <auto-list
+            v-model="filterExam"
+            name="Exam"
+            :param="examParam"
+            label="الاختبار"
+            placeholder="الاختبار"
+            cols="12"
+            :add="false"
+            @update:model-value="filterVersion = null"
           />
         </v-col>
 
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filterConfidenceMin"
-            :items="[
-              { text: 'أي دقة', value: '' },
-              { text: 'أعلى من 90%', value: '0.90' },
-              { text: 'أعلى من 80%', value: '0.80' },
-              { text: 'أقل من 80%', value: '0.79' }
-            ]"
-            item-title="text"
-            item-value="value"
-            placeholder="الحد الأدنى للثقة"
-            hide-details
-            density="compact"
-            variant="outlined"
+        <v-col cols="12" sm="6" md="3" class="pa-0">
+          <auto-list
+            v-model="filterVersion"
+            name="ExamVersionByExam"
+            :param="filterExam"
+            label="النموذج"
+            placeholder="النموذج"
+            cols="12"
+            :add="false"
+            :disabled="!filterExam"
           />
         </v-col>
+
+        <auto-list
+          v-model="filterStatus"
+          name="LocalTextOption"
+          :objects="[
+            { text: 'جميع الحالات', value: '' },
+            { text: 'ناجح', value: 'success' },
+            { text: 'بانتظار مراجعة', value: 'needs_review' }
+          ]"
+          cols="3"
+          label="الحالة"
+          icon="check-circle-outline"
+          :add="false"
+        />
+
+        <auto-list
+          v-model="filterConfidenceMin"
+          name="LocalTextOption"
+          :objects="[
+            { text: 'أي دقة', value: '' },
+            { text: 'أعلى من 90%', value: '0.90' },
+            { text: 'أعلى من 80%', value: '0.80' },
+            { text: 'أقل من 80%', value: '0.79' }
+          ]"
+          cols="3"
+          label="الحد الأدنى للثقة"
+          icon="percent-outline"
+          :add="false"
+        />
 
         <v-col cols="auto" class="d-flex align-center gap-2 py-2">
           <custom-btn type="filter" :loading="loading" :click="applyFilters" />
@@ -106,13 +104,12 @@
             </div>
           </template>
           <template v-else-if="key === 'confidence'">
-            <v-chip
-              :color="item.confidence >= 90 ? 'success' : (item.confidence >= 70 ? 'warning' : 'error')"
-              size="small"
-              variant="tonal"
+            <span
+              class="font-weight-bold font-mono text-body-2"
+              :class="item.confidence >= 90 ? 'text-success' : (item.confidence >= 70 ? 'text-warning' : 'text-error')"
             >
               {{ item.confidence }}%
-            </v-chip>
+            </span>
           </template>
           <template v-else-if="key === 'status'">
             <v-chip
@@ -158,8 +155,6 @@ const examParam = computed(() => {
 const onInstitutionTypeChange = () => {
   filterExam.value = null
   filterVersion.value = null
-  resetPagination()
-  applyFilters()
 }
 
 const headers = [

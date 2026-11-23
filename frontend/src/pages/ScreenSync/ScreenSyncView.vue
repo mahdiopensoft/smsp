@@ -639,7 +639,6 @@
               v-model="assignDialog.selectedScreens"
               name="parent_screen"
               :label="$t('screens')"
-              hideDetails
               multiple
               :objects="screens_list"
             ></auto-list>
@@ -742,8 +741,13 @@
     </custom-dialog>
 
     <!-- Premium Confirmation Dialog -->
-    <v-dialog v-model="confirmDialog.show" max-width="400">
-      <v-card class="premium-pulse-dialog pa-8 text-center">
+    <custom-dialog
+      v-model="confirmDialog.show"
+      :title="confirmDialog.title"
+      width="420"
+      height="auto"
+    >
+      <div class="text-center py-2">
         <div class="dialog-header-icon mb-5" :class="confirmDialog.type || 'error'">
           <v-icon
             color="white"
@@ -755,47 +759,46 @@
             "
           ></v-icon>
         </div>
-        <h2 class="text-h5 font-weight-black mb-2">
-          {{ confirmDialog.title }}
-        </h2>
-        <p class="text-body-2 opacity-50 mb-8">{{ confirmDialog.message }}</p>
-
-        <div class="d-flex gap-3">
-          <v-btn
-            variant="tonal"
-            class="flex-grow-1 action-btn-premium"
-            @click="confirmDialog.show = false"
-          >
-            {{ $t("syncCancel") }}
-          </v-btn>
-          <v-btn
-            variant="tonal"
-            class="flex-grow-1 action-btn-premium"
-            :color="confirmDialog.type || 'error'"
-            :loading="confirmDialog?.loading"
-            @click="confirmDialog.onConfirm()"
-          >
-            {{ $t("syncConfirm") }}
-          </v-btn>
-        </div>
-      </v-card>
-    </v-dialog>
+        <p class="text-body-2 opacity-70 mb-0">{{ confirmDialog.message }}</p>
+      </div>
+      <template #actions>
+        <v-btn
+          variant="tonal"
+          class="action-btn-premium"
+          @click="confirmDialog.show = false"
+        >
+          {{ $t("syncCancel") }}
+        </v-btn>
+        <v-btn
+          variant="tonal"
+          class="action-btn-premium"
+          :color="confirmDialog.type || 'error'"
+          :loading="confirmDialog?.loading"
+          @click="confirmDialog.onConfirm()"
+        >
+          {{ $t("syncConfirm") }}
+        </v-btn>
+      </template>
+    </custom-dialog>
   </div>
 
   <!-- Sequence Error Dialog -->
-  <v-dialog v-model="errorDialog.show" max-width="480" persistent>
-    <div class="premium-pulse-dialog pa-8 text-center">
+  <custom-dialog
+    v-model="errorDialog.show"
+    :title="$t('errorDialog.title')"
+    width="480"
+    height="auto"
+    persistent
+  >
+    <div class="text-center py-2">
       <div class="dialog-header-icon error mb-5">
         <v-icon color="white" size="28" icon="mdi-alert-circle-outline"></v-icon>
       </div>
-      <h2 class="text-h5 font-weight-black mb-2">
-        {{ $t("errorDialog.title") }}
-      </h2>
       <p class="text-body-2 opacity-50 mb-4">
         {{ $t("errorDialog.subtitle") }}
       </p>
 
-      <div class="error-detail-box pa-4 mb-6">
+      <div class="error-detail-box pa-4">
         <div class="d-flex align-center gap-2 mb-2">
           <v-icon icon="mdi-monitor" size="16" color="error"></v-icon>
           <span class="text-body-2 font-weight-bold">{{ errorDialog.screenName }}</span>
@@ -812,69 +815,65 @@
           }}
         </div>
       </div>
-
-      <div class="d-flex gap-3">
-        <v-btn
-          variant="tonal"
-          color="error"
-          class="flex-grow-1 action-btn-premium"
-          @click="resolveErrorDialog(false)"
-        >
-          <v-icon icon="mdi-stop-circle-outline" start></v-icon>
-          {{ $t("errorDialog.stop") }}
-        </v-btn>
-        <v-btn
-          variant="tonal"
-          color="primary"
-          class="flex-grow-1 action-btn-premium"
-          @click="resolveErrorDialog(true)"
-        >
-          <v-icon icon="mdi-play-circle-outline" start></v-icon>
-          {{ $t("errorDialog.continue") }}
-        </v-btn>
-      </div>
     </div>
-  </v-dialog>
-  <!-- Sequence Error Dialog -->
-  <v-dialog v-model="dialog_setting_edit" max-width="900">
-    <v-card>
-      <v-card-title class="text-h5 bg-primary text-white pa-4">
-        {{ $t("setting_edit") }}
-      </v-card-title>
+    <template #actions>
+      <v-btn
+        variant="tonal"
+        color="error"
+        class="action-btn-premium"
+        @click="resolveErrorDialog(false)"
+      >
+        <v-icon icon="mdi-stop-circle-outline" start></v-icon>
+        {{ $t("errorDialog.stop") }}
+      </v-btn>
+      <v-btn
+        variant="tonal"
+        color="primary"
+        class="action-btn-premium"
+        @click="resolveErrorDialog(true)"
+      >
+        <v-icon icon="mdi-play-circle-outline" start></v-icon>
+        {{ $t("errorDialog.continue") }}
+      </v-btn>
+    </template>
+  </custom-dialog>
 
-      <v-card-text class="pa-4">
-        <json-field
-          v-model="single_group.settings"
-          :label="$t('setting_data')"
-          :indentation="3"
-          auto-grow
-          variant="outlined"
-          rows="10"
-          :rules="[jsonRule]"
-          hide-details="auto"
-          class="font-monospace"
-        >
-        </json-field>
-      </v-card-text>
-      <v-card-actions class="pa-4">
-        <v-spacer></v-spacer>
-        <v-btn
-          color="grey-darken-1"
-          variant="text"
-          @click="dialog_setting_edit = false"
-          >{{ $t("cancel") }}</v-btn
-        >
-        <v-btn
-          color="success"
-          variant="text"
-          :disabled="!isValidJson"
-          @click="saveSettingEdit"
-          :loading="loading_save"
-          >{{ $t("save") }}
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+  <!-- Settings Edit Dialog -->
+  <custom-dialog
+    v-model="dialog_setting_edit"
+    :title="$t('setting_edit')"
+    width="900"
+    height="auto"
+  >
+    <json-field
+      v-model="single_group.settings"
+      :label="$t('setting_data')"
+      :indentation="3"
+      auto-grow
+      variant="outlined"
+      rows="10"
+      :rules="[jsonRule]"
+      hide-details="auto"
+      class="font-monospace"
+    >
+    </json-field>
+    <template #actions>
+      <v-btn
+        color="grey-darken-1"
+        variant="text"
+        @click="dialog_setting_edit = false"
+        >{{ $t("cancel") }}</v-btn
+      >
+      <v-btn
+        color="success"
+        variant="text"
+        :disabled="!isValidJson"
+        @click="saveSettingEdit"
+        :loading="loading_save"
+        >{{ $t("save") }}
+      </v-btn>
+    </template>
+  </custom-dialog>
 
   <!-- تاكيد الحذف الشاشة -->
   <!-- <confirm-deletion

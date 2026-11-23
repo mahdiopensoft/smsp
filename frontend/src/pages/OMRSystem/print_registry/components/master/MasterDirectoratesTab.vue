@@ -12,10 +12,10 @@
     :restore="false"
     :numbering="true"
     :showSelect="true"
-    :actions="false"
     :search="false"
     class="bg-transparent"
-  >
+  
+        :actionList="(item) => ([ { label: 'المراكز والمدارس', icon: 'school', color: 'teal', onClick: () => $emit('drill-down', item) }, { label: 'استوديو الطباعة', icon: 'printer-outline', color: 'primary', onClick: () => $emit('open-studio', item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
     <template v-slot:item-slot="{ item, key, index }">
       <template v-if="key === 'numbering'">
         <div class="d-flex justify-center align-center">
@@ -24,13 +24,8 @@
       </template>
 
       <template v-else-if="key === 'name'">
-        <div class="d-flex align-center py-2" style="min-width: 280px;">
-          <v-avatar color="teal" variant="tonal" size="36" class="me-3 rounded-lg flex-shrink-0">
-            <v-icon color="teal" size="20">mdi-map-marker-radius-outline</v-icon>
-          </v-avatar>
-          <div>
-            <div class="font-weight-bold text-subtitle-2 text-on-surface text-wrap">{{ item.name }}</div>
-          </div>
+        <div class="py-1 font-weight-bold text-subtitle-2 text-on-surface text-wrap" style="min-width: 240px;">
+          {{ item.name }}
         </div>
       </template>
 
@@ -85,32 +80,7 @@
         </div>
       </template>
 
-      <template v-else-if="key === 'actions'">
-        <div class="d-flex align-center justify-center gap-2">
-          <v-btn
-            size="small"
-            color="teal"
-            variant="tonal"
-            rounded="lg"
-            class="font-weight-bold"
-            prepend-icon="mdi-school"
-            @click="$emit('drill-down', item)"
-          >
-            المراكز والمدارس
-          </v-btn>
-          <v-btn
-            size="small"
-            color="teal"
-            variant="flat"
-            rounded="lg"
-            class="font-weight-bold"
-            prepend-icon="mdi-printer-outline"
-            @click="$emit('open-studio', item)"
-          >
-            استوديو الطباعة
-          </v-btn>
-        </div>
-      </template>
+      
     </template>
   </custom-data-table>
 </template>

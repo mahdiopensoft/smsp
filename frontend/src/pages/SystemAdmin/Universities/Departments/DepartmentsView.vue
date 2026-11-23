@@ -6,17 +6,21 @@
     <filter-fields label="خيارات التصفية والبحث المتقدم" class="main-card border-0 pa-5 rounded-2xl mb-6">
       <v-row dense class="align-center">
         <!-- College Filter -->
-        <auto-list v-model="filterCollege" name="College" placeholder="الكلية" cols="4" :add="false" />
+        <auto-list v-model="filterCollege" name="College" placeholder="الكلية" cols="3" :add="false" />
 
         <!-- Active Status Filter -->
-        <v-col cols="12" sm="6" md="4">
-          <v-select v-model="filterActive" :items="activeOptions" item-title="text" item-value="value"
-            label="حالة التفعيل" prepend-inner-icon="mdi-check-circle-outline" clearable density="compact"
-            variant="outlined" class="mb-6" hide-details />
-        </v-col>
+        <auto-list
+          v-model="filterActive"
+          name="LocalTextOption"
+          :objects="activeOptions"
+          cols="3"
+          label="حالة التفعيل"
+          icon="check-circle-outline"
+          :add="false"
+        />
 
         <!-- Filter Actions -->
-        <v-col cols="12" sm="6" md="4" class="d-flex align-center gap-2">
+        <v-col cols="auto" class="d-flex align-center gap-2">
           <custom-btn type="show" label="تصفية" color="primary" class="font-weight-bold flex-grow-1 mb-6"
             :click="applyFilters" />
           <custom-btn type="cancel_filter" :click="resetFilters" variant="tonal" color="error" label="تفريغ"
@@ -26,7 +30,8 @@
     </filter-fields>
 
     <!-- Data Table -->
-    <custom-data-table :="{
+    <custom-data-table
+      actionList :="{
       headers,
       items,
       getData,

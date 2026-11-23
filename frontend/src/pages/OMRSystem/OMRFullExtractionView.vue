@@ -50,18 +50,18 @@
       </p>
 
       <div v-if="exams.length > 1" class="d-inline-flex align-center gap-2 pa-2 rounded-xl border-subtle" @click.stop>
-        <span class="text-caption font-weight-bold text-medium-emphasis">اختر الاختبار:</span>
-        <v-select
-          v-model="selectedExamId"
-          :items="exams"
-          item-title="name"
-          item-value="id"
-          density="compact"
-          variant="outlined"
-          rounded="lg"
-          hide-details
-          style="width: 220px;"
-        />
+        <div style="width: 240px;">
+          <auto-list
+            v-model="selectedExamId"
+            name="LocalNameOption"
+            :objects="exams"
+            cols="12"
+            class="pa-0"
+            label="اختر الاختبار"
+            icon="file-document-outline"
+            :add="false"
+          />
+        </div>
       </div>
     </div>
 

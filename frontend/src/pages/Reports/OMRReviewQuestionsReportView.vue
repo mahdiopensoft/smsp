@@ -20,7 +20,7 @@
           name="Exam"
           :param="examParam"
           placeholder="الاختبار"
-          cols="2"
+          cols="3"
           :add="false"
           @update:model-value="filterVersion = null"
         />
@@ -30,65 +30,56 @@
           name="ExamVersionByExam"
           :param="filterExam"
           placeholder="النموذج"
-          cols="2"
+          cols="3"
           :add="false"
           :disabled="!filterExam"
         />
 
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filterReviewPriority"
-            :items="[
-              { text: 'جميع الأولويات', value: '' },
-              { text: 'حرج', value: 'CRITICAL' },
-              { text: 'عالي', value: 'HIGH' },
-              { text: 'متوسط', value: 'MEDIUM' },
-              { text: 'لا يتطلب', value: 'NONE' }
-            ]"
-            item-title="text"
-            item-value="value"
-            placeholder="أولوية المراجعة"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterReviewPriority"
+          name="LocalTextOption"
+          :objects="[
+            { text: 'جميع الأولويات', value: '' },
+            { text: 'حرج', value: 'CRITICAL' },
+            { text: 'عالي', value: 'HIGH' },
+            { text: 'متوسط', value: 'MEDIUM' },
+            { text: 'لا يتطلب', value: 'NONE' }
+          ]"
+          cols="3"
+          label="أولوية المراجعة"
+          icon="alert-circle-outline"
+          :add="false"
+        />
 
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filterBubbleState"
-            :items="[
-              { text: 'جميع الحالات', value: '' },
-              { text: 'ملتبس', value: 'ambiguous' },
-              { text: 'تظليل متعدد', value: 'multiple' },
-              { text: 'فارغ', value: 'empty' },
-              { text: 'ممسوح', value: 'erased' }
-            ]"
-            item-title="text"
-            item-value="value"
-            placeholder="حالة الدائرة"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterBubbleState"
+          name="LocalTextOption"
+          :objects="[
+            { text: 'جميع الحالات', value: '' },
+            { text: 'ملتبس', value: 'ambiguous' },
+            { text: 'تظليل متعدد', value: 'multiple' },
+            { text: 'فارغ', value: 'empty' },
+            { text: 'ممسوح', value: 'erased' }
+          ]"
+          cols="3"
+          label="حالة الدائرة"
+          icon="radiobox-marked"
+          :add="false"
+        />
 
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filterIsManuallyOverridden"
-            :items="[
-              { text: 'الكل', value: '' },
-              { text: 'معدّل يدوياً', value: 'true' },
-              { text: 'غير معدّل', value: 'false' }
-            ]"
-            item-title="text"
-            item-value="value"
-            placeholder="تعديل يدوي"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterIsManuallyOverridden"
+          name="LocalTextOption"
+          :objects="[
+            { text: 'الكل', value: '' },
+            { text: 'معدّل يدوياً', value: 'true' },
+            { text: 'غير معدّل', value: 'false' }
+          ]"
+          cols="3"
+          label="تعديل يدوي"
+          icon="pencil-outline"
+          :add="false"
+        />
 
         <v-col cols="auto" class="d-flex align-center gap-2 py-2">
           <custom-btn type="filter" :loading="loading" :click="applyFilters" />
@@ -142,22 +133,14 @@
             </v-chip>
           </template>
           <template v-else-if="key === 'reviewPriority'">
-            <v-chip
-              :color="getPriorityColor(item.reviewPriority)"
-              size="small"
-              variant="tonal"
-            >
+            <span class="font-weight-bold text-body-2" :class="`text-${getPriorityColor(item.reviewPriority)}`">
               {{ getPriorityLabel(item.reviewPriority) }}
-            </v-chip>
+            </span>
           </template>
           <template v-else-if="key === 'isManuallyOverridden'">
-            <v-chip
-              :color="item.isManuallyOverridden ? 'info' : 'default'"
-              size="small"
-              variant="tonal"
-            >
+            <span class="font-weight-medium text-body-2" :class="item.isManuallyOverridden ? 'text-info' : 'text-medium-emphasis'">
               {{ item.isManuallyOverridden ? 'نعم' : 'لا' }}
-            </v-chip>
+            </span>
           </template>
         </template>
       </custom-data-table>
@@ -195,8 +178,6 @@ const examParam = computed(() => {
 const onInstitutionTypeChange = () => {
   filterExam.value = null
   filterVersion.value = null
-  resetPagination()
-  applyFilters()
 }
 
 const headers = [

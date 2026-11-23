@@ -9,27 +9,16 @@
       <filter-fields label="خيارات تصفية والبحث في أرشيف الاختبارات" class="main-card border-0 pa-5 rounded-2xl mb-8">
         <v-row dense class="align-center">
           <!-- Institution Type Selector (مدارس / جامعات / معاهد) -->
-          <v-col cols="12" sm="6" :md="filterInstitutionType ? 3 : 4">
-            <v-select
-              v-model="filterInstitutionType"
-              :items="institutionTypeOptions"
-              item-title="text"
-              item-value="value"
-              class="mb-6"
-              label="نوع المؤسسة التعليمية"
-              placeholder="اختر نوع المؤسسة"
-              prepend-inner-icon="mdi-domain"
-              hide-details
-              clearable
-              density="compact"
-              variant="outlined"
-              @update:model-value="onInstitutionTypeChange"
-            >
-              <template v-slot:item="{ props, item }">
-                <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
-              </template>
-            </v-select>
-          </v-col>
+          <auto-list
+            v-model="filterInstitutionType"
+            name="LocalTextOption"
+            :objects="institutionTypeOptions"
+            cols="3"
+            label="نوع المؤسسة التعليمية"
+            icon="domain"
+            :add="false"
+            @update:model-value="onInstitutionTypeChange"
+          />
 
           <!-- الظهور مشروط باختيار نوع المؤسسة: مدارس أو جامعات أو معاهد -->
           <template v-if="filterInstitutionType">
@@ -163,17 +152,17 @@
           />
 
           <!-- Filter Actions -->
-          <v-col cols="12" sm="12" md="auto" class="d-flex align-center justify-end gap-2 ms-auto">
+          <v-col cols="auto" class="d-flex align-center gap-2">
             <custom-btn
               type="show"
-              label="تصفية الأرشيف"
+              label="عرض"
               color="primary"
               class="font-weight-bold px-6 mb-6"
               :click="applyFilters"
             />
             <custom-btn
               type="cancel_filter"
-              label="تفريغ الفلاتر"
+              label="إلغاء الفلترة"
               variant="tonal"
               color="error"
               class="font-weight-bold mb-6"
@@ -186,50 +175,42 @@
       <!-- Table -->
       <div class="main-card rounded-2xl overflow-hidden mb-8">
         <custom-data-table :headers="headers" :items="items" :getData="getData" :customLoading="loading"
-          class="bg-transparent" :hasFilter="false" :log="false" :restore="false">
+          class="bg-transparent" :hasFilter="false" :log="false" :restore="false"
+          :actionList="(item) => [
+            ...(!item.is_approved ? [
+              { title_ar: 'اعتماد وتسكين الطلاب', title_en: 'Approve Exam', click: () => confirmApproveExam(item) },
+              { title_ar: 'تعديل الاختبار ومسودته', title_en: 'Edit Exam', click: () => editExam(item) },
+            ] : [
+              { title_ar: 'إلغاء الاعتماد (إعادة لمسودة)', title_en: 'Unapprove Exam', click: () => confirmUnapproveExam(item) },
+            ]),
+            { title_ar: 'تفاصيل الاختبار والمناطق', title_en: 'Exam Details', click: () => openExamDetailsModal(item) },
+            { title_ar: 'لوحة التحكم والطباعة', title_en: 'Dashboard & Print', click: () => openDashboard(item) },
+            { title_ar: 'التصحيح الضوئي (OMR)', title_en: 'OMR Grading', click: () => $router.push(`/omr-exams?open_exam_id=${item.id}`) },
+          ]">
           <template v-slot:item-slot="{ item, key }">
 
             <template v-if="key === 'title'">
-              <div class="d-flex align-center gap-3 py-1 cursor-pointer" @click="openDashboard(item)">
-                <v-avatar :color="item.institutionTypeColor" variant="tonal" size="36" class="rounded-lg">
-                  <v-icon size="18">{{ item.institutionTypeIcon }}</v-icon>
-                </v-avatar>
-                <div>
-                  <div class="d-flex align-center gap-2">
-                    <span class="font-weight-black text-subtitle-2 text-primary">{{ item.title }}</span>
-                    <v-chip
-                      size="x-small"
-                      :color="item.institutionTypeColor"
-                      variant="tonal"
-                      class="font-weight-bold"
-                    >
-                      <v-icon start size="12">{{ item.institutionTypeIcon }}</v-icon>
-                      {{ item.institutionTypeShortLabel }}
-                    </v-chip>
-                  </div>
-                  <div class="text-caption text-medium-emphasis">{{ item.subjectName }}</div>
-                </div>
+              <div class="py-1 cursor-pointer" @click="openDashboard(item)">
+                <div class="font-weight-bold text-subtitle-2 text-primary">{{ item.title }}</div>
+                <div class="text-caption text-medium-emphasis">{{ item.subjectName }}</div>
               </div>
             </template>
 
             <template v-else-if="key === 'institutionType'">
-              <div class="d-flex align-center justify-center text-body-2" style="color: #000000 !important;">
+              <div class="d-flex align-center justify-center text-body-2">
                 <span>{{ item.institutionTypeFullLabel }}</span>
               </div>
             </template>
 
             <template v-else-if="key === 'versionCode'">
-              <div class="d-flex flex-wrap gap-1">
-                <v-chip v-for="v in item.versionsList" :key="v.id" size="x-small" color="primary" variant="tonal"
-                  class="font-weight-bold">
-                  نموذج {{ v.versionCode }}
-                </v-chip>
-                <span v-if="!item.versionsList || item.versionsList.length === 0" class="text-medium-emphasis">-</span>
-              </div>
+              <span v-if="item.versionsList && item.versionsList.length > 0" class="text-body-2 font-mono font-weight-medium">
+                {{ item.versionsList.map(v => v.versionCode).join('، ') }}
+              </span>
+              <span v-else class="text-medium-emphasis">-</span>
             </template>
 
             <template v-else-if="key === 'questionsCount'">
-              <span class="text-body-2" style="color: #000000 !important;">
+              <span class="text-body-2">
                 {{ item.questionsCount }} سؤال
               </span>
             </template>
@@ -241,7 +222,6 @@
                 variant="tonal"
                 class="font-weight-bold"
               >
-                <v-icon start size="14">{{ item.is_approved ? 'mdi-check-decagram' : 'mdi-clock-outline' }}</v-icon>
                 {{ item.is_approved ? 'معتمد' : 'بانتظار الاعتماد' }}
               </v-chip>
             </template>
@@ -249,117 +229,6 @@
             <template v-else-if="key === 'studentsCount'">
               <div class="d-flex align-center justify-center text-body-2" style="color: #000000 !important;">
                 <span>{{ item.studentsCount || 0 }} طالب</span>
-              </div>
-            </template>
-
-            <template v-else-if="key === 'actions'">
-              <div class="d-flex align-center justify-center">
-                <v-menu transition="slide-y-transition" location="bottom end" offset="8">
-                  <template v-slot:activator="{ props }">
-                    <custom-btn v-bind="props" is-icon icon="dots-vertical" color="secondary" variant="text" />
-                  </template>
-
-                  <v-card elevation="24" rounded="lg" class="premium-menu-card border-thin overflow-hidden"
-                    style="min-width: 220px">
-                    <div class="pa-3 border-b d-flex align-center"
-                      style="background-color: rgba(var(--v-theme-primary), 0.08)">
-                      <v-icon color="primary" class="me-2" size="20">mdi-dots-horizontal-circle-outline</v-icon>
-                      <div class="text-caption font-weight-bold" style="color: rgb(var(--v-theme-on-surface))">
-                        إجراءات السجل
-                      </div>
-                    </div>
-
-                    <v-card-text class="pa-1">
-                      <v-list density="compact" class="bg-transparent pa-0">
-                        <v-list-subheader class="modern-subheader px-2 mt-1 mb-1">
-                          خيارات الاختبار
-                        </v-list-subheader>
-
-                        <!-- اعتماد وتسكين الطلاب -->
-                        <v-list-item
-                          v-if="!item.is_approved"
-                          @click="confirmApproveExam(item)"
-                          class="premium-list-item"
-                        >
-                          <template v-slot:prepend>
-                            <v-icon size="18" color="success" class="me-2">mdi-check-decagram</v-icon>
-                          </template>
-                          <v-list-item-title class="text-caption font-weight-bold text-success">
-                            اعتماد وتسكين الطلاب
-                          </v-list-item-title>
-                        </v-list-item>
-
-                          <!-- تعديل الاختبار ومسودته (فقط إذا لم يكن معتمداً) -->
-                          <v-list-item
-                            v-if="!item.is_approved"
-                            :disabled="loadingEditId === item.id"
-                            @click="editExam(item)"
-                            class="premium-list-item"
-                          >
-                            <template v-slot:prepend>
-                              <v-progress-circular
-                                v-if="loadingEditId === item.id"
-                                indeterminate
-                                size="18"
-                                width="2"
-                                color="warning"
-                                class="me-2"
-                              />
-                              <v-icon v-else size="18" color="warning" class="me-2">mdi-pencil-outline</v-icon>
-                            </template>
-                            <v-list-item-title class="text-caption font-weight-bold text-warning">
-                              {{ loadingEditId === item.id ? 'جاري الانتقال للتعديل...' : 'تعديل الاختبار ومسودته' }}
-                            </v-list-item-title>
-                          </v-list-item>
-
-                        <!-- إلغاء الاعتماد (إعادة لمسودة) -->
-                        <v-list-item
-                          v-else
-                          @click="confirmUnapproveExam(item)"
-                          class="premium-list-item"
-                        >
-                          <template v-slot:prepend>
-                            <v-icon size="18" color="amber-darken-3" class="me-2">mdi-undo-variant</v-icon>
-                          </template>
-                          <v-list-item-title class="text-caption font-weight-medium text-amber-darken-3">
-                            إلغاء الاعتماد (إعادة لمسودة)
-                          </v-list-item-title>
-                        </v-list-item>
-
-                        <!-- تفاصيل الاختبار والمناطق -->
-                        <v-list-item @click="openExamDetailsModal(item)" class="premium-list-item">
-                          <template v-slot:prepend>
-                            <v-icon size="18" color="info" class="me-2">mdi-eye-outline</v-icon>
-                          </template>
-                          <v-list-item-title class="text-caption font-weight-medium text-info">
-                            تفاصيل الاختبار والمناطق
-                          </v-list-item-title>
-                        </v-list-item>
-
-                        <!-- لوحة التحكم والطباعة -->
-                        <v-list-item @click="openDashboard(item)" class="premium-list-item">
-                          <template v-slot:prepend>
-                            <v-icon size="18" color="primary" class="me-2">mdi-monitor-dashboard</v-icon>
-                          </template>
-                          <v-list-item-title class="text-caption font-weight-medium text-primary">
-                            لوحة التحكم والطباعة
-                          </v-list-item-title>
-                        </v-list-item>
-
-                        <!-- التصحيح الضوئي OMR -->
-                        <v-list-item :to="`/omr-exams?open_exam_id=${item.id}`" class="premium-list-item">
-                          <template v-slot:prepend>
-                            <v-icon size="18" color="purple-darken-1" class="me-2">mdi-scanner</v-icon>
-                          </template>
-                          <v-list-item-title class="text-caption font-weight-medium text-purple-darken-1">
-                            التصحيح الضوئي (OMR)
-                          </v-list-item-title>
-                        </v-list-item>
-
-                      </v-list>
-                    </v-card-text>
-                  </v-card>
-                </v-menu>
               </div>
             </template>
 
@@ -571,7 +440,7 @@
                         }}</v-avatar>
                         <div class="flex-grow-1">
                           <div class="d-flex justify-space-between align-center mb-2">
-                            <div class="text-body-1 font-weight-bold" v-html="q.content" />
+                            <div class="text-body-1 font-weight-bold" v-html="$sanitizeHtml(q.content)" />
                             <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold ms-2">{{
                               q.assignedMark }} درجة</v-chip>
                           </div>
@@ -681,19 +550,21 @@
                   قائمة الطلاب المسجلين
                 </h4>
                 <div class="d-flex align-center gap-2">
-                  <v-select
+                  <div
                     v-if="totalStudentsCount > 0 || (studentsTableItems.results && studentsTableItems.results.length > 0)"
-                    v-model="studentsFilterVersion"
-                    :items="studentsVersionOptions"
-                    item-title="text"
-                    item-value="value"
-                    density="compact"
-                    variant="outlined"
-                    style="min-width: 170px;"
-                    hide-details
-                    placeholder="تصفية بالنموذج"
-                    prepend-inner-icon="mdi-filter-variant"
-                  />
+                    style="min-width: 190px; max-width: 240px;"
+                  >
+                    <auto-list
+                      v-model="studentsFilterVersion"
+                      name="LocalTextOption"
+                      :objects="studentsVersionOptions"
+                      cols="12"
+                      class="pa-0"
+                      label="تصفية بالنموذج"
+                      icon="filter-variant"
+                      :add="false"
+                    />
+                  </div>
                   <custom-btn
                     label="تحديث"
                     icon="mdi-refresh"
@@ -756,28 +627,17 @@
                   <template v-slot:item-slot="{ item, key }">
                     <!-- Student Name -->
                     <template v-if="key === 'studentName'">
-                      <div class="d-flex align-center gap-2">
-                        <v-avatar size="30" :color="item.gender === 'ذكر' ? 'blue' : 'pink'" variant="tonal" class="flex-shrink-0">
-                          <v-icon size="16" :color="item.gender === 'ذكر' ? 'blue' : 'pink'">
-                            {{ item.gender === 'ذكر' ? 'mdi-gender-male' : 'mdi-gender-female' }}
-                          </v-icon>
-                        </v-avatar>
-                        <span class="font-weight-bold text-subtitle-2">{{ item.studentName }}</span>
-                      </div>
+                      <span class="font-weight-bold text-subtitle-2">{{ item.studentName }}</span>
                     </template>
 
                     <!-- Academic Number -->
                     <template v-else-if="key === 'academicNumber'">
-                      <v-chip size="x-small" color="indigo" variant="tonal" class="font-weight-bold">
-                        {{ item.academicNumber || '-' }}
-                      </v-chip>
+                      <span class="font-mono text-body-2">{{ item.academicNumber || '-' }}</span>
                     </template>
 
                     <!-- Seat Number -->
                     <template v-else-if="key === 'seatNumber'">
-                      <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
-                        {{ item.seatNumber || '-' }}
-                      </v-chip>
+                      <span class="font-mono font-weight-bold text-body-2">{{ item.seatNumber || '-' }}</span>
                     </template>
 
                     <!-- Secret Number -->
@@ -787,9 +647,7 @@
 
                     <!-- Version Code -->
                     <template v-else-if="key === 'versionCode'">
-                      <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold">
-                        نموذج {{ item.versionCode }}
-                      </v-chip>
+                      <span class="font-mono font-weight-medium text-body-2">نموذج {{ item.versionCode }}</span>
                     </template>
 
                     <!-- School Name -->
@@ -854,17 +712,19 @@
             </v-btn-toggle>
 
             <!-- Version Selector (if exam has versions) -->
-            <v-select
-              v-if="examDetails?.versions?.length > 1"
-              v-model="printVersionIndex"
-              :items="examDetails.versions.map((v, i) => ({ title: `نموذج ${v.versionCode}`, value: i }))"
-              item-title="title"
-              item-value="value"
-              density="compact"
-              variant="outlined"
-              hide-details
-              style="min-width: 120px;"
-            />
+            <div v-if="examDetails?.versions?.length > 1" style="min-width: 160px; max-width: 210px;">
+              <auto-list
+                v-model="printVersionIndex"
+                name="LocalOption"
+                :objects="examDetails.versions.map((v, i) => ({ title: `نموذج ${v.versionCode}`, value: i }))"
+                cols="12"
+                class="pa-0"
+                label="النموذج"
+                icon="format-list-bulleted-type"
+                :add="false"
+                :clearable="false"
+              />
+            </div>
 
             <!-- Toggle Blank vs Key (Only for Sheets) -->
             <div v-if="printModalType === 'sheets'" class="d-flex align-center border rounded-lg pa-1 bg-slate-50 gap-1">
@@ -975,7 +835,7 @@
                   </div>
                   <div class="flex-grow-1">
                     <div class="d-flex justify-space-between align-center mb-2">
-                      <div class="text-body-1 font-weight-bold" v-html="q.content"></div>
+                      <div class="text-body-1 font-weight-bold" v-html="$sanitizeHtml(q.content)"></div>
                       <span class="paper-badge ms-2 text-caption">{{ q.assignedMark }} درجة</span>
                     </div>
                     <div v-if="q.options && q.options.length" class="mt-3">

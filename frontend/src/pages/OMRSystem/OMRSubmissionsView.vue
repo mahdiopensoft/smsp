@@ -19,7 +19,6 @@
               placeholder="نوع المؤسسة التعليمية"
               cols="12"
               :add="false"
-              :hideDetails="true"
               @update:model-value="onSectorChange"
             />
           </v-col>
@@ -36,7 +35,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onOfficeFilterChange"
               />
             </v-col>
@@ -51,7 +49,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onDirectorateFilterChange"
               />
             </v-col>
@@ -66,8 +63,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
-                @update:model-value="onSchoolFilterChange"
               />
             </v-col>
 
@@ -80,8 +75,6 @@
                 placeholder="تصفية حسب المادة..."
                 cols="12"
                 :add="false"
-                :hideDetails="true"
-                @update:model-value="onSubjectFilterChange"
               />
             </v-col>
           </template>
@@ -98,8 +91,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
-                @update:model-value="onSchoolFilterChange"
               />
             </v-col>
 
@@ -112,8 +103,6 @@
                 placeholder="تصفية حسب المادة..."
                 cols="12"
                 :add="false"
-                :hideDetails="true"
-                @update:model-value="onSubjectFilterChange"
               />
             </v-col>
           </template>
@@ -130,8 +119,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
-                @update:model-value="onSchoolFilterChange"
               />
             </v-col>
 
@@ -144,14 +131,12 @@
                 placeholder="تصفية حسب المادة..."
                 cols="12"
                 :add="false"
-                :hideDetails="true"
-                @update:model-value="onSubjectFilterChange"
               />
             </v-col>
           </template>
 
           <!-- حقل فلتر حالة وتدقيق ورقة الإجابة -->
-          <v-col cols="12" sm="6" :md="institutionType === 'school' ? 4 : 4">
+          <v-col cols="12" sm="6" md="3">
             <auto-list
               v-model="filterStatus"
               name="ScreenTypeChoices"
@@ -160,43 +145,27 @@
               placeholder="تصفية بحالة الورقة..."
               cols="12"
               :add="false"
-              :hideDetails="true"
-              @update:model-value="onStatusFilterChange"
             />
           </v-col>
 
-          <!-- أزرار الإجراءات ومتوسط الدرجات -->
-          <v-col cols="12" class="d-flex align-center justify-space-between flex-wrap gap-2 mb-3">
-            <v-chip 
-              color="indigo" 
-              variant="tonal" 
-              size="small" 
-              class="font-weight-black px-3"
-              style="border-radius: 6px !important;"
-            >
-              متوسط الدرجات: {{ statsData.average_score || 0 }}% لعموم الأوراق المصححة
-            </v-chip>
-
-            <div class="d-flex align-center gap-2">
-              <custom-btn
-                type="show"
-                label="تصفية النتائج"
-                color="primary"
-                icon="mdi-filter"
-                class="font-weight-bold px-5"
-                :loading="loadingMaster"
-                :click="refreshMasterData"
-              />
-              <custom-btn
-                type="cancel_filter"
-                :click="resetHierarchyFilters"
-                variant="tonal"
-                color="error"
-                label="إلغاء التصفية"
-                icon="mdi-filter-off"
-                class="font-weight-bold"
-              />
-            </div>
+          <!-- أزرار الإجراءات -->
+          <v-col cols="auto" class="d-flex align-center gap-2 mb-6">
+            <custom-btn
+              type="show"
+              label="عرض"
+              color="primary"
+              class="font-weight-bold px-5"
+              :loading="loadingMaster"
+              :click="refreshMasterData"
+            />
+            <custom-btn
+              type="cancel_filter"
+              :click="resetHierarchyFilters"
+              variant="tonal"
+              color="error"
+              label="إلغاء الفلترة"
+              class="font-weight-bold"
+            />
           </v-col>
         </v-row>
       </filter-fields>
@@ -239,10 +208,10 @@
               :restore="false"
               :numbering="true"
               :showSelect="true"
-              :actions="false"
               :search="true"
               class="bg-transparent"
-            >
+            
+        :actionList="(item) => ([ { label: 'عرض المديريات', icon: 'arrow-down-right', color: 'primary', onClick: () => drillDownToOffice(item) }, { label: 'سجل أوراق المكتب', icon: 'file-document-multiple-outline', color: 'indigo', onClick: () => openOfficeSubmissions(item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
               <template v-slot:item-slot="{ item, key, index }">
                 <template v-if="key === 'numbering'">
                   <div class="d-flex justify-center align-center">
@@ -251,14 +220,9 @@
                 </template>
 
                 <template v-else-if="key === 'office_name'">
-                  <div class="d-flex align-center py-2" style="min-width: 280px;">
-                    <v-avatar color="primary" variant="tonal" size="36" class="me-3 rounded-lg flex-shrink-0">
-                      <v-icon color="primary" size="20">mdi-office-building-outline</v-icon>
-                    </v-avatar>
-                    <div>
-                      <div class="font-weight-bold text-subtitle-2 text-on-surface text-wrap">{{ item.office_name }}</div>
-                      <div class="text-caption text-medium-emphasis">المحافظة: {{ item.governorate_name }}</div>
-                    </div>
+                  <div class="py-1" style="min-width: 240px;">
+                    <div class="font-weight-bold text-subtitle-2 text-on-surface text-wrap">{{ item.office_name }}</div>
+                    <div class="text-caption text-medium-emphasis">المحافظة: {{ item.governorate_name }}</div>
                   </div>
                 </template>
 
@@ -305,32 +269,7 @@
                   </div>
                 </template>
 
-                <template v-else-if="key === 'actions'">
-                  <div class="d-flex align-center justify-center gap-2">
-                    <v-btn
-                      size="small"
-                      color="primary"
-                      variant="tonal"
-                      rounded="lg"
-                      class="font-weight-bold"
-                      prepend-icon="mdi-arrow-down-right"
-                      @click="drillDownToOffice(item)"
-                    >
-                      المديريات
-                    </v-btn>
-                    <v-btn
-                      size="small"
-                      color="primary"
-                      variant="flat"
-                      rounded="lg"
-                      class="font-weight-bold"
-                      prepend-icon="mdi-file-document-multiple-outline"
-                      @click="openOfficeSubmissions(item)"
-                    >
-                      سجل أوراق المكتب
-                    </v-btn>
-                  </div>
-                </template>
+                
               </template>
             </custom-data-table>
           </v-window-item>
@@ -349,10 +288,10 @@
               :restore="false"
               :numbering="true"
               :showSelect="true"
-              :actions="false"
               :search="true"
               class="bg-transparent"
-            >
+            
+        :actionList="(item) => ([ { label: 'عرض المراكز والمدارس', icon: 'school', color: 'teal', onClick: () => drillDownToDirectorate(item) }, { label: 'سجل أوراق المديرية', icon: 'file-document-multiple-outline', color: 'indigo', onClick: () => openDirectorateSubmissions(item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
               <template v-slot:item-slot="{ item, key, index }">
                 <template v-if="key === 'numbering'">
                   <div class="d-flex justify-center align-center">
@@ -361,13 +300,8 @@
                 </template>
 
                 <template v-else-if="key === 'name'">
-                  <div class="d-flex align-center py-2" style="min-width: 280px;">
-                    <v-avatar color="teal" variant="tonal" size="36" class="me-3 rounded-lg flex-shrink-0">
-                      <v-icon color="teal" size="20">mdi-map-marker-radius-outline</v-icon>
-                    </v-avatar>
-                    <div>
-                      <div class="font-weight-bold text-subtitle-2 text-on-surface text-wrap">{{ item.name }}</div>
-                    </div>
+                  <div class="py-1" style="min-width: 240px;">
+                    <div class="font-weight-bold text-subtitle-2 text-on-surface text-wrap">{{ item.name }}</div>
                   </div>
                 </template>
 
@@ -414,32 +348,7 @@
                   </div>
                 </template>
 
-                <template v-else-if="key === 'actions'">
-                  <div class="d-flex align-center justify-center gap-2">
-                    <v-btn
-                      size="small"
-                      color="teal"
-                      variant="tonal"
-                      rounded="lg"
-                      class="font-weight-bold"
-                      prepend-icon="mdi-school"
-                      @click="drillDownToDirectorate(item)"
-                    >
-                      المراكز والمدارس
-                    </v-btn>
-                    <v-btn
-                      size="small"
-                      color="teal"
-                      variant="flat"
-                      rounded="lg"
-                      class="font-weight-bold"
-                      prepend-icon="mdi-file-document-multiple-outline"
-                      @click="openDirectorateSubmissions(item)"
-                    >
-                      سجل أوراق المديرية
-                    </v-btn>
-                  </div>
-                </template>
+                
               </template>
             </custom-data-table>
           </v-window-item>
@@ -458,10 +367,10 @@
               :restore="false"
               :numbering="true"
               :showSelect="true"
-              :actions="false"
               :search="true"
               class="bg-transparent"
-            >
+            
+        :actionList="(item) => ([ { label: 'استعراض تفاصيل الاختبارات والمواد', icon: 'format-list-text', color: 'secondary', onClick: () => openSchoolExamsDialog(item) }, { label: 'سجل أوراق المركز', icon: 'file-document-check-outline', color: 'indigo', onClick: () => openSchoolSubmissions(item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
               <template v-slot:item-slot="{ item, key, index }">
                 <template v-if="key === 'numbering'">
                   <div class="d-flex justify-center align-center">
@@ -470,21 +379,14 @@
                 </template>
 
                 <template v-else-if="key === 'name' || key === 'school_name'">
-                  <div class="d-flex align-center py-2" style="min-width: 280px;">
-                    <v-avatar color="indigo" variant="tonal" size="36" class="me-3 rounded-lg flex-shrink-0">
-                      <v-icon color="indigo" size="20">mdi-school-outline</v-icon>
-                    </v-avatar>
-                    <div>
-                      <div class="font-weight-bold text-subtitle-2 text-on-surface text-wrap">{{ item.name || item.school_name }}</div>
-                    </div>
+                  <div class="py-1" style="min-width: 240px;">
+                    <div class="font-weight-bold text-subtitle-2 text-on-surface text-wrap">{{ item.name || item.school_name }}</div>
                   </div>
                 </template>
 
                 <template v-else-if="key === 'institution_type'">
-                  <div class="d-flex justify-center align-center">
-                    <v-chip size="x-small" :color="item.institution_type === 'university' ? 'purple' : (item.institution_type === 'institute' ? 'amber' : 'primary')" variant="tonal" class="font-weight-bold">
-                      {{ item.institution_type === 'university' ? 'جامعي' : (item.institution_type === 'institute' ? 'مهني/معهد' : 'مدرسي') }}
-                    </v-chip>
+                  <div class="text-center text-body-2 font-weight-medium">
+                    {{ item.institution_type === 'university' ? 'جامعي' : (item.institution_type === 'institute' ? 'مهني/معهد' : 'مدرسي') }}
                   </div>
                 </template>
 
@@ -495,30 +397,14 @@
                 </template>
 
                 <template v-else-if="key === 'subject_name'">
-                  <div class="d-flex align-center justify-center flex-wrap gap-1 py-1" style="min-width: 150px;">
+                  <div class="text-center text-body-2" style="min-width: 150px;">
                     <template v-if="item.subjects && item.subjects.length > 0">
-                      <v-chip
-                        v-for="(subj, sIdx) in item.subjects.slice(0, 2)"
-                        :key="sIdx"
-                        size="x-small"
-                        color="teal"
-                        variant="tonal"
-                        class="font-weight-bold"
-                      >
-                        {{ subj }}
-                      </v-chip>
+                      <span>{{ item.subjects.slice(0, 2).join('، ') }}</span>
                       <v-tooltip v-if="item.subjects.length > 2" location="top">
                         <template #activator="{ props: tProps }">
-                          <v-chip
-                            v-bind="tProps"
-                            size="x-small"
-                            color="primary"
-                            variant="flat"
-                            class="font-weight-bold cursor-pointer"
-                            @click.stop="openSchoolExamsDialog(item)"
-                          >
-                            +{{ item.subjects.length - 2 }}
-                          </v-chip>
+                          <span v-bind="tProps" class="text-primary font-weight-bold cursor-pointer ms-1" @click.stop="openSchoolExamsDialog(item)">
+                            (+{{ item.subjects.length - 2 }})
+                          </span>
                         </template>
                         <span>{{ item.subjects.slice(2).join('، ') }}</span>
                       </v-tooltip>
@@ -528,22 +414,14 @@
                 </template>
 
                 <template v-else-if="key === 'exams_count'">
-                  <div class="d-flex justify-center align-center">
-                    <v-tooltip location="top" text="انقر لمعاينة قائمة الاختبارات والمواد لهذا المركز">
-                      <template #activator="{ props }">
-                        <v-chip
-                          v-bind="props"
-                          size="small"
-                          color="primary"
-                          variant="tonal"
-                          class="font-weight-bold cursor-pointer elevation-0"
-                          prepend-icon="mdi-format-list-bulleted"
-                          @click.stop="openSchoolExamsDialog(item)"
-                        >
-                          {{ item.exams_count }} اختبار
-                        </v-chip>
-                      </template>
-                    </v-tooltip>
+                  <div class="text-center">
+                    <span
+                      class="font-weight-bold text-primary cursor-pointer text-body-2"
+                      title="انقر لمعاينة قائمة الاختبارات والمواد لهذا المركز"
+                      @click.stop="openSchoolExamsDialog(item)"
+                    >
+                      {{ item.exams_count }} اختبار
+                    </span>
                   </div>
                 </template>
 
@@ -578,34 +456,7 @@
                   </div>
                 </template>
 
-                <template v-else-if="key === 'actions'">
-                  <div class="d-flex align-center justify-center gap-1">
-                    <v-tooltip location="top" text="استعراض تفاصيل الاختبارات والمواد">
-                      <template #activator="{ props }">
-                        <v-btn
-                          v-bind="props"
-                          size="small"
-                          color="secondary"
-                          variant="tonal"
-                          icon="mdi-format-list-text"
-                          rounded="lg"
-                          @click.stop="openSchoolExamsDialog(item)"
-                        />
-                      </template>
-                    </v-tooltip>
-                    <v-btn
-                      size="small"
-                      color="indigo"
-                      variant="tonal"
-                      rounded="lg"
-                      class="font-weight-bold"
-                      prepend-icon="mdi-file-document-check-outline"
-                      @click="openSchoolSubmissions(item)"
-                    >
-                      سجل أوراق المركز
-                    </v-btn>
-                  </div>
-                </template>
+                
               </template>
             </custom-data-table>
           </v-window-item>
@@ -624,10 +475,10 @@
               :restore="false"
               :numbering="true"
               :showSelect="true"
-              :actions="false"
               :search="true"
               class="bg-transparent"
-            >
+            
+        :actionList="(item) => ([ { label: 'فتح سجل أوراق الاختبار', icon: 'file-document-check-outline', color: 'primary', onClick: () => openExamSubmissions(item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
               <template v-slot:item-slot="{ item, key, index }">
                 <template v-if="key === 'numbering'">
                   <div class="d-flex justify-center align-center">
@@ -694,21 +545,7 @@
                   </div>
                 </template>
 
-                <template v-else-if="key === 'actions'">
-                  <div class="d-flex align-center justify-center gap-2">
-                    <v-btn
-                      size="small"
-                      color="primary"
-                      variant="flat"
-                      rounded="lg"
-                      class="font-weight-bold px-3"
-                      prepend-icon="mdi-file-document-check-outline"
-                      @click="openExamSubmissions(item)"
-                    >
-                      فتح سجل أوراق الاختبار
-                    </v-btn>
-                  </div>
-                </template>
+                
               </template>
             </custom-data-table>
           </v-window-item>
@@ -764,19 +601,6 @@
       <!-- شريط تصفية نتائج أوراق الإجابة بنمط students-master -->
       <filter-fields label="خيارات تصفية وتدقيق نتائج أوراق الإجابة" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
         <v-row dense class="align-center">
-          <!-- 1. البحث الفوري باسم الطالب أو رقم الجلوس أو الباركود -->
-          <v-col cols="12" sm="6" md="3">
-            <custom-text-field
-              v-model="searchQuery"
-              label="اسم الطالب أو رقم الجلوس أو الباركود"
-              placeholder="بحث باسم الطالب، رقم الجلوس، الباركود..."
-              icon="magnify"
-              cols="12"
-              :hideDetails="true"
-              clearable
-              @update:model-value="onSearchInput"
-            />
-          </v-col>
 
           <!-- 2. الاختبار المعروض -->
           <v-col cols="12" sm="6" md="3">
@@ -788,8 +612,6 @@
               placeholder="اختر الاختبار..."
               cols="12"
               :add="false"
-              :hideDetails="true"
-              @update:model-value="onExamChange"
             />
           </v-col>
 
@@ -803,8 +625,6 @@
               placeholder="النموذج"
               cols="12"
               :add="false"
-              :hideDetails="true"
-              @update:model-value="applyFilters"
             />
           </v-col>
 
@@ -818,47 +638,38 @@
               placeholder="حالة المسح والتصحيح"
               cols="12"
               :add="false"
-              :hideDetails="true"
-              @update:model-value="applyFilters"
             />
           </v-col>
 
-          <!-- شريط الإحصائية وإجراءات الفلترة -->
-          <v-col cols="12" class="d-flex align-center justify-space-between flex-wrap gap-2 pt-2 mb-1">
-            <v-chip 
-              color="indigo" 
-              variant="tonal" 
-              size="small" 
-              class="font-weight-black px-3"
-              style="border-radius: 6px !important;"
+          <!-- أزرار الإجراءات -->
+          <v-col cols="auto" class="d-flex align-center gap-2 mb-6">
+            <custom-btn
+              type="show"
+              label="عرض"
+              color="primary"
+              class="font-weight-bold px-5"
+              :click="() => onExamChange(selectedExamId)"
+            />
+            <custom-btn
+              type="cancel_filter"
+              :click="resetDetailFilters"
+              variant="tonal"
+              color="error"
+              label="إلغاء الفلترة"
+              class="font-weight-bold"
+            />
+            <v-btn
+              v-if="selectedExamId"
+              color="indigo"
+              variant="tonal"
+              size="small"
+              rounded="lg"
+              class="font-weight-bold"
+              prepend-icon="mdi-clipboard-list-outline"
+              @click="$router.push(`/omr-gradebook?exam=${selectedExamId}`)"
             >
-              متوسط الدرجات: {{ statsData.average_score || 0 }}%
-            </v-chip>
-
-            <div class="d-flex align-center gap-2">
-              <v-btn
-                v-if="selectedExamId"
-                color="indigo"
-                variant="tonal"
-                size="small"
-                rounded="lg"
-                class="font-weight-bold"
-                prepend-icon="mdi-clipboard-list-outline"
-                @click="$router.push(`/omr-gradebook?exam=${selectedExamId}`)"
-              >
-                كشف الرصد
-              </v-btn>
-
-              <custom-btn
-                type="cancel_filter"
-                :click="resetDetailFilters"
-                variant="tonal"
-                color="error"
-                label="تفريغ الفلاتر"
-                icon="mdi-filter-off"
-                class="font-weight-bold"
-              />
-            </div>
+              كشف الرصد
+            </v-btn>
           </v-col>
         </v-row>
       </filter-fields>
@@ -878,8 +689,8 @@
           :numbering="true"
           :showSelect="true"
           :itemValue="'id'"
-          :actions="false"
-        >
+        
+        :actionList="(item) => ([ { label: 'فحص تفاصيل الورقة الكاملة والفقاعات', icon: 'file-eye-outline', color: 'primary', onClick: () => navigateToDetail(item) }, { label: 'معاينة صورة الورقة الممسوحة', icon: 'image-search-outline', color: 'secondary', onClick: () => previewSheetImage(item) }, { label: 'إعادة المعالجة الضوئية للورقة', icon: 'refresh', color: 'warning', loading: reprocessingId === item.id, onClick: () => reprocessSingleSheet(item) }, { label: 'حذف ورقة الإجابة', icon: 'delete-outline', color: 'error', divider: true, onClick: () => confirmDeleteSubmission(item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
           <template v-slot:item-slot="{ item, key, index }">
             <!-- الترقيم الموحد -->
             <template v-if="key === 'numbering'">
@@ -933,11 +744,7 @@
 
             <!-- كود النموذج الامتحاني -->
             <template v-else-if="key === 'exam_version_code'">
-              <div class="d-flex justify-center align-center">
-                <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
-                  {{ item.exam_version_code || 'نموذج عام' }}
-                </v-chip>
-              </div>
+              <span class="font-mono font-weight-bold text-body-2">{{ item.exam_version_code || 'عام' }}</span>
             </template>
 
             <!-- الدرجة الكلية -->
@@ -982,66 +789,7 @@
             </template>
 
             <!-- الإجراءات المباشرة -->
-            <template v-else-if="key === 'actions'">
-              <div class="d-flex align-center justify-center gap-1">
-                <v-tooltip location="top" text="فحص تفاصيل الورقة الكاملة والفقاعات">
-                  <template #activator="{ props }">
-                    <v-btn
-                      v-bind="props"
-                      size="small"
-                      color="primary"
-                      variant="flat"
-                      icon="mdi-file-eye-outline"
-                      rounded="lg"
-                      @click="navigateToDetail(item)"
-                    />
-                  </template>
-                </v-tooltip>
-
-                <v-tooltip location="top" text="معاينة صورة الورقة الممسوحة">
-                  <template #activator="{ props }">
-                    <v-btn
-                      v-bind="props"
-                      size="small"
-                      color="secondary"
-                      variant="tonal"
-                      icon="mdi-image-search-outline"
-                      rounded="lg"
-                      @click="previewSheetImage(item)"
-                    />
-                  </template>
-                </v-tooltip>
-
-                <v-tooltip location="top" text="إعادة المعالجة الضوئية للورقة">
-                  <template #activator="{ props }">
-                    <v-btn
-                      v-bind="props"
-                      size="small"
-                      color="warning"
-                      variant="tonal"
-                      icon="mdi-refresh"
-                      rounded="lg"
-                      :loading="reprocessingId === item.id"
-                      @click="reprocessSingleSheet(item)"
-                    />
-                  </template>
-                </v-tooltip>
-
-                <v-tooltip location="top" text="حذف ورقة الإجابة">
-                  <template #activator="{ props }">
-                    <v-btn
-                      v-bind="props"
-                      size="small"
-                      color="error"
-                      variant="tonal"
-                      icon="mdi-delete-outline"
-                      rounded="lg"
-                      @click="confirmDeleteSubmission(item)"
-                    />
-                  </template>
-                </v-tooltip>
-              </div>
-            </template>
+            
           </template>
         </custom-data-table>
       </div>
@@ -1050,151 +798,90 @@
     <!-- ══════════════════════════════════════════════════════════════ -->
     <!-- 3. نافذة تفاصيل اختبارات ومواد المدرسة / المركز الامتحاني      -->
     <!-- ══════════════════════════════════════════════════════════════ -->
-    <v-dialog v-model="schoolExamsDialog" width="1180px" max-width="95vw" scrollable>
-      <v-card rounded="2xl" class="border elevation-6 overflow-hidden main-card">
-        <v-card-title class="d-flex align-center justify-space-between bg-surface pa-4 px-6 border-b">
-          <div class="d-flex align-center gap-3">
-            <v-avatar color="primary" variant="tonal" size="44" class="rounded-xl flex-shrink-0">
-              <v-icon color="primary" size="24">mdi-school</v-icon>
-            </v-avatar>
-            <div>
-              <div class="text-subtitle-1 font-weight-black text-on-surface">{{ selectedSchoolDialogItem?.name || selectedSchoolDialogItem?.school_name }}</div>
-              <div class="text-caption text-medium-emphasis d-flex align-center gap-2 flex-wrap mt-0.5">
-                <span>{{ selectedSchoolDialogItem?.directorate_name }} • {{ selectedSchoolDialogItem?.governorate_name }}</span>
-                <span>|</span>
-                <span>إجمالي الطلاب: <strong class="text-primary">{{ selectedSchoolDialogItem?.total_students || 0 }} طالب</strong></span>
-                <span>|</span>
-                <span>عدد الاختبارات: <strong class="text-teal">{{ selectedSchoolDialogItem?.exams?.length || selectedSchoolDialogItem?.exams_count || 0 }} اختبار</strong></span>
-              </div>
-            </div>
-          </div>
-          <v-btn icon="mdi-close" variant="text" size="small" @click="schoolExamsDialog = false" />
-        </v-card-title>
+    <custom-dialog
+      v-model="schoolExamsDialog"
+      :title="selectedSchoolDialogItem?.name || selectedSchoolDialogItem?.school_name || 'اختبارات المدرسة'"
+      width="1180"
+      height="88vh"
+    >
+      <div class="text-caption text-medium-emphasis d-flex align-center gap-2 flex-wrap mb-4 pb-3 border-b">
+        <span>{{ selectedSchoolDialogItem?.directorate_name }} • {{ selectedSchoolDialogItem?.governorate_name }}</span>
+        <span>|</span>
+        <span>إجمالي الطلاب: <strong class="text-primary">{{ selectedSchoolDialogItem?.total_students || 0 }} طالب</strong></span>
+        <span>|</span>
+        <span>عدد الاختبارات: <strong class="text-teal">{{ selectedSchoolDialogItem?.exams?.length || selectedSchoolDialogItem?.exams_count || 0 }} اختبار</strong></span>
+      </div>
 
-        <v-card-text class="pa-4 pa-md-5 bg-surface">
-          <div v-if="!selectedSchoolDialogItem?.exams || selectedSchoolDialogItem.exams.length === 0" class="text-center py-8">
-            <v-icon size="48" color="grey">mdi-file-document-outline</v-icon>
-            <div class="text-body-1 text-medium-emphasis mt-2">لا توجد اختبارات مسجلة لهذه المدرسة حالياً</div>
-          </div>
+      <div v-if="!selectedSchoolDialogItem?.exams || selectedSchoolDialogItem.exams.length === 0" class="text-center py-8">
+        <v-icon size="48" color="grey">mdi-file-document-outline</v-icon>
+        <div class="text-body-1 text-medium-emphasis mt-2">لا توجد اختبارات مسجلة لهذه المدرسة حالياً</div>
+      </div>
 
-          <div v-else class="d-flex flex-column gap-3">
-            <v-alert
-              type="info"
-              variant="tonal"
-              density="compact"
-              rounded="xl"
-              class="mb-2 text-caption font-weight-medium"
-            >
-              <template v-slot:prepend>
-                <v-icon size="20" color="info">mdi-information-outline</v-icon>
+      <div v-else class="d-flex flex-column gap-3">
+        <v-alert
+          type="info"
+          variant="tonal"
+          density="compact"
+          rounded="xl"
+          class="mb-2 text-caption font-weight-medium"
+        >
+          <template v-slot:prepend>
+            <v-icon size="20" color="info">mdi-information-outline</v-icon>
+          </template>
+          كل صف أدناه يمثل <strong>اختباراً معتمداً</strong> مقيد به طلاب المدرسة، وموضح أمامه <strong>النماذج الامتحانية</strong>، مع إمكانية فتح سجل أوراق أي اختبار مباشرة.
+        </v-alert>
+
+        <div class="main-card rounded-2xl overflow-hidden border">
+          <custom-data-table
+            :items="schoolExamsTableItems"
+            :getData="getSchoolExamsData"
+            :headers="schoolExamsHeaders"
+            :hasFilter="false"
+            :log="false"
+            :restore="false"
+            :numbering="true"
+            :showSelect="false"
+            :search="true"
+            :actionList="(item) => ([ { label: 'فتح سجل الأوراق', icon: 'file-document-check-outline', color: 'primary', onClick: () => { schoolExamsDialog = false; openExamSubmissions(item); } }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))"
+          >
+            <template v-slot:item-slot="{ item, key, index }">
+              <template v-if="key === 'numbering'">
+                <div class="d-flex justify-center align-center">
+                  <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
+                </div>
               </template>
-              كل صف أدناه يمثل <strong>اختباراً معتمداً</strong> مقيد به طلاب المدرسة، وموضح أمامه <strong>النماذج الامتحانية</strong>، مع إمكانية فتح سجل أوراق أي اختبار مباشرة.
-            </v-alert>
 
-            <div class="main-card rounded-2xl overflow-hidden border">
-              <custom-data-table
-                :items="schoolExamsTableItems"
-                :getData="getSchoolExamsData"
-                :headers="schoolExamsHeaders"
-                :hasFilter="false"
-                :log="false"
-                :restore="false"
-                :numbering="true"
-                :showSelect="false"
-                :actions="false"
-                :search="false"
-              >
-                <template v-slot:item-slot="{ item, key, index }">
-                  <template v-if="key === 'numbering'">
-                    <div class="d-flex justify-center align-center">
-                      <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
-                    </div>
-                  </template>
+              <template v-else-if="key === 'code'">
+                <span class="font-mono font-weight-bold text-body-2">{{ item.code }}</span>
+              </template>
 
-                  <template v-else-if="key === 'code'">
-                    <div class="d-flex justify-center align-center">
-                      <v-chip size="small" color="primary" variant="tonal" class="font-mono font-weight-bold px-2">
-                        {{ item.code }}
-                      </v-chip>
-                    </div>
-                  </template>
+              <template v-else-if="key === 'title'">
+                <div class="py-1 font-weight-bold text-body-2 text-on-surface text-truncate" :title="item.title">
+                  {{ item.title }}
+                </div>
+              </template>
 
-                  <template v-else-if="key === 'title'">
-                    <div class="d-flex align-center gap-2.5 py-1.5">
-                      <v-avatar color="teal" variant="tonal" size="32" class="rounded-lg flex-shrink-0">
-                        <v-icon color="teal" size="18">mdi-book-education-outline</v-icon>
-                      </v-avatar>
-                      <div class="text-truncate">
-                        <div class="font-weight-bold text-body-2 text-on-surface text-truncate" :title="item.title">
-                          {{ item.title }}
-                        </div>
-                        <div class="d-flex align-center gap-1.5 mt-0.5">
-                          <v-chip size="x-small" color="primary" variant="flat" class="font-weight-bold px-1.5">
-                            اختبار معتمد
-                          </v-chip>
-                        </div>
-                      </div>
-                    </div>
-                  </template>
+              <template v-else-if="key === 'subject'">
+                <span class="text-body-2 font-weight-medium">{{ item.subject || 'عام' }}</span>
+              </template>
 
-                  <template v-else-if="key === 'subject'">
-                    <div class="d-flex justify-center align-center">
-                      <v-chip size="small" color="teal" variant="flat" class="font-weight-bold px-2.5">
-                        <v-icon size="13" start>mdi-book-outline</v-icon>
-                        {{ item.subject || 'عام' }}
-                      </v-chip>
-                    </div>
-                  </template>
+              <template v-else-if="key === 'students_count'">
+                <span class="font-mono font-weight-bold text-body-2">{{ item.students_count || 0 }} ورقة</span>
+              </template>
 
-                  <template v-else-if="key === 'students_count'">
-                    <div class="d-flex justify-center align-center">
-                      <v-chip size="small" color="primary" variant="tonal" class="font-weight-black px-2.5">
-                        <v-icon size="13" start>mdi-account-group-outline</v-icon>
-                        {{ item.students_count || 0 }} ورقة
-                      </v-chip>
-                    </div>
-                  </template>
+              <template v-else-if="key === 'versions'">
+                <span v-if="item.versions && item.versions.length > 0" class="text-caption font-mono">
+                  {{ item.versions.map(v => `${v.code} (${v.students_count})`).join('، ') }}
+                </span>
+                <span v-else class="text-caption text-medium-emphasis">—</span>
+              </template>
+            </template>
+          </custom-data-table>
+        </div>
+      </div>
 
-                  <template v-else-if="key === 'versions'">
-                    <div v-if="item.versions && item.versions.length > 0" class="d-flex align-center justify-center gap-1.5 flex-wrap py-1">
-                      <v-chip
-                        v-for="v in item.versions"
-                        :key="v.code"
-                        size="x-small"
-                        color="indigo"
-                        variant="tonal"
-                        class="font-weight-bold"
-                      >
-                        <v-icon size="11" start>mdi-file-document-check-outline</v-icon>
-                        نموذج {{ v.code }} ({{ v.students_count }} ورقة)
-                      </v-chip>
-                    </div>
-                    <div v-else class="text-center text-caption text-medium-emphasis">—</div>
-                  </template>
-
-                  <template v-else-if="key === 'actions'">
-                    <div class="d-flex justify-center align-center">
-                      <v-btn
-                        size="small"
-                        color="primary"
-                        variant="flat"
-                        rounded="lg"
-                        prepend-icon="mdi-file-document-check-outline"
-                        class="font-weight-bold px-3"
-                        @click="schoolExamsDialog = false; openExamSubmissions(item);"
-                      >
-                        فتح سجل الأوراق
-                      </v-btn>
-                    </div>
-                  </template>
-                </template>
-              </custom-data-table>
-            </div>
-          </div>
-        </v-card-text>
-
-        <v-divider />
-        <v-card-actions class="pa-4 bg-surface d-flex justify-space-between align-center flex-wrap gap-2">
+      <template #actions>
+        <div class="d-flex justify-space-between align-center flex-wrap gap-2 w-100">
           <div class="text-caption text-medium-emphasis d-flex align-center gap-1">
             <v-icon size="16" color="primary">mdi-cursor-default-click-outline</v-icon>
             يمكنك فتح سجل أوراق أي اختبار مستقل أو استعراض السجل الشامل للمركز
@@ -1214,43 +901,40 @@
               فتح سجل أوراق المركز بالكامل
             </v-btn>
           </div>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+        </div>
+      </template>
+    </custom-dialog>
 
     <!-- ══════════════════════════════════════════════════════════════ -->
     <!-- 4. نافذة المعاينة السريعة لصورة ورقة الإجابة الممسوحة (Lightbox) -->
     <!-- ══════════════════════════════════════════════════════════════ -->
-    <v-dialog v-model="imagePreviewDialog" width="860px" max-width="95vw">
-      <v-card rounded="2xl" class="border elevation-6 overflow-hidden main-card">
-        <v-card-title class="d-flex align-center justify-space-between bg-surface pa-4 px-6 border-b">
-          <div class="d-flex align-center gap-2">
-            <v-icon color="primary" size="22">mdi-image-search-outline</v-icon>
-            <div>
-              <div class="text-subtitle-1 font-weight-black text-on-surface">معاينة ورقة إجابة الطالب: {{ previewSubmission?.student_name }}</div>
-              <div class="text-caption text-medium-emphasis">رقم الجلوس: {{ previewSubmission?.seat_number }} • {{ previewSubmission?.exam_title }}</div>
-            </div>
-          </div>
-          <v-btn icon="mdi-close" variant="text" size="small" @click="imagePreviewDialog = false" />
-        </v-card-title>
+    <custom-dialog
+      v-model="imagePreviewDialog"
+      :title="`معاينة ورقة إجابة الطالب: ${previewSubmission?.student_name || ''}`"
+      width="860"
+      height="85vh"
+    >
+      <div class="text-caption text-medium-emphasis mb-3 pb-2 border-b">
+        رقم الجلوس: {{ previewSubmission?.seat_number }} • {{ previewSubmission?.exam_title }}
+      </div>
 
-        <v-card-text class="pa-4 bg-surface text-center">
-          <div v-if="previewSubmission?.original_image" class="border rounded-xl pa-2 bg-grey-lighten-4 overflow-auto" style="max-height: 72vh;">
-            <v-img
-              :src="fixImageUrl(previewSubmission.original_image)"
-              contain
-              class="rounded-lg mx-auto"
-              style="max-height: 68vh;"
-            />
-          </div>
-          <div v-else class="py-12 text-medium-emphasis">
-            <v-icon size="48" color="grey">mdi-image-off-outline</v-icon>
-            <div class="mt-2 text-body-2 font-weight-bold">لا توجد صورة ممسوحة مرفقة لهذه الورقة في النظام</div>
-          </div>
-        </v-card-text>
+      <div class="text-center">
+        <div v-if="previewSubmission?.original_image" class="border rounded-xl pa-2 bg-grey-lighten-4 overflow-auto" style="max-height: 68vh;">
+          <v-img
+            :src="fixImageUrl(previewSubmission.original_image)"
+            contain
+            class="rounded-lg mx-auto"
+            style="max-height: 64vh;"
+          />
+        </div>
+        <div v-else class="py-12 text-medium-emphasis">
+          <v-icon size="48" color="grey">mdi-image-off-outline</v-icon>
+          <div class="mt-2 text-body-2 font-weight-bold">لا توجد صورة ممسوحة مرفقة لهذه الورقة في النظام</div>
+        </div>
+      </div>
 
-        <v-divider />
-        <v-card-actions class="pa-4 bg-surface d-flex justify-space-between align-center">
+      <template #actions>
+        <div class="d-flex justify-space-between align-center w-100 flex-wrap gap-2">
           <v-chip color="primary" variant="tonal" class="font-weight-bold">
             درجة الورقة: {{ previewSubmission?.total_score ?? '-' }}
           </v-chip>
@@ -1269,9 +953,9 @@
               فحص تفاصيل الورقة الكاملة
             </v-btn>
           </div>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+        </div>
+      </template>
+    </custom-dialog>
 
     <!-- نافذة تأكيد الحذف -->
     <DeleteDialog
@@ -1377,7 +1061,6 @@ export default {
         { title: "إجمالي الطلاب", key: "total_students", sortable: true, align: "center", width: "110px" },
         { title: "أوراق مقروءة", key: "completed_count", sortable: true, align: "center", width: "120px" },
         { title: "نسبة الإنجاز", key: "completion_rate", sortable: true, align: "center", width: "130px" },
-        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "220px" },
       ],
 
       directorateMasterHeaders: [
@@ -1388,7 +1071,6 @@ export default {
         { title: "إجمالي الطلاب", key: "total_students", sortable: true, align: "center", width: "110px" },
         { title: "أوراق مقروءة", key: "completed_count", sortable: true, align: "center", width: "120px" },
         { title: "نسبة الإنجاز", key: "completion_rate", sortable: true, align: "center", width: "130px" },
-        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "220px" },
       ],
 
       schoolMasterHeaders: [
@@ -1401,7 +1083,6 @@ export default {
         { title: "أوراق مقروءة", key: "completed_count", sortable: true, align: "center", width: "115px" },
         { title: "نسبة الإنجاز", key: "completion_rate", sortable: true, align: "center", width: "120px" },
         { title: "متوسط الدرجات", key: "average_score", sortable: true, align: "center", width: "110px" },
-        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "190px" },
       ],
 
       examMasterHeaders: [
@@ -1412,7 +1093,6 @@ export default {
         { title: "أوراق مقروءة", key: "completed_count", sortable: true, align: "center", width: "120px" },
         { title: "نسبة المعالجة", key: "completion_rate", sortable: true, align: "center", width: "130px" },
         { title: "حالة الكنترول", key: "dispatch_status", sortable: true, align: "center", width: "130px" },
-        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "160px" },
       ],
 
       // School Exams Dialog
@@ -1424,7 +1104,6 @@ export default {
         { title: "المادة الدراسية", key: "subject", sortable: true, align: "center", width: "120px" },
         { title: "أوراق المركز", key: "students_count", sortable: true, align: "center", width: "105px" },
         { title: "النماذج المخصصة للطلاب وتوزيعها", key: "versions", sortable: false, align: "center", width: "230px" },
-        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "140px" },
       ],
       schoolExamsTableItems: {
         results: [],
@@ -1458,7 +1137,6 @@ export default {
         { title: "الدرجة الكلية", key: "total_score", sortable: true, align: "center", width: "130px" },
         { title: "دقة OMR", key: "confidence", sortable: true, align: "center", width: "110px" },
         { title: "حالة التصحيح", key: "status", sortable: true, align: "center", width: "135px" },
-        { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "170px" },
       ],
 
       statusOptions: [
@@ -2023,7 +1701,6 @@ export default {
         this.masterTab = 'schools'
       }
       await this.loadSubjects()
-      this.refreshMasterData()
     },
 
     onOfficeFilterChange(val) {
@@ -2037,7 +1714,6 @@ export default {
       }
       this.selectedSchoolId = []
       this.loadSubjects()
-      this.refreshMasterData()
     },
 
     onDirectorateFilterChange(val) {
@@ -2055,7 +1731,6 @@ export default {
         }
       }
       this.loadSubjects()
-      this.refreshMasterData()
     },
 
     onSchoolFilterChange(val) {

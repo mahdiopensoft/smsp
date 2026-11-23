@@ -93,7 +93,6 @@
             cols="12"
             sm="5"
             md="5"
-            :hideDetails="true"
             :clearable="false"
           />
 
@@ -107,7 +106,6 @@
             sm="3"
             md="3"
             :add="false"
-            :hideDetails="true"
             @update:model-value="$emit('change-type', idx, $event)"
           />
 
@@ -121,7 +119,6 @@
             cols="3"
             sm="2"
             md="2"
-            :hideDetails="true"
             :clearable="false"
             @update:model-value="$emit('update-count', idx, Number($event))"
           />
@@ -136,7 +133,6 @@
             cols="3"
             sm="2"
             md="2"
-            :hideDetails="true"
             :clearable="false"
           />
         </v-row>

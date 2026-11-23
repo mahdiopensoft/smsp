@@ -23,7 +23,7 @@
               v-model="filterStage"
               name="Stage"
               placeholder="المرحلة الدراسية"
-              cols="2"
+              cols="3"
               :add="false"
               @update:model-value="onStageChange"
             />
@@ -32,7 +32,7 @@
               name="ClassTrackByStage"
               :param="filterStage"
               placeholder="الصف والمسار"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterStage"
               @update:model-value="onClassTrackChange"
@@ -42,7 +42,7 @@
               name="Subject"
               :param="subjectFilterParam"
               placeholder="المادة الدراسية"
-              cols="2"
+              cols="3"
               :add="false"
               @update:model-value="onSubjectChange"
             />
@@ -51,7 +51,7 @@
               name="UnitBySubject"
               :param="unitFilterParam"
               placeholder="الوحدة الدراسية"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterSubject"
             />
@@ -63,7 +63,7 @@
               v-model="filterCollege"
               name="College"
               placeholder="الكلية الجامعية"
-              cols="2"
+              cols="3"
               :add="false"
               @update:model-value="onCollegeChange"
             />
@@ -72,7 +72,7 @@
               name="DepartmentByCollege"
               :param="filterCollege"
               placeholder="القسم الأكاديمي"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterCollege"
               @update:model-value="onDepartmentChange"
@@ -82,7 +82,7 @@
               name="Specialization"
               :param="filterDepartment"
               placeholder="التخصص والبرنامج"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterDepartment"
               @update:model-value="onSpecializationChange"
@@ -92,7 +92,7 @@
               name="SemesterSubject"
               :param="filterSpecialization"
               placeholder="مقرر الفصل الجامعي"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterSpecialization"
               @update:model-value="onSemesterSubjectChange"
@@ -102,7 +102,7 @@
               name="UnitBySubject"
               :param="unitFilterParam"
               placeholder="مفردة / موضوع المقرر"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterSemesterSubject"
             />
@@ -114,7 +114,7 @@
               v-model="filterInstituteField"
               name="InstituteField"
               placeholder="المجال المهني / التقني"
-              cols="2"
+              cols="3"
               :add="false"
               @update:model-value="onInstituteFieldChange"
             />
@@ -123,7 +123,7 @@
               name="InstituteEducationSystem"
               :param="filterInstituteField"
               placeholder="نظام التعليم والتدريب"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterInstituteField"
               @update:model-value="onInstituteEducationSystemChange"
@@ -133,7 +133,7 @@
               name="InstituteSpecialization"
               :param="instituteSpecParam"
               placeholder="التخصص المهني"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterInstituteEducationSystem"
               @update:model-value="onInstituteSpecializationChange"
@@ -143,7 +143,7 @@
               name="InstituteSubject"
               :param="instituteSubjectParam"
               placeholder="المادة الدراسية للمعهد"
-              cols="2"
+              cols="3"
               :add="false"
               @update:model-value="onInstituteSubjectChange"
             />
@@ -152,77 +152,65 @@
               name="UnitBySubject"
               :param="unitFilterParam"
               placeholder="الوحدة / التدريب العملي"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterInstituteSubject"
             />
           </template>
 
         <!-- خصائص السؤال المشتركة -->
-        <v-col cols="12" sm="6" md="2">
-          <v-select
-            v-model="filterQuestionType"
-            :items="questionTypeOptions"
-            item-title="text"
-            item-value="value"
-            placeholder="نوع السؤال"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterQuestionType"
+          name="LocalTextOption"
+          :objects="questionTypeOptions"
+          cols="3"
+          label="نوع السؤال"
+          icon="format-list-checks"
+          :add="false"
+        />
 
-        <v-col cols="12" sm="6" md="2">
-          <v-select
-            v-model="filterDifficulty"
-            :items="difficultyOptions"
-            item-title="text"
-            item-value="value"
-            placeholder="مستوى الصعوبة"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterDifficulty"
+          name="LocalTextOption"
+          :objects="difficultyOptions"
+          cols="3"
+          label="مستوى الصعوبة"
+          icon="speedometer"
+          :add="false"
+        />
 
-        <v-col cols="12" sm="6" md="2">
-          <v-select
-            v-model="filterBloomLevel"
-            :items="bloomOptions"
-            item-title="text"
-            item-value="value"
-            placeholder="مستوى بلوم"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterBloomLevel"
+          name="LocalTextOption"
+          :objects="bloomOptions"
+          cols="3"
+          label="مستوى بلوم"
+          icon="brain"
+          :add="false"
+        />
 
-        <v-col cols="12" sm="6" md="2">
-          <v-select
-            v-model="filterStatus"
-            :items="statusOptions"
-            item-title="text"
-            item-value="value"
-            placeholder="حالة السؤال"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterStatus"
+          name="LocalTextOption"
+          :objects="statusOptions"
+          cols="3"
+          label="حالة السؤال"
+          icon="check-circle-outline"
+          :add="false"
+        />
 
         <!-- فلاتر التواريخ باستخدام CustomDate الموحد -->
         <custom-date
           v-model="filterDateFrom"
           label="من تاريخ"
-          cols="2"
+          cols="3"
           hide-details
         />
 
         <custom-date
           v-model="filterDateTo"
           label="إلى تاريخ"
-          cols="2"
+          cols="3"
           hide-details
         />
 
@@ -418,7 +406,6 @@ const onInstitutionTypeChange = () => {
   filterInstituteSubject.value = null
   filterSubject.value = null
   filterUnit.value = null
-  applyFilters()
 }
 
 const onStageChange = () => {

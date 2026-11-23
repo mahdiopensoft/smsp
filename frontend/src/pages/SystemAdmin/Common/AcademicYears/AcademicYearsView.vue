@@ -2,6 +2,7 @@
   <div class="academic-years-page">
     <add-academic-years v-model="drawer" :data="data" :getData="handleDrawerSave" :items="items" />
     <custom-data-table
+      actionList
       v-bind="{
         items,
         getData,
@@ -17,18 +18,12 @@
       <template v-slot:item-slot="{ item, key }">
         <!-- Hijri Year -->
         <template v-if="key === 'hijri_year'">
-          <div class="font-weight-bold text-primary d-flex align-center justify-center gap-1">
-            <v-icon size="16" color="primary">mdi-calendar-text-outline</v-icon>
-            <span>{{ item.hijri_year }} هـ</span>
-          </div>
+          <span class="font-weight-bold text-primary font-mono">{{ item.hijri_year }} هـ</span>
         </template>
 
         <!-- Gregorian Year -->
         <template v-else-if="key === 'gregorian_year'">
-          <div class="font-weight-medium text-high-emphasis d-flex align-center justify-center gap-1">
-            <v-icon size="16" color="secondary">mdi-calendar-month-outline</v-icon>
-            <span>{{ item.gregorian_year }} م</span>
-          </div>
+          <span class="font-weight-medium text-high-emphasis font-mono">{{ item.gregorian_year }} م</span>
         </template>
 
         <!-- Current Academic Year -->
@@ -37,11 +32,10 @@
             <v-chip
               v-if="item.is_current"
               color="success"
-              variant="flat"
+              variant="tonal"
               size="small"
-              class="font-weight-bold px-3 shadow-xs"
+              class="font-weight-bold px-3"
             >
-              <v-icon start size="16">mdi-check-decagram</v-icon>
               العام الحالي
             </v-chip>
             <v-btn
@@ -53,7 +47,6 @@
               :loading="togglingId === item.id"
               @click.stop="promptSetCurrentYear(item)"
             >
-              <v-icon start size="14">mdi-radiobox-blank</v-icon>
               تعيين كعام حالي
             </v-btn>
           </div>
