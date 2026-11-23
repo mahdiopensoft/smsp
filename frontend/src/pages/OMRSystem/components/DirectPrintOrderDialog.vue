@@ -338,7 +338,6 @@
               placeholder="مثال: تمت الطباعة بجودة ممتازة / أو: انحشار ورقة واحدة رقم 4"
               icon="text"
               cols="12"
-              :hideDetails="true"
             />
           </div>
         </div>

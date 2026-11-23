@@ -33,7 +33,6 @@
           placeholder="ابحث برقم السؤال..."
           icon="magnify"
           cols="12"
-          :hideDetails="true"
         />
       </div>
     </div>

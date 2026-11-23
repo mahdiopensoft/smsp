@@ -23,7 +23,6 @@
           icon="magnify"
           cols="12"
           class="mb-3"
-          :hideDetails="true"
         />
       </v-col>
 

@@ -218,7 +218,6 @@
             placeholder="مثال: قاعة 03"
             icon="map-marker-outline"
             cols="12"
-            :hideDetails="true"
             :clearable="false"
             @update:model-value="generateEnvelopeBarcode"
           />
@@ -232,7 +231,6 @@
             placeholder="كود المظروف..."
             icon="barcode"
             cols="12"
-            :hideDetails="true"
             :clearable="false"
           >
             <template #append-inner>
@@ -261,7 +259,6 @@
             label="سعة القاعة المقيدة (الطلاب المقيدون) *"
             icon="account-group-outline"
             cols="12"
-            :hideDetails="true"
             :clearable="false"
           />
         </v-col>
@@ -276,7 +273,6 @@
             label="عدد الغائبين (وفق حافظة الكشف) *"
             icon="account-remove-outline"
             cols="12"
-            :hideDetails="true"
             :clearable="false"
           />
         </v-col>

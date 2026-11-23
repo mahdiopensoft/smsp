@@ -6,11 +6,13 @@ import { isRef, unref } from "vue";
 import setting from "@/../settings";
 import shared from "external-components";
 import { state } from "@/store/state";
+import { sanitizeHtml } from "@/utils/sanitizeHtml";
 
 //variables
 import { globals } from "@/utils/variable";
 
 export function makeGlobals(app) {
+  app.config.globalProperties.$sanitizeHtml = sanitizeHtml;
   app.config.globalProperties.$moment = moment;
 
   app.config.globalProperties.$cloneDeep = cloneDeep;

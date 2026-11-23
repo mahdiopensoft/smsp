@@ -61,27 +61,16 @@
       <filter-fields label="اختيار وتصفية الاختبار لعرض وإدارة نماذجه" class="main-card border-0 pa-5 rounded-2xl mb-6">
         <v-row dense class="align-center">
           <!-- Institution Type Selector (مدارس / جامعات / معاهد) -->
-          <v-col cols="12" sm="6" :md="filterInstitutionType ? 3 : 4">
-            <v-select
-              v-model="filterInstitutionType"
-              :items="institutionTypeOptions"
-              item-title="text"
-              item-value="value"
-              class="mb-6"
-              label="نوع المؤسسة التعليمية"
-              placeholder="اختر نوع المؤسسة"
-              prepend-inner-icon="mdi-domain"
-              hide-details="auto"
-              clearable
-              density="compact"
-              variant="outlined"
-              @update:model-value="onInstitutionTypeChange"
-            >
-              <template v-slot:item="{ props, item }">
-                <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
-              </template>
-            </v-select>
-          </v-col>
+          <auto-list
+            v-model="filterInstitutionType"
+            name="LocalTextOption"
+            :objects="institutionTypeOptions"
+            :cols="filterInstitutionType ? '3' : '4'"
+            label="نوع المؤسسة التعليمية"
+            icon="domain"
+            :add="false"
+            @update:model-value="onInstitutionTypeChange"
+          />
 
           <!-- الظهور مشروط باختيار نوع المؤسسة: مدارس أو جامعات أو معاهد -->
           <template v-if="filterInstitutionType">
@@ -639,7 +628,7 @@
                       <v-icon start size="14">mdi-text-box-check-outline</v-icon>
                       الإجابة النموذجية المعتمدة:
                     </span>
-                    <div class="text-caption text-medium-emphasis" v-html="question.answerText" />
+                    <div class="text-caption text-medium-emphasis" v-html="$sanitizeHtml(question.answerText)" />
                   </div>
                 </div>
               </div>

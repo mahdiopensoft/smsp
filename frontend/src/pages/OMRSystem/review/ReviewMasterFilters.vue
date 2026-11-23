@@ -11,7 +11,6 @@
           placeholder="نوع المؤسسة التعليمية"
           cols="12"
           :add="false"
-          :hideDetails="true"
           @update:model-value="$emit('update:institutionType', $event)"
         />
       </v-col>
@@ -28,7 +27,6 @@
             cols="12"
             multiple
             :add="false"
-            :hideDetails="true"
             @update:model-value="$emit('update:selectedOfficeId', $event)"
           />
         </v-col>
@@ -43,7 +41,6 @@
             cols="12"
             multiple
             :add="false"
-            :hideDetails="true"
             @update:model-value="$emit('update:selectedDirectorateId', $event)"
           />
         </v-col>
@@ -58,7 +55,6 @@
             cols="12"
             multiple
             :add="false"
-            :hideDetails="true"
             @update:model-value="$emit('update:selectedSchoolId', $event)"
           />
         </v-col>
@@ -72,7 +68,6 @@
             placeholder="تصفية حسب المادة..."
             cols="12"
             :add="false"
-            :hideDetails="true"
             @update:model-value="$emit('update:selectedSubjectId', $event)"
           />
         </v-col>
@@ -90,7 +85,6 @@
             cols="12"
             multiple
             :add="false"
-            :hideDetails="true"
             @update:model-value="$emit('update:selectedSchoolId', $event)"
           />
         </v-col>
@@ -104,7 +98,6 @@
             placeholder="تصفية حسب المادة..."
             cols="12"
             :add="false"
-            :hideDetails="true"
             @update:model-value="$emit('update:selectedSubjectId', $event)"
           />
         </v-col>
@@ -122,7 +115,6 @@
             cols="12"
             multiple
             :add="false"
-            :hideDetails="true"
             @update:model-value="$emit('update:selectedSchoolId', $event)"
           />
         </v-col>
@@ -136,7 +128,6 @@
             placeholder="تصفية حسب المادة..."
             cols="12"
             :add="false"
-            :hideDetails="true"
             @update:model-value="$emit('update:selectedSubjectId', $event)"
           />
         </v-col>

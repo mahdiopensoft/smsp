@@ -88,7 +88,6 @@
             placeholder="إدارة التربية (المديرية)"
             cols="12"
             :add="false"
-            :hideDetails="true"
             @update:model-value="emitFilterChange"
           />
         </v-col>
@@ -103,7 +102,6 @@
             :placeholder="institutionType === 'university' ? 'الكلية / المركز' : (institutionType === 'institute' ? 'المعهد / المركز' : 'المدرسة / المركز الامتحاني')"
             cols="12"
             :add="false"
-            :hideDetails="true"
             @update:model-value="emitFilterChange"
           />
         </v-col>
@@ -118,7 +116,6 @@
             placeholder="حالة المراجعة"
             cols="12"
             :add="false"
-            :hideDetails="true"
             @update:model-value="emitFilterChange"
           />
         </v-col>
@@ -131,7 +128,6 @@
             placeholder="بحث برقم الجلوس أو اسم الطالب..."
             icon="magnify"
             cols="12"
-            :hideDetails="true"
             clearable
             @update:model-value="onSearchInput"
           />

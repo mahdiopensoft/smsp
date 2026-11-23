@@ -100,7 +100,6 @@
               cols="12"
               icon="alert-octagon-outline"
               :add="false"
-              :hideDetails="true"
             />
 
             <!-- ملاحظات أو رقم قرار اللجنة (اختياري) باستخدام CustomTextField الموحد -->
@@ -110,7 +109,6 @@
               placeholder="مثال: محضر اجتماع الكنترول رقم 14 بتاريخ اليوم..."
               icon="text-box-edit-outline"
               cols="12"
-              :hideDetails="true"
             />
           </v-row>
 

@@ -104,6 +104,101 @@ export default function dataList(param) {
       title: "title",
     },
 
+    // Generic Unified Local AutoLists (for static/computed arrays via :objects)
+    LocalOption: {
+      label: "",
+      icon: "",
+      method: () => [],
+      value: "value",
+      title: "title",
+    },
+    LocalTextOption: {
+      label: "",
+      icon: "",
+      method: () => [],
+      value: "value",
+      title: "text",
+    },
+    LocalNameOption: {
+      label: "",
+      icon: "",
+      method: () => [],
+      value: "id",
+      title: "name",
+    },
+    LocalLabelOption: {
+      label: "",
+      icon: "",
+      method: () => [],
+      value: "value",
+      title: "label",
+    },
+    LocalNameArOption: {
+      label: "",
+      icon: "",
+      method: () => [],
+      value: "id",
+      title: "name_ar",
+    },
+    LocalTitleIdOption: {
+      label: "",
+      icon: "",
+      method: () => [],
+      value: "id",
+      title: "title",
+    },
+
+    // Exam Hub Unified Local AutoLists (populated dynamically via :objects prop)
+    ExamHubModel: {
+      label: "النموذج الامتحاني",
+      icon: "format-list-bulleted-type",
+      method: () => [],
+      value: "value",
+      title: "title",
+    },
+    ExamHubSchool: {
+      label: "المدرسة / المركز",
+      icon: "school-outline",
+      method: () => [],
+      value: "value",
+      title: "title",
+    },
+    ExamHubBloomLevel: {
+      label: "المستوى المعرفي",
+      icon: "brain",
+      method: () => [],
+      value: "value",
+      title: "title",
+    },
+    ExamHubQuestionType: {
+      label: "نوع السؤال",
+      icon: "format-list-checks",
+      method: () => [],
+      value: "value",
+      title: "title",
+    },
+    ExamHubStudent: {
+      label: "اختر الطالب",
+      icon: "account-search",
+      method: () => [],
+      value: "value",
+      title: "title",
+    },
+    ExamHubGovernorate: {
+      label: "المحافظة",
+      icon: "map-marker-radius-outline",
+      method: () => [],
+      value: "value",
+      title: "title",
+    },
+    ExamHubDirectorate: {
+      label: "المديرية",
+      icon: "map-marker-outline",
+      method: () => [],
+      value: "value",
+      title: "title",
+    },
+
     // Geographic Locations
     Country: {
       label: "الدولة",

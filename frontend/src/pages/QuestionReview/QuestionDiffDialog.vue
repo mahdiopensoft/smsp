@@ -48,7 +48,7 @@
             </h4>
 
             <div class="pa-4 rounded-2xl border bg-white" style="line-height: 1.8;">
-              <div v-html="getContentDiffHtml()"></div>
+              <div v-html="$sanitizeHtml(getContentDiffHtml())"></div>
             </div>
           </div>
 
@@ -105,7 +105,7 @@
                 </div>
               </div>
 
-              <div class="text-body-2" style="line-height: 1.6;" v-html="opt.diff_html || opt.v2_text || opt.v1_text"></div>
+              <div class="text-body-2" style="line-height: 1.6;" v-html="$sanitizeHtml(opt.diff_html || opt.v2_text || opt.v1_text)"></div>
             </div>
           </div>
         </div>

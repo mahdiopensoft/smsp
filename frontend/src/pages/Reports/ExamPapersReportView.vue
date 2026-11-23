@@ -141,34 +141,27 @@
           :add="false"
         />
 
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filterIsPresent"
-            :items="[
-              { text: 'الكل', value: '' },
-              { text: 'حاضر', value: 'true' },
-              { text: 'غائب', value: 'false' }
-            ]"
-            item-title="text"
-            item-value="value"
-            placeholder="حالة الحضور"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterIsPresent"
+          name="LocalTextOption"
+          :objects="[
+            { text: 'الكل', value: '' },
+            { text: 'حاضر', value: 'true' },
+            { text: 'غائب', value: 'false' }
+          ]"
+          cols="2"
+          label="حالة الحضور"
+          icon="account-check-outline"
+          :add="false"
+        />
 
-        <v-col cols="12" md="2">
-          <v-text-field
-            v-model="filterSearch"
-            placeholder="بحث باسم الطالب أو رقم الجلوس..."
-            prepend-inner-icon="mdi-magnify"
-            clearable
-            density="compact"
-            variant="outlined"
-            hide-details
-          />
-        </v-col>
+        <custom-text-field
+          v-model="filterSearch"
+          cols="2"
+          label="بحث"
+          placeholder="بحث باسم الطالب أو رقم الجلوس..."
+          icon="magnify"
+        />
 
         <v-col cols="auto" class="d-flex align-center gap-2 py-2">
           <custom-btn type="filter" :loading="loading" :click="applyFilters" />

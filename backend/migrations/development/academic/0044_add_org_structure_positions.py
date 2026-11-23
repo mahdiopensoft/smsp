@@ -14,29 +14,34 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="universityunit",
-            name="class_subject",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="university_units",
-                to="academic.schoolclasssubject",
-                verbose_name="مادة مسار الصف",
-            ),
-        ),
-        migrations.AddField(
-            model_name="universityunit",
-            name="school_subject",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="university_units",
-                to="academic.schoolsubject",
-                verbose_name="المادة المدرسية",
-            ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[],
+            state_operations=[
+                migrations.AddField(
+                    model_name="universityunit",
+                    name="class_subject",
+                    field=models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="university_units",
+                        to="academic.schoolclasssubject",
+                        verbose_name="مادة مسار الصف",
+                    ),
+                ),
+                migrations.AddField(
+                    model_name="universityunit",
+                    name="school_subject",
+                    field=models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="university_units",
+                        to="academic.schoolsubject",
+                        verbose_name="المادة المدرسية",
+                    ),
+                ),
+            ],
         ),
         migrations.CreateModel(
             name="OrgUnit",

@@ -3,6 +3,7 @@
  * Supports LaTeX, KaTeX, Chemistry equations, Physics notation, Greek alphabet,
  * Markdown tables, and Syntax-highlighted code blocks.
  */
+import { sanitizeHtml } from '@/utils/sanitizeHtml'
 
 export function ensureKaTeXLoaded() {
   if (typeof window === 'undefined') return
@@ -65,7 +66,7 @@ export function parseScientificMarkup(raw) {
   // 5. Line Breaks
   html = html.replace(/\n/g, '<br>')
 
-  return html
+  return sanitizeHtml(html)
 }
 
 function renderTex(tex, displayMode) {

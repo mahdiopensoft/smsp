@@ -20,7 +20,6 @@
           placeholder="مثال: نموذج اختبار الشهادة الثانوية العامة (50 سؤال)"
           icon="file-document-outline"
           cols="12"
-          :hideDetails="true"
           :clearable="false"
           @update:model-value="onNameInput"
         />
@@ -30,7 +29,6 @@
           placeholder="مثال: القرآن الكريم والتربية الإسلامية"
           icon="book-open-outline"
           cols="12"
-          :hideDetails="true"
           :clearable="false"
           @update:model-value="userManuallyEditedSubject = true"
         />
@@ -40,7 +38,6 @@
           placeholder="1.0"
           icon="tag-outline"
           cols="6"
-          :hideDetails="true"
           :clearable="false"
         />
         <custom-text-field
@@ -48,7 +45,6 @@
           label="إجمالي الأسئلة"
           icon="help-circle-outline"
           cols="6"
-          :hideDetails="true"
           :clearable="false"
           :disabled="true"
         />

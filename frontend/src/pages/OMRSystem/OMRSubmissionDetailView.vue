@@ -443,19 +443,19 @@
             density="compact"
           />
         </v-col>
-        <v-col cols="12">
-          <v-select
-            v-model="editForm.status"
-            :items="[
-              { title: 'مكتمل ومعتمد (Completed)', value: 'completed' },
-              { title: 'تمت المراجعة (Reviewed)', value: 'reviewed' },
-              { title: 'يحتاج مراجعة (Needs Review)', value: 'needs_review' }
-            ]"
-            label="الحالة بعد الحفظ *"
-            variant="outlined"
-            density="compact"
-          />
-        </v-col>
+        <auto-list
+          v-model="editForm.status"
+          name="LocalOption"
+          :objects="[
+            { title: 'مكتمل ومعتمد (Completed)', value: 'completed' },
+            { title: 'تمت المراجعة (Reviewed)', value: 'reviewed' },
+            { title: 'يحتاج مراجعة (Needs Review)', value: 'needs_review' }
+          ]"
+          cols="12"
+          label="الحالة بعد الحفظ *"
+          icon="check-circle-outline"
+          :add="false"
+        />
       </v-row>
 
       <template #actions>

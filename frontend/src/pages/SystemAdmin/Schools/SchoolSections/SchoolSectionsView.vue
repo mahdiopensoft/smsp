@@ -79,22 +79,16 @@
         </v-col>
 
         <!-- حالة التفعيل -->
-        <v-col cols="12" sm="6" md="2">
-          <v-select
-            v-model="filterActive"
-            :items="activeOptions"
-            item-title="text"
-            item-value="value"
-            label="حالة التفعيل"
-            prepend-inner-icon="mdi-check-circle-outline"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-3"
-            hide-details
-            @update:model-value="applyFilters"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterActive"
+          name="LocalTextOption"
+          :objects="activeOptions"
+          cols="2"
+          label="حالة التفعيل"
+          icon="check-circle-outline"
+          :add="false"
+          @update:model-value="applyFilters"
+        />
 
         <!-- أزرار الإجراءات -->
         <v-col cols="12" sm="6" md="3" class="d-flex align-center gap-2 mb-3">

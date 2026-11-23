@@ -4,38 +4,26 @@
     <filter-fields label="خيارات تصفية سجل الرقابة والتدقيق التاريخي" class="main-card border-0 pa-5 rounded-2xl mb-6">
       <v-row dense class="align-center">
         <!-- Action Type Filter -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterAction"
-            :items="actionOptions"
-            item-title="title"
-            item-value="value"
-            placeholder="نوع الإجراء"
-            prepend-inner-icon="mdi-filter-variant"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-          />
-        </v-col>
+        <auto-list
+          v-model="filterAction"
+          name="LocalOption"
+          :objects="actionOptions"
+          cols="3"
+          label="نوع الإجراء"
+          icon="filter-variant"
+          :add="false"
+        />
 
         <!-- Resource Type Filter -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterResourceType"
-            :items="resourceTypeOptions"
-            item-title="title"
-            item-value="value"
-            placeholder="نوع الكيان المستهدف"
-            prepend-inner-icon="mdi-database-outline"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-          />
-        </v-col>
+        <auto-list
+          v-model="filterResourceType"
+          name="LocalOption"
+          :objects="resourceTypeOptions"
+          cols="3"
+          label="نوع الكيان المستهدف"
+          icon="database-outline"
+          :add="false"
+        />
 
         <!-- User Filter -->
         <auto-list
@@ -47,44 +35,33 @@
         />
 
         <!-- Search Query -->
-        <v-col cols="12" sm="6" md="3">
-          <v-text-field
-            v-model="searchQuery"
-            placeholder="بحث بالوصف، المعرف، أو IP..."
-            prepend-inner-icon="mdi-magnify"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-          />
-        </v-col>
+        <custom-text-field
+          v-model="searchQuery"
+          cols="3"
+          label="بحث"
+          placeholder="بحث بالوصف، المعرف، أو IP..."
+          icon="magnify"
+        />
 
         <!-- Date From -->
-        <v-col cols="12" sm="6" md="3">
-          <v-text-field
-            v-model="filterDateFrom"
-            type="date"
-            placeholder="من تاريخ"
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-          />
-        </v-col>
+        <custom-text-field
+          v-model="filterDateFrom"
+          cols="3"
+          type="date"
+          label="من تاريخ"
+          placeholder="من تاريخ"
+          icon="calendar-start"
+        />
 
         <!-- Date To -->
-        <v-col cols="12" sm="6" md="3">
-          <v-text-field
-            v-model="filterDateTo"
-            type="date"
-            placeholder="إلى تاريخ"
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-          />
-        </v-col>
+        <custom-text-field
+          v-model="filterDateTo"
+          cols="3"
+          type="date"
+          label="إلى تاريخ"
+          placeholder="إلى تاريخ"
+          icon="calendar-end"
+        />
 
         <!-- Filter Actions -->
         <v-col cols="12" sm="12" md="6" class="d-flex align-center justify-end gap-2">

@@ -106,7 +106,6 @@
           placeholder="https://example.com/logo.png أو /logo.png"
           icon="image-outline"
           cols="12"
-          :hideDetails="true"
           :clearable="false"
           @keydown.enter="applyLogoUrl"
         >

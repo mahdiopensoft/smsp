@@ -90,7 +90,6 @@
             placeholder="بحث باسم الطالب أو الاختبار..."
             icon="magnify"
             cols="12"
-            :hideDetails="true"
             clearable
           />
         </v-col>
@@ -105,7 +104,6 @@
             placeholder="تصفية بحالة الورقة..."
             cols="12"
             :add="false"
-            :hideDetails="true"
           />
         </v-col>
 

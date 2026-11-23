@@ -108,7 +108,6 @@
               cols="12"
               icon="shield-check-outline"
               :add="false"
-              :hideDetails="true"
             />
 
             <!-- رقم توجيه الإذن الاستثنائي / المذكرة الرسمية عبر CustomTextField الموحد -->
@@ -119,7 +118,6 @@
               icon="file-certificate-outline"
               cols="12"
               :isRequired="true"
-              :hideDetails="true"
             />
           </v-row>
 

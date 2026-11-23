@@ -6,60 +6,38 @@
       <filter-fields label="خيارات البحث وتصفية مهام التوزيع" class="main-card border-0 pa-5 rounded-2xl mb-8">
         <v-row dense class="align-center">
           <!-- فلتر نوع المؤسسة والنظام التعليمي (مدارس / جامعات / معاهد) -->
-          <v-col cols="12" sm="6" md="3">
-            <v-select
-              v-model="filterInstitutionType"
-              :items="institutionTypeFilterOptions"
-              item-title="label"
-              item-value="value"
-              placeholder="نوع المؤسسة (مدارس / جامعات / معاهد)"
-              prepend-inner-icon="mdi-domain"
-              clearable
-              density="compact"
-              variant="outlined"
-              hide-details
-              class="mb-6"
-              @update:model-value="onInstitutionTypeFilterChange"
-            >
-              <template v-slot:item="{ props, item }">
-                <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
-              </template>
-            </v-select>
-          </v-col>
+          <auto-list
+            v-model="filterInstitutionType"
+            name="LocalLabelOption"
+            :objects="institutionTypeFilterOptions"
+            cols="3"
+            label="نوع المؤسسة التعليمية"
+            icon="domain"
+            :add="false"
+            @update:model-value="onInstitutionTypeFilterChange"
+          />
 
-          <v-col cols="12" sm="6" md="3">
-            <v-select
-              v-model="filterTargetLevel"
-              :items="targetLevelFilterOptions"
-              item-title="label"
-              item-value="value"
-              placeholder="مستوى الاستهداف الهرمي"
-              prepend-inner-icon="mdi-sitemap"
-              clearable
-              density="compact"
-              variant="outlined"
-              hide-details
-              class="mb-6"
-              @update:model-value="applyFilters"
-            />
-          </v-col>
+          <auto-list
+            v-model="filterTargetLevel"
+            name="LocalLabelOption"
+            :objects="targetLevelFilterOptions"
+            cols="3"
+            label="مستوى الاستهداف الهرمي"
+            icon="sitemap"
+            :add="false"
+            @update:model-value="applyFilters"
+          />
 
-          <v-col cols="12" sm="6" md="3">
-            <v-select
-              v-model="filterStatus"
-              :items="statusFilterOptions"
-              item-title="label"
-              item-value="value"
-              placeholder="حالة المهمة"
-              prepend-inner-icon="mdi-check-circle-outline"
-              clearable
-              density="compact"
-              variant="outlined"
-              hide-details
-              class="mb-6"
-              @update:model-value="applyFilters"
-            />
-          </v-col>
+          <auto-list
+            v-model="filterStatus"
+            name="LocalLabelOption"
+            :objects="statusFilterOptions"
+            cols="3"
+            label="حالة المهمة"
+            icon="check-circle-outline"
+            :add="false"
+            @update:model-value="applyFilters"
+          />
 
           <v-col cols="12" sm="12" md="3" class="d-flex align-center justify-end gap-2">
             <custom-btn

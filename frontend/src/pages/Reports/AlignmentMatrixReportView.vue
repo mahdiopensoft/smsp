@@ -131,17 +131,13 @@
             />
           </template>
 
-        <v-col cols="12" md="2">
-          <v-text-field
-            v-model="filterSearch"
-            placeholder="بحث برمز CLO أو الوصف..."
-            prepend-inner-icon="mdi-magnify"
-            clearable
-            density="compact"
-            variant="outlined"
-            hide-details
-          />
-        </v-col>
+        <custom-text-field
+          v-model="filterSearch"
+          cols="2"
+          label="بحث"
+          placeholder="بحث برمز CLO أو الوصف..."
+          icon="magnify"
+        />
 
         <v-col cols="auto" class="d-flex align-center gap-2 py-2">
           <custom-btn type="filter" :loading="loading" :click="applyFilters" />

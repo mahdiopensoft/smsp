@@ -64,18 +64,14 @@
           :disabled="!filterGovernorate"
         />
 
-        <v-col cols="12" md="3">
-          <v-text-field
-            v-model="filterSearch"
-            placeholder="بحث بالاسم أو الرقم الأكاديمي..."
-            density="compact"
-            variant="outlined"
-            prepend-inner-icon="mdi-magnify"
-            hide-details
-            clearable
-            @keyup.enter="applyFilters"
-          />
-        </v-col>
+        <custom-text-field
+          v-model="filterSearch"
+          cols="3"
+          label="بحث"
+          placeholder="بحث بالاسم أو الرقم الأكاديمي..."
+          icon="magnify"
+          @keyup.enter="applyFilters"
+        />
 
         <v-col cols="auto" class="d-flex align-center gap-2 py-2">
           <custom-btn type="filter" :loading="loading" :click="applyFilters" />

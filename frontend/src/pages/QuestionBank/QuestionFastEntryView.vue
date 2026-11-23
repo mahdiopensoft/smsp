@@ -425,7 +425,7 @@
               v-if="q.isCollapsed"
               class="text-body-2 font-weight-medium text-truncate flex-grow-1"
               style="max-width: 450px"
-              v-html="renderSnippet(q.text) || 'سؤال بدون عنوان...'"
+              v-html="$sanitizeHtml(renderSnippet(q.text)) || 'سؤال بدون عنوان...'"
             >
             </span>
 
@@ -648,7 +648,7 @@
                         >
                           <v-icon size="13" color="primary">mdi-variable</v-icon>
                           <span class="text-medium-emphasis">المعاينة:</span>
-                          <span class="font-weight-bold" v-html="renderOptionMarkup(q.options[oIndex])"></span>
+                          <span class="font-weight-bold" v-html="$sanitizeHtml(renderOptionMarkup(q.options[oIndex]))"></span>
                         </div>
                       </div>
 

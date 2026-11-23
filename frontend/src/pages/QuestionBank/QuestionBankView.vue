@@ -8,27 +8,16 @@
     <filter-fields label="خيارات التصفية المتقدمة" class="main-card border-0 pa-5 rounded-2xl mb-8">
       <v-row dense class="align-center">
         <!-- Institution Type Selector (مدارس / جامعات / معاهد) -->
-        <v-col cols="12" sm="6" :md="filterInstitutionType ? 3 : 4">
-          <v-select
-            v-model="filterInstitutionType"
-            :items="institutionTypeOptions"
-            item-title="text"
-            item-value="value"
-            class="mb-6"
-            label="نوع المؤسسة التعليمية"
-            placeholder="اختر نوع المؤسسة"
-            prepend-inner-icon="mdi-domain"
-            hide-details
-            clearable
-            density="compact"
-            variant="outlined"
-            @update:model-value="onInstitutionTypeChange"
-          >
-            <template v-slot:item="{ props, item }">
-              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
-            </template>
-          </v-select>
-        </v-col>
+        <auto-list
+          v-model="filterInstitutionType"
+          name="LocalTextOption"
+          :objects="institutionTypeOptions"
+          :cols="filterInstitutionType ? '3' : '4'"
+          label="نوع المؤسسة التعليمية"
+          icon="domain"
+          :add="false"
+          @update:model-value="onInstitutionTypeChange"
+        />
 
         <!-- الظهور مشروط باختيار نوع المؤسسة: مدارس أو جامعات أو معاهد -->
         <template v-if="filterInstitutionType">
@@ -87,11 +76,15 @@
           </template>
 
           <!-- Status -->
-          <v-col cols="3" sm="6" md="3">
-            <v-select v-model="filterStatus" :items="statusOptions" item-title="text" item-value="value" class="mb-6"
-              placeholder="حالة السؤال" prepend-inner-icon="mdi-flag-outline" hide-details clearable density="compact"
-              variant="outlined" />
-          </v-col>
+          <auto-list
+            v-model="filterStatus"
+            name="LocalTextOption"
+            :objects="statusOptions"
+            cols="3"
+            label="حالة السؤال"
+            icon="flag-outline"
+            :add="false"
+          />
 
           <!-- Difficulty & Question Type -->
           <auto-list v-model="filterDifficulty" name="Difficulty" label="مستوى الصعوبة" cols="3" sm="6" md="3"
@@ -100,11 +93,15 @@
             :add="false" />
 
           <!-- Bloom Level -->
-          <v-col cols="3" sm="6" md="3">
-            <v-select v-model="filterBloom" :items="bloomOptions" item-title="title" item-value="value" class="mb-6"
-              placeholder="مستوى بلوم المعرفي" prepend-inner-icon="mdi-brain" hide-details clearable density="compact"
-              variant="outlined" />
-          </v-col>
+          <auto-list
+            v-model="filterBloom"
+            name="LocalOption"
+            :objects="bloomOptions"
+            cols="3"
+            label="مستوى بلوم المعرفي"
+            icon="brain"
+            :add="false"
+          />
 
           <!-- Filter Actions -->
           <v-col cols="3" sm="12" md="3" class="d-flex align-center gap-2">
@@ -523,7 +520,7 @@
 
               <!-- Question Text -->
               <div class="question-body-rendered text-body-1 font-weight-bold" style="line-height: 2.1; font-size: 1.15rem !important;"
-                v-html="selectedQuestion.content" />
+                v-html="$sanitizeHtml(selectedQuestion.content)" />
             </div>
           </div>
 
@@ -561,7 +558,7 @@
                   </v-avatar>
 
                   <div class="d-flex flex-column flex-grow-1 overflow-hidden">
-                    <div class="text-body-1 font-weight-medium" v-html="answer.text" />
+                    <div class="text-body-1 font-weight-medium" v-html="$sanitizeHtml(answer.text)" />
                     <v-img v-if="answer.image" :src="answer.image" max-height="120" contain class="mt-2 rounded-lg border" />
                     <div v-if="answer.latex" class="text-caption font-weight-medium mt-1 dir-ltr text-left">
                       <code>{{ answer.latex }}</code>
@@ -639,7 +636,7 @@
                 <v-icon size="20" color="success">mdi-text-box-check-outline</v-icon>
                 <span class="text-subtitle-2 font-weight-bold text-success-darken-1">معايير الإجابة النموذجية وسلّم التقدير</span>
               </div>
-              <div class="text-body-1 font-weight-medium" style="line-height: 1.9;" v-html="selectedQuestion.answerText" />
+              <div class="text-body-1 font-weight-medium" style="line-height: 1.9;" v-html="$sanitizeHtml(selectedQuestion.answerText)" />
             </div>
           </div>
 

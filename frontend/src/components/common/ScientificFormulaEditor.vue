@@ -196,7 +196,7 @@
           </div>
 
           <!-- Formatted Rendered Output -->
-          <div v-else class="scientific-rendered-content text-body-1" v-html="renderedHtml"></div>
+          <div v-else class="scientific-rendered-content text-body-1" v-html="$sanitizeHtml(renderedHtml)"></div>
         </div>
       </div>
     </div>

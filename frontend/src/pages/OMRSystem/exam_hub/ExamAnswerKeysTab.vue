@@ -4,19 +4,17 @@
     <div class="main-card rounded-2xl pa-4 mb-4">
       <!-- Row 1: Model Selection & Core Model Actions -->
       <div class="d-flex align-center justify-space-between flex-wrap gap-3 pb-3 border-b">
-        <!-- Model Selector Dropdown (يدعم أي عدد من النماذج للجامعات والمعاهد دون انكسار الواجهة) -->
-        <div style="min-width: 200px; max-width: 260px;">
-          <v-select
+        <!-- Model Selector AutoList (يدعم أي عدد من النماذج للجامعات والمعاهد دون انكسار الواجهة) -->
+        <div style="min-width: 220px; max-width: 280px;">
+          <auto-list
             :model-value="activeVersionTab"
-            :items="versionSelectOptions"
-            item-title="title"
-            item-value="value"
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            hide-details
-            prepend-inner-icon="mdi-format-list-bulleted-type"
+            name="ExamHubModel"
+            :objects="versionSelectOptions"
+            cols="12"
+            class="pa-0"
             label="النموذج المعروض"
+            :add="false"
+            :clearable="false"
             @update:model-value="(val) => $emit('update:activeVersionTab', val)"
           />
         </div>
@@ -62,60 +60,37 @@
 
     <div v-if="currentVersionObj">
       <!-- Unified Filter Fields for Questions -->
-      <filter-fields label="خيارات تصفية والبحث في أسئلة النموذج" class="main-card border-0 pa-5 rounded-2xl mb-4">
-        <v-row dense class="align-center">
+      <filter-fields label="خيارات تصفية والبحث في أسئلة النموذج" class="main-card border-0 pa-4 rounded-2xl mb-4">
+        <template #fields>
           <!-- Search Query -->
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="questionSearchQuery"
-              label="البحث في نص السؤال أو الخيارات"
-              placeholder="بحث بنص السؤال أو البدائل..."
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              class="mb-3"
-              hide-details
-              clearable
-              prepend-inner-icon="mdi-magnify"
-            />
-          </v-col>
+          <custom-text-field
+            v-model="questionSearchQuery"
+            cols="5"
+            label="البحث في نص السؤال أو الخيارات"
+            placeholder="بحث بنص السؤال أو البدائل..."
+            icon="magnify"
+          />
 
           <!-- Bloom Level -->
-          <v-col cols="12" sm="6" md="3">
-            <v-select
-              v-model="filterBloomLevel"
-              :items="bloomLevelOptions"
-              item-title="title"
-              item-value="value"
-              label="المستوى المعرفي"
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              class="mb-3"
-              hide-details
-              prepend-inner-icon="mdi-brain"
-            />
-          </v-col>
+          <auto-list
+            v-model="filterBloomLevel"
+            name="ExamHubBloomLevel"
+            :objects="bloomLevelOptions"
+            cols="3"
+            :add="false"
+          />
 
           <!-- Question Type -->
-          <v-col cols="12" sm="6" md="2">
-            <v-select
-              v-model="filterQuestionType"
-              :items="questionTypeFilterOptions"
-              item-title="title"
-              item-value="value"
-              label="نوع السؤال"
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              class="mb-3"
-              hide-details
-              prepend-inner-icon="mdi-format-list-checks"
-            />
-          </v-col>
+          <auto-list
+            v-model="filterQuestionType"
+            name="ExamHubQuestionType"
+            :objects="questionTypeFilterOptions"
+            cols="3"
+            :add="false"
+          />
 
           <!-- Cancel Filter -->
-          <v-col cols="12" sm="12" md="1" class="d-flex justify-center mb-3">
+          <v-col cols="12" md="1" class="d-flex justify-center py-2">
             <custom-btn
               type="cancel_filter"
               :click="resetQuestionFilters"
@@ -126,7 +101,7 @@
               class="font-weight-bold w-100"
             />
           </v-col>
-        </v-row>
+        </template>
       </filter-fields>
 
       <!-- Unified Custom Data Table for Questions -->
@@ -153,7 +128,7 @@
             <!-- Question Content & Options -->
             <template v-else-if="key === 'question_content'">
               <div class="py-2 text-start">
-                <div class="text-body-2 font-weight-bold mb-2 text-on-surface" v-html="item.content"></div>
+                <div class="text-body-2 font-weight-bold mb-2 text-on-surface" v-html="$sanitizeHtml(item.content)"></div>
                 <!-- Options Badges -->
                 <div class="d-flex flex-wrap gap-2">
                   <div

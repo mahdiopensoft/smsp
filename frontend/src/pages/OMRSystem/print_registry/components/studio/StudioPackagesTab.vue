@@ -42,7 +42,6 @@
               placeholder="النموذج"
               cols="12"
               :add="false"
-              :hideDetails="true"
             />
           </div>
         </div>

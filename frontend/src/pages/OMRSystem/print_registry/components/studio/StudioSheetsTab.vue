@@ -194,7 +194,6 @@
                 @update:model-value="$emit('update:customCenterName', $event)"
                 label="اسم المركز الامتحاني / المدرسة"
                 cols="12"
-                :hideDetails="true"
                 :placeholder="selectedExam?.directorate || 'المركز الامتحاني الرئيسي'"
               />
             </v-col>
@@ -204,7 +203,6 @@
                 @update:model-value="$emit('update:customDirectorate', $event)"
                 label="المديرية"
                 cols="12"
-                :hideDetails="true"
                 :placeholder="selectedExam?.directorate || 'السبعين'"
               />
             </v-col>
@@ -214,7 +212,6 @@
                 @update:model-value="$emit('update:customGovernorate', $event)"
                 label="المحافظة"
                 cols="12"
-                :hideDetails="true"
                 :placeholder="selectedExam?.governorate || 'أمانة العاصمة'"
               />
             </v-col>
@@ -224,7 +221,6 @@
                 @update:model-value="$emit('update:customStageTitle', $event)"
                 label="عنوان الاختبار والمرحلة"
                 cols="12"
-                :hideDetails="true"
                 :placeholder="selectedExam?.title || 'اختبار الشهادة العامة'"
               />
             </v-col>
@@ -234,7 +230,6 @@
                 @update:model-value="$emit('update:customExamYear', $event)"
                 label="العام الدراسي"
                 cols="12"
-                :hideDetails="true"
                 :placeholder="selectedExam?.year_name || '2026'"
               />
             </v-col>
@@ -269,7 +264,6 @@
               placeholder="النموذج"
               cols="12"
               :add="false"
-              :hideDetails="true"
             />
           </div>
 
@@ -284,7 +278,6 @@
               placeholder="حالة الطباعة"
               cols="12"
               :add="false"
-              :hideDetails="true"
             />
           </div>
 

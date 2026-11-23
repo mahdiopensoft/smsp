@@ -9,27 +9,16 @@
       <filter-fields label="خيارات تصفية والبحث في أرشيف الاختبارات" class="main-card border-0 pa-5 rounded-2xl mb-8">
         <v-row dense class="align-center">
           <!-- Institution Type Selector (مدارس / جامعات / معاهد) -->
-          <v-col cols="12" sm="6" :md="filterInstitutionType ? 3 : 4">
-            <v-select
-              v-model="filterInstitutionType"
-              :items="institutionTypeOptions"
-              item-title="text"
-              item-value="value"
-              class="mb-6"
-              label="نوع المؤسسة التعليمية"
-              placeholder="اختر نوع المؤسسة"
-              prepend-inner-icon="mdi-domain"
-              hide-details
-              clearable
-              density="compact"
-              variant="outlined"
-              @update:model-value="onInstitutionTypeChange"
-            >
-              <template v-slot:item="{ props, item }">
-                <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
-              </template>
-            </v-select>
-          </v-col>
+          <auto-list
+            v-model="filterInstitutionType"
+            name="LocalTextOption"
+            :objects="institutionTypeOptions"
+            :cols="filterInstitutionType ? '3' : '4'"
+            label="نوع المؤسسة التعليمية"
+            icon="domain"
+            :add="false"
+            @update:model-value="onInstitutionTypeChange"
+          />
 
           <!-- الظهور مشروط باختيار نوع المؤسسة: مدارس أو جامعات أو معاهد -->
           <template v-if="filterInstitutionType">
@@ -571,7 +560,7 @@
                         }}</v-avatar>
                         <div class="flex-grow-1">
                           <div class="d-flex justify-space-between align-center mb-2">
-                            <div class="text-body-1 font-weight-bold" v-html="q.content" />
+                            <div class="text-body-1 font-weight-bold" v-html="$sanitizeHtml(q.content)" />
                             <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold ms-2">{{
                               q.assignedMark }} درجة</v-chip>
                           </div>
@@ -681,19 +670,21 @@
                   قائمة الطلاب المسجلين
                 </h4>
                 <div class="d-flex align-center gap-2">
-                  <v-select
+                  <div
                     v-if="totalStudentsCount > 0 || (studentsTableItems.results && studentsTableItems.results.length > 0)"
-                    v-model="studentsFilterVersion"
-                    :items="studentsVersionOptions"
-                    item-title="text"
-                    item-value="value"
-                    density="compact"
-                    variant="outlined"
-                    style="min-width: 170px;"
-                    hide-details
-                    placeholder="تصفية بالنموذج"
-                    prepend-inner-icon="mdi-filter-variant"
-                  />
+                    style="min-width: 190px; max-width: 240px;"
+                  >
+                    <auto-list
+                      v-model="studentsFilterVersion"
+                      name="LocalTextOption"
+                      :objects="studentsVersionOptions"
+                      cols="12"
+                      class="pa-0"
+                      label="تصفية بالنموذج"
+                      icon="filter-variant"
+                      :add="false"
+                    />
+                  </div>
                   <custom-btn
                     label="تحديث"
                     icon="mdi-refresh"
@@ -854,17 +845,19 @@
             </v-btn-toggle>
 
             <!-- Version Selector (if exam has versions) -->
-            <v-select
-              v-if="examDetails?.versions?.length > 1"
-              v-model="printVersionIndex"
-              :items="examDetails.versions.map((v, i) => ({ title: `نموذج ${v.versionCode}`, value: i }))"
-              item-title="title"
-              item-value="value"
-              density="compact"
-              variant="outlined"
-              hide-details
-              style="min-width: 120px;"
-            />
+            <div v-if="examDetails?.versions?.length > 1" style="min-width: 160px; max-width: 210px;">
+              <auto-list
+                v-model="printVersionIndex"
+                name="LocalOption"
+                :objects="examDetails.versions.map((v, i) => ({ title: `نموذج ${v.versionCode}`, value: i }))"
+                cols="12"
+                class="pa-0"
+                label="النموذج"
+                icon="format-list-bulleted-type"
+                :add="false"
+                :clearable="false"
+              />
+            </div>
 
             <!-- Toggle Blank vs Key (Only for Sheets) -->
             <div v-if="printModalType === 'sheets'" class="d-flex align-center border rounded-lg pa-1 bg-slate-50 gap-1">
@@ -975,7 +968,7 @@
                   </div>
                   <div class="flex-grow-1">
                     <div class="d-flex justify-space-between align-center mb-2">
-                      <div class="text-body-1 font-weight-bold" v-html="q.content"></div>
+                      <div class="text-body-1 font-weight-bold" v-html="$sanitizeHtml(q.content)"></div>
                       <span class="paper-badge ms-2 text-caption">{{ q.assignedMark }} درجة</span>
                     </div>
                     <div v-if="q.options && q.options.length" class="mt-3">

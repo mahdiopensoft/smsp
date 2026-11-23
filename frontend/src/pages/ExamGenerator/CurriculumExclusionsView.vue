@@ -46,27 +46,20 @@
         </v-col>
 
         <!-- 3. نطاق الحذف (وحدة / درس) -->
-        <v-col cols="12" sm="6" md="4">
-          <v-select
-            v-model="filterExclusionType"
-            :items="[
-              { value: null, title: 'كافة النطاقات (وحدات ودروس)' },
-              { value: 'unit', title: 'وحدات دراسية كاملة' },
-              { value: 'lesson', title: 'دروس وموضوعات محددة' }
-            ]"
-            item-value="value"
-            item-title="title"
-            placeholder="نطاق الحذف"
-            label="نطاق الحذف"
-            prepend-inner-icon="mdi-shape-outline"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-            @update:model-value="applyFilters"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterExclusionType"
+          name="LocalOption"
+          :objects="[
+            { value: null, title: 'كافة النطاقات (وحدات ودروس)' },
+            { value: 'unit', title: 'وحدات دراسية كاملة' },
+            { value: 'lesson', title: 'دروس وموضوعات محددة' }
+          ]"
+          cols="4"
+          label="نطاق الحذف"
+          icon="shape-outline"
+          :add="false"
+          @update:model-value="applyFilters"
+        />
 
         <!-- 4. أزرار الإجراءات -->
         <v-col cols="12" sm="12" md="4" class="d-flex align-center justify-end gap-2 mb-6">

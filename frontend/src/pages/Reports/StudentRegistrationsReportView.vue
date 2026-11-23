@@ -35,52 +35,42 @@
           :disabled="!filterExam"
         />
 
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filterIsPresent"
-            :items="[
-              { text: 'الكل (حضور/غياب)', value: '' },
-              { text: 'حاضر', value: 'true' },
-              { text: 'غائب', value: 'false' }
-            ]"
-            item-title="text"
-            item-value="value"
-            placeholder="حالة الحضور"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterIsPresent"
+          name="LocalTextOption"
+          :objects="[
+            { text: 'الكل (حضور/غياب)', value: '' },
+            { text: 'حاضر', value: 'true' },
+            { text: 'غائب', value: 'false' }
+          ]"
+          cols="2"
+          label="حالة الحضور"
+          icon="account-check-outline"
+          :add="false"
+        />
 
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filterIsPrinted"
-            :items="[
-              { text: 'الكل (حالة الطباعة)', value: '' },
-              { text: 'تمت الطباعة', value: 'true' },
-              { text: 'لم تطبع', value: 'false' }
-            ]"
-            item-title="text"
-            item-value="value"
-            placeholder="حالة الطباعة"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterIsPrinted"
+          name="LocalTextOption"
+          :objects="[
+            { text: 'الكل (حالة الطباعة)', value: '' },
+            { text: 'تمت الطباعة', value: 'true' },
+            { text: 'لم تطبع', value: 'false' }
+          ]"
+          cols="2"
+          label="حالة الطباعة"
+          icon="printer-outline"
+          :add="false"
+        />
 
-        <v-col cols="12" md="3">
-          <v-text-field
-            v-model="filterSearch"
-            placeholder="بحث برقم الجلوس أو اسم الطالب..."
-            density="compact"
-            variant="outlined"
-            prepend-inner-icon="mdi-magnify"
-            hide-details
-            clearable
-            @keyup.enter="applyFilters"
-          />
-        </v-col>
+        <custom-text-field
+          v-model="filterSearch"
+          cols="3"
+          label="بحث"
+          placeholder="بحث برقم الجلوس أو اسم الطالب..."
+          icon="magnify"
+          @keyup.enter="applyFilters"
+        />
 
         <v-col cols="auto" class="d-flex align-center gap-2 py-2">
           <custom-btn type="filter" :loading="loading" :click="applyFilters" />

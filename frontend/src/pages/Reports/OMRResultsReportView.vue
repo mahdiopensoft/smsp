@@ -3,7 +3,7 @@
     <filter-fields label="معايير التصفية والبحث في نتائج التصحيح الآلي (OMR)" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
       <template #fields>
         <!-- 1. اختيار نوع المؤسسة التعليمية الموحد -->
-        <v-col cols="12" sm="6" md="3">
+        <v-col cols="12" sm="6" md="4" class="pa-0">
           <auto-list
             v-model="filterInstitutionType"
             name="InstitutionType"
@@ -15,64 +15,62 @@
           />
         </v-col>
 
-        <auto-list
-          v-model="filterExam"
-          name="Exam"
-          :param="examParam"
-          label="الاختبار"
-          placeholder="الاختبار"
-          cols="2"
-          :add="false"
-          @update:model-value="filterVersion = null"
-        />
-
-        <auto-list
-          v-model="filterVersion"
-          name="ExamVersionByExam"
-          :param="filterExam"
-          label="النموذج"
-          placeholder="النموذج"
-          cols="2"
-          :add="false"
-          :disabled="!filterExam"
-        />
-
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filterStatus"
-            :items="[
-              { text: 'جميع الحالات', value: '' },
-              { text: 'ناجح', value: 'success' },
-              { text: 'بانتظار مراجعة', value: 'needs_review' }
-            ]"
-            item-title="text"
-            item-value="value"
-            placeholder="الحالة"
-            hide-details
-            density="compact"
-            variant="outlined"
+        <v-col cols="12" sm="6" md="4" class="pa-0">
+          <auto-list
+            v-model="filterExam"
+            name="Exam"
+            :param="examParam"
+            label="الاختبار"
+            placeholder="الاختبار"
+            cols="12"
+            :add="false"
+            @update:model-value="filterVersion = null"
           />
         </v-col>
 
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filterConfidenceMin"
-            :items="[
-              { text: 'أي دقة', value: '' },
-              { text: 'أعلى من 90%', value: '0.90' },
-              { text: 'أعلى من 80%', value: '0.80' },
-              { text: 'أقل من 80%', value: '0.79' }
-            ]"
-            item-title="text"
-            item-value="value"
-            placeholder="الحد الأدنى للثقة"
-            hide-details
-            density="compact"
-            variant="outlined"
+        <v-col cols="12" sm="6" md="4" class="pa-0">
+          <auto-list
+            v-model="filterVersion"
+            name="ExamVersionByExam"
+            :param="filterExam"
+            label="النموذج"
+            placeholder="النموذج"
+            cols="12"
+            :add="false"
+            :disabled="!filterExam"
           />
         </v-col>
 
-        <v-col cols="auto" class="d-flex align-center gap-2 py-2">
+        <auto-list
+          v-model="filterStatus"
+          name="LocalTextOption"
+          :objects="[
+            { text: 'جميع الحالات', value: '' },
+            { text: 'ناجح', value: 'success' },
+            { text: 'بانتظار مراجعة', value: 'needs_review' }
+          ]"
+          cols="4"
+          label="الحالة"
+          icon="check-circle-outline"
+          :add="false"
+        />
+
+        <auto-list
+          v-model="filterConfidenceMin"
+          name="LocalTextOption"
+          :objects="[
+            { text: 'أي دقة', value: '' },
+            { text: 'أعلى من 90%', value: '0.90' },
+            { text: 'أعلى من 80%', value: '0.80' },
+            { text: 'أقل من 80%', value: '0.79' }
+          ]"
+          cols="4"
+          label="الحد الأدنى للثقة"
+          icon="percent-outline"
+          :add="false"
+        />
+
+        <v-col cols="12" md="4" class="d-flex align-center gap-2 py-2">
           <custom-btn type="filter" :loading="loading" :click="applyFilters" />
           <custom-btn
             color="primary"

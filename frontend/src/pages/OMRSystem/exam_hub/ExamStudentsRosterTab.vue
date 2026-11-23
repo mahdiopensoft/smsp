@@ -38,64 +38,44 @@
     </div>
 
     <!-- Unified Filter Fields for Students (Backend Filtering) -->
-    <filter-fields label="خيارات تصفية كشف الطلاب والبيانات الامتحانية" class="main-card border-0 pa-5 rounded-2xl mb-4">
-      <v-row dense class="align-center">
+    <filter-fields label="خيارات تصفية كشف الطلاب والبيانات الامتحانية" class="main-card border-0 pa-4 rounded-2xl mb-4">
+      <template #fields>
         <!-- Search Query -->
-        <v-col cols="12" md="5">
-          <v-text-field
-            v-model="studentSearchQuery"
-            label="اسم الطالب أو رقم الجلوس أو الرقم السري"
-            placeholder="بحث بالاسم، رقم الجلوس، أو الرقم السري..."
-            prepend-inner-icon="mdi-magnify"
-            clearable
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            class="mb-3"
-            hide-details
-            @update:model-value="onStudentSearchInput"
-            @keydown.enter="applyStudentFilters"
-          />
-        </v-col>
+        <custom-text-field
+          v-model="studentSearchQuery"
+          cols="5"
+          label="اسم الطالب أو رقم الجلوس أو الرقم السري"
+          placeholder="بحث بالاسم، رقم الجلوس، أو الرقم السري..."
+          icon="magnify"
+          @update:model-value="onStudentSearchInput"
+          @keydown.enter="applyStudentFilters"
+        />
 
         <!-- Model Code -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterModelCode"
-            :items="modelFilterOptions"
-            item-title="title"
-            item-value="value"
-            label="النموذج الامتحاني"
-            prepend-inner-icon="mdi-format-list-bulleted-type"
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            class="mb-3"
-            hide-details
-            @update:model-value="applyStudentFilters"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterModelCode"
+          name="ExamHubModel"
+          :objects="modelFilterOptions"
+          cols="3"
+          :add="false"
+          :clearable="false"
+          @update:model-value="applyStudentFilters"
+        />
 
         <!-- School Name -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterSchoolName"
-            :items="schoolFilterOptions"
-            item-title="title"
-            item-value="value"
-            :label="institutionLabel"
-            prepend-inner-icon="mdi-school-outline"
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            class="mb-3"
-            hide-details
-            @update:model-value="applyStudentFilters"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterSchoolName"
+          name="ExamHubSchool"
+          :objects="schoolFilterOptions"
+          cols="3"
+          :label="institutionLabel"
+          :add="false"
+          :clearable="false"
+          @update:model-value="applyStudentFilters"
+        />
 
         <!-- Action: Reset -->
-        <v-col cols="12" md="1" class="d-flex align-center mb-3">
+        <v-col cols="12" md="1" class="d-flex align-center py-2">
           <custom-btn
             type="cancel_filter"
             :click="resetStudentFilters"
@@ -106,7 +86,7 @@
             class="font-weight-bold w-100"
           />
         </v-col>
-      </v-row>
+      </template>
     </filter-fields>
 
     <!-- Students Unified Custom Data Table (Server-side Paginated) -->

@@ -23,42 +23,36 @@
           :add="false"
         />
 
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filterStatus"
-            :items="[
-              { text: 'جميع الحالات', value: '' },
-              { text: 'مجدول', value: 'scheduled' },
-              { text: 'تم الإرسال', value: 'dispatched' },
-              { text: 'مكتمل', value: 'completed' },
-              { text: 'ملغي', value: 'cancelled' }
-            ]"
-            item-title="text"
-            item-value="value"
-            placeholder="الحالة"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterStatus"
+          name="LocalTextOption"
+          :objects="[
+            { text: 'جميع الحالات', value: '' },
+            { text: 'مجدول', value: 'scheduled' },
+            { text: 'تم الإرسال', value: 'dispatched' },
+            { text: 'مكتمل', value: 'completed' },
+            { text: 'ملغي', value: 'cancelled' }
+          ]"
+          cols="2"
+          label="الحالة"
+          icon="check-circle-outline"
+          :add="false"
+        />
 
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filterDeliveryMode"
-            :items="[
-              { text: 'جميع الطرق', value: '' },
-              { text: 'إلكتروني', value: 'online' },
-              { text: 'ورقي (مطبوع)', value: 'paper' },
-              { text: 'مدمج', value: 'hybrid' }
-            ]"
-            item-title="text"
-            item-value="value"
-            placeholder="طريقة التسليم"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterDeliveryMode"
+          name="LocalTextOption"
+          :objects="[
+            { text: 'جميع الطرق', value: '' },
+            { text: 'إلكتروني', value: 'online' },
+            { text: 'ورقي (مطبوع)', value: 'paper' },
+            { text: 'مدمج', value: 'hybrid' }
+          ]"
+          cols="2"
+          label="طريقة التسليم"
+          icon="truck-delivery-outline"
+          :add="false"
+        />
 
         <v-col cols="12" md="2">
           <custom-date-picker

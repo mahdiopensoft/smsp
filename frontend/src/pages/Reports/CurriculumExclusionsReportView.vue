@@ -139,39 +139,33 @@
             />
           </template>
 
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filterExclusionType"
-            :items="[
-              { text: 'الكل', value: '' },
-              { text: 'وحدة كاملة', value: 'unit' },
-              { text: 'درس محدد', value: 'lesson' }
-            ]"
-            item-title="text"
-            item-value="value"
-            placeholder="نوع الاستبعاد"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterExclusionType"
+          name="LocalTextOption"
+          :objects="[
+            { text: 'الكل', value: '' },
+            { text: 'وحدة كاملة', value: 'unit' },
+            { text: 'درس محدد', value: 'lesson' }
+          ]"
+          cols="2"
+          label="نوع الاستبعاد"
+          icon="filter-variant"
+          :add="false"
+        />
 
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filterIsActive"
-            :items="[
-              { text: 'الكل', value: '' },
-              { text: 'نشط', value: 'true' },
-              { text: 'غير نشط', value: 'false' }
-            ]"
-            item-title="text"
-            item-value="value"
-            placeholder="الحالة"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterIsActive"
+          name="LocalTextOption"
+          :objects="[
+            { text: 'الكل', value: '' },
+            { text: 'نشط', value: 'true' },
+            { text: 'غير نشط', value: 'false' }
+          ]"
+          cols="2"
+          label="الحالة"
+          icon="check-circle-outline"
+          :add="false"
+        />
 
         <v-col cols="auto" class="d-flex align-center gap-2 py-2">
           <custom-btn type="filter" :loading="loading" :click="applyFilters" />

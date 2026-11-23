@@ -97,78 +97,46 @@
       </v-btn>
     </div>
     <v-expand-transition>
-    <filter-fields v-if="showGeoFilter" :label="filterCardLabel" class="main-card border-0 pa-5 rounded-2xl mb-4">
-      <v-row dense class="align-center">
+    <filter-fields v-if="showGeoFilter" :label="filterCardLabel" class="main-card border-0 pa-4 rounded-2xl mb-4">
+      <template #fields>
         <!-- Level 1: المحافظة / النطاق الجغرافي أو الجامعي -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterGovernorate"
-            :items="governorateOptions"
-            item-title="title"
-            item-value="value"
-            :label="labels.level1"
-            :placeholder="labels.level1Placeholder"
-            :prepend-inner-icon="labels.level1Icon"
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            class="mb-3"
-            hide-details
-            clearable
-            @update:model-value="() => { filterDirectorate = null; filterSchool = null; selectedStudentId = null; }"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterGovernorate"
+          name="ExamHubGovernorate"
+          :objects="governorateOptions"
+          cols="3"
+          :label="labels.level1"
+          :icon="labels.level1Icon.replace('mdi-', '')"
+          :add="false"
+          @update:model-value="() => { filterDirectorate = null; filterSchool = null; selectedStudentId = null; }"
+        />
 
         <!-- Level 2: المديرية / القسم الأكاديمي / الفرع المهني -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterDirectorate"
-            :items="directorateOptions"
-            item-title="title"
-            item-value="value"
-            :label="labels.level2"
-            :placeholder="labels.level2Placeholder"
-            :prepend-inner-icon="labels.level2Icon"
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            class="mb-3"
-            hide-details
-            clearable
-            @update:model-value="() => { filterSchool = null; selectedStudentId = null; }"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterDirectorate"
+          name="ExamHubDirectorate"
+          :objects="directorateOptions"
+          cols="3"
+          :label="labels.level2"
+          :icon="labels.level2Icon.replace('mdi-', '')"
+          :add="false"
+          @update:model-value="() => { filterSchool = null; selectedStudentId = null; }"
+        />
 
         <!-- Level 3: المدرسة / الكلية / المعهد والمركز الامتحاني -->
-        <v-col cols="12" sm="8" md="4">
-          <v-select
-            v-model="filterSchool"
-            :items="schoolOptions"
-            item-title="title"
-            item-value="value"
-            :label="labels.level3"
-            :placeholder="labels.level3Placeholder"
-            :prepend-inner-icon="labels.level3Icon"
-            density="compact"
-            variant="outlined"
-            rounded="lg"
-            class="mb-3"
-            hide-details
-            clearable
-            @update:model-value="() => { selectedStudentId = null; }"
-          >
-            <template #item="{ props: sProps, item: sItem }">
-              <v-list-item
-                v-bind="sProps"
-                :title="sItem.raw.title"
-                :subtitle="`كود المركز: ${sItem.raw.id || '—'} | الطلاب المسجلون: ${sItem.raw.count} طالب`"
-              />
-            </template>
-          </v-select>
-        </v-col>
+        <auto-list
+          v-model="filterSchool"
+          name="ExamHubSchool"
+          :objects="schoolOptions"
+          cols="4"
+          :label="labels.level3"
+          :icon="labels.level3Icon.replace('mdi-', '')"
+          :add="false"
+          @update:model-value="() => { selectedStudentId = null; }"
+        />
 
         <!-- زر تفريغ التصفية الموحد -->
-        <v-col cols="12" sm="4" md="2" class="d-flex align-center mb-3">
+        <v-col cols="12" md="2" class="d-flex align-center py-2">
           <custom-btn
             type="cancel_filter"
             :click="resetFilters"
@@ -180,7 +148,7 @@
             :disabled="!filterSchool && !filterDirectorate && !filterGovernorate"
           />
         </v-col>
-      </v-row>
+      </template>
     </filter-fields>
     </v-expand-transition>
 
@@ -206,28 +174,16 @@
             </v-btn>
           </v-btn-toggle>
 
-          <!-- Student Picker when student_specific is selected -->
-          <div v-if="paperTargetMode === 'student_specific'" style="min-width: 240px; max-width: 380px;" class="flex-grow-1">
-            <v-autocomplete
+          <!-- Student Picker AutoList when student_specific is selected -->
+          <div v-if="paperTargetMode === 'student_specific'" style="min-width: 260px; max-width: 400px;" class="flex-grow-1">
+            <auto-list
               v-model="selectedStudentId"
-              :items="filteredStudents"
-              item-title="student_name"
-              item-value="id"
-              :placeholder="filteredStudents.length ? 'ابحث عن الطالب بالاسم أو رقم الجلوس...' : `لا يوجد طلاب ضمن ${labels.entityName} المختارة`"
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              hide-details
-              prepend-inner-icon="mdi-account-search"
-            >
-              <template #item="{ props: iProps, item }">
-                <v-list-item
-                  v-bind="iProps"
-                  :title="item.raw.student_name"
-                  :subtitle="`جلوس: ${item.raw.seat_number} | نموذج: ${item.raw.model_code} | ${labels.activePrefix}: ${item.raw.school_name || 'المركز'}`"
-                />
-              </template>
-            </v-autocomplete>
+              name="ExamHubStudent"
+              :objects="studentSelectOptions"
+              cols="12"
+              class="pa-0"
+              :add="false"
+            />
           </div>
         </div>
       </div>
@@ -235,19 +191,17 @@
       <!-- Row 2: Model Selector & Paper Size -->
       <div class="d-flex align-center justify-space-between flex-wrap gap-2 pt-2">
         <div class="d-flex align-center gap-3 flex-wrap">
-          <!-- Version Dropdown Selector (يدعم أي عدد من النماذج للجامعات والمعاهد بسلاسة) -->
-          <div style="min-width: 200px; max-width: 260px;">
-            <v-select
+          <!-- Version AutoList Selector -->
+          <div style="min-width: 220px; max-width: 280px;">
+            <auto-list
               :model-value="activeVersionTab"
-              :items="versionSelectItems"
-              item-title="title"
-              item-value="value"
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              hide-details
-              prepend-inner-icon="mdi-format-list-bulleted-type"
+              name="ExamHubModel"
+              :objects="versionSelectItems"
+              cols="12"
+              class="pa-0"
               label="النموذج المعروض"
+              :add="false"
+              :clearable="false"
               @update:model-value="(val) => $emit('update:activeVersionTab', val)"
             />
           </div>
@@ -652,6 +606,13 @@ const versionSelectItems = computed(() => {
   return props.examDetails.versions.map((v, idx) => ({
     title: `النموذج ${v.versionCode} (${v.questions?.length || v.questionsCount || 0} سؤال)`,
     value: idx
+  }))
+})
+
+const studentSelectOptions = computed(() => {
+  return filteredStudents.value.map(s => ({
+    title: `${s.student_name} — جلوس: ${s.seat_number} | نموذج: ${s.model_code || 'A'}${s.school_name ? ` (${s.school_name})` : ''}`,
+    value: s.id,
   }))
 })
 

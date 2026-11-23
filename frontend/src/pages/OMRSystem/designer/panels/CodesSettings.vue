@@ -21,7 +21,6 @@
             label="قيمة الباركود المشفرة"
             icon="barcode"
             cols="12"
-            :hideDetails="true"
             :clearable="false"
           />
           <auto-list
@@ -32,7 +31,6 @@
             placeholder="اختر صيغة التشفير..."
             cols="12"
             :add="false"
-            :hideDetails="true"
           />
         </v-row>
       </template>
@@ -59,7 +57,6 @@
             label="البيانات المشفرة بالـ QR"
             icon="qrcode"
             cols="12"
-            :hideDetails="true"
             :clearable="false"
           />
           <auto-list
@@ -70,7 +67,6 @@
             placeholder="اختر مستوى التصحيح..."
             cols="12"
             :add="false"
-            :hideDetails="true"
           />
         </v-row>
       </template>
@@ -93,7 +89,6 @@
           placeholder="1- يجب أن يكون تظليل الدائرة بقلم جاف أسود أو أزرق بشكل كامل مثال:"
           icon="numeric-1-circle-outline"
           cols="12"
-          :hideDetails="true"
           :clearable="false"
         />
 
@@ -103,7 +98,6 @@
           placeholder="واجب"
           icon="check-circle-outline"
           cols="12"
-          :hideDetails="true"
           :clearable="false"
         />
 
@@ -113,7 +107,6 @@
           placeholder="2 - تأكد من تظليل إجاباتك في الأماكن المخصصة لها."
           icon="numeric-2-circle-outline"
           cols="12"
-          :hideDetails="true"
           :clearable="false"
         />
 
@@ -123,7 +116,6 @@
           placeholder="3 - يمنع استخدام المصحح."
           icon="numeric-3-circle-outline"
           cols="12"
-          :hideDetails="true"
           :clearable="false"
         />
 
@@ -133,7 +125,6 @@
           placeholder="4 - لن تقبل الإجابات مالم تسجل على هذه الورقة، اترك لنفسك وقتاً كافياً لنقل الإجابات."
           icon="numeric-4-circle-outline"
           cols="12"
-          :hideDetails="true"
           :clearable="false"
         />
       </v-row>

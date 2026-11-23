@@ -139,22 +139,19 @@
             />
           </template>
 
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filterIsApproved"
-            :items="[
-              { text: 'الكل', value: '' },
-              { text: 'معتمد', value: 'true' },
-              { text: 'غير معتمد', value: 'false' }
-            ]"
-            item-title="text"
-            item-value="value"
-            placeholder="حالة الاعتماد"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterIsApproved"
+          name="LocalTextOption"
+          :objects="[
+            { text: 'الكل', value: '' },
+            { text: 'معتمد', value: 'true' },
+            { text: 'غير معتمد', value: 'false' }
+          ]"
+          cols="2"
+          label="حالة الاعتماد"
+          icon="check-decagram-outline"
+          :add="false"
+        />
 
         <!-- فلاتر التواريخ باستخدام CustomDate الموحد -->
         <custom-date

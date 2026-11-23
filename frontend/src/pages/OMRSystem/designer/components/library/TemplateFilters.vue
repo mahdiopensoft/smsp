@@ -11,7 +11,6 @@
           placeholder="كافة الأنواع..."
           cols="12"
           :add="false"
-          :hideDetails="true"
           @update:model-value="$emit('update:filterCategory', $event); $emit('apply')"
         />
       </v-col>
@@ -26,7 +25,6 @@
           placeholder="كافة السعات..."
           cols="12"
           :add="false"
-          :hideDetails="true"
           @update:model-value="$emit('update:filterQuestions', $event); $emit('apply')"
         />
       </v-col>
@@ -41,7 +39,6 @@
           placeholder="كافة الحالات..."
           cols="12"
           :add="false"
-          :hideDetails="true"
           @update:model-value="$emit('update:filterActive', $event); $emit('apply')"
         />
       </v-col>

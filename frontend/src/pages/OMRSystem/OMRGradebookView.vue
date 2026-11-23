@@ -18,7 +18,6 @@
               placeholder="نوع المؤسسة التعليمية"
               cols="12"
               :add="false"
-              :hideDetails="true"
               @update:model-value="onSectorChange"
             />
           </v-col>
@@ -35,7 +34,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onOfficeFilterChange"
               />
             </v-col>
@@ -50,7 +48,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onDirectorateFilterChange"
               />
             </v-col>
@@ -65,7 +62,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onSchoolFilterChange"
               />
             </v-col>
@@ -79,7 +75,6 @@
                 placeholder="تصفية حسب المادة..."
                 cols="12"
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onSubjectFilterChange"
               />
             </v-col>
@@ -97,7 +92,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onSchoolFilterChange"
               />
             </v-col>
@@ -111,7 +105,6 @@
                 placeholder="تصفية حسب المادة..."
                 cols="12"
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onSubjectFilterChange"
               />
             </v-col>
@@ -129,7 +122,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onSchoolFilterChange"
               />
             </v-col>
@@ -143,7 +135,6 @@
                 placeholder="تصفية حسب المادة..."
                 cols="12"
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onSubjectFilterChange"
               />
             </v-col>
@@ -814,7 +805,6 @@
               placeholder="بحث باسم الطالب، رقم الجلوس..."
               icon="magnify"
               cols="12"
-              :hideDetails="true"
               clearable
               @update:model-value="onSearchInput"
             />
@@ -830,7 +820,6 @@
               placeholder="اختر الاختبار..."
               cols="12"
               :add="false"
-              :hideDetails="true"
               @update:model-value="onExamChange"
             />
           </v-col>
@@ -845,7 +834,6 @@
               placeholder="النموذج"
               cols="12"
               :add="false"
-              :hideDetails="true"
               @update:model-value="applyFilters"
             />
           </v-col>
@@ -860,7 +848,6 @@
               placeholder="التقدير الأكاديمي"
               cols="12"
               :add="false"
-              :hideDetails="true"
               @update:model-value="applyFilters"
             />
           </v-col>
@@ -875,7 +862,6 @@
               placeholder="حالة التصحيح"
               cols="12"
               :add="false"
-              :hideDetails="true"
               @update:model-value="applyFilters"
             />
           </v-col>
@@ -890,7 +876,6 @@
               placeholder="حالة الكنترول والترحيل"
               cols="12"
               :add="false"
-              :hideDetails="true"
               @update:model-value="applyFilters"
             />
           </v-col>

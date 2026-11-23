@@ -6,27 +6,16 @@
     <filter-fields label="خيارات التصفية والبحث المتقدم" class="main-card border-0 pa-5 rounded-2xl mb-6">
       <v-row dense class="align-center">
         <!-- Institution Type Selector (مدارس / جامعات / معاهد) -->
-        <v-col cols="12" sm="6" :md="filterInstitutionType ? 3 : 4">
-          <v-select
-            v-model="filterInstitutionType"
-            :items="institutionTypeOptions"
-            item-title="text"
-            item-value="value"
-            class="mb-6"
-            label="نوع المؤسسة التعليمية"
-            placeholder="اختر نوع المؤسسة"
-            prepend-inner-icon="mdi-domain"
-            hide-details
-            clearable
-            density="compact"
-            variant="outlined"
-            @update:model-value="onInstitutionTypeChange"
-          >
-            <template v-slot:item="{ props, item }">
-              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
-            </template>
-          </v-select>
-        </v-col>
+        <auto-list
+          v-model="filterInstitutionType"
+          name="LocalTextOption"
+          :objects="institutionTypeOptions"
+          :cols="filterInstitutionType ? '3' : '4'"
+          label="نوع المؤسسة التعليمية"
+          icon="domain"
+          :add="false"
+          @update:model-value="onInstitutionTypeChange"
+        />
 
         <!-- الظهور مشروط باختيار نوع المؤسسة: مدارس أو جامعات أو معاهد -->
         <template v-if="filterInstitutionType">
@@ -71,36 +60,33 @@
         <auto-list v-model="filterDifficulty" name="Difficulty" label="مستوى الصعوبة" cols="3" :add="false" />
 
         <!-- Bloom Level -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterBloom"
-            :items="['تذكر', 'فهم', 'تطبيق', 'تحليل', 'تقييم', 'ابتكار']"
-            placeholder="مستوى بلوم"
-            prepend-inner-icon="mdi-brain"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-          />
-        </v-col>
+        <auto-list
+          v-model="filterBloom"
+          name="LocalOption"
+          :objects="[
+            { title: 'تذكر', value: 'تذكر' },
+            { title: 'فهم', value: 'فهم' },
+            { title: 'تطبيق', value: 'تطبيق' },
+            { title: 'تحليل', value: 'تحليل' },
+            { title: 'تقييم', value: 'تقييم' },
+            { title: 'ابتكار', value: 'ابتكار' }
+          ]"
+          cols="3"
+          label="مستوى بلوم"
+          icon="brain"
+          :add="false"
+        />
 
         <!-- Readiness Filter -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterReadiness"
-            :items="readinessOptions"
-            item-title="title"
-            item-value="value"
-            placeholder="حالة الاكتمال"
-            prepend-inner-icon="mdi-filter-check-outline"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-          />
-        </v-col>
+        <auto-list
+          v-model="filterReadiness"
+          name="LocalOption"
+          :objects="readinessOptions"
+          cols="3"
+          label="حالة الاكتمال"
+          icon="filter-check-outline"
+          :add="false"
+        />
 
         <!-- Filter Actions -->
         <v-col cols="12" sm="6" md="3" class="d-flex align-center gap-2">
@@ -508,27 +494,38 @@
 
       <!-- Bloom Level Assign -->
       <div v-else-if="assignType === 'bloom'">
-        <v-select
+        <auto-list
           v-model="batchForm.bloomLevel"
-          :items="['تذكر', 'فهم', 'تطبيق', 'تحليل', 'تقييم', 'ابتكار']"
+          name="LocalOption"
+          :objects="[
+            { title: 'تذكر', value: 'تذكر' },
+            { title: 'فهم', value: 'فهم' },
+            { title: 'تطبيق', value: 'تطبيق' },
+            { title: 'تحليل', value: 'تحليل' },
+            { title: 'تقييم', value: 'تقييم' },
+            { title: 'ابتكار', value: 'ابتكار' }
+          ]"
+          cols="12"
           label="مستوى بلوم المعرفي *"
-          variant="outlined"
-          density="compact"
+          icon="brain"
+          :add="false"
         />
       </div>
 
       <!-- Difficulty Assign -->
       <div v-else-if="assignType === 'difficulty'">
-        <v-select
+        <auto-list
           v-model="batchForm.difficulty"
-          :items="[
+          name="LocalOption"
+          :objects="[
             { title: 'سهل', value: 1 },
             { title: 'متوسط', value: 2 },
             { title: 'صعب', value: 3 }
           ]"
+          cols="12"
           label="مستوى الصعوبة التقديرية *"
-          variant="outlined"
-          density="compact"
+          icon="speedometer"
+          :add="false"
         />
       </div>
 
@@ -577,7 +574,7 @@
 
         <!-- Question Body Box -->
         <div class="question-preview-box pa-4 rounded-xl mb-4 bg-slate-50 border">
-          <div class="text-body-1 font-weight-medium" style="line-height: 1.8" v-html="previewQuestion.content"></div>
+          <div class="text-body-1 font-weight-medium" style="line-height: 1.8" v-html="$sanitizeHtml(previewQuestion.content)"></div>
         </div>
 
         <!-- Answers / Options -->
@@ -592,7 +589,7 @@
             <v-avatar size="24" :color="ans.isTrue ? 'success' : 'surface-variant'">
               <v-icon size="14" color="white">{{ ans.isTrue ? 'mdi-check' : 'mdi-circle-outline' }}</v-icon>
             </v-avatar>
-            <span class="text-body-2" :class="{ 'font-weight-bold text-success': ans.isTrue }" v-html="ans.text"></span>
+            <span class="text-body-2" :class="{ 'font-weight-bold text-success': ans.isTrue }" v-html="$sanitizeHtml(ans.text)"></span>
           </div>
         </div>
       </template>

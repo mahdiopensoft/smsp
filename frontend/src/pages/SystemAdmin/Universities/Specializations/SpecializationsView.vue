@@ -27,21 +27,15 @@
         />
 
         <!-- Active Status Filter -->
-        <v-col cols="12" sm="6" md="3">
-          <v-select
-            v-model="filterActive"
-            :items="activeOptions"
-            item-title="text"
-            item-value="value"
-            label="حالة التفعيل"
-            prepend-inner-icon="mdi-check-circle-outline"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-          />
-        </v-col>
+        <auto-list
+          v-model="filterActive"
+          name="LocalTextOption"
+          :objects="activeOptions"
+          cols="3"
+          label="حالة التفعيل"
+          icon="check-circle-outline"
+          :add="false"
+        />
 
         <!-- Filter Actions -->
         <v-col cols="12" sm="6" md="3" class="d-flex align-center gap-2">

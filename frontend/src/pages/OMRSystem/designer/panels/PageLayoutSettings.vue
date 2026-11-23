@@ -14,7 +14,6 @@
         placeholder="اختر النموذج القياسي..."
         cols="12"
         :add="false"
-        :hideDetails="true"
         @update:model-value="onPresetChange"
       />
     </div>
@@ -74,7 +73,6 @@
           label="العرض (مم)"
           type="number"
           cols="6"
-          :hideDetails="true"
           :clearable="false"
           :disabled="true"
         />
@@ -83,7 +81,6 @@
           label="الارتفاع (مم)"
           type="number"
           cols="6"
-          :hideDetails="true"
           :clearable="false"
           :disabled="true"
         />

@@ -65,7 +65,7 @@
             <span class="q-number-badge font-weight-black me-3">{{ index + 1 }}</span>
             <div class="flex-grow-1">
               <div class="d-flex justify-space-between align-start gap-2 mb-3">
-                <div class="text-body-1 font-weight-bold" v-html="q.content" style="line-height: 1.7;" />
+                <div class="text-body-1 font-weight-bold" v-html="$sanitizeHtml(q.content)" style="line-height: 1.7;" />
                 <span class="score-chip font-weight-bold">({{ q.assignedMark }} درجات)</span>
               </div>
 

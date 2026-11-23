@@ -15,23 +15,20 @@
           />
         </v-col>
 
-        <v-col cols="12" md="3">
-          <v-select
-            v-model="filterComparisonType"
-            :items="[
-              { text: 'الكل (مدن ومناطق نائية)', value: 'all' },
-              { text: 'المدن الرئيسية فقط', value: 'cities_only' },
-              { text: 'المناطق النائية والريفية فقط', value: 'remote_only' }
-            ]"
-            item-title="text"
-            item-value="value"
-            placeholder="نوع المقارنة الجغرافية"
-            hide-details
-            density="compact"
-            variant="outlined"
-            @update:model-value="applyFilters"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterComparisonType"
+          name="LocalTextOption"
+          :objects="[
+            { text: 'الكل (مدن ومناطق نائية)', value: 'all' },
+            { text: 'المدن الرئيسية فقط', value: 'cities_only' },
+            { text: 'المناطق النائية والريفية فقط', value: 'remote_only' }
+          ]"
+          cols="3"
+          label="نوع المقارنة الجغرافية"
+          icon="map-marker-radius-outline"
+          :add="false"
+          @update:model-value="applyFilters"
+        />
 
         <v-col cols="auto" class="d-flex align-center gap-2 py-2">
           <custom-btn type="filter" :loading="loading" :click="applyFilters" />

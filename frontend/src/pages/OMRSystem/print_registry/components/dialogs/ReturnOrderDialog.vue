@@ -35,7 +35,6 @@
             placeholder="اختر سبب الإرجاع الرئيسي"
             cols="12"
             :add="false"
-            :hideDetails="true"
           />
         </div>
 

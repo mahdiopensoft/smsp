@@ -639,7 +639,6 @@
               v-model="assignDialog.selectedScreens"
               name="parent_screen"
               :label="$t('screens')"
-              hideDetails
               multiple
               :objects="screens_list"
             ></auto-list>

@@ -35,60 +35,51 @@
           :disabled="!filterExam"
         />
 
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filterReviewPriority"
-            :items="[
-              { text: 'جميع الأولويات', value: '' },
-              { text: 'حرج', value: 'CRITICAL' },
-              { text: 'عالي', value: 'HIGH' },
-              { text: 'متوسط', value: 'MEDIUM' },
-              { text: 'لا يتطلب', value: 'NONE' }
-            ]"
-            item-title="text"
-            item-value="value"
-            placeholder="أولوية المراجعة"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterReviewPriority"
+          name="LocalTextOption"
+          :objects="[
+            { text: 'جميع الأولويات', value: '' },
+            { text: 'حرج', value: 'CRITICAL' },
+            { text: 'عالي', value: 'HIGH' },
+            { text: 'متوسط', value: 'MEDIUM' },
+            { text: 'لا يتطلب', value: 'NONE' }
+          ]"
+          cols="2"
+          label="أولوية المراجعة"
+          icon="alert-circle-outline"
+          :add="false"
+        />
 
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filterBubbleState"
-            :items="[
-              { text: 'جميع الحالات', value: '' },
-              { text: 'ملتبس', value: 'ambiguous' },
-              { text: 'تظليل متعدد', value: 'multiple' },
-              { text: 'فارغ', value: 'empty' },
-              { text: 'ممسوح', value: 'erased' }
-            ]"
-            item-title="text"
-            item-value="value"
-            placeholder="حالة الدائرة"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterBubbleState"
+          name="LocalTextOption"
+          :objects="[
+            { text: 'جميع الحالات', value: '' },
+            { text: 'ملتبس', value: 'ambiguous' },
+            { text: 'تظليل متعدد', value: 'multiple' },
+            { text: 'فارغ', value: 'empty' },
+            { text: 'ممسوح', value: 'erased' }
+          ]"
+          cols="2"
+          label="حالة الدائرة"
+          icon="radiobox-marked"
+          :add="false"
+        />
 
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filterIsManuallyOverridden"
-            :items="[
-              { text: 'الكل', value: '' },
-              { text: 'معدّل يدوياً', value: 'true' },
-              { text: 'غير معدّل', value: 'false' }
-            ]"
-            item-title="text"
-            item-value="value"
-            placeholder="تعديل يدوي"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterIsManuallyOverridden"
+          name="LocalTextOption"
+          :objects="[
+            { text: 'الكل', value: '' },
+            { text: 'معدّل يدوياً', value: 'true' },
+            { text: 'غير معدّل', value: 'false' }
+          ]"
+          cols="2"
+          label="تعديل يدوي"
+          icon="pencil-outline"
+          :add="false"
+        />
 
         <v-col cols="auto" class="d-flex align-center gap-2 py-2">
           <custom-btn type="filter" :loading="loading" :click="applyFilters" />

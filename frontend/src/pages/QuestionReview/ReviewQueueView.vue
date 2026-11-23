@@ -4,34 +4,27 @@
     <filter-fields label="تصفية نتائج المراجعة" class="main-card border-0 pa-5 rounded-2xl">
       <v-row dense class="align-center">
         <!-- Institution Type Selector (مدارس / جامعات / معاهد) -->
-        <v-col cols="12" sm="6" :md="filterInstitutionType ? 2 : 3">
-          <v-select
-            v-model="filterInstitutionType"
-            :items="institutionTypeOptions"
-            item-title="text"
-            item-value="value"
-            class="mb-6"
-            label="نوع المؤسسة التعليمية"
-            placeholder="اختر نوع المؤسسة"
-            prepend-inner-icon="mdi-domain"
-            hide-details
-            clearable
-            density="compact"
-            variant="outlined"
-            @update:model-value="onInstitutionTypeChange"
-          >
-            <template v-slot:item="{ props, item }">
-              <v-list-item v-bind="props" :prepend-icon="item.raw.icon" />
-            </template>
-          </v-select>
-        </v-col>
+        <auto-list
+          v-model="filterInstitutionType"
+          name="LocalTextOption"
+          :objects="institutionTypeOptions"
+          :cols="filterInstitutionType ? '2' : '3'"
+          label="نوع المؤسسة التعليمية"
+          icon="domain"
+          :add="false"
+          @update:model-value="onInstitutionTypeChange"
+        />
 
         <!-- Status Filter -->
-        <v-col cols="12" sm="6" :md="filterInstitutionType ? 2 : 3">
-          <v-select v-model="filterStatus" :items="statusOptions" item-title="text" item-value="value" class="mb-6"
-            placeholder="حالة السؤال" prepend-inner-icon="mdi-flag-outline" hide-details clearable density="compact"
-            variant="outlined" />
-        </v-col>
+        <auto-list
+          v-model="filterStatus"
+          name="LocalTextOption"
+          :objects="statusOptions"
+          :cols="filterInstitutionType ? '2' : '3'"
+          label="حالة السؤال"
+          icon="flag-outline"
+          :add="false"
+        />
 
         <!-- الظهور مشروط باختيار نوع المؤسسة: مدارس أو جامعات أو معاهد -->
         <template v-if="filterInstitutionType">
@@ -262,7 +255,7 @@
           <div v-else-if="key === 'content'" class="text-body-2 text-truncate"
             style="max-width: 300px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
             <span
-              v-html="(item.questionType === 'صح وخطأ' || item.questionType === 'True/False') && !item.content ? '[صواب/خطأ بدون نص]' : item.content"></span>
+              v-html="$sanitizeHtml((item.questionType === 'صح وخطأ' || item.questionType === 'True/False') && !item.content ? '[صواب/خطأ بدون نص]' : item.content)"></span>
           </div>
 
           <!-- Subject -->
@@ -578,7 +571,7 @@
 
               <!-- Question Text Body -->
               <div class="question-body-rendered text-body-1 font-weight-bold" style="line-height: 2.1; font-size: 1.15rem !important;"
-                v-html="selectedQuestion.content" />
+                v-html="$sanitizeHtml(selectedQuestion.content)" />
             </div>
           </div>
 
@@ -616,7 +609,7 @@
                   </v-avatar>
 
                   <div class="d-flex flex-column flex-grow-1 overflow-hidden">
-                    <div class="text-body-1 font-weight-medium" v-html="answer.text" />
+                    <div class="text-body-1 font-weight-medium" v-html="$sanitizeHtml(answer.text)" />
                     <v-img v-if="answer.image" :src="answer.image" max-height="120" contain class="mt-2 rounded-lg border" />
                     <div v-if="answer.latex" class="text-caption font-weight-medium mt-1 dir-ltr text-left">
                       <code>{{ answer.latex }}</code>
@@ -696,7 +689,7 @@
                 <v-icon size="20" color="success">mdi-text-box-check-outline</v-icon>
                 <span class="text-subtitle-2 font-weight-bold text-success-darken-1">معايير الإجابة النموذجية وسلّم التقدير</span>
               </div>
-              <div class="text-body-1 font-weight-medium" style="line-height: 1.9;" v-html="selectedQuestion.answerText" />
+              <div class="text-body-1 font-weight-medium" style="line-height: 1.9;" v-html="$sanitizeHtml(selectedQuestion.answerText)" />
             </div>
           </div>
 

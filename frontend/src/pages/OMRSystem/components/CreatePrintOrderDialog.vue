@@ -257,7 +257,6 @@
                   placeholder="المحافظة"
                   cols="4"
                   :add="false"
-                  :hideDetails="true"
                   @update:modelValue="onGovernorateChange"
                 />
 
@@ -270,7 +269,6 @@
                   placeholder="المديرية"
                   cols="4"
                   :add="false"
-                  :hideDetails="true"
                   @update:modelValue="onDirectorateChange"
                 />
 
@@ -356,7 +354,6 @@
                   cols="4"
                   icon="printer"
                   :add="false"
-                  :hideDetails="true"
                 />
               </v-row>
             </div>
@@ -727,7 +724,6 @@
                       cols="6"
                       icon="shield-check-outline"
                       :add="false"
-                      :hideDetails="true"
                     />
 
                     <!-- 2. رقم وتاريخ مذكرة الاعتماد (CustomTextField مع محاذاة أفقية متطابقة) -->
@@ -738,7 +734,6 @@
                       icon="file-certificate-outline"
                       cols="6"
                       :isRequired="true"
-                      :hideDetails="true"
                     />
 
                     <!-- 3. حقل التحميل الرسمي (CustomFile) لمرفق الوثيقة والمذكرة -->

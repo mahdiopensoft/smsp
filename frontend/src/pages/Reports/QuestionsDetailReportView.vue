@@ -159,57 +159,45 @@
           </template>
 
         <!-- خصائص السؤال المشتركة -->
-        <v-col cols="12" sm="6" md="2">
-          <v-select
-            v-model="filterQuestionType"
-            :items="questionTypeOptions"
-            item-title="text"
-            item-value="value"
-            placeholder="نوع السؤال"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterQuestionType"
+          name="LocalTextOption"
+          :objects="questionTypeOptions"
+          cols="2"
+          label="نوع السؤال"
+          icon="format-list-checks"
+          :add="false"
+        />
 
-        <v-col cols="12" sm="6" md="2">
-          <v-select
-            v-model="filterDifficulty"
-            :items="difficultyOptions"
-            item-title="text"
-            item-value="value"
-            placeholder="مستوى الصعوبة"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterDifficulty"
+          name="LocalTextOption"
+          :objects="difficultyOptions"
+          cols="2"
+          label="مستوى الصعوبة"
+          icon="speedometer"
+          :add="false"
+        />
 
-        <v-col cols="12" sm="6" md="2">
-          <v-select
-            v-model="filterBloomLevel"
-            :items="bloomOptions"
-            item-title="text"
-            item-value="value"
-            placeholder="مستوى بلوم"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterBloomLevel"
+          name="LocalTextOption"
+          :objects="bloomOptions"
+          cols="2"
+          label="مستوى بلوم"
+          icon="brain"
+          :add="false"
+        />
 
-        <v-col cols="12" sm="6" md="2">
-          <v-select
-            v-model="filterStatus"
-            :items="statusOptions"
-            item-title="text"
-            item-value="value"
-            placeholder="حالة السؤال"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterStatus"
+          name="LocalTextOption"
+          :objects="statusOptions"
+          cols="2"
+          label="حالة السؤال"
+          icon="check-circle-outline"
+          :add="false"
+        />
 
         <!-- فلاتر التواريخ باستخدام CustomDate الموحد -->
         <custom-date

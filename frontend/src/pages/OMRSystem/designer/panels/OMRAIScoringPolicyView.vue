@@ -23,17 +23,15 @@
         <!-- Template Selector and Quick Save Actions -->
         <div class="d-flex align-center gap-2 flex-wrap">
           <div style="min-width: 240px; max-width: 320px;">
-            <v-select
+            <auto-list
               v-model="selectedTemplateId"
-              :items="templateSelectOptions"
-              item-title="name"
-              item-value="id"
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              hide-details
-              prepend-inner-icon="mdi-card-text-outline"
+              name="LocalNameOption"
+              :objects="templateSelectOptions"
+              cols="12"
+              class="pa-0"
               label="القالب المستهدف للتخصيص"
+              icon="card-text-outline"
+              :add="false"
               @update:model-value="onTemplateSelected"
             />
           </div>

@@ -19,7 +19,6 @@
               placeholder="نوع المؤسسة التعليمية"
               cols="12"
               :add="false"
-              :hideDetails="true"
               @update:model-value="onSectorChange"
             />
           </v-col>
@@ -36,7 +35,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onOfficeFilterChange"
               />
             </v-col>
@@ -51,7 +49,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onDirectorateFilterChange"
               />
             </v-col>
@@ -66,7 +63,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onSchoolFilterChange"
               />
             </v-col>
@@ -80,7 +76,6 @@
                 placeholder="تصفية حسب المادة..."
                 cols="12"
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onSubjectFilterChange"
               />
             </v-col>
@@ -98,7 +93,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onSchoolFilterChange"
               />
             </v-col>
@@ -112,7 +106,6 @@
                 placeholder="تصفية حسب المادة..."
                 cols="12"
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onSubjectFilterChange"
               />
             </v-col>
@@ -130,7 +123,6 @@
                 cols="12"
                 multiple
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onSchoolFilterChange"
               />
             </v-col>
@@ -144,7 +136,6 @@
                 placeholder="تصفية حسب المادة..."
                 cols="12"
                 :add="false"
-                :hideDetails="true"
                 @update:model-value="onSubjectFilterChange"
               />
             </v-col>
@@ -160,7 +151,6 @@
               placeholder="كل الحالات..."
               cols="12"
               :add="false"
-              :hideDetails="true"
               @update:model-value="loadMasterData"
             />
           </v-col>
@@ -722,7 +712,6 @@
               placeholder="كافة الحالات..."
               cols="12"
               :add="false"
-              :hideDetails="true"
               @update:model-value="applyDetailFilters"
             />
           </v-col>
@@ -737,7 +726,6 @@
               placeholder="كافة الحالات..."
               cols="12"
               :add="false"
-              :hideDetails="true"
               @update:model-value="applyDetailFilters"
             />
           </v-col>
@@ -752,7 +740,6 @@
               placeholder="كافة النتائج..."
               cols="12"
               :add="false"
-              :hideDetails="true"
               @update:model-value="applyDetailFilters"
             />
           </v-col>
@@ -767,7 +754,6 @@
               placeholder="كافة النماذج..."
               cols="12"
               :add="false"
-              :hideDetails="true"
               @update:model-value="applyDetailFilters"
             />
           </v-col>
@@ -782,7 +768,6 @@
               placeholder="كافة المديريات..."
               cols="12"
               :add="false"
-              :hideDetails="true"
               @update:model-value="onDetailDirectorateChange"
             />
           </v-col>
@@ -797,7 +782,6 @@
               placeholder="كافة المراكز..."
               cols="12"
               :add="false"
-              :hideDetails="true"
               @update:model-value="applyDetailFilters"
             />
           </v-col>
@@ -810,7 +794,6 @@
               placeholder="ابحث برقم الجلوس أو اسم الطالب..."
               icon="magnify"
               cols="12"
-              :hideDetails="true"
               clearable
               @update:model-value="applyDetailFilters"
             />

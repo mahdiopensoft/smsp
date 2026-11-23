@@ -288,20 +288,17 @@
               </v-select>
             </v-col>
 
-            <v-col cols="12" md="3" v-if="selectedExamId && activeExamVersions.length > 0">
-              <v-select
-                v-model="selectedVersionCode"
-                :items="activeExamVersions"
-                item-title="title"
-                item-value="value"
-                label="النموذج المعتمد"
-                variant="outlined"
-                density="comfortable"
-                rounded="lg"
-                hide-details
-                @update:model-value="onVersionSelected"
-              />
-            </v-col>
+            <auto-list
+              v-if="selectedExamId && activeExamVersions.length > 0"
+              v-model="selectedVersionCode"
+              name="LocalOption"
+              :objects="activeExamVersions"
+              cols="3"
+              label="النموذج المعتمد"
+              icon="format-list-bulleted-type"
+              :add="false"
+              @update:model-value="onVersionSelected"
+            />
 
             <v-col cols="12" md="2" v-if="isExamLinked" class="text-center">
               <v-chip color="success" variant="flat" size="small" rounded="md" class="font-weight-bold">

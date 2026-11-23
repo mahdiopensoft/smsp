@@ -131,30 +131,23 @@
             />
           </template>
 
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filterStatus"
-            :items="statusOptions"
-            item-title="text"
-            item-value="value"
-            placeholder="الحالة"
-            hide-details
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
+        <auto-list
+          v-model="filterStatus"
+          name="LocalTextOption"
+          :objects="statusOptions"
+          cols="2"
+          label="الحالة"
+          icon="check-circle-outline"
+          :add="false"
+        />
 
-        <v-col cols="12" md="2">
-          <v-text-field
-            v-model="filterSearch"
-            placeholder="بحث باسم الدرس أو الوحدة..."
-            prepend-inner-icon="mdi-magnify"
-            clearable
-            density="compact"
-            variant="outlined"
-            hide-details
-          />
-        </v-col>
+        <custom-text-field
+          v-model="filterSearch"
+          cols="2"
+          label="بحث"
+          placeholder="بحث باسم الدرس أو الوحدة..."
+          icon="magnify"
+        />
 
         <v-col cols="auto" class="d-flex align-center gap-2 py-2">
           <custom-btn type="filter" :loading="loading" :click="applyFilters" />

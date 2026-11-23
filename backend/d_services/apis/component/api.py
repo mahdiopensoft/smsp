@@ -19,7 +19,7 @@ class ServiceSchemaAPIView(APIView):
     واجهة جلب مخطط الخدمة
     GET /api/d-services/service-schema/{pk}/
     """
-    permission_classes = []
+    permission_classes = [IsAuthenticated]
     
     # المسار الأساسي لملفات المكونات
     COMPONENT_BASE_PATH = os.path.dirname(os.path.abspath(__file__))

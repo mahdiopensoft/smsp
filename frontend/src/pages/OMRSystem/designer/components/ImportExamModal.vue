@@ -25,7 +25,6 @@
         placeholder="ابحث باسم الاختبار أو رمزه أو المادة..."
         cols="12"
         :add="false"
-        :hideDetails="true"
         :loading="loading"
         class="mb-3"
       />
