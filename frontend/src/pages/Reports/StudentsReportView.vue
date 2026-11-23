@@ -20,7 +20,7 @@
             v-model="filterStage"
             name="SchoolStage"
             placeholder="المرحلة الدراسية"
-            cols="2"
+            cols="3"
             :add="false"
           />
         </template>
@@ -30,7 +30,7 @@
             v-model="filterCollege"
             name="UniversityCollege"
             placeholder="الكلية"
-            cols="2"
+            cols="3"
             :add="false"
           />
         </template>
@@ -40,7 +40,7 @@
             v-model="filterInstituteField"
             name="InstituteField"
             placeholder="المجال"
-            cols="2"
+            cols="3"
             :add="false"
           />
         </template>
@@ -49,7 +49,7 @@
           v-model="filterGovernorate"
           name="Governorate"
           placeholder="المحافظة"
-          cols="2"
+          cols="3"
           :add="false"
           @update:model-value="filterDirectorate = null"
         />
@@ -59,18 +59,9 @@
           name="Directorate"
           :param="filterGovernorate ? { fk_governorate: filterGovernorate } : null"
           placeholder="المديرية"
-          cols="2"
+          cols="3"
           :add="false"
           :disabled="!filterGovernorate"
-        />
-
-        <custom-text-field
-          v-model="filterSearch"
-          cols="3"
-          label="بحث"
-          placeholder="بحث بالاسم أو الرقم الأكاديمي..."
-          icon="magnify"
-          @keyup.enter="applyFilters"
         />
 
         <v-col cols="auto" class="d-flex align-center gap-2 py-2">
@@ -107,13 +98,7 @@
             </div>
           </template>
           <template v-else-if="key === 'gender'">
-            <v-chip
-              :color="item.gender === 'ذكر' ? 'info' : 'pink'"
-              size="small"
-              variant="tonal"
-            >
-              {{ item.gender }}
-            </v-chip>
+            <span class="text-body-2 font-weight-medium">{{ item.gender }}</span>
           </template>
         </template>
       </custom-data-table>
@@ -148,8 +133,6 @@ const onInstitutionTypeChange = () => {
   filterStage.value = null
   filterCollege.value = null
   filterInstituteField.value = null
-  resetPagination()
-  applyFilters()
 }
 
 const headers = [

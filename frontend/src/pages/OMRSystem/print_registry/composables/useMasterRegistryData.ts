@@ -87,7 +87,6 @@ export function useMasterRegistryData(options: UseMasterRegistryDataOptions) {
     { title: "أوراق مطبوعة", key: "printed_count", sortable: true, align: "center", width: "120px" },
     { title: "نسبة الإنجاز", key: "printed_rate", sortable: true, align: "center", width: "130px" },
     { title: "حالة الطباعة", key: "print_status", sortable: true, align: "center", width: "120px" },
-    { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "220px" },
   ]
 
   const directorateMasterHeaders = [
@@ -99,7 +98,6 @@ export function useMasterRegistryData(options: UseMasterRegistryDataOptions) {
     { title: "أوراق مطبوعة", key: "printed_count", sortable: true, align: "center", width: "120px" },
     { title: "نسبة الإنجاز", key: "printed_rate", sortable: true, align: "center", width: "130px" },
     { title: "حالة الطباعة", key: "print_status", sortable: true, align: "center", width: "120px" },
-    { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "220px" },
   ]
 
   const schoolMasterHeaders = [
@@ -112,7 +110,6 @@ export function useMasterRegistryData(options: UseMasterRegistryDataOptions) {
     { title: "أوراق مطبوعة", key: "printed_count", sortable: true, align: "center", width: "115px" },
     { title: "نسبة الطباعة", key: "printed_rate", sortable: true, align: "center", width: "120px" },
     { title: "حالة الطباعة", key: "print_status", sortable: true, align: "center", width: "115px" },
-    { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "190px" },
   ]
 
   const schoolExamsHeaders = [
@@ -121,7 +118,6 @@ export function useMasterRegistryData(options: UseMasterRegistryDataOptions) {
     { title: "المادة الدراسية", key: "subject", sortable: true, align: "center", width: "120px" },
     { title: "طلاب المركز", key: "students_count", sortable: true, align: "center", width: "105px" },
     { title: "النماذج المخصصة للطلاب وتوزيعها", key: "versions", sortable: false, align: "center", width: "230px" },
-    { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "110px" },
   ]
 
   const examMasterHeaders = [
@@ -132,7 +128,6 @@ export function useMasterRegistryData(options: UseMasterRegistryDataOptions) {
     { title: "أوراق مطبوعة", key: "printed_count", sortable: true, align: "center", width: "105px" },
     { title: "نسبة الطباعة", key: "printed_rate", sortable: true, align: "center", width: "115px" },
     { title: "حالة الطباعة", key: "print_status", sortable: true, align: "center", width: "120px" },
-    { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "140px" },
   ]
 
   const registryMasterHeaders = [
@@ -141,7 +136,6 @@ export function useMasterRegistryData(options: UseMasterRegistryDataOptions) {
     { title: "عدد الأوراق", key: "total_sheets", sortable: true, align: "center", width: "110px" },
     { title: "تاريخ الطباعة", key: "printed_at", sortable: true, align: "center", width: "160px" },
     { title: "المسؤول", key: "printed_by_name", sortable: true, align: "center", width: "140px" },
-    { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "120px" },
   ]
 
   // Master KPI Computeds

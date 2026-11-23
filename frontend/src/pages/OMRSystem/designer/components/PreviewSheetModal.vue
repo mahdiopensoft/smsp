@@ -1,56 +1,50 @@
 <template>
-  <v-dialog :model-value="modelValue" max-width="880" scrollable @update:model-value="$emit('update:modelValue', $event)">
-    <v-card class="pa-6 rounded-2xl">
-      <div class="d-flex align-center justify-space-between mb-4 pb-3 border-b flex-wrap gap-2">
-        <div class="d-flex align-center gap-2">
-          <v-avatar color="primary" variant="tonal" size="36" rounded="lg">
-            <v-icon color="primary" size="20">mdi-eye-outline</v-icon>
-          </v-avatar>
-          <div>
-            <h3 class="text-h6 font-weight-black mb-0">معاينة ورقة الإجابة: {{ template?.name }}</h3>
-            <span class="text-caption text-medium-emphasis">مقاس A4 قياسي معتمد عالي الدقة 300 DPI</span>
-          </div>
-        </div>
-        <div class="d-flex align-center gap-2 flex-wrap">
-          <v-btn
-            color="primary"
-            variant="tonal"
-            size="small"
-            rounded="lg"
-            class="font-weight-bold"
-            prepend-icon="mdi-pencil-outline"
-            @click="$emit('edit', template)"
-          >
-            فتح في المصمم
-          </v-btn>
-          <v-btn
-            color="secondary"
-            variant="outlined"
-            size="small"
-            rounded="lg"
-            class="font-weight-bold"
-            prepend-icon="mdi-printer"
-            @click="handlePrint"
-          >
-            طباعة الورقة
-          </v-btn>
-          <v-btn
-            color="primary"
-            size="small"
-            rounded="lg"
-            class="font-weight-bold"
-            prepend-icon="mdi-scanner"
-            @click="$emit('scan', template?.id)"
-          >
-            بدء التصحيح بهذا القالب
-          </v-btn>
-          <v-btn icon size="small" variant="text" @click="$emit('update:modelValue', false)">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </div>
+  <custom-dialog
+    :model-value="modelValue"
+    :title="`معاينة ورقة الإجابة: ${template?.name || ''}`"
+    width="880"
+    height="88vh"
+    @update:model-value="$emit('update:modelValue', $event)"
+  >
+    <div class="d-flex align-center justify-space-between mb-4 pb-3 border-b flex-wrap gap-2">
+      <span class="text-caption text-medium-emphasis">مقاس A4 قياسي معتمد عالي الدقة 300 DPI</span>
+      <div class="d-flex align-center gap-2 flex-wrap">
+        <v-btn
+          color="primary"
+          variant="tonal"
+          size="small"
+          rounded="lg"
+          class="font-weight-bold"
+          prepend-icon="mdi-pencil-outline"
+          @click="$emit('edit', template)"
+        >
+          فتح في المصمم
+        </v-btn>
+        <v-btn
+          color="secondary"
+          variant="outlined"
+          size="small"
+          rounded="lg"
+          class="font-weight-bold"
+          prepend-icon="mdi-printer"
+          @click="handlePrint"
+        >
+          طباعة الورقة
+        </v-btn>
+        <v-btn
+          color="primary"
+          size="small"
+          rounded="lg"
+          class="font-weight-bold"
+          prepend-icon="mdi-scanner"
+          @click="$emit('scan', template?.id)"
+        >
+          بدء التصحيح بهذا القالب
+        </v-btn>
       </div>
+    </div>
 
-      <div class="pa-4 bg-surface rounded-xl d-flex justify-center overflow-auto" style="max-height: 600px;">
+    <div class="pa-4 bg-surface rounded-xl d-flex justify-center overflow-auto" style="max-height: 600px;">
         <div class="sheet-wrapper" :style="previewWrapperStyle">
           <!-- Mode 1: Yemeni Audit Report Sheet (A4 Full) -->
           <YemeniAuditReportSheet
@@ -143,8 +137,7 @@
           />
         </div>
       </div>
-    </v-card>
-  </v-dialog>
+  </custom-dialog>
 </template>
 
 <script setup lang="ts">

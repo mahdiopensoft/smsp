@@ -6,6 +6,7 @@
     :getData="getData"
   />
   <custom-data-table
+      actionList
     :="{
       headers,
       items,

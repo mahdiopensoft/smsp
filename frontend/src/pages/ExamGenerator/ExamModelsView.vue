@@ -65,7 +65,7 @@
             v-model="filterInstitutionType"
             name="LocalTextOption"
             :objects="institutionTypeOptions"
-            :cols="filterInstitutionType ? '3' : '4'"
+            cols="3"
             label="نوع المؤسسة التعليمية"
             icon="domain"
             :add="false"
@@ -203,22 +203,26 @@
               placeholder="اختر الاختبار لعرض وإدارة نماذجه"
               cols="3"
               :add="false"
-              @update:model-value="onExamSelected"
             />
           </template>
 
-          <!-- Reset Filter Button -->
-          <v-col cols="auto" v-if="hasAnyFilterActive">
-            <v-btn
-              size="small"
-              variant="text"
+          <!-- Filter Actions -->
+          <v-col cols="auto" class="d-flex align-center gap-2">
+            <custom-btn
+              type="show"
+              label="عرض"
+              color="primary"
+              class="font-weight-bold px-6 mb-6"
+              :click="() => onExamSelected(selectedExamId)"
+            />
+            <custom-btn
+              type="cancel_filter"
+              label="إلغاء الفلترة"
+              variant="tonal"
               color="error"
-              class="font-weight-bold"
-              prepend-icon="mdi-refresh"
-              @click="resetFilters"
-            >
-              تصفير التصفية
-            </v-btn>
+              class="font-weight-bold mb-6"
+              :click="resetFilters"
+            />
           </v-col>
         </v-row>
       </filter-fields>

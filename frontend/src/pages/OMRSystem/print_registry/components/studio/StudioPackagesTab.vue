@@ -60,10 +60,10 @@
         :restore="false"
         :numbering="true"
         :showSelect="false"
-        :actions="false"
         :search="true"
         class="bg-transparent"
-      >
+      
+        :actionList="(item) => ([ { label: 'معاينة الحزمة المتكاملة', icon: 'eye-outline', color: 'primary', onClick: () => openPreview(item) }, { label: 'طباعة حزمة هذا الطالب', icon: 'printer', color: 'success', onClick: () => $emit('print-single-package', item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
         <template v-slot:item-slot="{ item, key, index }">
           <template v-if="key === 'numbering'">
             <span class="font-weight-bold text-caption text-medium-emphasis">{{ (index ?? 0) + 1 }}</span>
@@ -91,17 +91,12 @@
 
           <!-- Student Info -->
           <template v-else-if="key === 'student_name'">
-            <div class="d-flex align-center gap-2 py-1">
-              <v-avatar size="32" color="primary" variant="tonal" class="text-caption font-weight-black">
-                {{ (item.student_name || 'ط').slice(0, 1) }}
-              </v-avatar>
-              <div>
-                <div class="font-weight-bold text-body-2 text-on-surface">
-                  {{ item.student_name || 'طالب بدون اسم' }}
-                </div>
-                <div class="text-caption text-medium-emphasis mt-0.5">
-                  {{ item.school_name || selectedExam?.directorate || 'المركز الرئيسي' }}
-                </div>
+            <div class="py-1">
+              <div class="font-weight-bold text-body-2 text-on-surface">
+                {{ item.student_name || 'طالب بدون اسم' }}
+              </div>
+              <div class="text-caption text-medium-emphasis mt-0.5">
+                {{ item.school_name || selectedExam?.directorate || 'المركز الرئيسي' }}
               </div>
             </div>
           </template>
@@ -116,29 +111,14 @@
 
           <!-- Model Code -->
           <template v-else-if="key === 'model_code'">
-            <v-chip
-              size="small"
-              :color="getModelChipColor(item.model_code)"
-              variant="tonal"
-              class="font-weight-black rounded-lg border px-2.5 font-mono"
-            >
-              نموذج {{ item.model_code || 'A' }}
-            </v-chip>
+            <span class="font-mono font-weight-bold text-body-2">نموذج {{ item.model_code || 'A' }}</span>
           </template>
 
           <!-- Package Contents -->
           <template v-else-if="key === 'package_contents'">
-            <div class="d-flex align-center justify-center gap-1 flex-wrap">
-              <v-chip size="x-small" color="secondary" variant="tonal" class="font-weight-bold">
-                <v-icon start size="12">mdi-file-document-outline</v-icon>
-                كراسة أسئلة ({{ item.model_code || 'A' }})
-              </v-chip>
-              <span class="text-caption text-disabled">+</span>
-              <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
-                <v-icon start size="12">mdi-checkbox-marked-circle-outline</v-icon>
-                ورقة تظليل OMR
-              </v-chip>
-            </div>
+            <span class="text-caption font-weight-medium">
+              كراسة أسئلة ({{ item.model_code || 'A' }}) + ورقة تظليل OMR
+            </span>
           </template>
 
           <!-- Print Status -->
@@ -146,79 +126,49 @@
             <v-chip
               size="small"
               :color="item.is_printed ? 'success' : 'grey'"
-              :variant="item.is_printed ? 'flat' : 'tonal'"
+              variant="tonal"
               class="font-weight-bold cursor-pointer"
               :title="item._updating ? 'جاري توثيق التحديث في السجل...' : 'انقر لتبديل حالة الطباعة'"
               :disabled="item._updating"
               @click="$emit('toggle-printed', item)"
             >
               <v-progress-circular v-if="item._updating" indeterminate size="12" width="2" class="me-1" />
-              <v-icon v-else start size="14">{{ item.is_printed ? 'mdi-check-circle' : 'mdi-clock-outline' }}</v-icon>
               {{ item._updating ? 'جاري التحديث...' : (item.is_printed ? 'تمت الطباعة' : 'جاهز للطباعة') }}
             </v-chip>
           </template>
 
           <!-- Actions -->
-          <template v-else-if="key === 'actions'">
-            <div class="d-flex align-center justify-center gap-1">
-              <v-btn
-                icon
-                size="small"
-                variant="tonal"
-                color="primary"
-                title="معاينة الحزمة المتكاملة"
-                @click="openPreview(item)"
-              >
-                <v-icon size="18">mdi-eye-outline</v-icon>
-              </v-btn>
-              <v-btn
-                icon
-                size="small"
-                variant="tonal"
-                color="success"
-                title="طباعة حزمة هذا الطالب"
-                @click="$emit('print-single-package', item)"
-              >
-                <v-icon size="18">mdi-printer</v-icon>
-              </v-btn>
-            </div>
-          </template>
+          
         </template>
       </custom-data-table>
     </div>
 
     <!-- نافذة حوار معاينة حزمة الاختبار المتكاملة للطلاب المنبثقة -->
-    <v-dialog v-model="previewPackageDialog" max-width="960" scrollable>
-      <v-card rounded="2xl" class="overflow-hidden" v-if="previewPackageStudent">
-        <v-toolbar color="surface" density="comfortable" class="border-b px-4">
-          <div class="d-flex align-center gap-2">
-            <v-avatar color="primary" variant="tonal" size="32" rounded="lg">
-              <v-icon size="18">mdi-package-variant-closed</v-icon>
-            </v-avatar>
-            <span class="text-subtitle-1 font-weight-black">
-              معاينة حزمة الاختبار للطالب: {{ previewPackageStudent.student_name }}
-            </span>
-            <v-chip size="small" :color="getModelChipColor(previewPackageStudent.model_code)" variant="tonal" class="font-weight-bold ms-2">
-              نموذج {{ previewPackageStudent.model_code || 'A' }}
-            </v-chip>
-          </div>
-          <v-spacer />
+    <custom-dialog
+      v-model="previewPackageDialog"
+      :title="`معاينة حزمة الاختبار للطالب: ${previewPackageStudent?.student_name || ''}`"
+      width="960"
+      height="88vh"
+    >
+      <div v-if="previewPackageStudent">
+        <div class="d-flex align-center justify-space-between pb-3 mb-4 border-b flex-wrap gap-2">
+          <v-chip size="small" :color="getModelChipColor(previewPackageStudent.model_code)" variant="tonal" class="font-weight-bold">
+            نموذج {{ previewPackageStudent.model_code || 'A' }}
+          </v-chip>
           <v-btn
             color="success"
             variant="flat"
             size="small"
             rounded="lg"
-            class="font-weight-bold me-2"
+            class="font-weight-bold"
             prepend-icon="mdi-printer"
             @click="$emit('print-single-package', previewPackageStudent)"
           >
             طباعة حزمة الطالب
           </v-btn>
-          <v-btn icon size="small" variant="text" @click="previewPackageDialog = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-toolbar>
-        <v-card-text class="pa-4 bg-grey-lighten-4" style="max-height: 80vh;">
+        </div>
+
+        <div class="pa-4 bg-grey-lighten-4 rounded-xl">
           <div class="d-flex flex-column align-center gap-6">
             <div class="text-caption font-weight-black text-primary border-b pb-1 w-100 text-center d-flex align-center justify-center gap-1">
               <v-icon size="16" color="primary">mdi-file-document-outline</v-icon>
@@ -280,9 +230,9 @@
               />
             </div>
           </div>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
+        </div>
+      </div>
+    </custom-dialog>
   </div>
 </template>
 

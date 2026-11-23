@@ -74,57 +74,42 @@
   </v-card>
 
   <!-- Elite Requirement Portal (NoteModal Style) -->
-  <v-dialog v-model="dialog.show" max-width="540" persistent no-click-animation class="master-portal-logic" scrollable>
-    <v-card class="portal-surface rounded-xl overflow-hidden shadow-2xl">
-      <!-- Elite Header Section -->
-      <div class="portal-header pa-6 pa-md-8">
-        <div class="d-flex align-center justify-space-between">
-          <div class="d-flex align-center ga-4">
-            <div class="portal-icon-box">
-              <v-icon color="primary" size="24">mdi-playlist-plus</v-icon>
-            </div>
-            <div class="portal-title-logic">
-              <h3 class="portal-h3">تعريف متطلب جديد</h3>
-              <div class="portal-sub">بروتوكول الاعتماد والتوثيق</div>
-            </div>
-          </div>
-          <v-btn icon="mdi-close" variant="text" color="slate-400" size="small" class="rounded-lg"
-            @click="dialog.show = false" />
-        </div>
-      </div>
+  <custom-dialog
+    v-model="dialog.show"
+    title="تعريف متطلب جديد"
+    width="540"
+    height="auto"
+    persistent
+    no-click-animation
+    class="master-portal-logic"
+  >
+    <div class="portal-sub mb-4">بروتوكول الاعتماد والتوثيق</div>
 
-      <v-divider class="portal-sep" />
+    <!-- Input Area -->
+    <div class="documentation-arena mb-6">
+      <label class="arena-label d-block mb-2">عنوان البند الرئيسي</label>
+      <v-text-field v-model="dialog.title" placeholder="مثال: مراجعة المستندات الأصلية وتدقيقها" variant="outlined"
+        hide-details color="primary" class="portal-input"></v-text-field>
+    </div>
 
-      <v-card-text class="pa-6 pa-md-8">
-        <!-- Input Area -->
-        <div class="documentation-arena mb-6">
-          <label class="arena-label d-block mb-2">عنوان البند الرئيسي</label>
-          <v-text-field v-model="dialog.title" placeholder="مثال: مراجعة المستندات الأصلية وتدقيقها" variant="outlined"
-            hide-details color="primary" class="portal-input"></v-text-field>
-        </div>
+    <div class="documentation-arena">
+      <label class="arena-label d-block mb-2">الشرح الفني (اختياري)</label>
+      <v-textarea v-model="dialog.description" placeholder="أدخل الشرح التوضيحي لمعايير القبول لهذا البند..."
+        variant="outlined" rows="4" auto-grow hide-details color="primary" class="portal-textarea"></v-textarea>
+    </div>
 
-        <div class="documentation-arena">
-          <label class="arena-label d-block mb-2">الشرح الفني (اختياري)</label>
-          <v-textarea v-model="dialog.description" placeholder="أدخل الشرح التوضيحي لمعايير القبول لهذا البند..."
-            variant="outlined" rows="4" auto-grow hide-details color="primary" class="portal-textarea"></v-textarea>
-        </div>
-      </v-card-text>
-
-      <v-divider class="portal-sep" />
-
-      <!-- Action Cluster -->
-      <v-card-actions class="pa-6 pa-md-8 bg-slate-50/50">
+    <template #actions>
+      <div class="d-flex align-center justify-space-between w-100">
         <v-btn variant="text" color="slate-500" class="px-6 font-weight-bold" height="44" @click="dialog.show = false">
           إلغاء
         </v-btn>
-        <v-spacer></v-spacer>
         <v-btn color="primary" variant="tonal" class="px-10 rounded-lg font-weight-black elevation-4" height="44"
           :loading="dialog.loading" :disabled="!dialog.title || !dialog.title.trim()" @click="saveCheckList">
           اعتماد وحفظ
         </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+      </div>
+    </template>
+  </custom-dialog>
 
   <BaseConfirm v-model="del_con.show" :title="`حذف المتطلب`" :message="`هل أنت متأكد من حذف '${del_con.title}'؟`"
     type="error" :loading="loading.del_btn" @confirm="deleteCheck"></BaseConfirm>

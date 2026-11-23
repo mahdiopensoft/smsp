@@ -308,16 +308,8 @@
 
                   <!-- نوع السؤال -->
                   <template v-else-if="key === 'question_type'">
-                    <div class="text-center">
-                      <v-chip
-                        size="small"
-                        variant="tonal"
-                        :color="isTrueFalseQ(item) ? 'teal' : 'primary'"
-                        class="font-weight-bold px-2.5"
-                      >
-                        <v-icon start size="13">{{ isTrueFalseQ(item) ? 'mdi-check-all' : 'mdi-format-list-bulleted' }}</v-icon>
-                        {{ isTrueFalseQ(item) ? 'صح/خطأ' : 'خيارات' }}
-                      </v-chip>
+                    <div class="text-center text-body-2 font-weight-medium">
+                      {{ isTrueFalseQ(item) ? 'صح/خطأ' : 'خيارات' }}
                     </div>
                   </template>
 
@@ -330,26 +322,15 @@
                         variant="tonal"
                         class="font-weight-bold px-3"
                       >
-                        <v-icon start size="13">
-                          {{ !item.marked_choice ? 'mdi-circle-outline' : item.is_correct ? 'mdi-check-circle' : 'mdi-close-circle' }}
-                        </v-icon>
-                        <bdi>{{ item.marked_choice ? formatChoiceLabel(item.marked_choice, item) : 'بدون إجابة (فارغ)' }}</bdi>
+                        <bdi>{{ item.marked_choice ? formatChoiceLabel(item.marked_choice, item) : 'فارغ' }}</bdi>
                       </v-chip>
                     </div>
                   </template>
 
                   <!-- الإجابة النموذجية -->
                   <template v-else-if="key === 'correct_answer'">
-                    <div class="text-center">
-                      <v-chip
-                        size="small"
-                        color="primary"
-                        variant="tonal"
-                        class="font-weight-black px-3 border"
-                      >
-                        <v-icon start size="13" color="primary">mdi-key-outline</v-icon>
-                        <bdi>{{ formatChoiceLabel(item.correct_choice, item) }}</bdi>
-                      </v-chip>
+                    <div class="text-center font-weight-bold text-primary font-mono">
+                      <bdi>{{ formatChoiceLabel(item.correct_choice, item) }}</bdi>
                     </div>
                   </template>
 
@@ -397,16 +378,8 @@
 
                   <!-- الثقة -->
                   <template v-else-if="key === 'confidence'">
-                    <div class="text-center">
-                      <v-chip
-                        size="x-small"
-                        :color="(item.final_confidence || 1) >= 0.9 ? 'success' : 'warning'"
-                        variant="tonal"
-                        class="font-weight-bold font-mono"
-                      >
-                        <v-icon start size="11">mdi-brain</v-icon>
-                        <bdi>{{ ((item.final_confidence || 1) * 100).toFixed(0) }}%</bdi>
-                      </v-chip>
+                    <div class="text-center font-mono font-weight-bold text-body-2" :class="(item.final_confidence || 1) >= 0.9 ? 'text-success' : 'text-warning'">
+                      <bdi>{{ ((item.final_confidence || 1) * 100).toFixed(0) }}%</bdi>
                     </div>
                   </template>
                 </template>
@@ -478,31 +451,15 @@
     </CustomDialog>
 
     <!-- Dialog for Magnifying AI Crop (عين الذكاء الاصطناعي — فحص التظليل) -->
-    <v-dialog v-model="cropDialog" max-width="460px">
-      <v-card v-if="selectedCrop" class="rounded-2xl overflow-hidden main-card border elevation-3">
-        <!-- Header -->
-        <div class="d-flex align-center justify-space-between px-5 py-3 border-b bg-surface">
-          <div class="d-flex align-center gap-2">
-            <v-avatar color="primary" variant="tonal" size="34" rounded="lg">
-              <v-icon color="primary" size="20">mdi-eye-check-outline</v-icon>
-            </v-avatar>
-            <div>
-              <div class="text-subtitle-2 font-weight-black text-high-emphasis d-flex align-center gap-1.5">
-                <span>عين الذكاء الاصطناعي</span>
-                <span class="text-medium-emphasis">•</span>
-                <span>سؤال {{ selectedCrop.questionId }}</span>
-                <div class="unified-inspection-badge px-2 py-0.5 font-weight-black text-caption">
-                  {{ selectedCrop.choice }}
-                </div>
-              </div>
-              <div class="text-caption text-medium-emphasis">فحص بصري دقيق للدائرة الملتقطة بالماسح الضوئي</div>
-            </div>
-          </div>
-          <v-btn icon="mdi-close" variant="text" size="small" density="comfortable" @click="cropDialog = false" />
-        </div>
-
+    <custom-dialog
+      v-model="cropDialog"
+      :title="selectedCrop ? `عين الذكاء الاصطناعي • سؤال ${selectedCrop.questionId} (${selectedCrop.choice})` : 'عين الذكاء الاصطناعي'"
+      width="480"
+      height="auto"
+    >
+      <div v-if="selectedCrop">
         <!-- Viewfinder Visual Box -->
-        <div class="pa-5 text-center bg-surface-variant-subtle border-b">
+        <div class="pa-5 text-center bg-surface-variant-subtle rounded-xl border mb-4">
           <div class="ai-viewfinder-box mx-auto position-relative">
             <!-- Inspection Crosshair Guides -->
             <div class="viewfinder-crosshair-h"></div>
@@ -530,73 +487,70 @@
         </div>
 
         <!-- Metric Details Panel -->
-        <div class="pa-5 bg-surface">
-          <div class="d-flex flex-column gap-2.5">
-            <!-- قرار النموذج (AI Verdict) -->
-            <div class="d-flex justify-space-between align-center px-3 py-2 rounded-lg border bg-surface-variant-subtle">
-              <div class="d-flex align-center gap-1.5 text-caption font-weight-medium text-medium-emphasis">
-                <v-icon size="16" color="primary">mdi-shield-check-outline</v-icon>
-                <span>قرار النموذج (AI Verdict):</span>
-              </div>
-              <div
-                class="unified-inspection-badge px-2.5 py-1 text-caption font-weight-black"
-                :class="selectedCrop.aiVerdict === 'filled' ? 'badge-verdict-filled' : 'badge-verdict-empty'"
-              >
-                <v-icon start size="13" class="me-1">
-                  {{ selectedCrop.aiVerdict === 'filled' ? 'mdi-checkbox-marked-circle' : 'mdi-checkbox-blank-circle-outline' }}
-                </v-icon>
-                {{ selectedCrop.aiVerdict === 'filled' ? 'مظلل (Filled)' : 'فارغ (Empty)' }}
-              </div>
+        <div class="d-flex flex-column gap-2.5">
+          <!-- قرار النموذج (AI Verdict) -->
+          <div class="d-flex justify-space-between align-center px-3 py-2 rounded-lg border bg-surface-variant-subtle">
+            <div class="d-flex align-center gap-1.5 text-caption font-weight-medium text-medium-emphasis">
+              <v-icon size="16" color="primary">mdi-shield-check-outline</v-icon>
+              <span>قرار النموذج (AI Verdict):</span>
             </div>
-
-            <!-- نسبة الثقة (Confidence) -->
-            <div class="d-flex justify-space-between align-center px-3 py-2 rounded-lg border bg-surface-variant-subtle">
-              <div class="d-flex align-center gap-1.5 text-caption font-weight-medium text-medium-emphasis">
-                <v-icon size="16" color="primary">mdi-chart-bell-curve-cumulative</v-icon>
-                <span>نسبة الثقة (Confidence):</span>
-              </div>
-              <div class="d-flex align-center gap-2">
-                <v-progress-linear
-                  :model-value="Number(selectedCrop.confidence) || 0"
-                  color="primary"
-                  height="6"
-                  rounded
-                  style="width: 70px;"
-                />
-                <span class="font-mono font-weight-black text-body-2 text-primary">
-                  {{ selectedCrop.confidence }}%
-                </span>
-              </div>
-            </div>
-
-            <!-- موضع الدائرة بالبكسل -->
-            <div v-if="selectedCrop.center" class="d-flex justify-space-between align-center px-3 py-2 rounded-lg border bg-surface-variant-subtle">
-              <div class="d-flex align-center gap-1.5 text-caption font-weight-medium text-medium-emphasis">
-                <v-icon size="16" color="primary">mdi-map-marker-radius-outline</v-icon>
-                <span>موضع الدائرة بالبكسل:</span>
-              </div>
-              <div class="unified-inspection-badge font-mono text-caption px-2 py-0.5">
-                X: {{ selectedCrop.center[0] }}, Y: {{ selectedCrop.center[1] }} px
-              </div>
+            <div
+              class="unified-inspection-badge px-2.5 py-1 text-caption font-weight-black"
+              :class="selectedCrop.aiVerdict === 'filled' ? 'badge-verdict-filled' : 'badge-verdict-empty'"
+            >
+              <v-icon start size="13" class="me-1">
+                {{ selectedCrop.aiVerdict === 'filled' ? 'mdi-checkbox-marked-circle' : 'mdi-checkbox-blank-circle-outline' }}
+              </v-icon>
+              {{ selectedCrop.aiVerdict === 'filled' ? 'مظلل (Filled)' : 'فارغ (Empty)' }}
             </div>
           </div>
 
-          <!-- Bottom Close Button -->
-          <div class="mt-4 pt-2 border-t d-flex justify-end">
-            <v-btn
-              color="primary"
-              variant="flat"
-              rounded="lg"
-              class="font-weight-bold px-6"
-              prepend-icon="mdi-check"
-              @click="cropDialog = false"
-            >
-              تم الفحص وإغلاق
-            </v-btn>
+          <!-- نسبة الثقة (Confidence) -->
+          <div class="d-flex justify-space-between align-center px-3 py-2 rounded-lg border bg-surface-variant-subtle">
+            <div class="d-flex align-center gap-1.5 text-caption font-weight-medium text-medium-emphasis">
+              <v-icon size="16" color="primary">mdi-chart-bell-curve-cumulative</v-icon>
+              <span>نسبة الثقة (Confidence):</span>
+            </div>
+            <div class="d-flex align-center gap-2">
+              <v-progress-linear
+                :model-value="Number(selectedCrop.confidence) || 0"
+                color="primary"
+                height="6"
+                rounded
+                style="width: 70px;"
+              />
+              <span class="font-mono font-weight-black text-body-2 text-primary">
+                {{ selectedCrop.confidence }}%
+              </span>
+            </div>
+          </div>
+
+          <!-- موضع الدائرة بالبكسل -->
+          <div v-if="selectedCrop.center" class="d-flex justify-space-between align-center px-3 py-2 rounded-lg border bg-surface-variant-subtle">
+            <div class="d-flex align-center gap-1.5 text-caption font-weight-medium text-medium-emphasis">
+              <v-icon size="16" color="primary">mdi-map-marker-radius-outline</v-icon>
+              <span>موضع الدائرة بالبكسل:</span>
+            </div>
+            <div class="unified-inspection-badge font-mono text-caption px-2 py-0.5">
+              X: {{ selectedCrop.center[0] }}, Y: {{ selectedCrop.center[1] }} px
+            </div>
           </div>
         </div>
-      </v-card>
-    </v-dialog>
+      </div>
+
+      <template #actions>
+        <v-btn
+          color="primary"
+          variant="flat"
+          rounded="lg"
+          class="font-weight-bold px-6"
+          prepend-icon="mdi-check"
+          @click="cropDialog = false"
+        >
+          تم الفحص وإغلاق
+        </v-btn>
+      </template>
+    </custom-dialog>
   </div>
 </template>
 

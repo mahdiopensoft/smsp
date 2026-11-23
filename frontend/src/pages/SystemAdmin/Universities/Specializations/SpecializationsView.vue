@@ -38,7 +38,7 @@
         />
 
         <!-- Filter Actions -->
-        <v-col cols="12" sm="6" md="3" class="d-flex align-center gap-2">
+        <v-col cols="auto" class="d-flex align-center gap-2">
           <custom-btn
             type="show"
             label="تصفية"
@@ -60,6 +60,7 @@
 
     <!-- Data Table -->
     <custom-data-table
+      actionList
       :="{
         headers,
         items,

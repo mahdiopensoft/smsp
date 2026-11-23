@@ -131,98 +131,54 @@
   </v-card>
 
   <!-- Dialogs -->
-  <v-dialog
+  <custom-dialog
     v-model="dialog.show"
-    max-width="500"
+    title="إضافة ملاحظة"
+    width="500"
+    height="auto"
     persistent
     transition="dialog-bottom-transition"
     class="dialog-premium"
   >
-    <v-card class="elevation-0 rounded-xl overflow-hidden bg-white">
-      <!-- Header -->
-      <div
-        class="
-          dialog-header
-          px-6
-          py-4
-          d-flex
-          align-center
-          justify-space-between
-          bg-white
-          border-b
-        "
+    <div class="text-caption text-slate-400 mb-3">
+      أضف ملاحظة جديدة إلى السجل
+    </div>
+
+    <v-textarea
+      v-model="dialog.note"
+      placeholder="اكتب تفاصيل الملاحظة هنا..."
+      variant="outlined"
+      color="primary"
+      class="premium-textarea"
+      rows="4"
+      auto-grow
+      focused
+      hide-details
+    ></v-textarea>
+
+    <template #actions>
+      <v-btn
+        variant="text"
+        color="slate-500"
+        class="font-weight-bold px-6 rounded-lg"
+        height="44"
+        @click="dialog.show = false"
+        :disabled="dialog.loading"
       >
-        <div class="d-flex align-center">
-          <div class="header-icon-box ml-4">
-            <v-icon
-              icon="mdi-message-plus-outline"
-              color="primary"
-              size="24"
-            ></v-icon>
-          </div>
-          <div>
-            <h3 class="text-h6 font-weight-bold text-slate-800 mb-0">
-              إضافة ملاحظة
-            </h3>
-            <span class="text-caption text-slate-400">
-              أضف ملاحظة جديدة إلى السجل
-            </span>
-          </div>
-        </div>
-        <v-btn
-          icon="mdi-close"
-          variant="text"
-          density="comfortable"
-          color="slate-400"
-          @click="dialog.show = false"
-          class="rounded-circle"
-        ></v-btn>
-      </div>
-
-      <v-divider class="border-slate-100"></v-divider>
-
-      <!-- Body -->
-      <v-card-text class="pa-6">
-        <v-textarea
-          v-model="dialog.note"
-          placeholder="اكتب تفاصيل الملاحظة هنا..."
-          variant="outlined"
-          color="primary"
-          class="premium-textarea"
-          rows="4"
-          auto-grow
-          focused
-          hide-details
-        ></v-textarea>
-      </v-card-text>
-
-      <v-divider class="border-slate-100"></v-divider>
-
-      <!-- Footer -->
-      <div class="pa-5 d-flex justify-end gap-3 bg-slate-50">
-        <v-btn
-          variant="text"
-          color="slate-500"
-          class="font-weight-bold px-6 rounded-lg"
-          height="44"
-          @click="dialog.show = false"
-          :disabled="dialog.loading"
-        >
-          إلغاء
-        </v-btn>
-        <v-btn
-          color="primary"
-          variant="tonal"
-          class="font-weight-bold px-8 rounded-lg elevation-2"
-          height="44"
-          @click="saveNote"
-          :loading="dialog.loading"
-        >
-          إضافة الملاحظة
-        </v-btn>
-      </div>
-    </v-card>
-  </v-dialog>
+        إلغاء
+      </v-btn>
+      <v-btn
+        color="primary"
+        variant="tonal"
+        class="font-weight-bold px-8 rounded-lg elevation-2"
+        height="44"
+        @click="saveNote"
+        :loading="dialog.loading"
+      >
+        إضافة الملاحظة
+      </v-btn>
+    </template>
+  </custom-dialog>
 
   <BaseConfirm
     v-model="con_show"

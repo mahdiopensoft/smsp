@@ -1,81 +1,73 @@
 <template>
-  <v-dialog :model-value="modelValue" max-width="560" @update:model-value="emit('update:modelValue', $event)">
-    <v-card class="pa-6 rounded-2xl">
-      <div class="d-flex align-center justify-space-between mb-4 pb-2 border-b">
-        <div class="d-flex align-center gap-2">
-          <v-avatar color="primary" variant="tonal" size="36" rounded="lg">
-            <v-icon color="primary" size="20">mdi-content-save-outline</v-icon>
-          </v-avatar>
-          <h3 class="text-h6 font-weight-black mb-0">حفظ القالب الهندسي في النظام</h3>
-        </div>
-        <v-btn icon size="small" variant="text" @click="emit('update:modelValue', false)">
-          <v-icon>mdi-close</v-icon>
-        </v-btn>
-      </div>
+  <custom-dialog
+    :model-value="modelValue"
+    title="حفظ القالب الهندسي في النظام"
+    width="560"
+    height="auto"
+    @update:model-value="emit('update:modelValue', $event)"
+  >
+    <v-row dense class="mb-2">
+      <custom-text-field
+        v-model="form.name"
+        label="اسم القالب المعياري *"
+        placeholder="مثال: نموذج اختبار الشهادة الثانوية العامة (50 سؤال)"
+        icon="file-document-outline"
+        cols="12"
+        :clearable="false"
+        @update:model-value="onNameInput"
+      />
+      <custom-text-field
+        v-model="form.subject_name"
+        label="المادة الدراسية / التخصص *"
+        placeholder="مثال: القرآن الكريم والتربية الإسلامية"
+        icon="book-open-outline"
+        cols="12"
+        :clearable="false"
+        @update:model-value="userManuallyEditedSubject = true"
+      />
+      <custom-text-field
+        v-model="form.version"
+        label="رقم الإصدار"
+        placeholder="1.0"
+        icon="tag-outline"
+        cols="6"
+        :clearable="false"
+      />
+      <custom-text-field
+        :model-value="totalQuestions"
+        label="إجمالي الأسئلة"
+        icon="help-circle-outline"
+        cols="6"
+        :clearable="false"
+        :disabled="true"
+      />
+      <custom-text-note
+        v-model="form.description"
+        label="الوصف والملاحظات الفنية"
+        icon="text-box-outline"
+        cols="12"
+        :rows="3"
+        :hideDetails="true"
+        :clearable="false"
+      />
+    </v-row>
 
-      <v-row dense class="mb-2">
-        <custom-text-field
-          v-model="form.name"
-          label="اسم القالب المعياري *"
-          placeholder="مثال: نموذج اختبار الشهادة الثانوية العامة (50 سؤال)"
-          icon="file-document-outline"
-          cols="12"
-          :clearable="false"
-          @update:model-value="onNameInput"
-        />
-        <custom-text-field
-          v-model="form.subject_name"
-          label="المادة الدراسية / التخصص *"
-          placeholder="مثال: القرآن الكريم والتربية الإسلامية"
-          icon="book-open-outline"
-          cols="12"
-          :clearable="false"
-          @update:model-value="userManuallyEditedSubject = true"
-        />
-        <custom-text-field
-          v-model="form.version"
-          label="رقم الإصدار"
-          placeholder="1.0"
-          icon="tag-outline"
-          cols="6"
-          :clearable="false"
-        />
-        <custom-text-field
-          :model-value="totalQuestions"
-          label="إجمالي الأسئلة"
-          icon="help-circle-outline"
-          cols="6"
-          :clearable="false"
-          :disabled="true"
-        />
-        <custom-text-note
-          v-model="form.description"
-          label="الوصف والملاحظات الفنية"
-          icon="text-box-outline"
-          cols="12"
-          :rows="3"
-          :hideDetails="true"
-          :clearable="false"
-        />
-      </v-row>
-
-      <div class="d-flex justify-end gap-2">
-        <v-btn variant="text" rounded="lg" class="font-weight-bold" @click="emit('update:modelValue', false)">
-          إلغاء
-        </v-btn>
-        <v-btn
-          color="primary"
-          rounded="lg"
-          class="font-weight-bold px-6"
-          :loading="isSaving"
-          :disabled="!form.name?.trim()"
-          @click="handleSave"
-        >
-          تأكيد الحفظ والتوثيق
-        </v-btn>
-      </div>
-    </v-card>
-  </v-dialog>
+    <template #actions>
+      <v-btn variant="text" rounded="lg" class="font-weight-bold" @click="emit('update:modelValue', false)">
+        إلغاء
+      </v-btn>
+      <v-btn
+        color="primary"
+        rounded="lg"
+        class="font-weight-bold px-6"
+        :loading="isSaving"
+        :disabled="!form.name?.trim()"
+        @click="handleSave"
+      >
+        تأكيد الحفظ والتوثيق
+      </v-btn>
+    </template>
+  </custom-dialog>
 </template>
 
 <script setup lang="ts">

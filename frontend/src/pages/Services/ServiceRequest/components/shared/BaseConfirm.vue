@@ -1,49 +1,53 @@
 <template>
-  <v-dialog v-model="show" max-width="420" persistent transition="scale-transition" origin="center center">
-    <v-card class="premium-confirm-card" rounded="xl">
-      <div class="confirm-content pa-8 text-center">
-        <!-- Animated Icon Box -->
-        <div class="icon-container mb-6">
-          <div :class="['icon-ring', `ring-${type}`]"></div>
-          <div :class="['icon-box-inner', `bg-${type}-soft`]">
-            <v-icon :color="typeColor" size="36">
-              {{ icon || typeIcon }}
-            </v-icon>
-          </div>
-        </div>
-
-        <h3 class="text-h6 font-weight-black text-slate-900 mb-1">
-          {{ title }}
-        </h3>
-        <p v-if="subtitle" class="text-caption text-slate-500 mb-3 font-weight-medium">
-          {{ subtitle }}
-        </p>
-
-        <p class="text-body-2 text-slate-600 mb-0 leading-relaxed px-2">
-          {{ message }}
-        </p>
-
-        <div v-if="subMessage" class="sub-message-box mt-4 pa-3 rounded-lg bg-slate-50">
-          <p class="text-caption text-slate-500 mb-0 font-weight-medium">
-            {{ subMessage }}
-          </p>
+  <custom-dialog
+    v-model="show"
+    :title="title"
+    width="440"
+    height="auto"
+    persistent
+    transition="scale-transition"
+    origin="center center"
+  >
+    <div class="confirm-content text-center py-2">
+      <!-- Animated Icon Box -->
+      <div class="icon-container mb-5">
+        <div :class="['icon-ring', `ring-${type}`]"></div>
+        <div :class="['icon-box-inner', `bg-${type}-soft`]">
+          <v-icon :color="typeColor" size="36">
+            {{ icon || typeIcon }}
+          </v-icon>
         </div>
       </div>
 
-      <!-- Actions -->
-      <div class="confirm-actions pa-6 d-flex align-center gap-3">
+      <p v-if="subtitle" class="text-caption text-slate-500 mb-3 font-weight-medium">
+        {{ subtitle }}
+      </p>
+
+      <p class="text-body-2 text-slate-600 mb-0 leading-relaxed px-2">
+        {{ message }}
+      </p>
+
+      <div v-if="subMessage" class="sub-message-box mt-4 pa-3 rounded-lg bg-slate-50">
+        <p class="text-caption text-slate-500 mb-0 font-weight-medium">
+          {{ subMessage }}
+        </p>
+      </div>
+    </div>
+
+    <template #actions>
+      <div class="d-flex align-center gap-3 w-100">
         <v-btn variant="tonal" color="slate-400" class="flex-grow-1 font-weight-bold rounded-lg action-btn-secondary"
-          height="48" @click="show = false">
+          height="44" @click="show = false">
           {{ cancelText }}
         </v-btn>
         <v-btn :color="typeColor" variant="tonal"
-          class="flex-grow-1 font-weight-bold rounded-lg action-btn-primary elevation-0" height="48" :loading="loading"
+          class="flex-grow-1 font-weight-bold rounded-lg action-btn-primary elevation-0" height="44" :loading="loading"
           @click="confirmMessage">
           {{ confirmText }}
         </v-btn>
       </div>
-    </v-card>
-  </v-dialog>
+    </template>
+  </custom-dialog>
 </template>
 
 <script>

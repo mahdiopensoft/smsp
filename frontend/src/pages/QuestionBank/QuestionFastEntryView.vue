@@ -914,32 +914,28 @@
     />
 
     <!-- Full Image Preview Modal Dialog -->
-    <v-dialog v-model="previewImageDialog" max-width="750" scrollable>
-      <v-card class="rounded-xl overflow-hidden main-card">
-        <v-card-title class="d-flex align-center justify-space-between py-3 px-4 border-b">
-          <div class="d-flex align-center gap-2">
-            <v-icon color="primary" size="20">mdi-image-outline</v-icon>
-            <span class="text-subtitle-1 font-weight-bold">معاينة الصورة المساعدة للسؤال</span>
-          </div>
-          <v-btn icon="mdi-close" variant="text" size="small" @click="previewImageDialog = false" />
-        </v-card-title>
-        <v-card-text class="pa-4 text-center" style="background: rgba(var(--v-theme-surface-variant), 0.15);">
-          <img
-            :src="previewImageSrc"
-            alt="معاينة الصورة"
-            style="max-width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px;"
-          />
-        </v-card-text>
-        <v-card-actions class="px-4 py-3 justify-end">
-          <custom-btn
-            label="إغلاق"
-            variant="tonal"
-            color="secondary"
-            :click="() => previewImageDialog = false"
-          />
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <custom-dialog
+      v-model="previewImageDialog"
+      title="معاينة الصورة المساعدة للسؤال"
+      width="750"
+      height="auto"
+    >
+      <div class="pa-4 text-center rounded-lg" style="background: rgba(var(--v-theme-surface-variant), 0.15);">
+        <img
+          :src="previewImageSrc"
+          alt="معاينة الصورة"
+          style="max-width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px;"
+        />
+      </div>
+      <template #actions>
+        <custom-btn
+          label="إغلاق"
+          variant="tonal"
+          color="secondary"
+          :click="() => previewImageDialog = false"
+        />
+      </template>
+    </custom-dialog>
   </div>
 </template>
 

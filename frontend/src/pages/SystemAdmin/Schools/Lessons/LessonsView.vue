@@ -73,7 +73,7 @@
         />
 
         <!-- Filter Actions -->
-        <v-col cols="12" sm="6" md="3" class="d-flex align-center gap-2">
+        <v-col cols="auto" class="d-flex align-center gap-2">
           <custom-btn
             type="show"
             label="تصفية"
@@ -95,6 +95,7 @@
 
     <!-- Data Table -->
     <custom-data-table
+      actionList
       ref="table"
       v-bind="{
         items,
@@ -128,9 +129,8 @@
             size="small"
             :color="item.is_active ? 'success' : 'error'"
             variant="tonal"
-            class="font-weight-bold text-white"
+            class="font-weight-bold"
           >
-            <v-icon start size="14">{{ item.is_active ? 'mdi-check-circle' : 'mdi-close-circle' }}</v-icon>
             {{ item.is_active ? 'مفعل' : 'معطل' }}
           </v-chip>
         </template>
@@ -215,27 +215,22 @@ export default {
       this.filterClassTrack = null;
       this.filterSubject = null;
       this.filterUnit = null;
-      this.getData();
     },
 
     onClassTrackChange() {
       this.filterSubject = null;
       this.filterUnit = null;
-      this.getData();
     },
 
     onSubjectChange() {
       this.filterUnit = null;
-      this.getData();
     },
 
     onSemesterChange() {
       this.filterUnit = null;
-      this.getData();
     },
 
     onUnitChange() {
-      this.getData();
     },
 
     applyFilters() {

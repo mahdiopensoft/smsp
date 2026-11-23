@@ -7,6 +7,14 @@
         headers,
         editItem: (item: any) => $emit('edit', item),
       }"
+      :actionList="(item) => [
+        { title_ar: 'بدء التصحيح الضوئي بهذا القالب', title_en: 'Start Scan', click: () => $emit('scan', item.id) },
+        { title_ar: 'معاينة الورقة', title_en: 'Preview Sheet', click: () => $emit('preview', item) },
+        { title_ar: 'تعديل القالب', title_en: 'Edit Template', click: () => $emit('edit', item) },
+        { title_ar: 'طباعة القالب', title_en: 'Print Template', click: () => $emit('print', item) },
+        { title_ar: 'نسخ كقالب جديد', title_en: 'Duplicate Template', click: () => $emit('duplicate', item) },
+        { title_ar: 'حذف القالب', title_en: 'Delete Template', click: () => $emit('confirm-delete', item) },
+      ]"
       :numbering="false"
       :create="false"
       :search="true"
@@ -30,66 +38,40 @@
       <template v-slot:item-slot="{ item, key }">
         <!-- Template ID -->
         <template v-if="key === 'id'">
-          <v-chip size="small" color="primary" variant="tonal" class="font-weight-black">
-            #{{ item.id }}
-          </v-chip>
+          <span class="font-mono font-weight-bold text-body-2">#{{ item.id }}</span>
         </template>
 
         <!-- Template Name and Subtitle -->
         <template v-else-if="key === 'name'">
-          <div class="d-flex align-center gap-3 py-1">
-            <v-avatar size="36" color="primary" variant="tonal" class="rounded-lg">
-              <v-icon size="20">mdi-file-document-edit-outline</v-icon>
-            </v-avatar>
-            <div>
-              <div class="font-weight-black text-body-2 text-primary">{{ item.name }}</div>
-              <div class="text-caption text-medium-emphasis">{{ item.description || 'قالب تصحيح آلي عالي الدقة 300 DPI' }}</div>
-            </div>
+          <div class="py-1">
+            <div class="font-weight-bold text-body-2 text-primary">{{ item.name }}</div>
+            <div class="text-caption text-medium-emphasis">{{ item.description || 'قالب تصحيح آلي عالي الدقة 300 DPI' }}</div>
           </div>
         </template>
 
         <!-- Category / Organization -->
         <template v-else-if="key === 'category'">
-          <v-chip
-            size="small"
-            :color="getCategoryColor(item)"
-            variant="tonal"
-            class="font-weight-bold"
-          >
-            <v-icon start size="14">{{ getCategoryIcon(item) }}</v-icon>
-            {{ getCategoryLabel(item) }}
-          </v-chip>
+          <span class="text-body-2 font-weight-medium">{{ getCategoryLabel(item) }}</span>
         </template>
 
         <!-- Questions Count -->
         <template v-else-if="key === 'total_mcq'">
-          <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold">
-            <v-icon start size="14">mdi-help-circle-outline</v-icon>
-            {{ getQuestionsCount(item) }} سؤال
-          </v-chip>
+          <span class="font-mono font-weight-bold text-body-2">{{ getQuestionsCount(item) }} سؤال</span>
         </template>
 
         <!-- Columns & Layout -->
         <template v-else-if="key === 'layout'">
-          <v-chip size="small" color="info" variant="tonal" class="font-weight-bold">
-            <v-icon start size="14">mdi-view-column-outline</v-icon>
-            {{ getColumnsCount(item) }} أعمدة ({{ getChoicesCount(item) }} خيارات)
-          </v-chip>
+          <span class="text-body-2">{{ getColumnsCount(item) }} أعمدة ({{ getChoicesCount(item) }} خيارات)</span>
         </template>
 
         <!-- Paper Size -->
         <template v-else-if="key === 'paper_size'">
-          <v-chip size="small" color="secondary" variant="tonal" class="font-weight-bold">
-            <v-icon start size="14">mdi-file-outline</v-icon>
-            {{ getPaperSize(item) }}
-          </v-chip>
+          <span class="font-mono text-body-2">{{ getPaperSize(item) }}</span>
         </template>
 
         <!-- Version -->
         <template v-else-if="key === 'version'">
-          <v-chip size="small" color="grey-darken-2" variant="tonal" class="font-weight-bold">
-            v{{ item.version || '1.0' }}
-          </v-chip>
+          <span class="font-mono text-caption text-medium-emphasis">v{{ item.version || '1.0' }}</span>
         </template>
 
         <!-- Is Active Status -->
@@ -100,54 +82,8 @@
             variant="tonal"
             class="font-weight-bold"
           >
-            <v-icon start size="14">{{ item.is_active !== false ? 'mdi-check-circle' : 'mdi-close-circle' }}</v-icon>
             {{ item.is_active !== false ? 'مفعل' : 'معطل' }}
           </v-chip>
-        </template>
-
-        <!-- Custom Actions Bar -->
-        <template v-else-if="key === 'actions'">
-          <div class="d-flex align-center justify-center gap-1">
-            <custom-btn
-              is-icon
-              icon="scanner"
-              color="success"
-              label="بدء التصحيح الضوئي بهذا القالب"
-              :click="() => $emit('scan', item.id)"
-            />
-            <custom-btn
-              type="show"
-              is-icon
-              label="معاينة الورقة"
-              :click="() => $emit('preview', item)"
-            />
-            <custom-btn
-              type="update"
-              is-icon
-              label="تعديل القالب"
-              :click="() => $emit('edit', item)"
-            />
-            <custom-btn
-              is-icon
-              icon="printer"
-              color="secondary"
-              label="طباعة القالب"
-              :click="() => $emit('print', item)"
-            />
-            <custom-btn
-              is-icon
-              icon="content-copy"
-              color="info"
-              label="نسخ كقالب جديد"
-              :click="() => $emit('duplicate', item)"
-            />
-            <custom-btn
-              type="del"
-              is-icon
-              label="حذف القالب"
-              :click="() => $emit('confirm-delete', item)"
-            />
-          </div>
         </template>
       </template>
     </custom-data-table>

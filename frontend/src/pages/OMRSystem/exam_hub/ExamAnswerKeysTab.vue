@@ -62,14 +62,6 @@
       <!-- Unified Filter Fields for Questions -->
       <filter-fields label="خيارات تصفية والبحث في أسئلة النموذج" class="main-card border-0 pa-4 rounded-2xl mb-4">
         <template #fields>
-          <!-- Search Query -->
-          <custom-text-field
-            v-model="questionSearchQuery"
-            cols="5"
-            label="البحث في نص السؤال أو الخيارات"
-            placeholder="بحث بنص السؤال أو البدائل..."
-            icon="magnify"
-          />
 
           <!-- Bloom Level -->
           <auto-list
@@ -89,16 +81,22 @@
             :add="false"
           />
 
-          <!-- Cancel Filter -->
-          <v-col cols="12" md="1" class="d-flex justify-center py-2">
+          <!-- Actions -->
+          <v-col cols="auto" class="d-flex align-center gap-2 mb-6">
+            <custom-btn
+              type="show"
+              label="عرض"
+              color="primary"
+              class="font-weight-bold px-5"
+              :click="applyQuestionFilters"
+            />
             <custom-btn
               type="cancel_filter"
               :click="resetQuestionFilters"
               variant="tonal"
               color="error"
-              label="تفريغ"
-              icon="mdi-filter-off"
-              class="font-weight-bold w-100"
+              label="إلغاء الفلترة"
+              class="font-weight-bold"
             />
           </v-col>
         </template>
@@ -112,7 +110,7 @@
             getData: getQuestionsData,
             headers: questionsHeaders,
           }"
-          :search="false"
+          :search="true"
           :hasFilter="false"
           :log="false"
           :restore="false"
@@ -120,9 +118,7 @@
           <template v-slot:item-slot="{ item, key }">
             <!-- Question Number -->
             <template v-if="key === 'orderIndex'">
-              <v-chip size="small" variant="tonal" color="primary" class="font-weight-bold font-mono unified-table-chip">
-                {{ item.orderIndex }}
-              </v-chip>
+              <span class="font-weight-bold font-mono text-body-2">{{ item.orderIndex }}</span>
             </template>
 
             <!-- Question Content & Options -->
@@ -151,9 +147,7 @@
 
             <!-- Bloom Level -->
             <template v-else-if="key === 'bloom_level'">
-              <v-chip size="small" color="secondary" variant="tonal" class="font-weight-bold unified-table-chip">
-                {{ item.bloomLevel || 'عام' }}
-              </v-chip>
+              <span class="text-body-2 font-weight-medium">{{ item.bloomLevel || 'عام' }}</span>
             </template>
 
             <!-- Correct Answer -->
@@ -225,22 +219,32 @@ const questionTypeFilterOptions = [
   { title: 'اختيار من متعدد', value: 'mcq' },
 ]
 
+const appliedQuestionSearch = ref('')
+const appliedBloomLevel = ref(null)
+const appliedQuestionType = ref(null)
+
+const applyQuestionFilters = () => {
+  appliedQuestionSearch.value = questionSearchQuery.value || ''
+  appliedBloomLevel.value = filterBloomLevel.value
+  appliedQuestionType.value = filterQuestionType.value
+}
+
 const filteredQuestions = computed(() => {
   let list = currentVersionObj.value?.questions || []
-  if (filterBloomLevel.value) {
-    list = list.filter(q => q.bloomLevel === filterBloomLevel.value)
+  if (appliedBloomLevel.value) {
+    list = list.filter(q => q.bloomLevel === appliedBloomLevel.value)
   }
-  if (filterQuestionType.value) {
+  if (appliedQuestionType.value) {
     list = list.filter(q => {
       const typeStr = (q.question_type || q.type || '').toLowerCase()
-      if (filterQuestionType.value === 'true_false') {
+      if (appliedQuestionType.value === 'true_false') {
         return typeStr.includes('true') || typeStr.includes('tf') || typeStr.includes('صح')
       }
       return !typeStr.includes('true') && !typeStr.includes('tf') && !typeStr.includes('صح')
     })
   }
-  if (questionSearchQuery.value && questionSearchQuery.value.trim()) {
-    const s = questionSearchQuery.value.trim().toLowerCase()
+  if (appliedQuestionSearch.value && appliedQuestionSearch.value.trim()) {
+    const s = appliedQuestionSearch.value.trim().toLowerCase()
     list = list.filter(q => {
       const contentMatch = (q.content || q.text || '').toLowerCase().includes(s)
       const optionsMatch = (q.options || []).some(o => (o.text || '').toLowerCase().includes(s))
@@ -308,6 +312,9 @@ const resetQuestionFilters = () => {
   questionSearchQuery.value = ''
   filterBloomLevel.value = null
   filterQuestionType.value = null
+  appliedQuestionSearch.value = ''
+  appliedBloomLevel.value = null
+  appliedQuestionType.value = null
 }
 </script>
 

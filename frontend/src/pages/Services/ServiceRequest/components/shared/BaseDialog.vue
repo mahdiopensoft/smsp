@@ -1,67 +1,33 @@
 <template>
-  <v-dialog
+  <custom-dialog
     v-model="internalValue"
-    :max-width="maxWidth"
+    :title="title"
+    :width="String(maxWidth)"
+    height="auto"
     persistent
     transition="scale-transition"
-    scrollable
   >
-    <v-card class="premium-dialog-card" rounded="xl">
-      <!-- Premium Header -->
-      <div class="dialog-header-premium px-6 py-5 d-flex align-center justify-space-between">
-        <div class="d-flex align-center">
-          <div :class="['header-icon-wrapper ml-4', `bg-${type}-soft`]">
-            <v-icon
-              :icon="icon?.includes('mdi') ? icon : `mdi-${icon}`"
-              :color="typeColor"
-              size="22"
-            ></v-icon>
-          </div>
-          <div>
-            <h3 class="text-h6 font-weight-black text-slate-900 mb-0 leading-tight">
-              {{ title }}
-            </h3>
-            <p v-if="subtitle" class="text-caption text-slate-500 mb-0 font-weight-medium">
-              {{ subtitle }}
-            </p>
-          </div>
-        </div>
-        <v-btn
-          icon="mdi-close"
-          variant="tonal"
-          color="slate-300"
-          size="small"
-          class="rounded-circle close-btn-premium"
-          @click="close"
-        ></v-btn>
-      </div>
+    <p v-if="subtitle" class="text-caption text-slate-500 mb-4 pb-2 border-b font-weight-medium">
+      {{ subtitle }}
+    </p>
 
-      <v-divider class="border-slate-100"></v-divider>
-
-      <!-- Content Area -->
-      <v-card-text class="pa-0 bg-white ">
-        <div class="dialog-content-inner pa-6 pa-md-8">
-          <slot>
-            <v-form ref="fields_form">
-              <v-row>
-                <slot name="fields">
-                  <fields :="{ data, fields }"></fields>
-                </slot>
-              </v-row>
-            </v-form>
+    <slot>
+      <v-form ref="fields_form">
+        <v-row>
+          <slot name="fields">
+            <fields :="{ data, fields }"></fields>
           </slot>
-        </div>
-      </v-card-text>
+        </v-row>
+      </v-form>
+    </slot>
 
-      <v-divider class="border-slate-100"></v-divider>
-
-      <!-- Actions -->
-      <div v-if="actions" class="dialog-actions-premium pa-6 bg-slate-50 d-flex align-center gap-3">
+    <template v-if="actions" #actions>
+      <div class="d-flex align-center gap-3 w-100">
         <v-btn
           variant="tonal"
           color="slate-400"
           class="px-8 font-weight-bold rounded-lg action-btn-secondary"
-          height="48"
+          height="44"
           @click="close"
           :disabled="loading"
         >
@@ -73,15 +39,15 @@
           :color="confirmColor || typeColor"
           variant="tonal"
           class="px-12 font-weight-black rounded-lg action-btn-primary elevation-0"
-          height="48"
+          height="44"
           :loading="loading"
           @click="handleConfirm"
         >
           {{ confirmText }}
         </v-btn>
       </div>
-    </v-card>
-  </v-dialog>
+    </template>
+  </custom-dialog>
 </template>
 
 <script>

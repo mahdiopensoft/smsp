@@ -349,39 +349,36 @@
     />
 
     <!-- Lock Dialog -->
-    <v-dialog v-model="dialogs.lock" max-width="500" persistent>
-      <v-card class="m-dialog-card" rounded="xl">
-        <div class="m-dialog-header warning">
-          <v-icon size="32" color="white">mdi-lock-outline</v-icon>
-          <div class="ms-4">
-            <div class="text-h6 font-weight-bold text-white">تأكيد قفل الخدمة</div>
-            <div class="text-caption text-white opacity-80">
-              {{ lockState.serviceName }}
-            </div>
-          </div>
+    <custom-dialog
+      v-model="dialogs.lock"
+      title="تأكيد قفل الخدمة"
+      width="500"
+      height="auto"
+      persistent
+    >
+      <div class="text-caption text-medium-emphasis mb-3">
+        {{ lockState.serviceName }}
+      </div>
+      <div class="m-warning-box mb-4 d-flex align-center pa-4 rounded-lg">
+        <v-icon color="warning" size="28" class="me-4">mdi-alert-decagram</v-icon>
+        <div class="text-body-2 font-weight-medium text-warning-darken-2">
+          تحذير: سيتم إقفال جميع الطلبات الجارية أو التي تحت الانتظار لهذه الخدمة
+          فوراً.
         </div>
-        <v-card-text class="pa-6">
-          <div class="m-warning-box mb-6 d-flex align-center pa-4 rounded-lg">
-            <v-icon color="warning" size="28" class="me-4">mdi-alert-decagram</v-icon>
-            <div class="text-body-2 font-weight-medium text-warning-darken-2">
-              تحذير: سيتم إقفال جميع الطلبات الجارية أو التي تحت الانتظار لهذه الخدمة
-              فوراً.
-            </div>
-          </div>
-          <v-textarea
-            v-model="lockState.reason"
-            label="سبب القفل"
-            placeholder="يرجى توضيح سبب القفل للإدارة..."
-            variant="outlined"
-            rows="3"
-            auto-grow
-            :rules="[(v) => !!v || 'سبب القفل مطلوب']"
-            class="mt-4"
-          />
-        </v-card-text>
-        <v-card-actions class="pa-6">
+      </div>
+      <v-textarea
+        v-model="lockState.reason"
+        label="سبب القفل"
+        placeholder="يرجى توضيح سبب القفل للإدارة..."
+        variant="outlined"
+        rows="3"
+        auto-grow
+        :rules="[(v) => !!v || 'سبب القفل مطلوب']"
+        class="mt-2"
+      />
+      <template #actions>
+        <div class="d-flex align-center justify-space-between w-100">
           <v-btn variant="text" @click="dialogs.lock = false">إلغاء</v-btn>
-          <v-spacer />
           <v-btn
             color="warning"
             variant="tonal"
@@ -389,42 +386,39 @@
             @click="confirmLock"
             >تأكيد القفل</v-btn
           >
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+        </div>
+      </template>
+    </custom-dialog>
 
     <!-- Unlock Dialog -->
-    <v-dialog v-model="dialogs.unlock" max-width="500" persistent>
-      <v-card class="m-dialog-card" rounded="xl">
-        <div class="m-dialog-header success">
-          <v-icon size="32" color="white">mdi-lock-open-outline</v-icon>
-          <div class="ms-4">
-            <div class="text-h6 font-weight-bold text-white">تأكيد فتح الخدمة</div>
-            <div class="text-caption text-white opacity-80">
-              {{ lockState.serviceName }}
-            </div>
-          </div>
+    <custom-dialog
+      v-model="dialogs.unlock"
+      title="تأكيد فتح الخدمة"
+      width="500"
+      height="auto"
+      persistent
+    >
+      <div class="text-caption text-medium-emphasis mb-3">
+        {{ lockState.serviceName }}
+      </div>
+      <div class="m-info-box mb-4 d-flex align-center pa-4 rounded-lg">
+        <v-icon color="success" size="28" class="me-4"
+          >mdi-information-variant</v-icon
+        >
+        <div class="text-body-2 font-weight-medium text-success-darken-2">
+          ملاحظة: سيتم فتح جميع الطلبات التي تم إقفالها عند قفل الخدمة فقط.
         </div>
-        <v-card-text class="pa-6">
-          <div class="m-info-box mb-6 d-flex align-center pa-4 rounded-lg">
-            <v-icon color="success" size="28" class="me-4"
-              >mdi-information-variant</v-icon
-            >
-            <div class="text-body-2 font-weight-medium text-success-darken-2">
-              ملاحظة: سيتم فتح جميع الطلبات التي تم إقفالها عند قفل الخدمة فقط.
-            </div>
-          </div>
-          <p class="text-center text-body-1 font-weight-bold">
-            هل أنت متأكد من رغبتك في إعادة تفعيل هذه الخدمة؟
-          </p>
-        </v-card-text>
-        <v-card-actions class="pa-6">
+      </div>
+      <p class="text-center text-body-1 font-weight-bold mb-0">
+        هل أنت متأكد من رغبتك في إعادة تفعيل هذه الخدمة؟
+      </p>
+      <template #actions>
+        <div class="d-flex align-center justify-space-between w-100">
           <v-btn variant="text" @click="dialogs.unlock = false">إلغاء</v-btn>
-          <v-spacer />
           <v-btn color="success" variant="tonal" @click="confirmUnlock">تأكيد الفتح</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+        </div>
+      </template>
+    </custom-dialog>
   </div>
 </template>
 

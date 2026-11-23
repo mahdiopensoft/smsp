@@ -1,44 +1,17 @@
 <template>
-  <v-dialog
+  <custom-dialog
     :model-value="modelValue"
-    @update:model-value="$emit('update:modelValue', $event)"
-    max-width="1040px"
-    scrollable
+    title="إنشاء طلب طباعة رسمي للاختبار"
+    width="1040"
+    height="90vh"
     persistent
+    @update:model-value="$emit('update:modelValue', $event)"
   >
-    <v-card class="rounded-2xl overflow-hidden print-order-modal bg-surface elevation-6">
-      <!-- ── Top Accent Stripe (هوية المنظومة المعتمدة) ── -->
-      <div class="modal-top-stripe" />
+    <div class="text-caption text-medium-emphasis mb-4 pb-3 border-b">
+      إصدار أمر إرسال رسمي للمطبعة مع التوزيع التلقائي للنماذج وتوثيق احتياط الطوارئ
+    </div>
 
-      <!-- ── 1. Modal Header (رأس النافذة الرسمي الموحد) ── -->
-      <div class="px-5 py-4 d-flex align-center justify-space-between border-b bg-surface">
-        <div class="d-flex align-center gap-3">
-          <v-avatar color="primary" variant="tonal" size="44" rounded="lg">
-            <v-icon size="24" color="primary">mdi-printer-clock-outline</v-icon>
-          </v-avatar>
-          <div>
-            <h3 class="text-subtitle-1 font-weight-black text-high-emphasis mb-0">إنشاء طلب طباعة رسمي للاختبار</h3>
-            <span class="text-caption text-medium-emphasis">
-              إصدار أمر إرسال رسمي للمطبعة مع التوزيع التلقائي للنماذج وتوثيق احتياط الطوارئ
-            </span>
-          </div>
-        </div>
-
-        <v-btn
-          icon="mdi-close"
-          variant="text"
-          size="small"
-          density="comfortable"
-          color="medium-emphasis"
-          rounded="lg"
-          :disabled="submitting"
-          @click="$emit('update:modelValue', false)"
-        />
-      </div>
-
-      <!-- ── 2. Modal Body ── -->
-      <v-card-text class="pa-5 overflow-y-auto bg-surface" style="max-height: 84vh;">
-        <!-- Loading State -->
+    <!-- Loading State -->
         <div v-if="loadingDetails" class="text-center py-10">
           <v-progress-circular indeterminate color="primary" size="46" class="mb-3" />
           <div class="text-subtitle-2 font-weight-black text-high-emphasis">جاري استرجاع بيانات الاختبار وتوزيع الطلاب والمراكز من قاعدة البيانات...</div>
@@ -436,15 +409,9 @@
                   <!-- رمز النموذج -->
                   <template v-if="key === 'version_code'">
                     <div class="d-flex align-center justify-center">
-                      <v-chip
-                        size="small"
-                        :color="getModelColor(item.version_code)"
-                        variant="tonal"
-                        class="font-weight-black px-3 rounded-md min-w-cell"
-                      >
-                        <v-icon start size="14">mdi-file-document-outline</v-icon>
+                      <span class="font-weight-bold text-primary font-mono text-body-2">
                         النموذج {{ item.version_code }}
-                      </v-chip>
+                      </span>
                     </div>
                   </template>
 
@@ -573,14 +540,9 @@
                 <template v-slot:item-slot="{ item, key }">
                   <!-- المادة المطلوب طباعتها -->
                   <template v-if="key === 'material_name'">
-                    <div class="material-cell-item py-1">
-                      <v-avatar :color="item.color" variant="tonal" size="34" rounded="lg" class="material-avatar me-3">
-                        <v-icon size="20" :color="item.color">{{ item.icon }}</v-icon>
-                      </v-avatar>
-                      <div class="text-right">
-                        <div class="font-weight-bold text-high-emphasis text-body-2">{{ item.material_name }}</div>
-                        <div class="text-caption text-medium-emphasis mt-0.5">{{ item.sub_desc }}</div>
-                      </div>
+                    <div class="text-right py-1">
+                      <div class="font-weight-bold text-high-emphasis text-body-2">{{ item.material_name }}</div>
+                      <div class="text-caption text-medium-emphasis mt-0.5">{{ item.sub_desc }}</div>
                     </div>
                   </template>
 
@@ -762,10 +724,9 @@
             </div>
           </v-form>
         </div>
-      </v-card-text>
 
-      <!-- ── 3. Modal Footer (متوافق مع الثيمين) ── -->
-      <div v-if="!submitSuccess" class="pa-4 bg-surface border-t d-flex align-center justify-space-between flex-wrap gap-2">
+    <template #actions>
+      <div v-if="!submitSuccess" class="d-flex align-center justify-space-between flex-wrap gap-2 w-100">
         <div class="text-caption text-medium-emphasis d-flex align-center gap-2">
           <v-icon size="18" color="primary">mdi-printer-check</v-icon>
           <span>إجمالي المطبوعات المعتمدة:</span>
@@ -794,149 +755,115 @@
           />
         </div>
       </div>
-    </v-card>
+    </template>
+  </custom-dialog>
 
-    <!-- ════════════════════════════════════════════════════════════ -->
-    <!-- 7. النافذة المنبثقة الموحدة والأنيقة لاختيار المراكز الامتحانية -->
-    <!-- تطابق كامل للترويسة الرسمية وتنسيق البطاقات وشارات الطلاب     -->
-    <!-- ════════════════════════════════════════════════════════════ -->
-    <v-dialog
-      v-model="centersDialog"
-      max-width="720px"
-      scrollable
-    >
-      <v-card class="rounded-2xl overflow-hidden bg-surface elevation-12 border">
-        <!-- شريط علوي ملون للهوية -->
-        <div class="modal-top-stripe" />
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- 7. النافذة المنبثقة الموحدة والأنيقة لاختيار المراكز الامتحانية -->
+  <!-- تطابق كامل للترويسة الرسمية وتنسيق البطاقات وشارات الطلاب     -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <custom-dialog
+    v-model="centersDialog"
+    :title="`تحديد نطاق المراكز الامتحانية (${selectedSchoolNames.length} من ${availableSchools.length})`"
+    width="720"
+    height="auto"
+  >
+    <!-- شريط البحث السريع والتحكم الجماعي -->
+    <div class="d-flex align-center gap-2 mb-3">
+      <v-text-field
+        v-model="schoolFilterText"
+        placeholder="بحث سريع باسم المركز الامتحاني أو المدرسة..."
+        prepend-inner-icon="mdi-magnify"
+        density="compact"
+        variant="outlined"
+        rounded="lg"
+        clearable
+        hide-details
+        class="flex-grow-1"
+      />
 
-        <!-- ترويسة أنيقة موحدة مطابقة تماماً لنافذة النظام الرسمية -->
-        <div class="px-5 py-4 d-flex align-center justify-space-between border-b bg-surface">
-          <div class="d-flex align-center gap-3">
-            <v-avatar color="primary" variant="tonal" size="44" rounded="lg">
-              <v-icon size="24" color="primary">mdi-domain</v-icon>
-            </v-avatar>
-            <div>
-              <div class="d-flex align-center gap-2 flex-wrap">
-                <h3 class="text-subtitle-1 font-weight-black text-high-emphasis mb-0">تحديد نطاق المراكز الامتحانية</h3>
-                <div class="center-count-badge px-3 py-1 text-caption font-weight-black font-mono">
-                  {{ selectedSchoolNames.length }} من {{ availableSchools.length }} مراكز
-                </div>
-              </div>
-            </div>
-          </div>
+      <v-btn
+        variant="tonal"
+        color="primary"
+        size="small"
+        class="font-weight-bold rounded-lg px-3"
+        style="height: 40px"
+        @click="toggleSelectAllSchools"
+      >
+        <v-icon start size="16">
+          {{ isAllSchoolsSelected ? 'mdi-checkbox-blank-outline' : 'mdi-checkbox-multiple-marked' }}
+        </v-icon>
+        {{ isAllSchoolsSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل' }}
+      </v-btn>
+    </div>
 
-          <v-btn
-            icon="mdi-close"
-            variant="text"
-            size="small"
-            density="comfortable"
-            color="medium-emphasis"
-            rounded="lg"
-            @click="centersDialog = false"
-          />
-        </div>
+    <!-- شريط معلومات التحديد المتوافق مع النمط الفاتح والداكن -->
+    <div class="dialog-info-strip d-flex align-center justify-space-between px-3 py-2.5 rounded-lg mb-3 text-caption font-weight-bold">
+      <div class="d-flex align-center gap-1.5">
+        <v-icon size="16" color="primary">mdi-checkbox-marked-circle-outline</v-icon>
+        <span>تم تحديد <strong class="text-primary font-weight-black">{{ selectedSchoolNames.length }}</strong> من أصل {{ availableSchools.length }} مراكز امتحانية</span>
+      </div>
+      <div class="d-flex align-center gap-1.5">
+        <v-icon size="16" color="primary">mdi-account-group-outline</v-icon>
+        <span>إجمالي الطلاب المشمولين: <strong class="text-primary font-mono text-body-2 font-weight-black">{{ filteredTotalStudents }}</strong> طالباً</span>
+      </div>
+    </div>
 
-        <v-card-text class="pa-4 bg-surface" style="max-height: 65vh;">
-          <!-- شريط البحث السريع والتحكم الجماعي -->
-          <div class="d-flex align-center gap-2 mb-3">
-            <v-text-field
-              v-model="schoolFilterText"
-              placeholder="بحث سريع باسم المركز الامتحاني أو المدرسة..."
-              prepend-inner-icon="mdi-magnify"
-              density="compact"
-              variant="outlined"
-              rounded="lg"
-              clearable
-              hide-details
-              class="flex-grow-1"
-            />
-
-            <v-btn
-              variant="tonal"
-              color="primary"
-              size="small"
-              class="font-weight-bold rounded-lg px-3"
-              style="height: 40px"
-              @click="toggleSelectAllSchools"
-            >
-              <v-icon start size="16">
-                {{ isAllSchoolsSelected ? 'mdi-checkbox-blank-outline' : 'mdi-checkbox-multiple-marked' }}
-              </v-icon>
-              {{ isAllSchoolsSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل' }}
-            </v-btn>
-          </div>
-
-          <!-- شريط معلومات التحديد المتوافق مع النمط الفاتح والداكن -->
-          <div class="dialog-info-strip d-flex align-center justify-space-between px-3 py-2.5 rounded-lg mb-3 text-caption font-weight-bold">
-            <div class="d-flex align-center gap-1.5">
-              <v-icon size="16" color="primary">mdi-checkbox-marked-circle-outline</v-icon>
-              <span>تم تحديد <strong class="text-primary font-weight-black">{{ selectedSchoolNames.length }}</strong> من أصل {{ availableSchools.length }} مراكز امتحانية</span>
-            </div>
-            <div class="d-flex align-center gap-1.5">
-              <v-icon size="16" color="primary">mdi-account-group-outline</v-icon>
-              <span>إجمالي الطلاب المشمولين: <strong class="text-primary font-mono text-body-2 font-weight-black">{{ filteredTotalStudents }}</strong> طالباً</span>
-            </div>
-          </div>
-
-          <!-- قائمة المراكز الامتحانية ببطاقات مربعة برواند قليل وليس بيضاوي -->
-          <div class="d-flex flex-column gap-2" style="max-height: 380px; overflow-y: auto;">
-            <div
-              v-for="sch in filteredDialogSchools"
-              :key="sch.name"
-              class="d-flex align-center justify-space-between p-3 px-4 rounded-lg border cursor-pointer transition-all"
-              :class="selectedSchoolNames.includes(sch.name) ? 'border-primary bg-primary-subtle' : 'bg-surface'"
-              @click="toggleSchoolSelection(sch.name)"
-            >
-              <div class="d-flex align-center gap-3">
-                <v-checkbox-btn
-                  :model-value="selectedSchoolNames.includes(sch.name)"
-                  color="primary"
-                  density="compact"
-                  hide-details
-                  @click.stop="toggleSchoolSelection(sch.name)"
-                />
-                <div>
-                  <div class="font-weight-bold text-body-2 text-high-emphasis">{{ sch.name }}</div>
-                  <div class="text-caption text-medium-emphasis">
-                    {{ sch.directorate || sch.governorate || 'التحرير' }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- شارة عدد الطلاب مربعة برواند خفيف وليس بيضاوية -->
-              <div class="center-count-badge px-3 py-1 text-caption font-weight-black font-mono">
-                {{ sch.count }} طالب
-              </div>
-            </div>
-          </div>
-        </v-card-text>
-
-        <!-- تذييل النافذة المنبثقة بأزرار النظام الرسمية -->
-        <div class="pa-4 bg-surface border-t d-flex align-center justify-end gap-2">
-          <custom-btn
-            type="cancel"
-            variant="outlined"
-            label="إغلاق"
-            :click="() => centersDialog = false"
-          />
-          <custom-btn
-            type="save"
-            label="تأكيد واعتماد المراكز المحددة"
+    <!-- قائمة المراكز الامتحانية ببطاقات مربعة برواند قليل وليس بيضاوي -->
+    <div class="d-flex flex-column gap-2" style="max-height: 380px; overflow-y: auto;">
+      <div
+        v-for="sch in filteredDialogSchools"
+        :key="sch.name"
+        class="d-flex align-center justify-space-between p-3 px-4 rounded-lg border cursor-pointer transition-all"
+        :class="selectedSchoolNames.includes(sch.name) ? 'border-primary bg-primary-subtle' : 'bg-surface'"
+        @click="toggleSchoolSelection(sch.name)"
+      >
+        <div class="d-flex align-center gap-3">
+          <v-checkbox-btn
+            :model-value="selectedSchoolNames.includes(sch.name)"
             color="primary"
-            :click="() => centersDialog = false"
+            density="compact"
+            hide-details
+            @click.stop="toggleSchoolSelection(sch.name)"
           />
+          <div>
+            <div class="font-weight-bold text-body-2 text-high-emphasis">{{ sch.name }}</div>
+            <div class="text-caption text-medium-emphasis">
+              {{ sch.directorate || sch.governorate || 'التحرير' }}
+            </div>
+          </div>
         </div>
-      </v-card>
-    </v-dialog>
 
-    <!-- ════════════════════════════════════════════════════════════ -->
-    <!-- 8. استمارة إذن الصرف وأمر الطباعة الرسمي (مكون منفصل ومتقن)  -->
-    <!-- ════════════════════════════════════════════════════════════ -->
-    <PrintOrderManifestDialog
-      v-model="manifestDialog"
-      :order-data="manifestData"
-    />
-  </v-dialog>
+        <!-- شارة عدد الطلاب مربعة برواند خفيف وليس بيضاوية -->
+        <div class="center-count-badge px-3 py-1 text-caption font-weight-black font-mono">
+          {{ sch.count }} طالب
+        </div>
+      </div>
+    </div>
+
+    <template #actions>
+      <custom-btn
+        type="cancel"
+        variant="outlined"
+        label="إغلاق"
+        :click="() => centersDialog = false"
+      />
+      <custom-btn
+        type="save"
+        label="تأكيد واعتماد المراكز المحددة"
+        color="primary"
+        :click="() => centersDialog = false"
+      />
+    </template>
+  </custom-dialog>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- 8. استمارة إذن الصرف وأمر الطباعة الرسمي (مكون منفصل ومتقن)  -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <PrintOrderManifestDialog
+    v-model="manifestDialog"
+    :order-data="manifestData"
+  />
 </template>
 
 <script setup>

@@ -5,28 +5,20 @@
     <!-- Filters Bar -->
     <filter-fields label="خيارات التصفية والبحث" class="main-card border-0 pa-5 rounded-2xl mb-6">
       <v-row dense class="align-center">
-        <!-- Search Field -->
-        <custom-text-field
-          v-model="searchQuery"
-          cols="4"
-          label="بحث..."
-          icon="magnify"
-          @keydown.enter="applyFilters"
-        />
 
         <!-- Active Status Filter -->
         <auto-list
           v-model="filterActive"
           name="LocalTextOption"
           :objects="activeOptions"
-          cols="4"
+          cols="3"
           label="حالة التفعيل"
           icon="check-circle-outline"
           :add="false"
         />
 
         <!-- Filter Actions -->
-        <v-col cols="12" sm="12" md="4" class="d-flex align-center gap-2">
+        <v-col cols="auto" class="d-flex align-center gap-2">
           <custom-btn
             type="show"
             label="تصفية"
@@ -48,6 +40,7 @@
 
     <!-- Data Table -->
     <custom-data-table
+      actionList
       v-bind="{
         headers,
         items,

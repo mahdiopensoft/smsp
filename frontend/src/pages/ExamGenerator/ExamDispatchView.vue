@@ -14,7 +14,6 @@
             label="نوع المؤسسة التعليمية"
             icon="domain"
             :add="false"
-            @update:model-value="onInstitutionTypeFilterChange"
           />
 
           <auto-list
@@ -25,7 +24,6 @@
             label="مستوى الاستهداف الهرمي"
             icon="sitemap"
             :add="false"
-            @update:model-value="applyFilters"
           />
 
           <auto-list
@@ -36,20 +34,19 @@
             label="حالة المهمة"
             icon="check-circle-outline"
             :add="false"
-            @update:model-value="applyFilters"
           />
 
-          <v-col cols="12" sm="12" md="3" class="d-flex align-center justify-end gap-2">
+          <v-col cols="auto" class="d-flex align-center gap-2">
             <custom-btn
               type="show"
-              label="تصفية"
+              label="عرض"
               color="primary"
               class="font-weight-bold px-6 mb-6"
               :click="applyFilters"
             />
             <custom-btn
               type="cancel_filter"
-              label="تفريغ الفلاتر"
+              label="إلغاء الفلترة"
               variant="tonal"
               color="error"
               class="font-weight-bold mb-6"
@@ -72,7 +69,8 @@
           :restore="false"
           :showSelect="false"
           :editItem="false"
-        >
+        
+        :actionList="(item) => ([ { label: 'متابعة حية', icon: 'radar', color: 'indigo', onClick: () => openLiveMonitor(item) }, { label: 'فك حجب فوري (طوارئ)', icon: 'lock-open-alert', color: 'warning', show: item.status !== 'accessible' && item.status !== 'completed' && item.status !== 'cancelled', onClick: () => promptForceUnlock(item), }, { label: 'إلغاء مهمة التوزيع', icon: 'close-circle-outline', color: 'error', divider: true, show: item.status !== 'completed' && item.status !== 'cancelled', onClick: () => promptCancelDispatch(item), }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
           <!-- Table Header Actions (Move 'جدولة توزيع جديد' button here) -->
           <template #header-actions>
             <custom-btn
@@ -87,36 +85,23 @@
           <template v-slot:item-slot="{ item, key }">
             <!-- Title & Exam Details -->
             <template v-if="key === 'title'">
-              <div class="d-flex align-center gap-3 py-2">
-                <v-avatar color="primary" variant="tonal" size="38" class="rounded-lg">
-                  <v-icon size="20">mdi-file-document-outline</v-icon>
-                </v-avatar>
-                <div>
-                  <div class="font-weight-bold text-subtitle-2 text-slate-800">{{ item.title }}</div>
-                  <div class="text-caption text-medium-emphasis d-flex align-center gap-1">
-                    <span>{{ item.exam_title }}</span>
-                    <v-chip size="x-small" color="primary" variant="tonal" class="ms-1 font-weight-bold">
-                      {{ item.exam_unique_code }}
-                    </v-chip>
-                  </div>
+              <div class="py-1">
+                <div class="font-weight-bold text-subtitle-2 text-slate-800">{{ item.title }}</div>
+                <div class="text-caption text-medium-emphasis">
+                  {{ item.exam_title }}
+                  <span v-if="item.exam_unique_code" class="font-mono ms-1">({{ item.exam_unique_code }})</span>
                 </div>
               </div>
             </template>
 
             <!-- Institution Type -->
             <template v-else-if="key === 'institution_type'">
-              <v-chip size="small" :color="getInstTypeColor(item)" variant="tonal" class="font-weight-bold">
-                <v-icon size="14" start>{{ getInstTypeIcon(item) }}</v-icon>
-                {{ getInstTypeLabel(item) }}
-              </v-chip>
+              <span class="text-body-2 font-weight-medium">{{ getInstTypeLabel(item) }}</span>
             </template>
 
             <!-- Target Level -->
             <template v-else-if="key === 'target_level'">
-              <v-chip size="small" :color="getLevelColor(item.target_level)" variant="tonal" class="font-weight-bold">
-                <v-icon size="14" start>{{ getLevelIcon(item.target_level) }}</v-icon>
-                {{ getLevelLabel(item.target_level) }}
-              </v-chip>
+              <span class="text-body-2 font-weight-medium">{{ getLevelLabel(item.target_level) }}</span>
             </template>
 
             <!-- Schools Receipt Progress -->
@@ -138,64 +123,23 @@
             <!-- Timing Windows -->
             <template v-else-if="key === 'accessible_from'">
               <div class="text-caption font-weight-bold text-slate-800">
-                <v-icon size="14" color="amber-darken-2" class="me-1">mdi-printer</v-icon>
                 {{ formatDateTime(item.accessible_from) }}
               </div>
               <div class="text-caption text-medium-emphasis">
-                <v-icon size="14" color="indigo" class="me-1">mdi-play-circle-outline</v-icon>
                 {{ formatDateTime(item.exam_start_at) }}
               </div>
             </template>
 
             <!-- Delivery Mode -->
             <template v-else-if="key === 'delivery_mode'">
-              <v-chip size="small" variant="tonal" color="teal" class="font-weight-bold">
-                <v-icon size="14" start>mdi-card-text-outline</v-icon>
-                طباعة كراسات + OMR
-              </v-chip>
+              <span class="text-body-2 font-weight-medium">طباعة كراسات + OMR</span>
             </template>
 
             <!-- Status -->
             <template v-else-if="key === 'status'">
               <v-chip size="small" :color="getStatusColor(item.status)" variant="tonal" class="font-weight-bold">
-                <v-icon size="12" start>mdi-circle</v-icon>
                 {{ getStatusLabel(item.status) }}
               </v-chip>
-            </template>
-
-            <!-- Action Buttons using custom-btn & action menu -->
-            <template v-else-if="key === 'actions'">
-              <div class="d-flex align-center justify-center gap-1">
-                <custom-btn
-                  label="متابعة حية"
-                  icon="radar"
-                  color="indigo"
-                  variant="tonal"
-                  class="font-weight-bold px-3"
-                  :click="() => openLiveMonitor(item)"
-                />
-                <v-menu location="bottom end">
-                  <template v-slot:activator="{ props }">
-                    <v-btn icon="mdi-dots-vertical" variant="text" size="small" color="slate-600" v-bind="props" />
-                  </template>
-                  <v-list density="compact" class="rounded-xl border elevation-4">
-                    <v-list-item
-                      v-if="item.status !== 'accessible' && item.status !== 'completed' && item.status !== 'cancelled'"
-                      prepend-icon="mdi-lock-open-alert"
-                      title="فك حجب فوري (طوارئ)"
-                      class="text-amber-darken-3 font-weight-bold"
-                      @click="promptForceUnlock(item)"
-                    />
-                    <v-list-item
-                      v-if="item.status !== 'completed' && item.status !== 'cancelled'"
-                      prepend-icon="mdi-close-circle-outline"
-                      title="إلغاء مهمة التوزيع"
-                      class="text-error font-weight-bold"
-                      @click="promptCancelDispatch(item)"
-                    />
-                  </v-list>
-                </v-menu>
-              </div>
             </template>
           </template>
         </custom-data-table>
@@ -334,9 +278,9 @@
 
                 <!-- Unique Code -->
                 <template v-else-if="key === 'unique_code'">
-                  <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold font-mono">
+                  <span class="font-weight-bold font-mono text-body-2">
                     {{ item.uniqueCode || item.unique_code }}
-                  </v-chip>
+                  </span>
                 </template>
 
                 <!-- Title -->
@@ -351,22 +295,14 @@
 
                 <!-- Institution Type -->
                 <template v-else-if="key === 'institution_type'">
-                  <v-chip
-                    size="x-small"
-                    :color="item.institution_type === 'institute' ? 'warning' : item.institution_type === 'university' ? 'info' : 'emerald'"
-                    variant="tonal"
-                    class="font-weight-bold"
-                  >
+                  <span class="text-body-2 font-weight-medium">
                     {{ item.institution_type === 'institute' ? 'معاهد' : item.institution_type === 'university' ? 'جامعة' : 'مدرسة' }}
-                  </v-chip>
+                  </span>
                 </template>
 
                 <!-- Subject -->
                 <template v-else-if="key === 'subject_name'">
-                  <div class="d-flex align-center gap-1">
-                    <v-icon size="14" color="primary">mdi-book-open-outline</v-icon>
-                    <span class="text-body-2 font-weight-medium">{{ item.subject_name || 'عام' }}</span>
-                  </div>
+                  <span class="text-body-2 font-weight-medium">{{ item.subject_name || 'عام' }}</span>
                 </template>
 
                 <!-- Academic Year -->
@@ -376,15 +312,9 @@
 
                 <!-- Target Scope Level -->
                 <template v-else-if="key === 'target_scope_level'">
-                  <v-chip
-                    size="x-small"
-                    :color="item.target_scope_level === 'governorate' ? 'deep-purple' : item.target_scope_level === 'directorate' ? 'indigo' : item.target_scope_level === 'school' ? 'amber-darken-3' : 'teal'"
-                    variant="tonal"
-                    class="font-weight-bold"
-                  >
-                    <v-icon start size="12">{{ item.target_scope_level === 'governorate' ? 'mdi-map-marker-radius' : item.target_scope_level === 'directorate' ? 'mdi-town-hall' : item.target_scope_level === 'school' ? 'mdi-school' : 'mdi-earth' }}</v-icon>
+                  <span class="text-body-2 font-weight-medium">
                     {{ item.target_scope_level === 'governorate' ? 'محافظات محددة' : item.target_scope_level === 'directorate' ? 'مديريات محددة' : item.target_scope_level === 'school' ? 'مدارس محددة' : 'نطاق شامل' }}
-                  </v-chip>
+                  </span>
                 </template>
 
                 <!-- Exam Details -->
@@ -400,13 +330,11 @@
                 <template v-else-if="key === 'distribution_status'">
                   <template v-if="getExamActiveDistribution(item)">
                     <v-chip size="x-small" color="amber-darken-4" variant="flat" class="text-white font-weight-bold">
-                      <v-icon start size="12">mdi-clock-alert-outline</v-icon>
                       قيد التوزيع ({{ getExamActiveDistribution(item).status_display }})
                     </v-chip>
                   </template>
                   <template v-else>
                     <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold">
-                      <v-icon start size="12">mdi-check-circle-outline</v-icon>
                       جاهز للجدولة
                     </v-chip>
                   </template>
@@ -596,19 +524,12 @@
 
                 <!-- School / Institution Name -->
                 <template v-else-if="key === 'name_ar'">
-                  <div class="font-weight-bold text-slate-800 d-flex align-center gap-2 py-1">
-                    <v-avatar size="28" color="primary" variant="tonal" class="rounded-lg">
-                      <v-icon size="16">mdi-school</v-icon>
-                    </v-avatar>
-                    <span>{{ item.name_ar }}</span>
-                  </div>
+                  <span class="font-weight-bold text-slate-800">{{ item.name_ar }}</span>
                 </template>
 
                 <!-- Branch No -->
                 <template v-else-if="key === 'branch_no'">
-                  <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold font-mono">
-                    {{ item.branch_no }}
-                  </v-chip>
+                  <span class="font-weight-medium font-mono text-body-2">{{ item.branch_no }}</span>
                 </template>
 
                 <!-- Governorate -->
@@ -624,7 +545,6 @@
                 <!-- Status -->
                 <template v-else-if="key === 'status'">
                   <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold">
-                    <v-icon start size="12">mdi-check-decagram</v-icon>
                     جاهزة للاستلام
                   </v-chip>
                 </template>
@@ -1170,16 +1090,13 @@
                 <div class="font-weight-bold py-1">{{ item.school_name_ar }}</div>
               </template>
               <template v-else-if="key === 'school_branch_no'">
-                <v-chip size="x-small" variant="tonal" color="primary" class="font-weight-bold font-mono">
-                  {{ item.school_branch_no }}
-                </v-chip>
+                <span class="font-weight-medium font-mono text-body-2">{{ item.school_branch_no }}</span>
               </template>
               <template v-else-if="key === 'governorate_name'">
                 <span>{{ item.governorate_name }}</span>
               </template>
               <template v-else-if="key === 'is_received'">
                 <v-chip size="x-small" :color="item.is_received ? 'emerald' : 'amber'" variant="tonal" class="font-weight-bold">
-                  <v-icon size="10" start>{{ item.is_received ? 'mdi-check-circle' : 'mdi-clock-outline' }}</v-icon>
                   {{ item.is_received ? 'تم الاستلام' : 'بانتظار السحب' }}
                 </v-chip>
               </template>
@@ -1187,24 +1104,18 @@
                 <span class="text-caption">{{ item.received_at ? formatDateTime(item.received_at) : '-' }}</span>
               </template>
               <template v-else-if="key === 'printed_booklets_count'">
-                <v-chip size="x-small" color="teal" variant="tonal" class="font-weight-bold">
-                  {{ item.printed_booklets_count || 0 }} كراسة
-                </v-chip>
+                <span class="text-body-2 font-mono">{{ item.printed_booklets_count || 0 }} كراسة</span>
               </template>
               <template v-else-if="key === 'printed_sheets_count'">
-                <v-chip size="x-small" color="indigo" variant="tonal" class="font-weight-bold">
-                  {{ item.printed_sheets_count || 0 }} ورقة
-                </v-chip>
+                <span class="text-body-2 font-mono">{{ item.printed_sheets_count || 0 }} ورقة</span>
               </template>
               <template v-else-if="key === 'students_attended_count'">
-                <v-chip size="x-small" color="purple" variant="tonal" class="font-weight-bold">
-                  {{ item.students_attended_count || 0 }} طالب
-                </v-chip>
+                <span class="text-body-2 font-mono">{{ item.students_attended_count || 0 }} طالب</span>
               </template>
               <template v-else-if="key === 'results_synced_back'">
-                <v-icon :color="item.results_synced_back ? 'emerald' : 'slate-300'" size="18">
-                  {{ item.results_synced_back ? 'mdi-check-decagram' : 'mdi-minus' }}
-                </v-icon>
+                <span class="text-caption font-weight-bold" :class="item.results_synced_back ? 'text-success' : 'text-medium-emphasis'">
+                  {{ item.results_synced_back ? 'متزامن' : '—' }}
+                </span>
               </template>
             </template>
           </custom-data-table>

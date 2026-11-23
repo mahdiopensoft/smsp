@@ -8,7 +8,7 @@
           v-model="filterInstitutionType"
           name="LocalTextOption"
           :objects="institutionTypeOptions"
-          :cols="filterInstitutionType ? '2' : '3'"
+          cols="3"
           label="نوع المؤسسة التعليمية"
           icon="domain"
           :add="false"
@@ -20,7 +20,7 @@
           v-model="filterStatus"
           name="LocalTextOption"
           :objects="statusOptions"
-          :cols="filterInstitutionType ? '2' : '3'"
+          cols="3"
           label="حالة السؤال"
           icon="flag-outline"
           :add="false"
@@ -34,7 +34,7 @@
               v-model="filterStage"
               name="Stage"
               label="المرحلة الدراسية"
-              cols="2"
+              cols="3"
               :add="false"
               @update:model-value="() => { filterClassTrack = null; filterSubject = null; }"
             />
@@ -43,7 +43,7 @@
               name="ClassTrackByStage"
               :param="filterStage"
               label="الصف والمسار"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterStage"
               @update:model-value="filterSubject = null"
@@ -53,7 +53,7 @@
               name="Subject"
               :param="filterClassTrack || filterStage"
               label="المادة الدراسية"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterClassTrack && !filterStage"
               @update:model-value="filterUnit = null"
@@ -66,7 +66,7 @@
               v-model="filterCollege"
               name="College"
               label="الكلية الجامعية"
-              cols="2"
+              cols="3"
               :add="false"
               @update:model-value="onCollegeChange"
             />
@@ -75,7 +75,7 @@
               name="DepartmentByCollege"
               :param="filterCollege"
               label="القسم الأكاديمي"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterCollege"
               @update:model-value="filterSpecialization = null"
@@ -85,7 +85,7 @@
               name="Specialization"
               :param="filterDepartment"
               label="التخصص والبرنامج"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterDepartment"
             />
@@ -94,7 +94,7 @@
               name="SemesterSubject"
               :param="filterSpecialization"
               label="مقرر الفصل الجامعي"
-              cols="2"
+              cols="3"
               :add="false"
               @update:model-value="filterUnit = null"
             />
@@ -106,7 +106,7 @@
               v-model="filterInstituteField"
               name="InstituteField"
               label="المجال المهني"
-              cols="2"
+              cols="3"
               :add="false"
               @update:model-value="filterInstituteSpecialization = null"
             />
@@ -114,7 +114,7 @@
               v-model="filterInstituteEducationSystem"
               name="InstituteEducationSystem"
               label="نظام التعليم"
-              cols="2"
+              cols="3"
               :add="false"
               @update:model-value="filterInstituteSpecialization = null"
             />
@@ -123,7 +123,7 @@
               name="InstituteSpecialization"
               :param="filterInstituteSpecParam"
               label="التخصص المهني"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterInstituteField && !filterInstituteEducationSystem"
               @update:model-value="filterInstituteCurriculum = null"
@@ -133,7 +133,7 @@
               name="InstituteCurriculum"
               :param="filterInstituteSpecialization"
               label="الخطة الدراسية"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterInstituteSpecialization"
               @update:model-value="filterInstituteSubject = null"
@@ -143,7 +143,7 @@
               name="InstituteSubject"
               :param="filterInstituteCurriculum"
               label="المادة التدريبية"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterInstituteCurriculum"
               @update:model-value="filterUnit = null"
@@ -156,17 +156,17 @@
             name="UnitBySubject"
             :param="filterUnitParam"
             :label="filterInstitutionType === 'university' ? 'مفردة / موضوع المقرر' : (filterInstitutionType === 'institute' ? 'الوحدة التدريبية' : 'الوحدة الدراسية')"
-            cols="2"
+            cols="3"
             :add="false"
             :disabled="filterInstitutionType === 'university' ? !filterSemesterSubject : (filterInstitutionType === 'institute' ? !filterInstituteSubject : !filterSubject)"
           />
         </template>
 
         <!-- Filter Actions -->
-        <v-col cols="12" sm="12" md="2" class="d-flex align-center gap-2">
-          <custom-btn type="show" label="تصفية" color="primary" class="font-weight-bold flex-grow-1 mb-6"
+        <v-col cols="auto" class="d-flex align-center gap-2">
+          <custom-btn type="show" label="عرض" color="primary" class="font-weight-bold px-6 mb-6"
             :click="getData" />
-          <custom-btn type="cancel_filter" :click="resetFilters" variant="tonal" color="error" label="تفريغ"
+          <custom-btn type="cancel_filter" :click="resetFilters" variant="tonal" color="error" label="إلغاء الفلترة"
             class="font-weight-bold mb-6" />
         </v-col>
       </v-row>
@@ -175,79 +175,40 @@
     <!-- Questions Data Table -->
     <div class="main-card rounded-2xl overflow-hidden mb-8">
       <custom-data-table :items="tableItems" :getData="getData" :headers="headers" :hasFilter="false" :log="false"
-        :restore="false">
+        :restore="false"
+        :actionList="(item) => [
+          { title_ar: 'معاينة التفاصيل', title_en: 'Preview', click: () => viewQuestion(item) },
+          { title_ar: 'سجل التعديلات والتدقيق', title_en: 'Audit Log', click: () => openAuditDialog(item) },
+          ...((item.parent_version || item.version_number > 1) ? [{ title_ar: `مقارنة النسخ (Diff v${item.version_number})`, title_en: 'Compare Versions', click: () => openDiffDialog(item) }] : []),
+          ...(item.status === 'قيد المراجعة' ? [
+            { title_ar: 'تدقيق واعتماد السؤال', title_en: 'Approve Question', click: () => openChecklistDialog(item) },
+            { title_ar: 'إحالة لرئيس القسم', title_en: 'Escalate', click: () => escalateToDeptHead(item) },
+            { title_ar: 'رفض مسبب', title_en: 'Reject', click: () => openRejectDialog(item) },
+          ] : (item.status !== 'معتمد' ? [{ title_ar: 'إعادة اعتماد', title_en: 'Re-approve', click: () => openChecklistDialog(item) }] : [])),
+        ]">
         <template v-slot:item-slot="{ item, key }">
 
           <!-- Author, Modifier & Excel Import (Same as Question Bank) -->
           <template v-if="key === 'audit' || key === 'author'">
             <div
-              class="audit-table-cell d-flex align-center gap-2 py-1 px-2 rounded-lg cursor-pointer"
+              class="audit-table-cell py-1 px-2 rounded-lg cursor-pointer"
               @click="openAuditDialog(item)"
               title="انقر لعرض تفاصيل المنشئ وسجل التعديلات"
             >
-              <v-avatar size="32" :color="(item.is_imported || item.import_session) ? 'teal' : 'primary'" variant="tonal" class="flex-shrink-0">
-                <v-icon size="16" :color="(item.is_imported || item.import_session) ? 'teal-darken-1' : 'primary'">
-                  {{ (item.is_imported || item.import_session) ? 'mdi-file-excel' : 'mdi-account-outline' }}
-                </v-icon>
-              </v-avatar>
-
-              <div class="overflow-hidden flex-grow-1" style="min-width: 125px; max-width: 175px;">
-                <div class="d-flex align-center gap-1">
-                  <span class="font-weight-bold text-caption text-truncate" style="color: rgb(var(--v-theme-on-surface));">
-                    {{ item.author_name || item.created_by_username || getAuthorName(item) }}
-                  </span>
-                  <v-chip
-                    v-if="isImportedFromExcel(item)"
-                    size="x-small"
-                    variant="flat"
-                    color="teal"
-                    class="px-1 font-weight-bold"
-                    style="height: 18px; font-size: 0.65rem !important;"
-                    title="مصدر السؤال: مستورد من ملف إكسل"
-                  >
-                    <v-icon start size="11">mdi-file-excel</v-icon>
-                    إكسل
-                  </v-chip>
-                  <v-chip
-                    v-else
-                    size="x-small"
-                    variant="tonal"
-                    color="primary"
-                    class="px-1 font-weight-bold"
-                    style="height: 18px; font-size: 0.65rem !important;"
-                    title="مصدر السؤال: إدخال يدوي في النظام"
-                  >
-                    <v-icon start size="11">mdi-keyboard-outline</v-icon>
-                    يدوي
-                  </v-chip>
-                  <v-chip
-                    v-if="item.edit_count > 0"
-                    size="x-small"
-                    variant="flat"
-                    color="warning"
-                    class="px-1 font-weight-bold"
-                    style="height: 18px; font-size: 0.65rem !important;"
-                    title="عدد مرات التعديل"
-                  >
-                    {{ item.edit_count }} تعديل
-                  </v-chip>
-                </div>
-
-                <div class="text-caption text-disabled d-flex align-center gap-1 mt-0-5" style="font-size: 0.72rem !important;">
-                  <v-icon size="11">mdi-clock-outline</v-icon>
-                  <span>{{ formatAuditDate(item.last_modified_at || item.created_at) }}</span>
-                  <span
-                    v-if="item.last_modified_by && item.last_modified_by !== (item.author_name || item.created_by_username)"
-                    class="text-warning-darken-1 text-truncate"
-                    style="max-width: 75px;"
-                    :title="'آخر من عدّل: ' + item.last_modified_by"
-                  >
-                    • {{ item.last_modified_by }}
-                  </span>
-                </div>
+              <div class="font-weight-bold text-caption text-truncate" style="max-width: 175px;">
+                {{ item.author_name || item.created_by_username || getAuthorName(item) }}
+                <span v-if="item.edit_count > 0" class="text-warning-darken-1 ms-1">({{ item.edit_count }} تعديل)</span>
               </div>
-
-              <v-icon size="16" color="primary" class="audit-hover-icon flex-shrink-0">mdi-open-in-new</v-icon>
+              <div class="text-caption text-disabled" style="font-size: 0.72rem !important;">
+                {{ formatAuditDate(item.last_modified_at || item.created_at) }}
+                <span
+                  v-if="item.last_modified_by && item.last_modified_by !== (item.author_name || item.created_by_username)"
+                  class="text-warning-darken-1"
+                  :title="'آخر من عدّل: ' + item.last_modified_by"
+                >
+                  • {{ item.last_modified_by }}
+                </span>
+              </div>
             </div>
           </template>
 
@@ -273,10 +234,7 @@
 
           <!-- Difficulty -->
           <div v-else-if="key === 'difficulty'">
-            <v-chip size="small" :color="getDifficultyColor(item.difficulty)" variant="tonal"
-              class="font-weight-bold text-white">
-              {{ getDifficultyText(item.difficulty) }}
-            </v-chip>
+            <span class="text-body-2 font-weight-medium">{{ getDifficultyText(item.difficulty) }}</span>
           </div>
 
           <!-- Status -->
@@ -284,105 +242,6 @@
             <v-chip size="small" :color="getStatusColor(item.status)" class="font-weight-bold" variant="tonal">
               {{ getStatusText(item.status) }}
             </v-chip>
-          </div>
-
-          <!-- Actions -->
-          <div v-else-if="key === 'actions'" class="d-flex align-center justify-center">
-            <v-menu transition="slide-y-transition" location="bottom end" offset="8">
-              <template v-slot:activator="{ props }">
-                <custom-btn v-bind="props" is-icon icon="dots-vertical" color="secondary" variant="text" />
-              </template>
-
-              <v-card elevation="24" rounded="lg" class="premium-menu-card border-thin overflow-hidden"
-                style="min-width: 220px">
-                <div class="pa-3 border-b d-flex align-center"
-                  style="background-color: rgba(var(--v-theme-primary), 0.08)">
-                  <v-icon color="primary" class="me-2" size="20">mdi-dots-horizontal-circle-outline</v-icon>
-                  <div class="text-caption font-weight-bold" style="color: rgb(var(--v-theme-on-surface))">
-                    إجراءات السجل
-                  </div>
-                </div>
-
-                <v-card-text class="pa-1">
-                  <v-list density="compact" class="bg-transparent pa-0">
-                    <v-list-subheader class="modern-subheader px-2 mt-1 mb-1">
-                      خيارات المراجعة
-                    </v-list-subheader>
-
-                    <v-list-item @click="viewQuestion(item)" class="premium-list-item">
-                      <template v-slot:prepend>
-                        <v-icon size="18" color="primary" class="me-2">mdi-eye-outline</v-icon>
-                      </template>
-                      <v-list-item-title class="text-caption font-weight-medium"
-                        style="color: rgba(var(--v-theme-on-surface), 0.7)">
-                        معاينة التفاصيل
-                      </v-list-item-title>
-                    </v-list-item>
-
-                    <v-list-item @click="openAuditDialog(item)" class="premium-list-item">
-                      <template v-slot:prepend>
-                        <v-icon size="18" color="indigo" class="me-2">mdi-history</v-icon>
-                      </template>
-                      <v-list-item-title class="text-caption font-weight-medium text-indigo">
-                        سجل التعديلات والتدقيق
-                      </v-list-item-title>
-                    </v-list-item>
-
-                    <template v-if="item.parent_version || item.version_number > 1">
-                      <v-list-item @click="openDiffDialog(item)" class="premium-list-item">
-                        <template v-slot:prepend>
-                          <v-icon size="18" color="indigo" class="me-2">mdi-compare-horizontal</v-icon>
-                        </template>
-                        <v-list-item-title class="text-caption font-weight-medium text-indigo">
-                          مقارنة النسخ (Diff v{{ item.version_number }})
-                        </v-list-item-title>
-                      </v-list-item>
-                    </template>
-
-                    <template v-if="item.status === 'قيد المراجعة'">
-                      <v-list-item @click="openChecklistDialog(item)" class="premium-list-item">
-                        <template v-slot:prepend>
-                          <v-icon size="18" color="success" class="me-2">mdi-check-decagram</v-icon>
-                        </template>
-                        <v-list-item-title class="text-caption font-weight-medium text-success">
-                          تدقيق واعتماد السؤال
-                        </v-list-item-title>
-                      </v-list-item>
-
-                      <v-list-item @click="escalateToDeptHead(item)" class="premium-list-item">
-                        <template v-slot:prepend>
-                          <v-icon size="18" color="amber" class="me-2">mdi-account-tie-outline</v-icon>
-                        </template>
-                        <v-list-item-title class="text-caption font-weight-medium text-amber">
-                          إحالة لرئيس القسم
-                        </v-list-item-title>
-                      </v-list-item>
-
-                      <v-list-item @click="openRejectDialog(item)" class="premium-list-item">
-                        <template v-slot:prepend>
-                          <v-icon size="18" color="error" class="me-2">mdi-close-octagon</v-icon>
-                        </template>
-                        <v-list-item-title class="text-caption font-weight-medium text-error">
-                          رفض مسبب
-                        </v-list-item-title>
-                      </v-list-item>
-                    </template>
-
-                    <template v-else>
-                      <v-list-item v-if="item.status !== 'معتمد'" @click="openChecklistDialog(item)"
-                        class="premium-list-item">
-                        <template v-slot:prepend>
-                          <v-icon size="18" color="success" class="me-2">mdi-refresh</v-icon>
-                        </template>
-                        <v-list-item-title class="text-caption font-weight-medium text-success">
-                          إعادة اعتماد
-                        </v-list-item-title>
-                      </v-list-item>
-                    </template>
-                  </v-list>
-                </v-card-text>
-              </v-card>
-            </v-menu>
           </div>
         </template>
       </custom-data-table>

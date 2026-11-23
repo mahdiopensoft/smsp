@@ -124,58 +124,56 @@
       </div>
 
       <!-- Professional Dialog -->
-      <v-dialog v-if="dialog.show" v-model="dialog.show" max-width="500px">
-        <v-card class="rounded-2xl overflow-hidden">
-          <div class="dialog-header-premium pa-6 bg-slate-50 border-bottom">
-            <h3 class="text-h6 font-weight-black text-slate-900 mb-0">{{ dialog.title }}</h3>
-          </div>
-          <v-card-text class="pa-6">
-            <v-form ref="actionForm">
-              <template v-if="dialog.type === 'update'">
-                <div class="form-label-premium mb-2">نسبة الخصم</div>
-                <v-text-field v-model.number="form.discount_percentage" type="number" variant="outlined"
-                  density="comfortable" append-inner-icon="mdi-percent" placeholder="0.00" class="mb-4 rounded-xl"
-                  :rules="[$max_value(100),$min_value(1)]" />
+      <custom-dialog
+        v-if="dialog.show"
+        v-model="dialog.show"
+        :title="dialog.title"
+        width="500"
+        height="auto"
+      >
+        <v-form ref="actionForm">
+          <template v-if="dialog.type === 'update'">
+            <div class="form-label-premium mb-2">نسبة الخصم</div>
+            <v-text-field v-model.number="form.discount_percentage" type="number" variant="outlined"
+              density="comfortable" append-inner-icon="mdi-percent" placeholder="0.00" class="mb-4 rounded-xl"
+              :rules="[$max_value(100),$min_value(1)]" />
 
-                <div class="calc-summary-premium mb-6 pa-4 rounded-xl border-dashed">
-                  <div class="d-flex justify-space-between mb-2">
-                    <span class="text-caption text-slate-500">المبلغ الأصلي:</span>
-                    <span class="text-caption font-weight-bold">{{ formatCurrency(totalFee) }}</span>
-                  </div>
-                  <div class="d-flex justify-space-between mb-2">
-                    <span class="text-caption text-slate-500">قيمة الخصم:</span>
-                    <span class="text-caption font-weight-bold text-amber-darken-3"> {{
-                      formatCurrency(form.discount_amount) }}</span>
-                  </div>
-                  <v-divider class="my-2"></v-divider>
-                  <div class="d-flex justify-space-between">
-                    <span class="text-subtitle-2 font-weight-black">المبلغ بعد الخصم:</span>
-                    <span class="text-subtitle-2 font-weight-black text-success">{{ formatCurrency(totalFee -
-                      (form.discount_amount || 0)) }}</span>
-                  </div>
-                </div>
+            <div class="calc-summary-premium mb-6 pa-4 rounded-xl border-dashed">
+              <div class="d-flex justify-space-between mb-2">
+                <span class="text-caption text-slate-500">المبلغ الأصلي:</span>
+                <span class="text-caption font-weight-bold">{{ formatCurrency(totalFee) }}</span>
+              </div>
+              <div class="d-flex justify-space-between mb-2">
+                <span class="text-caption text-slate-500">قيمة الخصم:</span>
+                <span class="text-caption font-weight-bold text-amber-darken-3"> {{
+                  formatCurrency(form.discount_amount) }}</span>
+              </div>
+              <v-divider class="my-2"></v-divider>
+              <div class="d-flex justify-space-between">
+                <span class="text-subtitle-2 font-weight-black">المبلغ بعد الخصم:</span>
+                <span class="text-subtitle-2 font-weight-black text-success">{{ formatCurrency(totalFee -
+                  (form.discount_amount || 0)) }}</span>
+              </div>
+            </div>
 
-                <div class="form-label-premium mb-2">سبب الخصم</div>
-                <v-textarea v-model="form.discount_reason" placeholder="يرجى توضيح سبب منح الخصم..." variant="outlined"
-                  rows="3" class="rounded-xl" :rules="[$required]" />
-              </template>
+            <div class="form-label-premium mb-2">سبب الخصم</div>
+            <v-textarea v-model="form.discount_reason" placeholder="يرجى توضيح سبب منح الخصم..." variant="outlined"
+              rows="3" class="rounded-xl" :rules="[$required]" />
+          </template>
 
-              <template v-if="['cancel', 'reject'].includes(dialog.type)">
-                <div class="form-label-premium mb-2">سبب الإجراء</div>
-                <v-textarea v-model="form.reason" placeholder="يرجى كتابة سبب الإجراء بالتفصيل..." variant="outlined"
-                  rows="3" class="rounded-xl" :rules="[$required]" />
-              </template>
-            </v-form>
-          </v-card-text>
+          <template v-if="['cancel', 'reject'].includes(dialog.type)">
+            <div class="form-label-premium mb-2">سبب الإجراء</div>
+            <v-textarea v-model="form.reason" placeholder="يرجى كتابة سبب الإجراء بالتفصيل..." variant="outlined"
+              rows="3" class="rounded-xl" :rules="[$required]" />
+          </template>
+        </v-form>
 
-          <v-card-actions class="pa-6 pt-0">
-            <v-spacer />
-            <v-btn variant="text" color="slate-400" class="font-weight-bold" @click="dialog.show = false">تراجع</v-btn>
-            <v-btn color="amber-darken-3" variant="tonal" class="rounded-xl px-8 font-weight-black text-white"
-              height="44" :loading="loading.submit" @click="handleActionSubmit">تأكيد الإجراء</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
+        <template #actions>
+          <v-btn variant="text" color="slate-400" class="font-weight-bold" @click="dialog.show = false">تراجع</v-btn>
+          <v-btn color="amber-darken-3" variant="tonal" class="rounded-xl px-8 font-weight-black text-white"
+            height="44" :loading="loading.submit" @click="handleActionSubmit">تأكيد الإجراء</v-btn>
+        </template>
+      </custom-dialog>
 
       <v-snackbar v-model="snackbar.show" :color="snackbar.color" rounded="lg">
         <div class="d-flex align-center ga-2">

@@ -37,53 +37,48 @@
   </v-snackbar>
 
   <!-- Dialog Mode (Modal) -->
-  <v-dialog 
-    v-else 
-    v-model="notificationStore.show" 
-    max-width="400" 
+  <custom-dialog
+    v-else
+    v-model="notificationStore.show"
+    :title="notificationStore.title"
+    width="420"
+    height="auto"
     persistent
   >
-    <v-card class="rounded-xl overflow-hidden glass-card">
-      <div 
-        class="dialog-header d-flex flex-column align-center justify-center py-6"
-        :style="{ background: dialogHeaderBg }"
-      >
-        <v-avatar color="white" size="64" class="elevation-4 mb-3">
-          <v-icon :color="statusColor" size="40" :icon="statusIcon"></v-icon>
-        </v-avatar>
-        <h3 class="text-h6 font-weight-bold text-white mb-0">
-          {{ notificationStore.title }}
-        </h3>
-      </div>
-      
-      <v-card-text class="text-center pt-6 pb-4 text-body-1">
+    <div class="text-center py-2">
+      <v-avatar :color="statusColor" variant="tonal" size="64" class="mb-4">
+        <v-icon :color="statusColor" size="38" :icon="statusIcon"></v-icon>
+      </v-avatar>
+      <div class="text-body-1">
         {{ notificationStore.message }}
-      </v-card-text>
-      
-      <v-card-actions class="px-6 pb-6 d-flex justify-center flex-wrap gap-3">
+      </div>
+    </div>
+
+    <template #actions>
+      <div class="d-flex justify-center gap-3 w-100">
         <v-btn
           v-if="notificationStore.showCancel"
           color="grey-darken-1"
           variant="outlined"
           rounded="lg"
-          class="flex-1-1-100"
+          class="flex-grow-1"
           @click="notificationStore.close"
         >
           {{ notificationStore.cancelText }}
         </v-btn>
-        
+
         <v-btn
           :color="statusColor"
           variant="tonal"
           rounded="lg"
-          class="flex-1-1-100 text-white font-weight-bold"
+          class="flex-grow-1 font-weight-bold"
           @click="notificationStore.confirm"
         >
           {{ notificationStore.confirmText }}
         </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+      </div>
+    </template>
+  </custom-dialog>
 </template>
 
 <script setup>

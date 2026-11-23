@@ -1,49 +1,22 @@
 <template>
-  <v-dialog
+  <custom-dialog
     :model-value="modelValue"
-    @update:model-value="$emit('update:modelValue', $event)"
-    max-width="650px"
-    scrollable
+    title="اعتماد وجدولة طلب الطباعة"
+    width="660"
+    height="auto"
     persistent
+    @update:model-value="$emit('update:modelValue', $event)"
   >
-    <v-card class="rounded-2xl overflow-hidden print-order-modal bg-surface elevation-8 border" style="background: rgb(var(--v-theme-surface)) !important;">
-      <!-- ── شريط الهوية العلوي المعتمد ── -->
-      <div class="modal-top-stripe" />
-
-      <!-- ── 1. ترويسة النافذة الرسمية الموحدة (أيقونة وهوية زرقاء primary كالسابقات تماماً) ── -->
-      <div class="px-5 py-4 d-flex align-center justify-space-between border-b bg-surface">
-        <div class="d-flex align-center gap-3">
-          <v-avatar color="primary" variant="tonal" size="44" rounded="lg">
-            <v-icon size="24" color="primary">mdi-printer-clock-outline</v-icon>
-          </v-avatar>
-          <div>
-            <div class="d-flex align-center gap-2">
-              <h3 class="text-subtitle-1 font-weight-black text-high-emphasis mb-0">اعتماد وجدولة طلب الطباعة</h3>
-              <div class="center-count-badge unified-badge-primary px-2.5 py-0.5 text-caption font-weight-bold">
-                قرار رسمي نافذ
-              </div>
-            </div>
-            <div class="text-caption text-medium-emphasis">
-              الموافقة الإدارية وتوجيه أمر التنفيذ للمطبعة المعتمدة
-            </div>
-          </div>
-        </div>
-
-        <v-btn
-          icon="mdi-close"
-          variant="text"
-          size="small"
-          density="comfortable"
-          color="medium-emphasis"
-          rounded="lg"
-          :disabled="loading"
-          @click="close"
-        />
+    <div class="d-flex align-center gap-2 mb-4 pb-3 border-b">
+      <div class="center-count-badge unified-badge-primary px-2.5 py-0.5 text-caption font-weight-bold">
+        قرار رسمي نافذ
       </div>
+      <span class="text-caption text-medium-emphasis">
+        الموافقة الإدارية وتوجيه أمر التنفيذ للمطبعة المعتمدة
+      </span>
+    </div>
 
-      <!-- ── 2. محتوى النافذة المنظم بالمكونات الموحدة ── -->
-      <v-card-text class="pa-5 overflow-y-auto bg-surface" style="max-height: 80vh;">
-        <!-- 1. بطاقة تفاصيل الاختبار وطلب الطباعة المعتمد (هيكل منظم ومربعات بدون بيضاوي) -->
+    <!-- 1. بطاقة تفاصيل الاختبار وطلب الطباعة المعتمد (هيكل منظم ومربعات بدون بيضاوي) -->
         <div class="main-card pa-4 pa-sm-5 rounded-2xl border bg-surface text-right mb-4 mx-auto elevation-1" style="max-width: 650px;">
           <!-- 1. رقم طلب الطباعة وحالة التوثيق -->
           <div class="d-flex align-center justify-space-between mb-3 pb-3 border-b flex-wrap gap-2">
@@ -206,10 +179,9 @@
             </div>
           </v-alert>
         </div>
-      </v-card-text>
 
-      <!-- ── 3. أزرار التحكم الرسمية الموحدة باللون الأساسي للنظام (primary) بدون أي أخضر ── -->
-      <div class="px-5 py-3.5 d-flex align-center justify-space-between border-t bg-surface">
+    <template #actions>
+      <div class="d-flex align-center justify-space-between w-100">
         <v-btn
           variant="tonal"
           color="secondary"
@@ -234,8 +206,8 @@
           تأكيد الاعتماد والجدولة الرسمية
         </v-btn>
       </div>
-    </v-card>
-  </v-dialog>
+    </template>
+  </custom-dialog>
 </template>
 
 <script setup>

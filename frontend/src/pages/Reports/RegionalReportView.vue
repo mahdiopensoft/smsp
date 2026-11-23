@@ -27,7 +27,6 @@
           label="نوع المقارنة الجغرافية"
           icon="map-marker-radius-outline"
           :add="false"
-          @update:model-value="applyFilters"
         />
 
         <v-col cols="auto" class="d-flex align-center gap-2 py-2">
@@ -95,8 +94,6 @@ const filterInstitutionType = ref('school')
 const filterComparisonType = ref('all')
 
 const onInstitutionTypeChange = () => {
-  resetPagination()
-  applyFilters()
 }
 
 const headers = [

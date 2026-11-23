@@ -82,7 +82,6 @@
             label="الاختبار والمادة الدراسية"
             cols="12"
             :add="false"
-            @update:model-value="onExamChange"
           />
         </v-col>
 
@@ -277,22 +276,20 @@
           />
         </v-col>
 
-        <!-- أزرار التحكم والتصفية والتفريغ (بنفس هوية students-master) -->
-        <v-col cols="12" class="d-flex align-center justify-end gap-2 mb-3">
+        <!-- أزرار التحكم والتصفية والتفريغ -->
+        <v-col cols="auto" class="d-flex align-center gap-2 mb-6">
           <custom-btn
             type="show"
-            label="تصفية النتائج"
+            label="عرض"
             color="primary"
-            icon="mdi-filter"
             class="font-weight-bold px-5"
-            :click="fetchExamDetails"
+            :click="() => onExamChange(selectedExamId)"
           />
           <custom-btn
             type="cancel_filter"
-            label="تفريغ الفلاتر"
+            label="إلغاء الفلترة"
             color="error"
             variant="tonal"
-            icon="mdi-filter-off"
             class="font-weight-bold"
             :click="resetAllFilters"
           />
@@ -884,10 +881,10 @@
                       :hasFilter="false"
                       :log="false"
                       :restore="false"
-                      :actions="false"
                       :search="false"
                       class="bg-transparent"
-                    >
+                    
+        :actionList="(item) => ([ { label: 'معاينة الورقة الضوئية', icon: 'eye-outline', color: 'primary', onClick: () => openSheetPreview(item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
                       <template v-slot:item-slot="{ item, key }">
                         <!-- رقم الجلوس -->
                         <template v-if="key === 'seat_number'">
@@ -903,33 +900,13 @@
 
                         <!-- نموذج الأسئلة -->
                         <template v-else-if="key === 'model_code'">
-                          <v-chip size="small" variant="tonal" color="primary" class="font-weight-bold">
-                            النموذج {{ item.model_code || 'A' }}
-                          </v-chip>
+                          <span class="font-mono font-weight-bold text-body-2">{{ item.model_code || 'A' }}</span>
                         </template>
 
                         <!-- مطابقة الحافظة -->
                         <template v-else-if="key === 'roster_match'">
-                          <v-chip
-                            v-if="item.roster_match"
-                            size="small"
-                            color="success"
-                            variant="tonal"
-                            class="font-weight-bold"
-                          >
-                            <v-icon start size="14">mdi-check-circle-outline</v-icon>
-                            مقيد بالقاعة
-                          </v-chip>
-                          <v-chip
-                            v-else
-                            size="small"
-                            color="error"
-                            variant="flat"
-                            class="font-weight-bold text-white"
-                          >
-                            <v-icon start size="14">mdi-alert-circle</v-icon>
-                            ورقة دخيلة
-                          </v-chip>
+                          <span v-if="item.roster_match" class="text-success font-weight-bold text-body-2">مقيد بالقاعة</span>
+                          <span v-else class="text-error font-weight-bold text-body-2">ورقة دخيلة</span>
                         </template>
 
                         <!-- الدرجة -->
@@ -941,9 +918,7 @@
 
                         <!-- النسبة -->
                         <template v-else-if="key === 'percentage'">
-                          <v-chip size="small" variant="tonal" color="success" class="font-weight-bold font-mono">
-                            {{ item.percentage || 0 }}%
-                          </v-chip>
+                          <span class="font-weight-bold font-mono text-body-2 text-success">{{ item.percentage || 0 }}%</span>
                         </template>
 
                         <!-- حالة التصحيح -->
@@ -969,14 +944,7 @@
                         </template>
 
                         <!-- المعاينة -->
-                        <template v-else-if="key === 'actions'">
-                          <custom-btn
-                            is-icon
-                            type="show"
-                            label="معاينة الورقة الضوئية"
-                            :click="() => openSheetPreview(item)"
-                          />
-                        </template>
+                        
                       </template>
                     </custom-data-table>
                   </div>
@@ -995,10 +963,10 @@
                     :hasFilter="false"
                     :log="false"
                     :restore="false"
-                    :actions="false"
                     :search="false"
                     class="bg-transparent"
-                  >
+                  
+        :actionList="(item) => ([ { label: 'معاينة الورقة الممسوحة', icon: 'eye-outline', color: 'primary', show: Boolean(item.matchedSheet), onClick: () => openSheetPreview(item.matchedSheet) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
                     <template v-slot:item-slot="{ item, key }">
                       <!-- رقم الجلوس -->
                       <template v-if="key === 'seat_number'">
@@ -1014,9 +982,7 @@
 
                       <!-- النموذج المخصص -->
                       <template v-else-if="key === 'model_code'">
-                        <v-chip size="small" variant="tonal" color="primary" class="font-weight-bold">
-                          النموذج {{ item.model_code || 'A' }}
-                        </v-chip>
+                        <span class="font-mono font-weight-bold text-body-2">{{ item.model_code || 'A' }}</span>
                       </template>
 
                       <!-- المدرسة / المركز -->
@@ -1026,45 +992,17 @@
 
                       <!-- حالة سحب الورقة بالماسح (ديناميكية لحظية) -->
                       <template v-else-if="key === 'scan_status'">
-                        <v-chip
-                          v-if="item.scan_status === 'scanned'"
-                          size="small"
-                          color="success"
-                          variant="tonal"
-                          class="font-weight-bold"
-                        >
-                          <v-icon start size="14">mdi-check-decagram</v-icon>
+                        <v-chip v-if="item.scan_status === 'scanned'" size="small" color="success" variant="tonal" class="font-weight-bold">
                           تم المسح والتصحيح
                         </v-chip>
-                        <v-chip
-                          v-else-if="item.scan_status === 'needs_review'"
-                          size="small"
-                          color="warning"
-                          variant="flat"
-                          class="font-weight-bold"
-                        >
-                          <v-icon start size="14">mdi-alert-circle</v-icon>
-                          تم المسح - تدقيق بشري
+                        <v-chip v-else-if="item.scan_status === 'needs_review'" size="small" color="warning" variant="tonal" class="font-weight-bold">
+                          تدقيق بشري
                         </v-chip>
-                        <v-chip
-                          v-else-if="item.scan_status === 'missing'"
-                          size="small"
-                          color="error"
-                          variant="flat"
-                          class="font-weight-bold text-white"
-                        >
-                          <v-icon start size="14">mdi-help-rhombus-outline</v-icon>
+                        <v-chip v-else-if="item.scan_status === 'missing'" size="small" color="error" variant="tonal" class="font-weight-bold">
                           ورقة مفقودة (عجز)
                         </v-chip>
-                        <v-chip
-                          v-else
-                          size="small"
-                          color="blue-grey"
-                          variant="tonal"
-                          class="font-weight-bold"
-                        >
-                          <v-icon start size="14">mdi-clock-outline</v-icon>
-                          بانتظار سحب الورقة
+                        <v-chip v-else size="small" color="blue-grey" variant="tonal" class="font-weight-bold">
+                          بانتظار السحب
                         </v-chip>
                       </template>
 
@@ -1077,16 +1015,7 @@
                       </template>
 
                       <!-- إجراءات المعاينة -->
-                      <template v-else-if="key === 'actions'">
-                        <custom-btn
-                          v-if="item.matchedSheet"
-                          is-icon
-                          type="show"
-                          label="معاينة الورقة الممسوحة"
-                          :click="() => openSheetPreview(item.matchedSheet)"
-                        />
-                        <span v-else class="text-caption text-disabled">—</span>
-                      </template>
+                      
                     </template>
                   </custom-data-table>
                 </div>
@@ -1136,10 +1065,10 @@
                   :hasFilter="false"
                   :log="false"
                   :restore="false"
-                  :actions="false"
                   :search="false"
                   class="bg-transparent"
-                >
+                
+        :actionList="(item) => ([ { label: 'معاينة وتدقيق', icon: 'eye-outline', color: 'primary', onClick: () => openSheetPreview(item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
                   <template v-slot:item-slot="{ item, key }">
                     <template v-if="key === 'seat_number'">
                       <span class="seat-number-box font-mono">
@@ -1150,24 +1079,14 @@
                       <span class="font-weight-bold text-body-2 text-on-surface">{{ item.student_name || 'طالب غير محدد' }}</span>
                     </template>
                     <template v-else-if="key === 'model_code'">
-                      <v-chip size="small" variant="tonal" color="primary" class="font-weight-bold">
-                        النموذج {{ item.model_code || 'A' }}
-                      </v-chip>
+                      <span class="font-mono font-weight-bold text-body-2">{{ item.model_code || 'A' }}</span>
                     </template>
                     <template v-else-if="key === 'error_message'">
                       <span class="text-caption font-weight-bold text-error" style="line-height: 1.5;">
                         {{ item.error_message || 'مطلوب تدقيق بشري للورقة' }}
                       </span>
                     </template>
-                    <template v-else-if="key === 'actions'">
-                      <custom-btn
-                        type="show"
-                        label="معاينة وتدقيق"
-                        density="compact"
-                        class="font-weight-bold"
-                        :click="() => openSheetPreview(item)"
-                      />
-                    </template>
+                    
                   </template>
                 </custom-data-table>
               </div>
@@ -1176,36 +1095,19 @@
 
 
     <!-- ── نافذة معاينة ورقة الطالب (Sheet Details Dialog) ── -->
-    <v-dialog v-model="previewDialog" max-width="1100px" scrollable>
-      <v-card v-if="activePreviewSheet" class="rounded-2xl overflow-hidden main-card bg-surface">
-        <!-- Dialog Header -->
-        <v-card-title class="d-flex align-center justify-space-between bg-surface px-6 py-4 border-b">
-          <div class="d-flex align-center gap-3">
-            <v-avatar color="primary" variant="tonal" rounded="lg" size="42">
-              <v-icon size="22" color="primary">mdi-file-document-check-outline</v-icon>
-            </v-avatar>
-            <div>
-              <h3 class="text-h6 font-weight-black text-on-surface mb-0">
-                {{ activePreviewSheet.student_name || 'ورقة طالب بدون اسم' }}
-              </h3>
-              <p class="text-caption text-medium-emphasis mb-0 mt-0.5">
-                تفاصيل ورقة إجابة الطالب وتدقيق دوائر الماسح الضوئي (OMR)
-              </p>
-            </div>
-          </div>
-          <v-btn
-            icon="mdi-close"
-            variant="text"
-            size="small"
-            color="medium-emphasis"
-            aria-label="إغلاق المعاينة"
-            title="إغلاق المعاينة"
-            @click="previewDialog = false"
-          />
-        </v-card-title>
+    <custom-dialog
+      v-model="previewDialog"
+      :title="activePreviewSheet?.student_name || 'ورقة طالب بدون اسم'"
+      width="1100"
+      height="90vh"
+    >
+      <div v-if="activePreviewSheet">
+        <p class="text-caption text-medium-emphasis mb-3">
+          تفاصيل ورقة إجابة الطالب وتدقيق دوائر الماسح الضوئي (OMR)
+        </p>
 
         <!-- ── شريط بيانات ورقة الطالب: مربعات رسمية متناسقة وهادئة ── -->
-        <div class="d-flex align-center flex-wrap gap-2 px-6 py-3 bg-surface border-b official-meta-strip">
+        <div class="d-flex align-center flex-wrap gap-2 pb-3 mb-3 border-b official-meta-strip">
           <!-- رقم الجلوس -->
           <div class="official-meta-box">
             <span class="meta-label">رقم الجلوس</span>
@@ -1328,63 +1230,22 @@
 
                   <!-- الإجابة النموذجية المعتمدة -->
                   <template v-else-if="key === 'correct_choice'">
-                    <div class="text-center">
-                      <v-chip
-                        v-if="item.correct_choice && item.correct_choice !== '—'"
-                        size="small"
-                        color="success"
-                        variant="tonal"
-                        class="font-weight-black unified-table-chip px-3 border"
-                      >
-                        <v-icon start size="13" color="success">mdi-check-circle-outline</v-icon>
-                        {{ item.correct_choice }}
-                      </v-chip>
-                      <span v-else class="text-caption text-medium-emphasis">—</span>
+                    <div class="text-center font-weight-bold font-mono text-success">
+                      {{ item.correct_choice && item.correct_choice !== '—' ? item.correct_choice : '—' }}
                     </div>
                   </template>
 
                   <!-- تظليل الطالب المكتشف -->
                   <template v-else-if="key === 'marked_choice'">
-                    <div class="text-center">
-                      <v-chip
-                        v-if="item.is_marked"
-                        size="small"
-                        :color="item.is_correct ? 'primary' : 'error'"
-                        variant="tonal"
-                        class="font-weight-black font-mono unified-table-chip px-3"
-                      >
-                        <v-icon start size="13">{{ item.is_correct ? 'mdi-check' : 'mdi-close' }}</v-icon>
-                        {{ item.marked_choice }}
-                      </v-chip>
-                      <v-chip v-else size="small" color="grey" variant="tonal" class="font-weight-medium px-2 text-caption">
-                        فارغ (لم يُظلل)
-                      </v-chip>
+                    <div class="text-center font-weight-bold font-mono" :class="item.is_marked ? (item.is_correct ? 'text-primary' : 'text-error') : 'text-medium-emphasis'">
+                      {{ item.is_marked ? item.marked_choice : 'فارغ' }}
                     </div>
                   </template>
 
                   <!-- حالة الدائرة -->
                   <template v-else-if="key === 'bubble_status'">
-                    <div class="text-center">
-                      <v-chip
-                        v-if="item.is_marked"
-                        size="small"
-                        color="success"
-                        variant="tonal"
-                        class="font-weight-bold"
-                      >
-                        <v-icon start size="14">mdi-circle</v-icon>
-                        مظللة
-                      </v-chip>
-                      <v-chip
-                        v-else
-                        size="small"
-                        color="grey"
-                        variant="tonal"
-                        class="font-weight-bold"
-                      >
-                        <v-icon start size="14">mdi-circle-outline</v-icon>
-                        دائرة فارغة
-                      </v-chip>
+                    <div class="text-center text-body-2" :class="item.is_marked ? 'text-success font-weight-medium' : 'text-medium-emphasis'">
+                      {{ item.is_marked ? 'مظللة' : 'دائرة فارغة' }}
                     </div>
                   </template>
 
@@ -1404,8 +1265,8 @@
                         v-else-if="item.is_correct"
                         size="small"
                         color="success"
-                        variant="flat"
-                        class="font-weight-bold text-caption px-2 text-white"
+                        variant="tonal"
+                        class="font-weight-bold text-caption px-2"
                       >
                         صحيحة
                       </v-chip>
@@ -1413,8 +1274,8 @@
                         v-else
                         size="small"
                         color="error"
-                        variant="flat"
-                        class="font-weight-bold text-caption px-2 text-white"
+                        variant="tonal"
+                        class="font-weight-bold text-caption px-2"
                       >
                         خاطئة
                       </v-chip>
@@ -1423,16 +1284,8 @@
 
                   <!-- الدرجة -->
                   <template v-else-if="key === 'score'">
-                    <div class="text-center font-weight-black font-mono">
-                      <v-chip
-                        size="small"
-                        :color="item.score > 0 ? 'success' : 'grey-lighten-2'"
-                        :class="item.score > 0 ? 'text-white font-weight-black' : 'text-grey-darken-2 font-weight-black'"
-                        variant="flat"
-                        class="unified-table-chip px-2.5 font-mono"
-                      >
-                        {{ item.score }}
-                      </v-chip>
+                    <div class="text-center font-weight-bold font-mono" :class="item.score > 0 ? 'text-success' : 'text-medium-emphasis'">
+                      {{ item.score }}
                     </div>
                   </template>
                 </template>
@@ -1501,9 +1354,10 @@
             </v-img>
           </div>
         </v-card-text>
+      </div>
 
-        <!-- Dialog Footer -->
-        <v-card-actions class="px-6 py-3 bg-surface border-t d-flex align-center justify-space-between">
+      <template #actions>
+        <div v-if="activePreviewSheet" class="d-flex align-center justify-space-between w-100 flex-wrap gap-2">
           <div class="text-caption text-medium-emphasis">
             تم فحص وتحليل الورقة آلياً عبر محرك التصحيح الضوئي الذكي OMR
           </div>
@@ -1524,9 +1378,9 @@
               :click="() => previewDialog = false"
             />
           </div>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+        </div>
+      </template>
+    </custom-dialog>
   </div>
 </template>
 
@@ -2062,7 +1916,6 @@ export default {
       { title: 'المدرسة / المركز', key: 'school_name', sortable: false },
       { title: 'حالة سحب الورقة بالماسح', key: 'scan_status', sortable: false, width: '200px', align: 'center' },
       { title: 'النتيجة', key: 'student_score', sortable: false, width: '110px', align: 'center' },
-      { title: 'معاينة', key: 'actions', sortable: false, width: '80px', align: 'center' },
     ])
 
     const regStudentsPage = ref(1)
@@ -2138,7 +1991,6 @@ export default {
       { title: 'الدرجة المحسوبة', key: 'score', sortable: true, width: '120px', align: 'center' },
       { title: 'النسبة المئوية', key: 'percentage', sortable: true, width: '110px', align: 'center' },
       { title: 'حالة التصحيح', key: 'status', sortable: true, width: '130px', align: 'center' },
-      { title: 'المعاينة', key: 'actions', sortable: false, width: '80px', align: 'center' },
     ])
 
     const scannedSheetsPage = ref(1)
@@ -2194,7 +2046,6 @@ export default {
       { title: 'اسم الطالب', key: 'student_name', sortable: true },
       { title: 'النموذج', key: 'model_code', sortable: false, width: '100px', align: 'center' },
       { title: 'سبب العزل والتدقيق', key: 'error_message', sortable: false },
-      { title: 'المعاينة والتدقيق', key: 'actions', sortable: false, width: '130px', align: 'center' },
     ])
 
     const needsReviewPage = ref(1)

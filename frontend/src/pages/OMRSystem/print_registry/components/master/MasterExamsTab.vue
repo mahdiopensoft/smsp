@@ -75,7 +75,7 @@
       :restore="false"
       :numbering="true"
       :showSelect="true"
-      :actions="false"
+      :actionList="getRowActions"
       :search="true"
       class="bg-transparent"
     >
@@ -100,25 +100,21 @@
             <div class="d-flex align-center flex-wrap gap-2 text-caption text-medium-emphasis mt-0.5">
               <span class="font-weight-medium">المادة: {{ item.subject_name || 'عام' }}</span>
               <span v-if="item.order_number" class="text-primary font-mono font-weight-bold">
-                <v-icon size="12" class="me-0.5">mdi-barcode</v-icon>
-                {{ item.order_number }}
+                • {{ item.order_number }}
               </span>
               <span v-if="item.exam_date" class="text-medium-emphasis">
-                <v-icon size="12" class="me-0.5" color="teal">mdi-calendar-check</v-icon>
-                الامتحان: {{ item.exam_date }}
+                • الامتحان: {{ item.exam_date }}
               </span>
               <span v-if="item.scheduled_print_date" class="text-medium-emphasis">
-                <v-icon size="12" class="me-0.5" color="indigo">mdi-calendar-clock</v-icon>
-                الطباعة: {{ item.scheduled_print_date }}
+                • الطباعة: {{ item.scheduled_print_date }}
               </span>
             </div>
 
             <!-- شريط توضيح سبب الإرجاع إذا كان الطلب مرتجعاً -->
             <div
               v-if="item.order_status === 'returned' || item.is_returned"
-              class="mt-1 d-inline-flex align-center gap-1 px-2 py-0.5 rounded-lg bg-error-lighten-5 text-error border border-error-subtle text-caption font-weight-bold"
+              class="mt-1 text-error text-caption font-weight-bold"
             >
-              <v-icon size="14" color="error">mdi-alert-circle-outline</v-icon>
               <span>سبب الإرجاع: {{ item.return_reason || 'يحتاج مراجعة وتعديل فني' }}</span>
               <span v-if="item.return_notes" class="text-medium-emphasis ms-1 font-weight-regular">({{ item.return_notes }})</span>
             </div>
@@ -158,480 +154,80 @@
 
         <template v-else-if="key === 'print_status'">
           <div class="d-flex justify-center align-center">
-            <!-- 1. مكتمل (Completed) -->
-            <div
+            <v-chip
               v-if="item.is_completed || item.order_status === 'completed'"
-              class="center-count-badge unified-badge-primary px-2.5 py-1 text-caption font-weight-bold"
+              size="small"
+              color="primary"
+              variant="tonal"
+              class="font-weight-bold"
             >
-              <v-icon size="14" color="primary" class="me-1">mdi-check-decagram</v-icon>
-              <span>مكتمل</span>
-            </div>
-
-            <!-- 2. قيد الطباعة (Printing - سحب جزئي جارٍ) -->
-            <div
+              مكتمل
+            </v-chip>
+            <v-chip
               v-else-if="item.order_status === 'printing'"
-              class="center-count-badge unified-badge-warning px-2.5 py-1 text-caption font-weight-bold"
+              size="small"
+              color="warning"
+              variant="tonal"
+              class="font-weight-bold"
             >
-              <v-icon size="14" color="warning" class="me-1">mdi-printer-play</v-icon>
-              <span>قيد الطباعة</span>
-            </div>
-
-            <!-- 3. بانتظار الموعد (Scheduled - مجدول لموعد قادم) -->
-            <div
+              قيد الطباعة
+            </v-chip>
+            <v-chip
               v-else-if="item.is_scheduled || item.order_status === 'scheduled'"
-              class="center-count-badge unified-badge-info px-2.5 py-1 text-caption font-weight-bold"
+              size="small"
+              color="info"
+              variant="tonal"
+              class="font-weight-bold"
             >
-              <v-icon size="14" color="info" class="me-1">mdi-calendar-clock</v-icon>
-              <span>بانتظار الموعد</span>
-            </div>
-
-            <!-- 4. فشل أو يحتاج معالجة (Failed - تعثر أو مرتجع) -->
-            <div
+              بانتظار الموعد
+            </v-chip>
+            <v-chip
               v-else-if="item.is_returned || item.order_status === 'failed' || item.order_status === 'returned'"
-              class="center-count-badge unified-badge-error px-2.5 py-1 text-caption font-weight-bold"
+              size="small"
+              color="error"
+              variant="tonal"
+              class="font-weight-bold"
               :title="item.return_reason || 'مرتجع للتعديل'"
             >
-              <v-icon size="14" color="error" class="me-1">mdi-alert-circle-outline</v-icon>
-              <span>فشل أو يحتاج معالجة</span>
-            </div>
-
-            <!-- 5. ملغى (Cancelled) -->
-            <div
+              فشل أو يحتاج معالجة
+            </v-chip>
+            <v-chip
               v-else-if="item.order_status === 'cancelled'"
-              class="center-count-badge unified-badge-grey px-2.5 py-1 text-caption font-weight-bold"
+              size="small"
+              color="grey"
+              variant="tonal"
+              class="font-weight-bold"
             >
-              <v-icon size="14" class="me-1">mdi-cancel</v-icon>
-              <span>ملغى</span>
-            </div>
-
-            <!-- 6. بانتظار الاعتماد والمراجعة (Pending) -->
-            <div
+              ملغى
+            </v-chip>
+            <v-chip
               v-else-if="item.is_pending || item.order_status === 'pending'"
-              class="center-count-badge unified-badge-warning px-2.5 py-1 text-caption font-weight-bold"
+              size="small"
+              color="warning"
+              variant="tonal"
+              class="font-weight-bold"
             >
-              <v-icon size="14" color="warning" class="me-1">mdi-clock-alert-outline</v-icon>
-              <span>بانتظار الاعتماد</span>
-            </div>
-
-            <!-- 7. جاهز للتنفيذ (Ready - مستحق التنفيذ اليوم) -->
-            <div
+              بانتظار الاعتماد
+            </v-chip>
+            <v-chip
               v-else
-              class="center-count-badge unified-badge-primary px-2.5 py-1 text-caption font-weight-bold"
+              size="small"
+              color="primary"
+              variant="tonal"
+              class="font-weight-bold"
             >
-              <v-icon size="14" color="primary" class="me-1">mdi-clock-fast</v-icon>
-              <span>جاهز للتنفيذ</span>
-            </div>
+              جاهز للتنفيذ
+            </v-chip>
           </div>
         </template>
 
-        <template v-else-if="key === 'actions'">
-          <div class="d-flex align-center justify-center gap-1 flex-nowrap table-actions-cell">
-            <!-- 1. في تبويب "المستحقة" (Due Queue): تنفيذ فوري عبر الطباعة المباشرة واستوديو الطباعة -->
-            <template v-if="subTab === 'due'">
-              <!-- زر الطباعة المباشرة الفورية -->
-              <v-btn
-                size="small"
-                density="compact"
-                color="primary"
-                variant="flat"
-                rounded="lg"
-                class="font-weight-bold table-action-btn px-2"
-                prepend-icon="mdi-printer"
-                @click="$emit('direct-print', item)"
-                title="أمر الطباعة المباشر الفوري لكافة وثائق الاختبار"
-              >
-                طباعة مباشرة
-              </v-btn>
-
-              <!-- زر استوديو الطباعة التفصيلي -->
-              <v-btn
-                size="small"
-                density="compact"
-                icon="mdi-printer-eye"
-                color="primary"
-                variant="tonal"
-                rounded="lg"
-                class="table-action-icon-btn ms-1"
-                @click="$emit('open-studio', item)"
-                title="فتح استوديو الطباعة التفصيلي لتأكيد وتنفيذ السحب"
-              />
-
-              <!-- زر إذن الصرف الرسمي A4 -->
-              <v-btn
-                v-if="item.has_order"
-                size="small"
-                density="compact"
-                icon="mdi-file-document-check-outline"
-                color="secondary"
-                variant="tonal"
-                rounded="lg"
-                class="table-action-icon-btn ms-1"
-                @click="$emit('preview-manifest', item)"
-                title="معاينة إذن الصرف وأمر الطباعة الرسمي A4"
-              />
-
-              <!-- زر إلغاء أمر الطباعة رسمياً -->
-              <v-btn
-                size="small"
-                density="compact"
-                icon="mdi-cancel"
-                color="error"
-                variant="tonal"
-                rounded="lg"
-                class="table-action-icon-btn ms-1"
-                @click="$emit('cancel-order', item)"
-                title="إلغاء أمر الطباعة رسمياً"
-              />
-            </template>
-
-            <!-- 2. في تبويب "المجدولة" (Scheduled): تقديم الموعد استثنائياً -->
-            <template v-else-if="subTab === 'scheduled'">
-              <v-btn
-                size="small"
-                density="compact"
-                color="warning"
-                variant="tonal"
-                rounded="lg"
-                class="font-weight-bold table-action-btn px-2"
-                prepend-icon="mdi-fast-forward"
-                @click="$emit('advance-schedule', item)"
-                title="تقديم موعد الطباعة استثنائياً لليوم ونقله للمستحقة"
-              >
-                تقديم الموعد
-              </v-btn>
-              <v-btn
-                v-if="item.has_order"
-                size="small"
-                density="compact"
-                icon="mdi-file-document-outline"
-                color="secondary"
-                variant="tonal"
-                rounded="lg"
-                class="table-action-icon-btn ms-1"
-                @click="$emit('preview-manifest', item)"
-                title="معاينة إذن الصرف وأمر الطباعة الرسمي A4"
-              />
-              <v-btn
-                size="small"
-                density="compact"
-                icon="mdi-cancel"
-                color="error"
-                variant="tonal"
-                rounded="lg"
-                class="table-action-icon-btn ms-1"
-                @click="$emit('cancel-order', item)"
-                title="إلغاء أمر الطباعة رسمياً"
-              />
-            </template>
-
-            <!-- 3. في تبويب "المكتملة" (Completed): أرشفة وتوثيق فقط -->
-            <template v-else-if="subTab === 'completed'">
-              <v-btn
-                v-if="item.has_order"
-                size="small"
-                density="compact"
-                color="secondary"
-                variant="tonal"
-                rounded="lg"
-                class="font-weight-bold table-action-btn px-2"
-                prepend-icon="mdi-file-document-check-outline"
-                @click="$emit('preview-manifest', item)"
-                title="معاينة إذن الصرف ومحضر التسليم الرسمي A4"
-              >
-                إذن الصرف والتسليم
-              </v-btn>
-              <v-btn
-                size="small"
-                density="compact"
-                icon="mdi-history"
-                color="info"
-                variant="tonal"
-                rounded="lg"
-                class="table-action-icon-btn ms-1"
-                @click="$emit('view-history', item)"
-                title="عرض سجل وتاريخ دفعات السحب المطبوعة لهذا الاختبار"
-              />
-            </template>
-
-            <!-- 4. في تبويب "الملغية" (Cancelled): استعراض إذن الصرف أو إعادة التفعيل -->
-            <template v-else-if="subTab === 'cancelled'">
-              <v-btn
-                size="small"
-                density="compact"
-                color="primary"
-                variant="flat"
-                rounded="lg"
-                class="font-weight-bold table-action-btn px-2 text-white"
-                prepend-icon="mdi-restore"
-                @click="$emit('approve-order', item)"
-                title="إعادة تفعيل واعتماد وجدولة طلب الطباعة الملغى"
-              >
-                إعادة التفعيل
-              </v-btn>
-              <v-btn
-                v-if="item.has_order"
-                size="small"
-                density="compact"
-                icon="mdi-file-document-outline"
-                color="secondary"
-                variant="tonal"
-                rounded="lg"
-                class="table-action-icon-btn ms-1"
-                @click="$emit('preview-manifest', item)"
-                title="معاينة إذن الصرف المحفوظ في الأرشيف"
-              />
-            </template>
-
-            <!-- 5. في تبويب "الطلبات" (All Orders): إجراءات مركزة دون تكرار شارات الحالة -->
-            <template v-else>
-              <!-- أ. مكتمل 100% -->
-              <template v-if="item.is_completed">
-                <v-btn
-                  v-if="item.has_order"
-                  size="small"
-                  density="compact"
-                  color="secondary"
-                  variant="tonal"
-                  rounded="lg"
-                  class="font-weight-bold table-action-btn px-2"
-                  prepend-icon="mdi-file-document-check-outline"
-                  @click="$emit('preview-manifest', item)"
-                  title="معاينة إذن الصرف ومحضر التسليم الرسمي A4"
-                >
-                  إذن الصرف والتسليم
-                </v-btn>
-                <v-btn
-                  size="small"
-                  density="compact"
-                  icon="mdi-history"
-                  color="info"
-                  variant="tonal"
-                  rounded="lg"
-                  class="table-action-icon-btn ms-1"
-                  @click="$emit('view-history', item)"
-                  title="عرض سجل وتاريخ دفعات السحب المطبوعة لهذا الاختبار"
-                />
-              </template>
-
-              <!-- ب. طلب بانتظار الاعتماد والمراجعة -->
-              <template v-else-if="item.is_pending">
-                <v-btn
-                  size="small"
-                  density="compact"
-                  color="primary"
-                  variant="flat"
-                  rounded="lg"
-                  class="font-weight-bold table-action-btn px-2 text-white"
-                  prepend-icon="mdi-check-decagram-outline"
-                  @click="$emit('approve-order', item)"
-                  title="مراجعة واعتماد وجدولة طلب الطباعة رسمياً"
-                >
-                  تأكيد واعتماد
-                </v-btn>
-                <v-btn
-                  size="small"
-                  density="compact"
-                  icon="mdi-keyboard-return"
-                  color="warning"
-                  variant="tonal"
-                  rounded="lg"
-                  class="table-action-icon-btn ms-1"
-                  @click="$emit('return-order', item)"
-                  title="إرجاع طلب الطباعة للتعديل مع توثيق السبب"
-                />
-                <v-btn
-                  v-if="item.has_order"
-                  size="small"
-                  density="compact"
-                  icon="mdi-file-document-outline"
-                  color="secondary"
-                  variant="tonal"
-                  rounded="lg"
-                  class="table-action-icon-btn ms-1"
-                  @click="$emit('preview-manifest', item)"
-                  title="معاينة إذن الصرف واستمارة الطلب الرسمية"
-                />
-                <v-btn
-                  size="small"
-                  density="compact"
-                  icon="mdi-cancel"
-                  color="error"
-                  variant="tonal"
-                  rounded="lg"
-                  class="table-action-icon-btn ms-1"
-                  @click="$emit('cancel-order', item)"
-                  title="إلغاء أمر الطباعة رسمياً"
-                />
-              </template>
-
-              <!-- ج. طلب مرتجع للتعديل -->
-              <template v-else-if="item.is_returned">
-                <v-btn
-                  size="small"
-                  density="compact"
-                  color="primary"
-                  variant="flat"
-                  rounded="lg"
-                  class="font-weight-bold table-action-btn px-2 text-white"
-                  prepend-icon="mdi-check-decagram-outline"
-                  @click="$emit('approve-order', item)"
-                  title="إعادة فحص واعتماد الطلب بعد التعديل"
-                >
-                  إعادة الاعتماد
-                </v-btn>
-                <v-btn
-                  size="small"
-                  density="compact"
-                  icon="mdi-alert-circle-outline"
-                  color="error"
-                  variant="tonal"
-                  rounded="lg"
-                  class="table-action-icon-btn ms-1"
-                  @click="$emit('return-order', item)"
-                  :title="item.return_reason ? ('سبب الإرجاع: ' + item.return_reason) : 'عرض سبب الإرجاع'"
-                />
-                <v-btn
-                  v-if="item.has_order"
-                  size="small"
-                  density="compact"
-                  icon="mdi-file-document-outline"
-                  color="secondary"
-                  variant="tonal"
-                  rounded="lg"
-                  class="table-action-icon-btn ms-1"
-                  @click="$emit('preview-manifest', item)"
-                  title="معاينة إذن الصرف الرسمي A4"
-                />
-                <v-btn
-                  size="small"
-                  density="compact"
-                  icon="mdi-cancel"
-                  color="error"
-                  variant="tonal"
-                  rounded="lg"
-                  class="table-action-icon-btn ms-1"
-                  @click="$emit('cancel-order', item)"
-                  title="إلغاء أمر الطباعة رسمياً"
-                />
-              </template>
-
-              <!-- د. طلب مجدول لموعد قادم -->
-              <template v-else-if="item.is_scheduled">
-                <v-btn
-                  size="small"
-                  density="compact"
-                  color="warning"
-                  variant="tonal"
-                  rounded="lg"
-                  class="font-weight-bold table-action-btn px-2"
-                  prepend-icon="mdi-fast-forward"
-                  @click="$emit('advance-schedule', item)"
-                  title="تقديم موعد الطباعة استثنائياً ونقله للمستحقة"
-                >
-                  تقديم الموعد
-                </v-btn>
-                <v-btn
-                  v-if="item.has_order"
-                  size="small"
-                  density="compact"
-                  icon="mdi-file-document-outline"
-                  color="secondary"
-                  variant="tonal"
-                  rounded="lg"
-                  class="table-action-icon-btn ms-1"
-                  @click="$emit('preview-manifest', item)"
-                  title="معاينة إذن الصرف الرسمي A4"
-                />
-                <v-btn
-                  size="small"
-                  density="compact"
-                  icon="mdi-cancel"
-                  color="error"
-                  variant="tonal"
-                  rounded="lg"
-                  class="table-action-icon-btn ms-1"
-                  @click="$emit('cancel-order', item)"
-                  title="إلغاء أمر الطباعة رسمياً"
-                />
-              </template>
-
-              <!-- هـ. طلب معتمد ومستحق جاهز للتنفيذ -->
-              <template v-else-if="item.is_due">
-                <v-btn
-                  size="small"
-                  density="compact"
-                  color="primary"
-                  variant="tonal"
-                  rounded="lg"
-                  class="font-weight-bold table-action-btn px-2"
-                  prepend-icon="mdi-printer"
-                  @click="$emit('update:subTab', 'due')"
-                  title="الانتقال إلى تبويب المستحقة لتنفيذ الطباعة"
-                >
-                  تنفيذ الطباعة
-                </v-btn>
-                <v-btn
-                  v-if="item.has_order"
-                  size="small"
-                  density="compact"
-                  icon="mdi-file-document-outline"
-                  color="secondary"
-                  variant="tonal"
-                  rounded="lg"
-                  class="table-action-icon-btn ms-1"
-                  @click="$emit('preview-manifest', item)"
-                  title="معاينة إذن الصرف الرسمي A4"
-                />
-                <v-btn
-                  size="small"
-                  density="compact"
-                  icon="mdi-cancel"
-                  color="error"
-                  variant="tonal"
-                  rounded="lg"
-                  class="table-action-icon-btn ms-1"
-                  @click="$emit('cancel-order', item)"
-                  title="إلغاء أمر الطباعة رسمياً"
-                />
-              </template>
-
-              <!-- و. في أي حالة أخرى -->
-              <template v-else>
-                <v-btn
-                  size="small"
-                  density="compact"
-                  color="success"
-                  variant="flat"
-                  rounded="lg"
-                  class="font-weight-bold table-action-btn px-2"
-                  prepend-icon="mdi-check-circle-outline"
-                  @click="$emit('approve-order', item)"
-                  title="اعتماد وجدولة طلب الطباعة"
-                >
-                  تأكيد واعتماد
-                </v-btn>
-                <v-btn
-                  size="small"
-                  density="compact"
-                  icon="mdi-keyboard-return"
-                  color="warning"
-                  variant="tonal"
-                  rounded="lg"
-                  class="table-action-icon-btn ms-1"
-                  @click="$emit('return-order', item)"
-                  title="إرجاع الطلب للتعديل"
-                />
-              </template>
-            </template>
-          </div>
-        </template>
       </template>
     </custom-data-table>
   </div>
 </template>
 
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   items: any
   getData: (params?: any) => Promise<any>
   headers: any[]
@@ -646,7 +242,7 @@ defineProps<{
   allExamsCount: number
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'update:selectedRows', val: any[]): void
   (e: 'update:subTab', val: string): void
   (e: 'direct-print', item: any): void
@@ -658,4 +254,79 @@ defineEmits<{
   (e: 'cancel-order', item: any): void
   (e: 'view-history', item: any): void
 }>()
+
+const getRowActions = (item: any) => {
+  const build = (arr: any[]) =>
+    arr
+      .filter((a) => a && a.show !== false)
+      .map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))
+
+  if (props.subTab === 'due') {
+    return build([
+      { label: 'طباعة مباشرة فورية', onClick: () => emit('direct-print', item) },
+      { label: 'فتح استوديو الطباعة التفصيلي', onClick: () => emit('open-studio', item) },
+      { label: 'معاينة إذن الصرف الرسمي A4', show: Boolean(item.has_order), onClick: () => emit('preview-manifest', item) },
+      { label: 'إلغاء أمر الطباعة رسمياً', onClick: () => emit('cancel-order', item) },
+    ])
+  }
+  if (props.subTab === 'scheduled') {
+    return build([
+      { label: 'تقديم موعد الطباعة استثنائياً', onClick: () => emit('advance-schedule', item) },
+      { label: 'معاينة إذن الصرف الرسمي A4', show: Boolean(item.has_order), onClick: () => emit('preview-manifest', item) },
+      { label: 'إلغاء أمر الطباعة رسمياً', onClick: () => emit('cancel-order', item) },
+    ])
+  }
+  if (props.subTab === 'completed') {
+    return build([
+      { label: 'معاينة إذن الصرف والتسليم A4', show: Boolean(item.has_order), onClick: () => emit('preview-manifest', item) },
+      { label: 'سجل وتاريخ دفعات السحب', onClick: () => emit('view-history', item) },
+    ])
+  }
+  if (props.subTab === 'cancelled') {
+    return build([
+      { label: 'إعادة تفعيل واعتماد الطلب', onClick: () => emit('approve-order', item) },
+      { label: 'معاينة إذن الصرف المحفوظ', show: Boolean(item.has_order), onClick: () => emit('preview-manifest', item) },
+    ])
+  }
+  if (item.is_completed) {
+    return build([
+      { label: 'معاينة إذن الصرف والتسليم A4', show: Boolean(item.has_order), onClick: () => emit('preview-manifest', item) },
+      { label: 'سجل وتاريخ دفعات السحب', onClick: () => emit('view-history', item) },
+    ])
+  }
+  if (item.is_pending) {
+    return build([
+      { label: 'تأكيد واعتماد وجدولة الطلب', onClick: () => emit('approve-order', item) },
+      { label: 'إرجاع الطلب للتعديل', onClick: () => emit('return-order', item) },
+      { label: 'معاينة إذن الصرف واستمارة الطلب', show: Boolean(item.has_order), onClick: () => emit('preview-manifest', item) },
+      { label: 'إلغاء أمر الطباعة رسمياً', onClick: () => emit('cancel-order', item) },
+    ])
+  }
+  if (item.is_returned) {
+    return build([
+      { label: 'إعادة الاعتماد بعد التعديل', onClick: () => emit('approve-order', item) },
+      { label: 'عرض سبب الإرجاع', onClick: () => emit('return-order', item) },
+      { label: 'معاينة إذن الصرف الرسمي A4', show: Boolean(item.has_order), onClick: () => emit('preview-manifest', item) },
+      { label: 'إلغاء أمر الطباعة رسمياً', onClick: () => emit('cancel-order', item) },
+    ])
+  }
+  if (item.is_scheduled) {
+    return build([
+      { label: 'تقديم موعد الطباعة استثنائياً', onClick: () => emit('advance-schedule', item) },
+      { label: 'معاينة إذن الصرف الرسمي A4', show: Boolean(item.has_order), onClick: () => emit('preview-manifest', item) },
+      { label: 'إلغاء أمر الطباعة رسمياً', onClick: () => emit('cancel-order', item) },
+    ])
+  }
+  if (item.is_due) {
+    return build([
+      { label: 'الانتقال لتنفيذ الطباعة', onClick: () => emit('update:subTab', 'due') },
+      { label: 'معاينة إذن الصرف الرسمي A4', show: Boolean(item.has_order), onClick: () => emit('preview-manifest', item) },
+      { label: 'إلغاء أمر الطباعة رسمياً', onClick: () => emit('cancel-order', item) },
+    ])
+  }
+  return build([
+    { label: 'تأكيد واعتماد طلب الطباعة', onClick: () => emit('approve-order', item) },
+    { label: 'إرجاع الطلب للتعديل', onClick: () => emit('return-order', item) },
+  ])
+}
 </script>

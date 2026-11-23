@@ -12,10 +12,10 @@
     :restore="false"
     :numbering="true"
     :showSelect="true"
-    :actions="false"
     :search="false"
     class="bg-transparent"
-  >
+  
+        :actionList="(item) => ([ { label: 'عرض المديريات', icon: 'arrow-down-right', color: 'primary', onClick: () => $emit('drill-down', item) }, { label: 'استوديو الطباعة', icon: 'printer-outline', color: 'indigo', onClick: () => $emit('open-studio', item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
     <template v-slot:item-slot="{ item, key, index }">
       <template v-if="key === 'numbering'">
         <div class="d-flex justify-center align-center">
@@ -24,14 +24,9 @@
       </template>
 
       <template v-else-if="key === 'office_name'">
-        <div class="d-flex align-center py-2" style="min-width: 280px;">
-          <v-avatar color="primary" variant="tonal" size="36" class="me-3 rounded-lg flex-shrink-0">
-            <v-icon color="primary" size="20">mdi-office-building-outline</v-icon>
-          </v-avatar>
-          <div>
-            <div class="font-weight-bold text-subtitle-2 text-on-surface text-wrap">{{ item.office_name }}</div>
-            <div class="text-caption text-medium-emphasis">المحافظة: {{ item.governorate_name }}</div>
-          </div>
+        <div class="py-1" style="min-width: 240px;">
+          <div class="font-weight-bold text-subtitle-2 text-on-surface text-wrap">{{ item.office_name }}</div>
+          <div class="text-caption text-medium-emphasis">المحافظة: {{ item.governorate_name }}</div>
         </div>
       </template>
 
@@ -86,32 +81,7 @@
         </div>
       </template>
 
-      <template v-else-if="key === 'actions'">
-        <div class="d-flex align-center justify-center gap-2">
-          <v-btn
-            size="small"
-            color="primary"
-            variant="tonal"
-            rounded="lg"
-            class="font-weight-bold"
-            prepend-icon="mdi-arrow-down-right"
-            @click="$emit('drill-down', item)"
-          >
-            المديريات
-          </v-btn>
-          <v-btn
-            size="small"
-            color="primary"
-            variant="flat"
-            rounded="lg"
-            class="font-weight-bold"
-            prepend-icon="mdi-printer-outline"
-            @click="$emit('open-studio', item)"
-          >
-            استوديو الطباعة
-          </v-btn>
-        </div>
-      </template>
+      
     </template>
   </custom-data-table>
 </template>

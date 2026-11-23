@@ -1,63 +1,45 @@
 <template>
-    <v-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" max-width="540"
-        persistent no-click-animation class="master-note-portal" scrollable>
-        <v-card class="portal-surface rounded-xl overflow-hidden">
-            <!-- Elite Header Section -->
-            <div class="portal-header pa-6">
-                <div class="d-flex align-center justify-space-between">
-                    <div class="d-flex align-center ga-4">
-                        <div class="portal-icon-box">
-                            <v-icon color="primary" size="24">mdi-comment-text-outline</v-icon>
-                        </div>
-                        <div class="portal-title-logic">
-                            <h3 class="portal-h3">{{ title }}</h3>
-                            <div class="portal-sub">نظام التوثيق والمتابعة</div>
-                        </div>
-                    </div>
-                    <v-btn icon="mdi-close" variant="text" color="slate-400" size="small" class="rounded-lg"
-                        @click="$emit('update:modelValue', false)" />
-                </div>
+    <custom-dialog
+        :model-value="modelValue"
+        :title="title"
+        width="540"
+        height="auto"
+        persistent
+        no-click-animation
+        class="master-note-portal"
+        @update:model-value="$emit('update:modelValue', $event)"
+    >
+        <!-- Status Context Track (Visual Clue) -->
+        <div v-if="entry" class="status-context-rail pa-4 rounded-lg mb-6">
+            <div class="rail-label mb-2">سياق الحركة الإدارية</div>
+            <div class="d-flex align-center ga-3 flex-wrap">
+                <div class="status-chip old">{{ entry.old_status_display }}</div>
+                <v-icon icon="mdi-arrow-left-thin" size="20" color="slate-300"></v-icon>
+                <div class="status-chip new">{{ entry.new_status_display }}</div>
             </div>
+        </div>
 
-            <v-divider class="portal-sep" />
+        <!-- Documentation Area -->
+        <div class="documentation-arena">
+            <label class="arena-label d-block mb-2">نص الملاحظة</label>
+            <v-textarea v-model="internalText" placeholder="أدخل تفاصيل الملاحظة المراد إضافتها لهذا الإجراء..."
+                variant="outlined" rows="5" auto-grow hide-details color="primary"
+                class="portal-textarea"></v-textarea>
+        </div>
 
-            <v-card-text class="pa-6">
-                <!-- Status Context Track (Visual Clue) -->
-                <div v-if="entry" class="status-context-rail pa-4 rounded-lg mb-6">
-                    <div class="rail-label mb-2">سياق الحركة الإدارية</div>
-                    <div class="d-flex align-center ga-3 flex-wrap">
-                        <div class="status-chip old">{{ entry.old_status_display }}</div>
-                        <v-icon icon="mdi-arrow-left-thin" size="20" color="slate-300"></v-icon>
-                        <div class="status-chip new">{{ entry.new_status_display }}</div>
-                    </div>
-                </div>
-
-                <!-- Documentation Area -->
-                <div class="documentation-arena">
-                    <label class="arena-label d-block mb-2">نص الملاحظة</label>
-                    <v-textarea v-model="internalText" placeholder="أدخل تفاصيل الملاحظة المراد إضافتها لهذا الإجراء..."
-                        variant="outlined" rows="5" auto-grow hide-details color="primary"
-                        class="portal-textarea"></v-textarea>
-
-                </div>
-            </v-card-text>
-
-            <v-divider class="portal-sep" />
-
-            <!-- Action Cluster -->
-            <v-card-actions class="pa-6">
+        <template #actions>
+            <div class="d-flex align-center justify-space-between w-100">
                 <v-btn variant="text" color="slate-500" class="px-6 font-weight-bold" height="44"
                     @click="$emit('update:modelValue', false)">
                     إلغاء الإجراء
                 </v-btn>
-                <v-spacer></v-spacer>
                 <v-btn color="primary" variant="tonal" class="px-8 rounded-lg font-weight-black" height="44"
                     :disabled="!internalText || !internalText.trim()" @click="save">
                     تأكيد وحفظ
                 </v-btn>
-            </v-card-actions>
-        </v-card>
-    </v-dialog>
+            </div>
+        </template>
+    </custom-dialog>
 </template>
 
 <script>

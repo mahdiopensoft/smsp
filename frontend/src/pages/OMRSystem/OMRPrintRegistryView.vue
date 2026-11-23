@@ -1424,7 +1424,6 @@ const rosterHeaders = computed(() => [
   { title: "المدرسة والمركز", key: "school_name", sortable: true, align: "start" },
   { title: "النموذج", key: "model_code", sortable: true, align: "center", width: "115px" },
   { title: "حالة الطباعة", key: "is_printed", sortable: true, align: "center", width: "135px" },
-  { title: "إجراءات الطباعة والمعاينة", key: "actions", sortable: false, align: "center", width: "130px" },
 ])
 
 const toggleStudentSelection = (studentId) => {
@@ -2016,7 +2015,6 @@ const headers = computed(() => [
   { title: "الاختبار", key: "exam_info", sortable: true },
   { title: "الأوراق المطبوعة", key: "papers_count", sortable: true, align: "center", width: "160px" },
   { title: "الحالة", key: "status", sortable: true, align: "center", width: "120px" },
-  { title: "استعراض الأوراق", key: "actions", sortable: false, align: "center", width: "140px" },
 ])
 
 const batchesPage = ref(1)
@@ -2608,7 +2606,6 @@ const questionModelsHeaders = computed(() => [
   { title: "عدد الأسئلة", key: "questions_count", sortable: false, align: "center", width: "130px" },
   { title: "المقاس المعتمد", key: "layout_type", sortable: false, align: "center", width: "170px" },
   { title: "حالة الكراسة", key: "status", sortable: false, align: "center", width: "150px" },
-  { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "230px" },
 ])
 
 const questionModelsTableItems = ref({
@@ -2681,7 +2678,6 @@ const packageHeaders = computed(() => [
   { title: "النموذج", key: "model_code", sortable: true, align: "center", width: "110px" },
   { title: "محتوى الحزمة", key: "package_contents", sortable: false, align: "center", width: "220px" },
   { title: "حالة الطباعة", key: "is_printed", sortable: true, align: "center", width: "130px" },
-  { title: "الإجراءات", key: "actions", sortable: false, align: "center", width: "180px" },
 ])
 
 const packageTableItems = ref({

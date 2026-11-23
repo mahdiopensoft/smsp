@@ -29,7 +29,7 @@
           v-model="filterInstitutionType"
           name="LocalTextOption"
           :objects="institutionTypeOptions"
-          :cols="filterInstitutionType ? '3' : '4'"
+          cols="3"
           label="نوع المؤسسة التعليمية"
           icon="domain"
           :add="false"
@@ -150,7 +150,6 @@
               cols="3"
               :add="false"
               :disabled="!filterInstituteCurriculum"
-              @update:model-value="loadTables"
             />
           </template>
 
@@ -166,25 +165,11 @@
           />
         </template>
 
-        <!-- Search Query -->
-        <v-col cols="12" sm="6" md="3">
-          <v-text-field
-            v-model="searchQuery"
-            placeholder="بحث بالعنوان أو المادة..."
-            prepend-inner-icon="mdi-magnify"
-            clearable
-            density="compact"
-            variant="outlined"
-            class="mb-6"
-            hide-details
-          />
-        </v-col>
-
         <!-- Filter Actions -->
-        <v-col cols="12" sm="12" md="6" class="d-flex align-center justify-end gap-2">
+        <v-col cols="auto" class="d-flex align-center gap-2">
           <custom-btn
             type="show"
-            label="تصفية الجداول"
+            label="عرض"
             color="primary"
             class="font-weight-bold px-6 mb-6"
             :click="loadTables"

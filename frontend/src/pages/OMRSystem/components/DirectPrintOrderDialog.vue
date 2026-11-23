@@ -1,53 +1,22 @@
 <template>
-  <v-dialog
+  <custom-dialog
     :model-value="modelValue"
-    @update:model-value="$emit('update:modelValue', $event)"
-    max-width="650px"
-    scrollable
+    :title="currentStep === 'prepare' ? 'أمر الطباعة المباشر والسريع' : 'محضر التحقق واستلام المطبوعات الميداني'"
+    width="660"
+    height="auto"
     persistent
+    @update:model-value="$emit('update:modelValue', $event)"
   >
-    <v-card class="rounded-2xl overflow-hidden print-order-modal bg-surface elevation-8 border" style="background: rgb(var(--v-theme-surface)) !important;">
-      <!-- ── شريط الهوية العلوي المعتمد ── -->
-      <div class="modal-top-stripe" />
-
-      <!-- ── 1. ترويسة النافذة الرسمية الموحدة ── -->
-      <div class="px-5 py-4 d-flex align-center justify-space-between border-b bg-surface">
-        <div class="d-flex align-center gap-3">
-          <v-avatar color="primary" variant="tonal" size="44" rounded="lg">
-            <v-icon size="24" color="primary">
-              {{ currentStep === 'prepare' ? 'mdi-printer' : 'mdi-clipboard-check-outline' }}
-            </v-icon>
-          </v-avatar>
-          <div>
-            <div class="d-flex align-center gap-2">
-              <h3 class="text-subtitle-1 font-weight-black text-high-emphasis mb-0">
-                {{ currentStep === 'prepare' ? 'أمر الطباعة المباشر والسريع' : 'محضر التحقق واستلام المطبوعات الميداني' }}
-              </h3>
-              <div class="center-count-badge unified-badge-primary px-2.5 py-0.5 text-caption font-weight-bold">
-                {{ currentStep === 'prepare' ? 'المرحلة 1: إرسال للماكينة' : 'المرحلة 2: مصادقة الاستلام الفعلي' }}
-              </div>
-            </div>
-            <div class="text-caption text-medium-emphasis">
-              {{ currentStep === 'prepare' ? 'سحب وثائق الاختبار المعتمدة وتغذية ماكينات المطبعة فوراً' : 'التأكد من خروج الأوراق المطبوعة بجودة سليمة قبل التوثيق الرسمي في السجل' }}
-            </div>
-          </div>
-        </div>
-
-        <v-btn
-          icon="mdi-close"
-          variant="text"
-          size="small"
-          density="comfortable"
-          color="medium-emphasis"
-          rounded="lg"
-          :disabled="loading"
-          @click="close"
-        />
+    <div class="d-flex align-center gap-2 mb-4 pb-3 border-b flex-wrap">
+      <div class="center-count-badge unified-badge-primary px-2.5 py-0.5 text-caption font-weight-bold">
+        {{ currentStep === 'prepare' ? 'المرحلة 1: إرسال للماكينة' : 'المرحلة 2: مصادقة الاستلام الفعلي' }}
       </div>
+      <span class="text-caption text-medium-emphasis">
+        {{ currentStep === 'prepare' ? 'سحب وثائق الاختبار المعتمدة وتغذية ماكينات المطبعة فوراً' : 'التأكد من خروج الأوراق المطبوعة بجودة سليمة قبل التوثيق الرسمي في السجل' }}
+      </span>
+    </div>
 
-      <!-- ── 2. محتوى النافذة المنظم بالمكونات الموحدة ── -->
-      <v-card-text class="pa-5 overflow-y-auto bg-surface" style="max-height: 80vh;">
-        <!-- بطاقة معلومات الاختبار الأساسية -->
+    <!-- بطاقة معلومات الاختبار الأساسية -->
         <div class="main-card pa-4 pa-sm-5 rounded-2xl border bg-surface text-right mb-4 mx-auto elevation-1" style="max-width: 650px;">
           <!-- رقم إذن الصرف -->
           <div class="d-flex align-center justify-space-between mb-3 pb-3 border-b flex-wrap gap-2">
@@ -341,10 +310,9 @@
             />
           </div>
         </div>
-      </v-card-text>
 
-      <!-- ── 3. أزرار التحكم الرسمية الموحدة باللون الأساسي (primary) بدون أي أخضر ── -->
-      <div class="px-5 py-3.5 d-flex align-center justify-space-between border-t bg-surface flex-wrap gap-2">
+    <template #actions>
+      <div class="d-flex align-center justify-space-between flex-wrap gap-2 w-100">
         <!-- أزرار المرحلة 1 -->
         <template v-if="currentStep === 'prepare'">
           <div class="d-flex align-center gap-2">
@@ -410,8 +378,8 @@
           </v-btn>
         </template>
       </div>
-    </v-card>
-  </v-dialog>
+    </template>
+  </custom-dialog>
 </template>
 
 <script setup>

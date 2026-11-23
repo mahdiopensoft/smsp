@@ -4,6 +4,7 @@
 
     <!-- Data Table -->
     <custom-data-table
+      actionList
       v-bind="{
         headers,
         items,
@@ -19,19 +20,13 @@
       <template v-slot:item-slot="{ item, key }">
         <!-- Name Arabic -->
         <template v-if="key === 'name_ar'">
-          <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold" v-if="item.name_ar">
-            <v-icon start size="14">mdi-book-education-outline</v-icon>
-            {{ item.name_ar }}
-          </v-chip>
+          <span class="font-weight-bold text-body-2 text-high-emphasis" v-if="item.name_ar">{{ item.name_ar }}</span>
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 
         <!-- Unified Code -->
         <template v-else-if="key === 'unified_code'">
-          <v-chip size="small" variant="outlined" color="secondary" class="font-weight-bold" v-if="item.unified_code">
-            <v-icon start size="14">mdi-barcode</v-icon>
-            {{ item.unified_code }}
-          </v-chip>
+          <span class="font-mono font-weight-bold text-primary" v-if="item.unified_code">{{ item.unified_code }}</span>
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 
@@ -52,9 +47,8 @@
             size="small"
             :color="item.is_active ? 'success' : 'error'"
             variant="tonal"
-            class="font-weight-bold text-white"
+            class="font-weight-bold"
           >
-            <v-icon start size="14">{{ item.is_active ? 'mdi-check-circle' : 'mdi-close-circle' }}</v-icon>
             {{ item.is_active ? 'مفعل' : 'معطل' }}
           </v-chip>
         </template>

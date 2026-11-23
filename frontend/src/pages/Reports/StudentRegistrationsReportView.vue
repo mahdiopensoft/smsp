@@ -20,7 +20,7 @@
           name="Exam"
           :param="examParam"
           placeholder="الاختبار"
-          cols="2"
+          cols="3"
           :add="false"
           @update:model-value="filterVersion = null"
         />
@@ -30,7 +30,7 @@
           name="ExamVersionByExam"
           :param="filterExam"
           placeholder="النموذج"
-          cols="2"
+          cols="3"
           :add="false"
           :disabled="!filterExam"
         />
@@ -43,7 +43,7 @@
             { text: 'حاضر', value: 'true' },
             { text: 'غائب', value: 'false' }
           ]"
-          cols="2"
+          cols="3"
           label="حالة الحضور"
           icon="account-check-outline"
           :add="false"
@@ -57,19 +57,10 @@
             { text: 'تمت الطباعة', value: 'true' },
             { text: 'لم تطبع', value: 'false' }
           ]"
-          cols="2"
+          cols="3"
           label="حالة الطباعة"
           icon="printer-outline"
           :add="false"
-        />
-
-        <custom-text-field
-          v-model="filterSearch"
-          cols="3"
-          label="بحث"
-          placeholder="بحث برقم الجلوس أو اسم الطالب..."
-          icon="magnify"
-          @keyup.enter="applyFilters"
         />
 
         <v-col cols="auto" class="d-flex align-center gap-2 py-2">
@@ -159,8 +150,6 @@ const examParam = computed(() => {
 const onInstitutionTypeChange = () => {
   filterExam.value = null
   filterVersion.value = null
-  resetPagination()
-  applyFilters()
 }
 
 const headers = [

@@ -11,7 +11,8 @@
         :hasFilter="false"
         :log="false"
         :restore="false"
-      >
+      
+        :actionList="(item) => ([ { label: 'عرض وتدقيق الورقة', icon: 'eye-outline', color: 'primary', onClick: () => $emit('view-submissions', activeExam) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
         <template v-slot:item-slot="{ item, key }">
           <template v-if="key === 'submission_id'">
             <span class="font-mono text-caption text-medium-emphasis">#{{ item.id }}</span>
@@ -48,16 +49,7 @@
             <span class="text-caption text-medium-emphasis">{{ item.created_at }}</span>
           </template>
 
-          <template v-else-if="key === 'actions'">
-            <div class="d-flex align-center justify-center gap-1">
-              <custom-btn
-                type="show"
-                is-icon
-                label="عرض وتدقيق الورقة"
-                :click="() => $emit('view-submissions', activeExam)"
-              />
-            </div>
-          </template>
+          
         </template>
       </custom-data-table>
     </div>
@@ -82,7 +74,6 @@ const submissionsHeaders = ref([
   { title: 'نسبة الدقة', key: 'confidence', sortable: false, width: '100px' },
   { title: 'الحالة', key: 'status', sortable: false, width: '100px' },
   { title: 'تاريخ المعالجة', key: 'created_at', sortable: false, width: '140px' },
-  { title: 'الإجراءات', key: 'actions', sortable: false, width: '90px' },
 ])
 
 const subPage = ref(1)

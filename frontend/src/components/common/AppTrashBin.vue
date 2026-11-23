@@ -1,78 +1,69 @@
 <template>
-  <v-dialog v-model="isOpen" max-width="800" persistent>
-    <v-card class="glass-card">
-      <v-toolbar color="error" class="px-4 text-white">
-        <v-icon start>mdi-delete-restore</v-icon>
-        <v-toolbar-title>{{ title }} - سلة المحذوفات</v-toolbar-title>
-        <v-spacer></v-spacer>
-        <v-btn icon @click="close">
-          <v-icon>mdi-close</v-icon>
-        </v-btn>
-      </v-toolbar>
+  <custom-dialog
+    v-model="isOpen"
+    :title="`${title} - سلة المحذوفات`"
+    width="800"
+    height="auto"
+    persistent
+  >
+    <!-- Loading State -->
+    <div v-if="loading" class="d-flex justify-center align-center py-10">
+      <v-progress-circular indeterminate color="primary"></v-progress-circular>
+    </div>
 
-      <v-card-text class="pa-0">
-        <!-- Loading State -->
-        <div v-if="loading" class="d-flex justify-center align-center py-10">
-          <v-progress-circular indeterminate color="primary"></v-progress-circular>
-        </div>
-        
-        <!-- Empty State -->
-        <div v-else-if="items.length === 0" class="d-flex flex-column align-center justify-center py-10 text-medium-emphasis">
-          <v-icon size="64" class="mb-4" color="grey-lighten-1">mdi-delete-empty</v-icon>
-          <div class="text-h6">سلة المحذوفات فارغة</div>
-        </div>
+    <!-- Empty State -->
+    <div v-else-if="items.length === 0" class="d-flex flex-column align-center justify-center py-10 text-medium-emphasis">
+      <v-icon size="64" class="mb-4" color="grey-lighten-1">mdi-delete-empty</v-icon>
+      <div class="text-h6">سلة المحذوفات فارغة</div>
+    </div>
 
-        <!-- Data Table -->
-        <v-table v-else hover class="bg-transparent">
-          <thead>
-            <tr>
-              <th class="text-right">#</th>
-              <th class="text-right">الاسم</th>
-              <th class="text-right">تاريخ الحذف</th>
-              <th class="text-center">إجراءات</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(item, index) in items" :key="item.id">
-              <td>{{ item.id }}</td>
-              <td class="font-weight-medium">{{ item[nameKey] || 'بدون اسم' }}</td>
-              <td dir="ltr" class="text-right">{{ formatDate(item.deleted_at) }}</td>
-              <td class="text-center">
-                <v-btn
-                  color="success"
-                  variant="text"
-                  size="small"
-                  prepend-icon="mdi-restore"
-                  @click="confirmRestore(item)"
-                  :loading="restoringId === item.id"
-                >
-                  استرجاع
-                </v-btn>
-              </td>
-            </tr>
-          </tbody>
-        </v-table>
-      </v-card-text>
-    </v-card>
-  </v-dialog>
+    <!-- Data Table -->
+    <v-table v-else hover class="bg-transparent">
+      <thead>
+        <tr>
+          <th class="text-right">#</th>
+          <th class="text-right">الاسم</th>
+          <th class="text-right">تاريخ الحذف</th>
+          <th class="text-center">إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(item, index) in items" :key="item.id">
+          <td>{{ item.id }}</td>
+          <td class="font-weight-medium">{{ item[nameKey] || 'بدون اسم' }}</td>
+          <td dir="ltr" class="text-right">{{ formatDate(item.deleted_at) }}</td>
+          <td class="text-center">
+            <v-btn
+              color="success"
+              variant="text"
+              size="small"
+              prepend-icon="mdi-restore"
+              @click="confirmRestore(item)"
+              :loading="restoringId === item.id"
+            >
+              استرجاع
+            </v-btn>
+          </td>
+        </tr>
+      </tbody>
+    </v-table>
+  </custom-dialog>
 
   <!-- Restore Confirmation Dialog -->
-  <v-dialog v-model="confirmDialog" max-width="400">
-    <v-card class="glass-card pa-4">
-      <v-card-title class="text-h6 font-weight-bold text-success d-flex align-center">
-        <v-icon start color="success" class="me-2">mdi-alert-circle</v-icon>
-        تأكيد الاسترجاع
-      </v-card-title>
-      <v-card-text class="pt-2 pb-4">
-        هل أنت متأكد من استرجاع السجل "<strong>{{ itemToRestore?.[nameKey] }}</strong>"؟
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn variant="text" @click="confirmDialog = false">إلغاء</v-btn>
-        <v-btn color="success" variant="tonal" @click="executeRestore">تأكيد واسترجاع</v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+  <custom-dialog
+    v-model="confirmDialog"
+    title="تأكيد الاسترجاع"
+    width="420"
+    height="auto"
+  >
+    <p class="mb-0">
+      هل أنت متأكد من استرجاع السجل "<strong>{{ itemToRestore?.[nameKey] }}</strong>"؟
+    </p>
+    <template #actions>
+      <v-btn variant="text" @click="confirmDialog = false">إلغاء</v-btn>
+      <v-btn color="success" variant="tonal" @click="executeRestore">تأكيد واسترجاع</v-btn>
+    </template>
+  </custom-dialog>
 </template>
 
 <script setup>

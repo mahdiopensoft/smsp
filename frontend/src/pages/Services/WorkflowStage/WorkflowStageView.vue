@@ -1,6 +1,7 @@
 <template>
   <add-workflow-stage v-model="drawer" :items="items" :data="data" :getData="getData" />
-  <custom-data-table :="{
+  <custom-data-table
+      actionList :="{
     headers,
     items,
     getData,

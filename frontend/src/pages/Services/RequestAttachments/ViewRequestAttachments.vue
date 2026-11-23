@@ -11,40 +11,25 @@
   >
     <!-- actionList, -->
     <template v-slot:item-slot="{ item, key }">
-      <v-chip
-        variant="text"
-        class="text-decoration-underline text-primary"
+      <span
+        class="text-decoration-underline text-primary font-weight-medium cursor-pointer"
         v-if="key == 'request_name'"
         @click="
           moveToNex('request-details', { request_id: item['request_no'] }, {})
         "
       >
         {{ item[key] }}
-      </v-chip>
+      </span>
       <span v-if="key=='file_url'">
-        <a :href="item[key]" download class="text-decoration-none text-primary">
-          <v-icon>mdi-folder-arrow-down</v-icon>
+        <a :href="item[key]" download class="text-decoration-none text-primary font-weight-medium">
+          تحميل
         </a>
       </span>
-      <span v-if="['file_size'].includes(key)">
-        <v-chip
-          size="small"
-          class="text-lowercase"
-          :color="fileTypes[item['file_type']]?.color ?? null"
-        >
-          {{ item[key] }}
-        </v-chip>
+      <span v-if="['file_size'].includes(key)" class="font-mono text-caption text-lowercase">
+        {{ item[key] }}
       </span>
-      <span v-if="key == 'file_type'" class="">
-        <v-icon
-          v-if="fileTypes[item[key]]"
-          :color="fileTypes[item[key]]?.color"
-        >
-          {{ fileTypes[item[key]]?.icon }}
-        </v-icon>
-        <v-chip v-else size="small" class="text-lowercase">
-          {{ item[key] }}
-        </v-chip>
+      <span v-if="key == 'file_type'" class="text-body-2 font-weight-medium">
+        {{ item[key] }}
       </span>
     </template>
   </custom-data-table>

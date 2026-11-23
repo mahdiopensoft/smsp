@@ -10,14 +10,14 @@
           v-model="filterActive"
           name="LocalTextOption"
           :objects="activeOptions"
-          cols="4"
+          cols="3"
           label="حالة التفعيل"
           icon="check-circle-outline"
           :add="false"
         />
 
         <!-- Filter Actions -->
-        <v-col cols="12" sm="6" md="4" class="d-flex align-center gap-2">
+        <v-col cols="auto" class="d-flex align-center gap-2">
           <custom-btn
             type="show"
             label="تصفية"
@@ -39,6 +39,7 @@
 
     <!-- Data Table -->
     <custom-data-table
+      actionList
       v-bind="{
         headers,
         items,
@@ -54,36 +55,24 @@
       <template v-slot:item-slot="{ item, key }">
         <!-- College No -->
         <template v-if="key === 'college_no'">
-          <v-chip size="small" variant="outlined" color="primary" class="font-weight-bold">
-            <v-icon start size="14">mdi-barcode</v-icon>
-            {{ item.college_no }}
-          </v-chip>
+          <span class="font-mono font-weight-bold text-primary">{{ item.college_no }}</span>
         </template>
 
         <!-- Name Arabic -->
         <template v-else-if="key === 'name_ar'">
-          <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold" v-if="item.name_ar">
-            <v-icon start size="14">mdi-school-outline</v-icon>
-            {{ item.name_ar }}
-          </v-chip>
+          <span class="font-weight-bold text-body-2 text-high-emphasis" v-if="item.name_ar">{{ item.name_ar }}</span>
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 
         <!-- Highest Level -->
         <template v-else-if="key === 'highest_level'">
-          <v-chip size="small" color="indigo" variant="tonal" class="font-weight-bold" v-if="item.highest_level">
-            <v-icon start size="14">mdi-stairs-up</v-icon>
-            {{ item.highest_level }}
-          </v-chip>
+          <span class="font-weight-medium text-body-2 font-mono" v-if="item.highest_level">{{ item.highest_level }}</span>
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 
         <!-- First Year -->
         <template v-else-if="key === 'first_year'">
-          <v-chip size="small" color="teal" variant="tonal" class="font-weight-bold" v-if="item.first_year">
-            <v-icon start size="14">mdi-calendar-range</v-icon>
-            {{ item.first_year }}
-          </v-chip>
+          <span class="font-weight-medium text-body-2 font-mono" v-if="item.first_year">{{ item.first_year }}</span>
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 
@@ -93,9 +82,8 @@
             size="small"
             :color="item.is_active ? 'success' : 'error'"
             variant="tonal"
-            class="font-weight-bold text-white"
+            class="font-weight-bold"
           >
-            <v-icon start size="14">{{ item.is_active ? 'mdi-check-circle' : 'mdi-close-circle' }}</v-icon>
             {{ item.is_active ? 'مفعل' : 'معطل' }}
           </v-chip>
         </template>

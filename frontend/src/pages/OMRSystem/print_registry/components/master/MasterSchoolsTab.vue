@@ -12,10 +12,10 @@
     :restore="false"
     :numbering="true"
     :showSelect="true"
-    :actions="false"
     :search="false"
     class="bg-transparent"
-  >
+  
+        :actionList="(item) => ([ { label: 'استعراض تفاصيل الاختبارات والمواد', icon: 'format-list-text', color: 'secondary', onClick: () => $emit('open-exams-dialog', item) }, { label: 'سحب وطباعة', icon: 'printer-check', color: 'primary', onClick: () => $emit('open-studio', item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
     <template v-slot:item-slot="{ item, key, index }">
       <template v-if="key === 'numbering'">
         <div class="d-flex justify-center align-center">
@@ -24,21 +24,14 @@
       </template>
 
       <template v-else-if="key === 'name'">
-        <div class="d-flex align-center py-2" style="min-width: 280px;">
-          <v-avatar color="indigo" variant="tonal" size="36" class="me-3 rounded-lg flex-shrink-0">
-            <v-icon color="indigo" size="20">mdi-school-outline</v-icon>
-          </v-avatar>
-          <div>
-            <div class="font-weight-bold text-subtitle-2 text-on-surface text-wrap">{{ item.name }}</div>
-          </div>
+        <div class="py-1 font-weight-bold text-subtitle-2 text-on-surface text-wrap" style="min-width: 240px;">
+          {{ item.name }}
         </div>
       </template>
 
       <template v-else-if="key === 'institution_type'">
-        <div class="d-flex justify-center align-center">
-          <v-chip size="x-small" :color="item.institution_type === 'university' ? 'purple' : (item.institution_type === 'institute' ? 'amber' : 'primary')" variant="tonal" class="font-weight-bold">
-            {{ item.institution_type === 'university' ? 'جامعي' : (item.institution_type === 'institute' ? 'مهني/معهد' : 'مدرسي') }}
-          </v-chip>
+        <div class="text-center text-body-2 font-weight-medium">
+          {{ item.institution_type === 'university' ? 'جامعي' : (item.institution_type === 'institute' ? 'مهني/معهد' : 'مدرسي') }}
         </div>
       </template>
 
@@ -49,30 +42,14 @@
       </template>
 
       <template v-else-if="key === 'subject_name'">
-        <div class="d-flex align-center justify-center flex-wrap gap-1 py-1" style="min-width: 150px;">
+        <div class="text-center text-body-2" style="min-width: 150px;">
           <template v-if="item.subjects && item.subjects.length > 0">
-            <v-chip
-              v-for="(subj, sIdx) in item.subjects.slice(0, 2)"
-              :key="sIdx"
-              size="x-small"
-              color="teal"
-              variant="tonal"
-              class="font-weight-bold"
-            >
-              {{ subj }}
-            </v-chip>
+            <span>{{ item.subjects.slice(0, 2).join('، ') }}</span>
             <v-tooltip v-if="item.subjects.length > 2" location="top">
               <template #activator="{ props: tProps }">
-                <v-chip
-                  v-bind="tProps"
-                  size="x-small"
-                  color="primary"
-                  variant="flat"
-                  class="font-weight-bold cursor-pointer"
-                  @click.stop="$emit('open-exams-dialog', item)"
-                >
-                  +{{ item.subjects.length - 2 }}
-                </v-chip>
+                <span v-bind="tProps" class="text-primary font-weight-bold cursor-pointer ms-1" @click.stop="$emit('open-exams-dialog', item)">
+                  (+{{ item.subjects.length - 2 }})
+                </span>
               </template>
               <span>{{ item.subjects.slice(2).join('، ') }}</span>
             </v-tooltip>
@@ -82,22 +59,14 @@
       </template>
 
       <template v-else-if="key === 'exams_count'">
-        <div class="d-flex justify-center align-center">
-          <v-tooltip location="top" text="انقر لمعاينة قائمة الاختبارات والمواد لهذا المركز">
-            <template #activator="{ props }">
-              <v-chip
-                v-bind="props"
-                size="small"
-                color="primary"
-                variant="tonal"
-                class="font-weight-bold cursor-pointer elevation-0"
-                prepend-icon="mdi-format-list-bulleted"
-                @click.stop="$emit('open-exams-dialog', item)"
-              >
-                {{ item.exams_count }} اختبار
-              </v-chip>
-            </template>
-          </v-tooltip>
+        <div class="text-center">
+          <span
+            class="font-weight-bold text-primary cursor-pointer text-body-2"
+            title="انقر لمعاينة قائمة الاختبارات والمواد لهذا المركز"
+            @click.stop="$emit('open-exams-dialog', item)"
+          >
+            {{ item.exams_count }} اختبار
+          </span>
         </div>
       </template>
 
@@ -134,34 +103,7 @@
         </div>
       </template>
 
-      <template v-else-if="key === 'actions'">
-        <div class="d-flex align-center justify-center gap-1">
-          <v-tooltip location="top" text="استعراض تفاصيل الاختبارات والمواد">
-            <template #activator="{ props }">
-              <v-btn
-                v-bind="props"
-                size="small"
-                color="secondary"
-                variant="tonal"
-                icon="mdi-format-list-text"
-                rounded="lg"
-                @click.stop="$emit('open-exams-dialog', item)"
-              />
-            </template>
-          </v-tooltip>
-          <v-btn
-            size="small"
-            color="primary"
-            variant="flat"
-            rounded="lg"
-            class="font-weight-bold"
-            prepend-icon="mdi-printer-check"
-            @click="$emit('open-studio', item)"
-          >
-            سحب وطباعة
-          </v-btn>
-        </div>
-      </template>
+      
     </template>
   </custom-data-table>
 </template>

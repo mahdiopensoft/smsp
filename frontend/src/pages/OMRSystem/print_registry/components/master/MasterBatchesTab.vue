@@ -12,10 +12,10 @@
     :restore="false"
     :numbering="true"
     :showSelect="true"
-    :actions="false"
     :search="false"
     class="bg-transparent"
-  >
+  
+        :actionList="(item) => ([ { label: 'تفاصيل الدفعة', icon: 'eye-outline', color: 'secondary', onClick: () => $emit('view-batch', item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
     <template v-slot:item-slot="{ item, key, index }">
       <template v-if="key === 'numbering'">
         <div class="d-flex justify-center align-center">
@@ -55,19 +55,7 @@
         </div>
       </template>
 
-      <template v-else-if="key === 'actions'">
-        <v-btn
-          size="small"
-          color="secondary"
-          variant="tonal"
-          rounded="lg"
-          class="font-weight-bold"
-          prepend-icon="mdi-eye-outline"
-          @click="$emit('view-batch', item)"
-        >
-          تفاصيل الدفعة
-        </v-btn>
-      </template>
+      
     </template>
   </custom-data-table>
 </template>

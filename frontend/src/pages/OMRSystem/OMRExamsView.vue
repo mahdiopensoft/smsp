@@ -46,7 +46,7 @@
         </v-col>
 
         <!-- 4. المركز الامتحاني / المدرسة -->
-        <v-col cols="12" sm="6" :md="isSchoolFilter ? 3 : 3">
+        <v-col cols="12" sm="6" md="3">
           <auto-list
             v-model="filterOrganization"
             name="Organization"
@@ -56,13 +56,12 @@
             cols="12"
             :add="false"
             :disabled="isOrgDisabled"
-            @update:model-value="fetchExams"
           />
         </v-col>
 
         <!-- 🏫 School Filters (المرحلة، الصف والمسار، المادة) -->
         <template v-if="filterInstitutionType === 'school'">
-          <v-col cols="12" sm="6" md="4">
+          <v-col cols="12" sm="6" md="3">
             <auto-list
               v-model="filterStage"
               name="Stage"
@@ -73,7 +72,7 @@
               @update:model-value="onStageChange"
             />
           </v-col>
-          <v-col cols="12" sm="6" md="4">
+          <v-col cols="12" sm="6" md="3">
             <auto-list
               v-model="filterClassTrack"
               name="ClassTrackByStage"
@@ -86,7 +85,7 @@
               @update:model-value="onClassTrackChange"
             />
           </v-col>
-          <v-col cols="12" sm="6" md="4">
+          <v-col cols="12" sm="6" md="3">
             <auto-list
               v-model="filterSubject"
               name="Subject"
@@ -95,7 +94,6 @@
               placeholder="المادة الدراسية"
               cols="12"
               :add="false"
-              @update:model-value="fetchExams"
             />
           </v-col>
         </template>
@@ -148,7 +146,6 @@
               placeholder="مقرر الفصل الجامعي"
               cols="12"
               :add="false"
-              @update:model-value="fetchExams"
             />
           </v-col>
         </template>
@@ -189,7 +186,6 @@
               cols="12"
               :add="false"
               :disabled="!filterInstituteEducationSystem"
-              @update:model-value="fetchExams"
             />
           </v-col>
           <v-col cols="12" sm="6" md="3">
@@ -201,13 +197,12 @@
               placeholder="المادة الدراسية للمعهد"
               cols="12"
               :add="false"
-              @update:model-value="fetchExams"
             />
           </v-col>
         </template>
 
         <!-- Fallback Subject if All / None selected -->
-        <v-col v-if="!filterInstitutionType || filterInstitutionType === 'all'" cols="12" sm="6" md="4">
+        <v-col v-if="!filterInstitutionType || filterInstitutionType === 'all'" cols="12" sm="6" md="3">
           <auto-list
             v-model="filterSubject"
             name="Subject"
@@ -215,17 +210,15 @@
             label="المادة الدراسية (عام)"
             cols="12"
             :add="false"
-            @update:model-value="fetchExams"
           />
         </v-col>
 
         <!-- Actions -->
-        <v-col cols="12" class="d-flex align-center justify-end gap-2 mb-3">
+        <v-col cols="auto" class="d-flex align-center gap-2 mb-6">
           <custom-btn
             type="show"
-            label="تصفية النتائج"
+            label="عرض"
             color="primary"
-            icon="mdi-filter"
             class="font-weight-bold px-5"
             :click="fetchExams"
           />
@@ -234,8 +227,7 @@
             :click="resetFilters"
             variant="tonal"
             color="error"
-            label="تفريغ الفلاتر"
-            icon="mdi-filter-off"
+            label="إلغاء الفلترة"
             class="font-weight-bold"
           />
         </v-col>
@@ -250,8 +242,8 @@
           getData: getExamsData,
           headers,
           loading,
+          actionList: examActionList,
         }"
-        :actions="false"
         :hasFilter="false"
         :log="false"
         :restore="false"
@@ -260,86 +252,41 @@
           <!-- Code & Title (Clickable) -->
           <template v-if="key === 'exam_info'">
             <div
-              class="d-flex align-center py-2 cursor-pointer exam-row-title-trigger"
+              class="py-2 cursor-pointer exam-row-title-trigger"
               @click.stop="openExamHub(item)"
               title="انقر لفتح كشوفات الطلاب والأسئلة ومفاتيح الحل وتوليد الأوراق"
             >
-              <v-avatar color="primary" variant="tonal" size="38" class="me-3 rounded-lg flex-shrink-0">
-                <v-icon size="20">mdi-file-document-edit-outline</v-icon>
-              </v-avatar>
-              <div>
-                <div class="font-weight-black text-body-2 text-on-surface exam-clickable-title text-truncate" style="max-width: 220px;" :title="item.title">{{ item.title }}</div>
-                <div class="text-caption text-medium-emphasis d-flex align-center gap-2 mt-1 flex-wrap">
-                  <span class="font-mono bg-grey-lighten-4 px-2 py-0.5 rounded border text-caption">{{ item.uniqueCode }}</span>
-                  <span>{{ item.created_at }}</span>
-                </div>
-                <!-- شارة حالة أمر الطباعة إذا تم اعتماده أو إرجاعه -->
-                <div v-if="getExamPrintOrder(item)" class="mt-1">
-                  <!-- مرتجع -->
-                  <v-tooltip v-if="getExamPrintOrder(item).status === 'failed' || getExamPrintOrder(item).status === 'returned'" location="bottom">
-                    <template #activator="{ props: tProps }">
-                      <v-chip
-                        v-bind="tProps"
-                        size="x-small"
-                        color="error"
-                        variant="flat"
-                        class="font-weight-bold"
-                      >
-                        <v-icon size="12" start>mdi-keyboard-return</v-icon>
-                        مرتجع: {{ getExamPrintOrder(item).return_reason || 'يحتاج تعديل' }}
-                      </v-chip>
-                    </template>
-                    <span>سبب الإرجاع: {{ getExamPrintOrder(item).return_reason }}</span>
-                  </v-tooltip>
+              <div class="font-weight-bold text-body-2 text-on-surface exam-clickable-title text-truncate" style="max-width: 240px;" :title="item.title">{{ item.title }}</div>
+              <div class="text-caption text-medium-emphasis d-flex align-center gap-2 mt-0.5 flex-wrap">
+                <span class="font-mono">{{ item.uniqueCode }}</span>
+                <span>• {{ item.created_at }}</span>
+              </div>
+              <!-- شارة حالة أمر الطباعة إذا تم اعتماده أو إرجاعه -->
+              <div v-if="getExamPrintOrder(item)" class="mt-1">
+                <v-tooltip v-if="getExamPrintOrder(item).status === 'failed' || getExamPrintOrder(item).status === 'returned'" location="bottom">
+                  <template #activator="{ props: tProps }">
+                    <v-chip v-bind="tProps" size="x-small" color="error" variant="tonal" class="font-weight-bold">
+                      مرتجع: {{ getExamPrintOrder(item).return_reason || 'يحتاج تعديل' }}
+                    </v-chip>
+                  </template>
+                  <span>سبب الإرجاع: {{ getExamPrintOrder(item).return_reason }}</span>
+                </v-tooltip>
 
-                  <!-- مكتمل -->
-                  <v-chip
-                    v-else-if="getExamPrintOrder(item).status === 'completed'"
-                    size="x-small"
-                    color="success"
-                    variant="tonal"
-                    class="font-weight-bold"
-                  >
-                    <v-icon size="12" start>mdi-check-decagram</v-icon>
-                    مكتمل الطباعة 100%
-                  </v-chip>
+                <v-chip v-else-if="getExamPrintOrder(item).status === 'completed'" size="x-small" color="success" variant="tonal" class="font-weight-bold">
+                  مكتمل الطباعة 100%
+                </v-chip>
 
-                  <!-- مجدول لموعد قادم -->
-                  <v-chip
-                    v-else-if="getExamPrintOrder(item).status === 'scheduled'"
-                    size="x-small"
-                    color="info"
-                    variant="tonal"
-                    class="font-weight-bold"
-                  >
-                    <v-icon size="12" start>mdi-calendar-clock</v-icon>
-                    مجدول: {{ getExamPrintOrder(item).scheduled_print_date }}
-                  </v-chip>
+                <v-chip v-else-if="getExamPrintOrder(item).status === 'scheduled'" size="x-small" color="info" variant="tonal" class="font-weight-bold">
+                  مجدول: {{ getExamPrintOrder(item).scheduled_print_date }}
+                </v-chip>
 
-                  <!-- جاهز للتنفيذ بالمستحقة -->
-                  <v-chip
-                    v-else-if="getExamPrintOrder(item).status === 'ready' || getExamPrintOrder(item).status === 'printing'"
-                    size="x-small"
-                    color="teal"
-                    variant="tonal"
-                    class="font-weight-bold"
-                  >
-                    <v-icon size="12" start>mdi-clock-fast</v-icon>
-                    جاهز للتنفيذ بالمستحقة
-                  </v-chip>
+                <v-chip v-else-if="getExamPrintOrder(item).status === 'ready' || getExamPrintOrder(item).status === 'printing'" size="x-small" color="teal" variant="tonal" class="font-weight-bold">
+                  جاهز للتنفيذ بالمستحقة
+                </v-chip>
 
-                  <!-- طلب قيد الاعتماد والمراجعة -->
-                  <v-chip
-                    v-else-if="getExamPrintOrder(item).status === 'pending'"
-                    size="x-small"
-                    color="amber-darken-3"
-                    variant="tonal"
-                    class="font-weight-bold"
-                  >
-                    <v-icon size="12" start>mdi-clock-alert-outline</v-icon>
-                    طلب قيد الاعتماد: {{ getExamPrintOrder(item).order_number }}
-                  </v-chip>
-                </div>
+                <v-chip v-else-if="getExamPrintOrder(item).status === 'pending'" size="x-small" color="amber-darken-3" variant="tonal" class="font-weight-bold">
+                  طلب قيد الاعتماد: {{ getExamPrintOrder(item).order_number }}
+                </v-chip>
               </div>
             </div>
           </template>
@@ -350,63 +297,50 @@
             <div class="text-caption text-medium-emphasis">{{ item.year_name }} ({{ item.institution_type_display }})</div>
           </template>
 
-          <!-- 1. المحافظة (مستقلة ومفصولة تماماً) -->
+          <!-- 1. المحافظة -->
           <template v-else-if="key === 'governorate'">
-            <div class="d-flex align-center justify-center">
+            <div class="text-center">
               <v-tooltip v-if="item.governorates_count > 1" location="top">
                 <template #activator="{ props: tProps }">
-                  <v-chip v-bind="tProps" size="small" color="primary" variant="tonal" class="font-weight-bold">
-                    <v-icon size="13" start>mdi-map-marker</v-icon>
+                  <span v-bind="tProps" class="text-body-2 font-weight-medium cursor-pointer">
                     {{ activeDisplayGovernorate(item) }}
-                    <span class="ms-1 text-caption font-weight-black">
-                      (+{{ item.governorates_count - 1 }})
-                    </span>
-                  </v-chip>
+                    <span class="text-caption text-primary font-weight-bold">(+{{ item.governorates_count - 1 }})</span>
+                  </span>
                 </template>
                 <span>المحافظات المشمولة: {{ item.governorates_list.join('، ') }}</span>
               </v-tooltip>
-              <v-chip v-else size="small" color="primary" variant="tonal" class="font-weight-bold">
-                <v-icon size="13" start>mdi-map-marker</v-icon>
-                {{ activeDisplayGovernorate(item) }}
-              </v-chip>
+              <span v-else class="text-body-2 font-weight-medium">{{ activeDisplayGovernorate(item) }}</span>
             </div>
           </template>
 
-          <!-- 2. المديرية (مستقلة ومفصولة تماماً) -->
+          <!-- 2. المديرية -->
           <template v-else-if="key === 'directorate'">
-            <div class="d-flex align-center justify-center">
+            <div class="text-center">
               <v-tooltip v-if="item.directorates_count > 1" location="top">
                 <template #activator="{ props: tProps }">
-                  <v-chip v-bind="tProps" size="small" color="teal" variant="tonal" class="font-weight-bold">
-                    <v-icon size="13" start>mdi-city-variant-outline</v-icon>
+                  <span v-bind="tProps" class="text-body-2 font-weight-medium cursor-pointer">
                     {{ activeDisplayDirectorate(item) }}
-                    <span class="ms-1 text-caption font-weight-black">
-                      (+{{ item.directorates_count - 1 }})
-                    </span>
-                  </v-chip>
+                    <span class="text-caption text-primary font-weight-bold">(+{{ item.directorates_count - 1 }})</span>
+                  </span>
                 </template>
                 <span>المديريات المشمولة: {{ item.directorates_list.join('، ') }}</span>
               </v-tooltip>
-              <v-chip v-else size="small" color="teal" variant="tonal" class="font-weight-bold">
-                <v-icon size="13" start>mdi-city-variant-outline</v-icon>
-                {{ activeDisplayDirectorate(item) }}
-              </v-chip>
+              <span v-else class="text-body-2 font-weight-medium">{{ activeDisplayDirectorate(item) }}</span>
             </div>
           </template>
 
-          <!-- 3. المركز الامتحاني / المدرسة (مستقلة ومفصولة تماماً ومطابقة للفلتر) -->
+          <!-- 3. المركز الامتحاني / المدرسة -->
           <template v-else-if="key === 'school_center'">
             <div class="py-1">
               <div class="d-flex align-center gap-1.5">
-                <v-icon size="15" color="indigo" class="flex-shrink-0">mdi-school-outline</v-icon>
-                <span class="font-weight-bold text-slate-700 text-truncate" style="max-width: 175px;" :title="item.school_center">
+                <span class="font-weight-bold text-body-2 text-truncate" style="max-width: 185px;" :title="item.school_center">
                   {{ item.school_center }}
                 </span>
                 <v-tooltip v-if="item.schools_count > 1 || (item.all_schools_count && item.all_schools_count > 1)" location="top">
                   <template #activator="{ props: tProps }">
-                    <v-chip v-bind="tProps" size="x-small" color="indigo" variant="tonal" class="font-weight-black cursor-pointer">
-                      +{{ (item.schools_count > 1 ? item.schools_count : item.all_schools_count) - 1 }}
-                    </v-chip>
+                    <span v-bind="tProps" class="text-caption text-primary font-weight-bold cursor-pointer">
+                      (+{{ (item.schools_count > 1 ? item.schools_count : item.all_schools_count) - 1 }})
+                    </span>
                   </template>
                   <div>
                     <div v-if="item.schools_list && item.schools_list.length > 1" class="font-weight-bold mb-1">
@@ -435,37 +369,21 @@
           <!-- Versions & Questions (Clickable to open Keys Tab) -->
           <template v-else-if="key === 'versions_info'">
             <div
-              class="cursor-pointer py-1"
+              class="cursor-pointer py-1 text-center"
               @click.stop="openExamHub(item, 'keys')"
               title="انقر لمعاينة نماذج الأسئلة ومفاتيح الحل المعتمدة"
             >
-              <div class="d-flex justify-center gap-1 mb-1 flex-wrap">
-                <v-chip
-                  v-for="v in item.versions"
-                  :key="v.id"
-                  size="x-small"
-                  color="primary"
-                  variant="tonal"
-                  class="font-weight-bold unified-table-chip"
-                >
-                  {{ v.versionCode }}
-                </v-chip>
+              <div class="font-mono font-weight-bold text-body-2">
+                {{ (item.versions || []).map(v => v.versionCode).join('، ') || '—' }}
               </div>
 
               <!-- مجموعات النماذج والتوزيع المناطقي -->
-              <div v-if="item.model_groups && item.model_groups.length > 1" class="d-flex justify-center mb-1">
+              <div v-if="item.model_groups && item.model_groups.length > 1" class="text-caption text-deep-purple font-weight-bold">
                 <v-tooltip location="top">
                   <template #activator="{ props: tProps }">
-                    <v-chip
-                      v-bind="tProps"
-                      size="x-small"
-                      color="deep-purple"
-                      variant="flat"
-                      class="font-weight-bold cursor-pointer"
-                    >
-                      <v-icon size="11" start>mdi-layers-triple</v-icon>
+                    <span v-bind="tProps" class="cursor-pointer">
                       {{ item.model_groups.length }} مجموعات صعوبة
-                    </v-chip>
+                    </span>
                   </template>
                   <div>
                     <div class="font-weight-black border-b pb-1 mb-1">جدول توزيع النماذج ومستويات الصعوبة:</div>
@@ -480,8 +398,8 @@
                 </v-tooltip>
               </div>
 
-              <div class="text-caption font-weight-bold text-primary">
-                {{ item.total_questions }} سؤال (مفاتيح الحل)
+              <div class="text-caption font-weight-medium text-primary">
+                {{ item.total_questions }} سؤال
               </div>
             </div>
           </template>
@@ -489,23 +407,17 @@
           <!-- Registered Students (Clickable to open Roster Tab) -->
           <template v-else-if="key === 'students_count'">
             <div
-              class="cursor-pointer py-1"
+              class="cursor-pointer py-1 text-center"
               @click.stop="openExamHub(item, 'roster')"
               title="انقر لفتح كشف الطلاب وأرقام الجلوس"
             >
-              <v-chip
-                :color="item.registered_students_count > 0 ? 'primary' : 'grey'"
-                variant="tonal"
-                size="small"
-                class="font-weight-bold unified-table-chip"
-                prepend-icon="mdi-account-school-outline"
-              >
+              <div class="font-weight-bold text-body-2 font-mono">
                 {{ item.registered_students_count || 0 }} طالب
-              </v-chip>
-              <div v-if="item.registered_students_count > 0" class="text-caption text-success mt-1">
-                <v-icon size="12">mdi-check-circle</v-icon> كشف معتمد
               </div>
-              <div v-else class="text-caption text-medium-emphasis mt-1">
+              <div v-if="item.registered_students_count > 0" class="text-caption text-success">
+                كشف معتمد
+              </div>
+              <div v-else class="text-caption text-medium-emphasis">
                 يحتاج تسجيل
               </div>
             </div>
@@ -537,139 +449,6 @@
           </template>
 
           <!-- Actions -->
-          <template v-else-if="key === 'actions'">
-            <div class="d-flex align-center justify-center gap-1.5 flex-nowrap table-actions-cell">
-                <!-- 1. في حال وجود طلب طباعة مسبقاً لهذا الاختبار -->
-                <template v-if="getExamPrintOrder(item)">
-                  <!-- أ. طلب مرتجع للتعديل -->
-                  <template v-if="getExamPrintOrder(item).status === 'failed' || getExamPrintOrder(item).status === 'returned'">
-                    <v-btn
-                      color="warning"
-                      variant="flat"
-                      rounded="lg"
-                      size="small"
-                      density="compact"
-                      class="font-weight-bold px-2 table-action-btn shadow-sm"
-                      prepend-icon="mdi-file-document-edit-outline"
-                      @click.stop.prevent="openCreatePrintOrderDialog(item)"
-                      title="تعديل وإعادة إرسال طلب الطباعة المرتجع"
-                    >
-                      تعديل المرتجع
-                    </v-btn>
-                    <v-btn
-                      color="error"
-                      variant="tonal"
-                      rounded="lg"
-                      size="small"
-                      density="compact"
-                      icon="mdi-alert-circle-outline"
-                      class="table-action-icon-btn ms-1"
-                      @click.stop.prevent="goToPrintRegistry(item, 'all')"
-                      :title="getExamPrintOrder(item).return_reason ? ('سبب الإرجاع: ' + getExamPrintOrder(item).return_reason) : 'عرض سبب الإرجاع في السجل'"
-                    />
-                  </template>
-
-                  <!-- ب. طلب قيد الاعتماد والمراجعة -->
-                  <template v-else-if="getExamPrintOrder(item).status === 'pending'">
-                    <v-btn
-                      color="amber-darken-3"
-                      variant="tonal"
-                      rounded="lg"
-                      size="small"
-                      density="compact"
-                      class="font-weight-bold px-2 table-action-btn"
-                      prepend-icon="mdi-clock-outline"
-                      @click.stop.prevent="goToPrintRegistry(item, 'all')"
-                      title="متابعة واعتماد طلب الطباعة في السجل المركزي"
-                    >
-                      متابعة الطلب
-                    </v-btn>
-                  </template>
-
-                  <!-- ج. طلب مجدول لموعد قادم -->
-                  <template v-else-if="getExamPrintOrder(item).status === 'scheduled'">
-                    <v-btn
-                      color="info"
-                      variant="tonal"
-                      rounded="lg"
-                      size="small"
-                      density="compact"
-                      class="font-weight-bold px-2 table-action-btn"
-                      prepend-icon="mdi-calendar-clock"
-                      @click.stop.prevent="goToPrintRegistry(item, 'scheduled')"
-                      title="استعراض تفاصيل أمر الطباعة المجدول"
-                    >
-                      أمر مجدول
-                    </v-btn>
-                  </template>
-
-                  <!-- د. طلب مستحق وجاهز للتنفيذ -->
-                  <template v-else-if="getExamPrintOrder(item).status === 'ready' || getExamPrintOrder(item).status === 'printing'">
-                    <v-btn
-                      color="teal"
-                      variant="tonal"
-                      rounded="lg"
-                      size="small"
-                      density="compact"
-                      class="font-weight-bold px-2 table-action-btn"
-                      prepend-icon="mdi-clock-fast"
-                      @click.stop.prevent="goToPrintRegistry(item, 'due')"
-                      title="الانتقال لقائمة انتظار الطباعة المستحقة للتنفيذ"
-                    >
-                      أمر مستحق
-                    </v-btn>
-                  </template>
-
-                  <!-- هـ. طلب معتمد ومكتمل -->
-                  <template v-else>
-                    <v-btn
-                      color="success"
-                      variant="tonal"
-                      rounded="lg"
-                      size="small"
-                      density="compact"
-                      class="font-weight-bold px-2 table-action-btn"
-                      prepend-icon="mdi-file-document-check-outline"
-                      @click.stop.prevent="goToPrintRegistry(item, 'completed')"
-                      title="استعراض تفاصيل وإذن صرف أمر الطباعة المكتمل"
-                    >
-                      أمر معتمد
-                    </v-btn>
-                  </template>
-                </template>
-
-                <!-- إذا لم يتم إنشاء طلب طباعة بعد -->
-                <template v-else>
-                  <!-- 1. إنشاء طلب طباعة رسمي (المرحلة 2) -->
-                  <v-btn
-                    color="primary"
-                    variant="flat"
-                    rounded="lg"
-                    size="small"
-                    density="compact"
-                    class="font-weight-bold px-2 table-action-btn shadow-sm"
-                    prepend-icon="mdi-file-document-plus-outline"
-                    @click.stop.prevent="openCreatePrintOrderDialog(item)"
-                    title="إنشاء طلب طباعة رسمي للاختبار"
-                  >
-                    إنشاء طلب طباعة
-                  </v-btn>
-                </template>
-
-              <!-- 2. فحص وتجهيز الاختبار (أيقونة مدمجة) -->
-              <v-btn
-                color="secondary"
-                variant="tonal"
-                rounded="lg"
-                size="small"
-                density="compact"
-                icon="mdi-clipboard-check-outline"
-                class="table-action-icon-btn ms-1"
-                @click.stop.prevent="openExamHub(item, 'questions')"
-                title="فحص كراسة الأسئلة، كشوفات الطلاب، ومفاتيح الحل"
-              />
-            </div>
-          </template>
         </template>
       </custom-data-table>
     </div>
@@ -677,41 +456,25 @@
     <!-- ════════════════════════════════════════════════════════════════ -->
     <!-- DIALOG: النافذة الشاملة لإدارة الاختبار، الطلاب، وتوليد القوالب  -->
     <!-- ════════════════════════════════════════════════════════════════ -->
-    <v-dialog v-model="detailsDialog" max-width="1360px" scrollable>
-      <v-card class="rounded-2xl" elevation="4" style="height: 94vh; max-height: 94vh; display: flex; flex-direction: column;">
-        <!-- Dialog Header -->
-        <v-card-title class="pa-4 pa-md-5 border-b d-flex align-center justify-space-between bg-surface flex-wrap gap-2">
-          <div class="d-flex align-center">
-            <v-avatar color="primary" variant="tonal" size="44" class="me-3 rounded-xl">
-              <v-icon size="24">mdi-school-outline</v-icon>
-            </v-avatar>
-            <div>
-              <div class="text-h6 font-weight-black mb-0">{{ activeExam?.title }}</div>
-              <div class="text-caption text-medium-emphasis d-flex align-center gap-2 flex-wrap">
-                <span>رمز: <strong class="font-mono">{{ activeExam?.uniqueCode }}</strong></span>
-                <span>• المادة: <strong>{{ activeExam?.subject_name }}</strong></span>
-                <span>• العام: <strong>{{ activeExam?.year_name }}</strong></span>
-                <span v-if="activeExam?.governorate">
-                  • المحافظة: <strong>{{ activeExam.governorate }}{{ activeExam.directorate ? ` (${activeExam.directorate})` : '' }}</strong>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div class="d-flex align-center gap-2">
-            <v-btn
-              icon="mdi-close"
-              variant="text"
-              size="small"
-              density="comfortable"
-              color="medium-emphasis"
-              @click="detailsDialog = false"
-            />
-          </div>
-        </v-card-title>
+    <custom-dialog
+      v-model="detailsDialog"
+      :title="activeExam?.title || 'إدارة الاختبار'"
+      width="1360"
+      height="94vh"
+    >
+      <div class="d-flex flex-column" style="height: 100%;">
+        <!-- Exam Metadata Subheader -->
+        <div class="pb-3 mb-3 border-b d-flex align-center gap-2 flex-wrap text-caption text-medium-emphasis">
+          <span>رمز: <strong class="font-mono">{{ activeExam?.uniqueCode }}</strong></span>
+          <span>• المادة: <strong>{{ activeExam?.subject_name }}</strong></span>
+          <span>• العام: <strong>{{ activeExam?.year_name }}</strong></span>
+          <span v-if="activeExam?.governorate">
+            • المحافظة: <strong>{{ activeExam.governorate }}{{ activeExam.directorate ? ` (${activeExam.directorate})` : '' }}</strong>
+          </span>
+        </div>
 
         <!-- ── Main Navigation Tabs in Dialog (خفيف وسهل ومرن) ── -->
-        <div class="px-4 pt-3 pb-2 bg-surface">
+        <div class="pb-2">
           <div class="exam-hub-nav-bar">
             <div class="exam-hub-nav-container">
               <div
@@ -834,9 +597,10 @@
             />
           </div>
         </v-card-text>
+      </div>
 
-        <!-- Dialog Footer Actions -->
-        <v-card-actions class="pa-4 bg-surface border-t d-flex justify-space-between align-center flex-wrap gap-2">
+      <template #actions>
+        <div class="d-flex justify-space-between align-center flex-wrap gap-2 w-100">
           <div class="text-caption text-medium-emphasis">
             نظام التصحيح الضوئي المعتمد — بنك الأسئلة والتقويم التربوي
           </div>
@@ -848,9 +612,9 @@
               :click="() => detailsDialog = false"
             />
           </div>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+        </div>
+      </template>
+    </custom-dialog>
 
     <!-- ════════════════════════════════════════════════════════════════ -->
     <!-- DIALOG: نموذج إنشاء طلب طباعة رسمي للاختبار (المرحلة 2)       -->
@@ -972,12 +736,10 @@ const orgParam = computed(() => {
 const onGovernorateChange = () => {
   filterDirectorate.value = null
   filterOrganization.value = null
-  debouncedFetchExams()
 }
 
 const onDirectorateChange = () => {
   filterOrganization.value = null
-  debouncedFetchExams()
 }
 
 const onInstitutionTypeChange = () => {
@@ -995,48 +757,40 @@ const onInstitutionTypeChange = () => {
   filterInstituteEducationSystem.value = null
   filterInstituteSpecialization.value = null
   filterInstituteSubject.value = null
-  debouncedFetchExams()
 }
 
 const onStageChange = () => {
   filterClassTrack.value = null
   filterSubject.value = null
-  debouncedFetchExams()
 }
 
 const onClassTrackChange = () => {
   filterSubject.value = null
-  debouncedFetchExams()
 }
 
 const onCollegeChange = () => {
   filterDepartment.value = null
   filterSpecialization.value = null
   filterSemesterSubject.value = null
-  debouncedFetchExams()
 }
 
 const onDepartmentChange = () => {
   filterSpecialization.value = null
   filterSemesterSubject.value = null
-  debouncedFetchExams()
 }
 
 const onSpecializationChange = () => {
   filterSemesterSubject.value = null
-  debouncedFetchExams()
 }
 
 const onInstituteFieldChange = () => {
   filterInstituteEducationSystem.value = null
   filterInstituteSpecialization.value = null
   filterInstituteSubject.value = null
-  debouncedFetchExams()
 }
 
 const onInstituteEducationSystemChange = () => {
   filterInstituteSpecialization.value = null
-  debouncedFetchExams()
 }
 
 // Dialog State
@@ -1118,8 +872,32 @@ const headers = computed(() => [
   { title: "النماذج ومجموعاتها", key: "versions_info", sortable: false, align: "center", width: "135px" },
   { title: "كشف الطلاب", key: "students_count", sortable: true, align: "center", width: "90px" },
   { title: "حالة التصحيح", key: "progress", sortable: false, align: "center", width: "90px" },
-  { title: "الاجراءات", key: "actions", sortable: false, align: "center", width: "140px" },
 ])
+
+const examActionList = (item) => {
+  const order = getExamPrintOrder(item)
+  const list = []
+  if (order) {
+    if (order.status === 'failed' || order.status === 'returned') {
+      list.push(
+        { title_ar: 'تعديل وإعادة إرسال المرتجع', title_en: 'Edit Returned Order', click: () => openCreatePrintOrderDialog(item) },
+        { title_ar: 'عرض سبب الإرجاع في السجل', title_en: 'View Return Reason', click: () => goToPrintRegistry(item, 'all') },
+      )
+    } else if (order.status === 'pending') {
+      list.push({ title_ar: 'متابعة واعتماد الطلب', title_en: 'Review Order', click: () => goToPrintRegistry(item, 'all') })
+    } else if (order.status === 'scheduled') {
+      list.push({ title_ar: 'استعراض الأمر المجدول', title_en: 'View Scheduled Order', click: () => goToPrintRegistry(item, 'scheduled') })
+    } else if (order.status === 'ready' || order.status === 'printing') {
+      list.push({ title_ar: 'الانتقال لأمر الطباعة المستحق', title_en: 'Go to Due Order', click: () => goToPrintRegistry(item, 'due') })
+    } else {
+      list.push({ title_ar: 'استعراض الأمر المعتمد', title_en: 'View Approved Order', click: () => goToPrintRegistry(item, 'completed') })
+    }
+  } else {
+    list.push({ title_ar: 'إنشاء طلب طباعة رسمي', title_en: 'Create Print Order', click: () => openCreatePrintOrderDialog(item) })
+  }
+  list.push({ title_ar: 'فحص وتجهيز الاختبار (كراسة، كشوفات، مفاتيح)', title_en: 'Inspect Exam Hub', click: () => openExamHub(item, 'questions') })
+  return list
+}
 
 const activeDisplayGovernorate = (item) => {
   return item.governorate || 'كافة المحافظات'

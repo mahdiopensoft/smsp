@@ -33,7 +33,7 @@
             { text: 'مكتمل', value: 'completed' },
             { text: 'ملغي', value: 'cancelled' }
           ]"
-          cols="2"
+          cols="3"
           label="الحالة"
           icon="check-circle-outline"
           :add="false"
@@ -48,13 +48,13 @@
             { text: 'ورقي (مطبوع)', value: 'paper' },
             { text: 'مدمج', value: 'hybrid' }
           ]"
-          cols="2"
+          cols="3"
           label="طريقة التسليم"
           icon="truck-delivery-outline"
           :add="false"
         />
 
-        <v-col cols="12" md="2">
+        <v-col cols="12" md="3">
           <custom-date-picker
             v-model="filterDateFrom"
             label="من تاريخ الإرسال"
@@ -64,7 +64,7 @@
           />
         </v-col>
 
-        <v-col cols="12" md="2">
+        <v-col cols="12" md="3">
           <custom-date-picker
             v-model="filterDateTo"
             label="إلى تاريخ الإرسال"
@@ -190,8 +190,6 @@ const getDeliveryLabel = (mode) => {
 
 const onInstitutionTypeChange = () => {
   filterExam.value = null
-  resetPagination()
-  applyFilters()
 }
 
 const buildParams = () => {

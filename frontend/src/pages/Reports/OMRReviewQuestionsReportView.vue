@@ -20,7 +20,7 @@
           name="Exam"
           :param="examParam"
           placeholder="الاختبار"
-          cols="2"
+          cols="3"
           :add="false"
           @update:model-value="filterVersion = null"
         />
@@ -30,7 +30,7 @@
           name="ExamVersionByExam"
           :param="filterExam"
           placeholder="النموذج"
-          cols="2"
+          cols="3"
           :add="false"
           :disabled="!filterExam"
         />
@@ -45,7 +45,7 @@
             { text: 'متوسط', value: 'MEDIUM' },
             { text: 'لا يتطلب', value: 'NONE' }
           ]"
-          cols="2"
+          cols="3"
           label="أولوية المراجعة"
           icon="alert-circle-outline"
           :add="false"
@@ -61,7 +61,7 @@
             { text: 'فارغ', value: 'empty' },
             { text: 'ممسوح', value: 'erased' }
           ]"
-          cols="2"
+          cols="3"
           label="حالة الدائرة"
           icon="radiobox-marked"
           :add="false"
@@ -75,7 +75,7 @@
             { text: 'معدّل يدوياً', value: 'true' },
             { text: 'غير معدّل', value: 'false' }
           ]"
-          cols="2"
+          cols="3"
           label="تعديل يدوي"
           icon="pencil-outline"
           :add="false"
@@ -133,22 +133,14 @@
             </v-chip>
           </template>
           <template v-else-if="key === 'reviewPriority'">
-            <v-chip
-              :color="getPriorityColor(item.reviewPriority)"
-              size="small"
-              variant="tonal"
-            >
+            <span class="font-weight-bold text-body-2" :class="`text-${getPriorityColor(item.reviewPriority)}`">
               {{ getPriorityLabel(item.reviewPriority) }}
-            </v-chip>
+            </span>
           </template>
           <template v-else-if="key === 'isManuallyOverridden'">
-            <v-chip
-              :color="item.isManuallyOverridden ? 'info' : 'default'"
-              size="small"
-              variant="tonal"
-            >
+            <span class="font-weight-medium text-body-2" :class="item.isManuallyOverridden ? 'text-info' : 'text-medium-emphasis'">
               {{ item.isManuallyOverridden ? 'نعم' : 'لا' }}
-            </v-chip>
+            </span>
           </template>
         </template>
       </custom-data-table>
@@ -186,8 +178,6 @@ const examParam = computed(() => {
 const onInstitutionTypeChange = () => {
   filterExam.value = null
   filterVersion.value = null
-  resetPagination()
-  applyFilters()
 }
 
 const headers = [

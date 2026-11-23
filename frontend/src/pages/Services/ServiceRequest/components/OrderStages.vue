@@ -232,78 +232,48 @@
   </div>
 
   <!-- Professional Note Dialog -->
-  <v-dialog v-model="noteDialog" max-width="520">
-    <v-card class="rounded-2xl overflow-hidden border-0 shadow-2xl mx-4">
-      <div class="dialog-premium-header pa-6 bg-slate-50 border-bottom">
-        <div class="d-flex align-center justify-space-between">
-          <div class="d-flex align-center ga-4">
-            <v-avatar
-              color="primary"
-              variant="tonal"
-              size="40"
-              class="rounded-lg"
-            >
-              <v-icon color="primary" size="20"
-                >mdi-comment-plus-outline</v-icon
-              >
-            </v-avatar>
-            <div>
-              <h3 class="text-h6 font-weight-black text-slate-900 mb-0">
-                إضافة ملاحظة
-              </h3>
-              <div class="text-caption text-slate-500 font-weight-bold">
-                توثيق ملاحظات العمل على المرحلة
-              </div>
-            </div>
-          </div>
-          <v-btn
-            icon="mdi-close"
-            variant="tonal"
-            color="slate-400"
-            size="small"
-            class="rounded-lg"
-            @click="noteDialog = false"
-          />
-        </div>
-      </div>
+  <custom-dialog
+    v-model="noteDialog"
+    title="إضافة ملاحظة"
+    width="520"
+    height="auto"
+  >
+    <div class="text-caption text-slate-500 font-weight-bold mb-3">
+      توثيق ملاحظات العمل على المرحلة
+    </div>
+    <v-textarea
+      v-model="notes"
+      placeholder="اكتب ملاحظاتك أو توجيهاتك هنا..."
+      variant="outlined"
+      rows="4"
+      auto-grow
+      color="primary"
+      hide-details
+      class="custom-textarea-premium"
+    />
 
-      <v-card-text class="pa-6">
-        <v-textarea
-          v-model="notes"
-          placeholder="اكتب ملاحظاتك أو توجيهاتك هنا..."
-          variant="outlined"
-          rows="4"
-          auto-grow
-          color="primary"
-          hide-details
-          class="custom-textarea-premium"
-        />
-      </v-card-text>
-
-      <v-card-actions class="pa-6 pt-0">
-        <v-spacer />
-        <v-btn
-          variant="text"
-          color="slate-500"
-          class="px-6 font-weight-bold"
-          @click="noteDialog = false"
-        >
-          إلغاء
-        </v-btn>
-        <v-btn
-          color="primary"
-          variant="tonal"
-          class="px-8 rounded-xl font-weight-black"
-          height="44"
-          :loading="noteLoading"
-          :disabled="!notes.trim()"
-          @click="submitNote"
-        >
-          حفظ الملاحظة
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+    <template #actions>
+      <v-btn
+        variant="text"
+        color="slate-500"
+        class="px-6 font-weight-bold"
+        @click="noteDialog = false"
+      >
+        إلغاء
+      </v-btn>
+      <v-btn
+        color="primary"
+        variant="tonal"
+        class="px-8 rounded-xl font-weight-black"
+        height="44"
+        :loading="noteLoading"
+        :disabled="!notes.trim()"
+        @click="submitNote"
+      >
+        حفظ الملاحظة
+      </v-btn>
+    </template>
+  </custom-dialog>
 
   <!-- Files Dialog -->
   <BaseDialog

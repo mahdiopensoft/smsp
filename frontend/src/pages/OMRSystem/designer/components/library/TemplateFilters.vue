@@ -2,7 +2,7 @@
   <filter-fields label="خيارات التصفية والبحث المتقدم" class="main-card border-0 pa-5 rounded-2xl mb-6">
     <v-row dense class="align-center">
       <!-- 1. فلتر نوع القالب / المؤسسة الموحد -->
-      <v-col cols="12" sm="6" md="4">
+      <v-col cols="12" sm="6" md="3">
         <auto-list
           :model-value="filterCategory"
           name="ScreenTypeChoices"
@@ -11,7 +11,7 @@
           placeholder="كافة الأنواع..."
           cols="12"
           :add="false"
-          @update:model-value="$emit('update:filterCategory', $event); $emit('apply')"
+          @update:model-value="$emit('update:filterCategory', $event)"
         />
       </v-col>
 
@@ -25,7 +25,7 @@
           placeholder="كافة السعات..."
           cols="12"
           :add="false"
-          @update:model-value="$emit('update:filterQuestions', $event); $emit('apply')"
+          @update:model-value="$emit('update:filterQuestions', $event)"
         />
       </v-col>
 
@@ -39,26 +39,24 @@
           placeholder="كافة الحالات..."
           cols="12"
           :add="false"
-          @update:model-value="$emit('update:filterActive', $event); $emit('apply')"
+          @update:model-value="$emit('update:filterActive', $event)"
         />
       </v-col>
 
       <!-- 4. أزرار إجراءات الفلترة الموحدة -->
-      <v-col cols="12" sm="6" md="2" class="d-flex align-center justify-end gap-2">
+      <v-col cols="auto" class="d-flex align-center gap-2 mb-6">
         <custom-btn
           type="show"
-          label="تصفية"
+          label="عرض"
           color="primary"
-          icon="mdi-filter"
-          class="font-weight-bold flex-grow-1"
+          class="font-weight-bold px-5"
           :click="() => $emit('apply')"
         />
         <custom-btn
           type="cancel_filter"
           variant="tonal"
           color="error"
-          label="تفريغ"
-          icon="mdi-filter-off"
+          label="إلغاء الفلترة"
           class="font-weight-bold"
           :click="() => $emit('reset')"
         />

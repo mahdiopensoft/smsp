@@ -8,7 +8,7 @@
           v-model="filterStage"
           name="Stage"
           placeholder="المرحلة الدراسية"
-          cols="4"
+          cols="3"
           :add="false"
           @update:model-value="onStageChange"
         />
@@ -19,13 +19,13 @@
           name="ClassTrackByStage"
           :param="filterStage"
           placeholder="مسارات الصفوف الدراسية"
-          cols="4"
+          cols="3"
           :add="false"
           :disabled="!filterStage"
         />
 
         <!-- Filter Actions (تصفية + تفريغ) -->
-        <v-col cols="12" sm="6" md="4" class="d-flex align-center gap-2">
+        <v-col cols="auto" class="d-flex align-center gap-2">
           <custom-btn
             type="show"
             label="تصفية"

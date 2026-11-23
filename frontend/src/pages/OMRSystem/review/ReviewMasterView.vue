@@ -59,44 +59,25 @@
             :restore="false"
             :numbering="true"
             :showSelect="false"
-            :actions="false"
-          >
+          
+        :actionList="(item) => ([ { label: 'عرض المديريات', icon: 'arrow-down-right', color: 'primary', onClick: () => onDrillDownOffice(item) }, { label: 'عرض الاختبارات', icon: 'file-document-check-outline', color: 'indigo', onClick: () => onOpenOfficeExams(item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
             <template v-slot:item-slot="{ item, key }">
               <template v-if="key === 'office_name'">
-                <div class="d-flex align-center py-2" style="min-width: 220px;">
-                  <v-avatar color="primary" variant="tonal" size="36" class="me-3 rounded-lg flex-shrink-0">
-                    <v-icon color="primary" size="20">mdi-office-building-outline</v-icon>
-                  </v-avatar>
-                  <div>
-                    <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.office_name }}</div>
-                    <div class="text-caption text-medium-emphasis">المحافظة: {{ item.governorate_name }}</div>
-                  </div>
+                <div class="py-1" style="min-width: 200px;">
+                  <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.office_name }}</div>
+                  <div class="text-caption text-medium-emphasis">المحافظة: {{ item.governorate_name }}</div>
                 </div>
               </template>
               <template v-else-if="key === 'scanned_count'">
-                <v-chip size="small" color="teal" variant="tonal" class="font-weight-bold">
-                  {{ item.scanned_count ?? 0 }} ورقة
-                </v-chip>
+                <span class="font-mono font-weight-bold text-body-2">{{ item.scanned_count ?? 0 }} ورقة</span>
               </template>
               <template v-else-if="key === 'needs_review_count'">
-                <v-chip size="small" :color="(item.needs_review_count || 0) > 0 ? 'warning' : 'success'" variant="flat" class="font-weight-bold">
+                <span class="font-mono font-weight-bold text-body-2" :class="(item.needs_review_count || 0) > 0 ? 'text-warning-darken-2' : 'text-success'">
                   {{ item.needs_review_count || 0 }} ورقة
-                </v-chip>
+                </span>
               </template>
               <template v-else-if="key === 'completed_count'">
-                <v-chip size="small" color="success" variant="tonal" class="font-weight-bold">
-                  {{ item.completed_count || 0 }} معتمدة
-                </v-chip>
-              </template>
-              <template v-else-if="key === 'actions'">
-                <div class="d-flex align-center justify-center gap-2">
-                  <v-btn size="small" color="primary" variant="tonal" rounded="lg" class="font-weight-bold" prepend-icon="mdi-arrow-down-right" @click="onDrillDownOffice(item)">
-                    المديريات
-                  </v-btn>
-                  <v-btn size="small" color="primary" variant="flat" rounded="lg" class="font-weight-bold" prepend-icon="mdi-file-document-check-outline" @click="onOpenOfficeExams(item)">
-                    الاختبارات
-                  </v-btn>
-                </div>
+                <span class="font-mono font-weight-bold text-body-2 text-success">{{ item.completed_count || 0 }} معتمدة</span>
               </template>
             </template>
           </custom-data-table>
@@ -114,39 +95,22 @@
             :restore="false"
             :numbering="true"
             :showSelect="false"
-            :actions="false"
-          >
+          
+        :actionList="(item) => ([ { label: 'عرض المدارس', icon: 'arrow-down-right', color: 'teal', onClick: () => onDrillDownDirectorate(item) }, { label: 'عرض الاختبارات', icon: 'file-document-check-outline', color: 'primary', onClick: () => onOpenDirectorateExams(item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
             <template v-slot:item-slot="{ item, key }">
               <template v-if="key === 'name'">
-                <div class="d-flex align-center py-2" style="min-width: 200px;">
-                  <v-avatar color="teal" variant="tonal" size="36" class="me-3 rounded-lg flex-shrink-0">
-                    <v-icon color="teal" size="20">mdi-map-marker-radius-outline</v-icon>
-                  </v-avatar>
-                  <div>
-                    <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name }}</div>
-                    <div class="text-caption text-medium-emphasis">{{ item.office_name }}</div>
-                  </div>
+                <div class="py-1" style="min-width: 200px;">
+                  <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name }}</div>
+                  <div class="text-caption text-medium-emphasis">{{ item.office_name }}</div>
                 </div>
               </template>
               <template v-else-if="key === 'scanned_count'">
-                <v-chip size="small" color="teal" variant="tonal" class="font-weight-bold">
-                  {{ item.scanned_count ?? 0 }} ورقة
-                </v-chip>
+                <span class="font-mono font-weight-bold text-body-2">{{ item.scanned_count ?? 0 }} ورقة</span>
               </template>
               <template v-else-if="key === 'needs_review_count'">
-                <v-chip size="small" :color="(item.needs_review_count || 0) > 0 ? 'warning' : 'success'" variant="flat" class="font-weight-bold">
+                <span class="font-mono font-weight-bold text-body-2" :class="(item.needs_review_count || 0) > 0 ? 'text-warning-darken-2' : 'text-success'">
                   {{ item.needs_review_count || 0 }} ورقة
-                </v-chip>
-              </template>
-              <template v-else-if="key === 'actions'">
-                <div class="d-flex align-center justify-center gap-2">
-                  <v-btn size="small" color="teal" variant="tonal" rounded="lg" class="font-weight-bold" prepend-icon="mdi-arrow-down-right" @click="onDrillDownDirectorate(item)">
-                    المدارس
-                  </v-btn>
-                  <v-btn size="small" color="primary" variant="flat" rounded="lg" class="font-weight-bold" prepend-icon="mdi-file-document-check-outline" @click="onOpenDirectorateExams(item)">
-                    الاختبارات
-                  </v-btn>
-                </div>
+                </span>
               </template>
             </template>
           </custom-data-table>
@@ -164,36 +128,22 @@
             :restore="false"
             :numbering="true"
             :showSelect="false"
-            :actions="false"
-          >
+          
+        :actionList="(item) => ([ { label: 'عرض الاختبارات', icon: 'file-document-check-outline', color: 'primary', onClick: () => onOpenSchoolExams(item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
             <template v-slot:item-slot="{ item, key }">
               <template v-if="key === 'name'">
-                <div class="d-flex align-center py-2" style="min-width: 220px;">
-                  <v-avatar color="indigo" variant="tonal" size="36" class="me-3 rounded-lg flex-shrink-0">
-                    <v-icon color="indigo" size="20">{{ institutionType === 'university' ? 'mdi-domain' : (institutionType === 'institute' ? 'mdi-tools' : 'mdi-school-outline') }}</v-icon>
-                  </v-avatar>
-                  <div>
-                    <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name }}</div>
-                    <div class="text-caption text-medium-emphasis">{{ item.directorate_name || item.governorate_name || '' }}</div>
-                  </div>
+                <div class="py-1" style="min-width: 200px;">
+                  <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.name }}</div>
+                  <div class="text-caption text-medium-emphasis">{{ item.directorate_name || item.governorate_name || '' }}</div>
                 </div>
               </template>
               <template v-else-if="key === 'scanned_count'">
-                <v-chip size="small" color="teal" variant="tonal" class="font-weight-bold">
-                  {{ item.scanned_count ?? 0 }} ورقة
-                </v-chip>
+                <span class="font-mono font-weight-bold text-body-2">{{ item.scanned_count ?? 0 }} ورقة</span>
               </template>
               <template v-else-if="key === 'needs_review_count'">
-                <v-chip size="small" :color="(item.needs_review_count || 0) > 0 ? 'warning' : 'success'" variant="flat" class="font-weight-bold">
+                <span class="font-mono font-weight-bold text-body-2" :class="(item.needs_review_count || 0) > 0 ? 'text-warning-darken-2' : 'text-success'">
                   {{ item.needs_review_count || 0 }} ورقة
-                </v-chip>
-              </template>
-              <template v-else-if="key === 'actions'">
-                <div class="d-flex align-center justify-center gap-2">
-                  <v-btn size="small" color="primary" variant="flat" rounded="lg" class="font-weight-bold" prepend-icon="mdi-file-document-check-outline" @click="onOpenSchoolExams(item)">
-                    الاختبارات
-                  </v-btn>
-                </div>
+                </span>
               </template>
             </template>
           </custom-data-table>
@@ -211,49 +161,27 @@
             :restore="false"
             :numbering="true"
             :showSelect="false"
-            :actions="false"
-          >
+          
+        :actionList="(item) => ([ { label: 'فحص وتدقيق أوراق الاختبار', icon: 'shield-search', color: 'primary', onClick: () => $emit('select-exam', item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
             <template v-slot:item-slot="{ item, key }">
               <template v-if="key === 'title' || key === 'exam_title'">
-                <div class="py-2" style="min-width: 240px;">
+                <div class="py-1" style="min-width: 220px;">
                   <div class="font-weight-bold text-subtitle-2 text-on-surface">{{ item.title }}</div>
-                  <div class="d-flex align-center gap-2 mt-1">
-                    <v-chip size="x-small" color="primary" variant="tonal" class="font-mono font-weight-bold">
-                      {{ item.uniqueCode || item.code }}
-                    </v-chip>
-                    <span class="text-caption text-medium-emphasis">{{ item.subject_name }}</span>
+                  <div class="text-caption text-medium-emphasis mt-0.5">
+                    <span class="font-mono">{{ item.uniqueCode || item.code }}</span> • {{ item.subject_name }}
                   </div>
                 </div>
               </template>
               <template v-else-if="key === 'total_scanned'">
-                <v-chip size="small" color="teal" variant="tonal" class="font-weight-bold">
-                  {{ item.total_scanned || item.scanned_count || 0 }} ورقة
-                </v-chip>
+                <span class="font-mono font-weight-bold text-body-2">{{ item.total_scanned || item.scanned_count || 0 }} ورقة</span>
               </template>
               <template v-else-if="key === 'needs_review_count'">
-                <v-chip size="small" :color="(item.needs_review_count || 0) > 0 ? 'warning' : 'success'" variant="flat" class="font-weight-bold">
+                <span class="font-mono font-weight-bold text-body-2" :class="(item.needs_review_count || 0) > 0 ? 'text-warning-darken-2' : 'text-success'">
                   {{ item.needs_review_count || 0 }} بحاجة لمراجعة
-                </v-chip>
+                </span>
               </template>
               <template v-else-if="key === 'completed_count'">
-                <v-chip size="small" color="success" variant="tonal" class="font-weight-bold">
-                  {{ item.completed_count || 0 }} معتمدة
-                </v-chip>
-              </template>
-              <template v-else-if="key === 'actions'">
-                <div class="d-flex align-center justify-center gap-2">
-                  <v-btn
-                    size="small"
-                    color="primary"
-                    variant="flat"
-                    rounded="lg"
-                    class="font-weight-bold shadow-sm"
-                    prepend-icon="mdi-shield-search"
-                    @click="$emit('select-exam', item)"
-                  >
-                    فحص وتدقيق أوراق الاختبار
-                  </v-btn>
-                </div>
+                <span class="font-mono font-weight-bold text-body-2 text-success">{{ item.completed_count || 0 }} معتمدة</span>
               </template>
             </template>
           </custom-data-table>

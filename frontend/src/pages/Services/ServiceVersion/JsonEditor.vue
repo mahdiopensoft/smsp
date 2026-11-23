@@ -165,41 +165,44 @@
   </v-card>
 
   <!-- حوار تأكيد الحذف المحسن -->
-  <v-dialog v-model="deleteDialog" max-width="450" persistent transition="dialog-bottom-transition">
-    <v-card class="rounded-xl overflow-hidden shadow-lg border-0">
-      <v-toolbar color="error" flat height="4">
-      </v-toolbar>
+  <custom-dialog
+    v-model="deleteDialog"
+    title="هل أنت متأكد؟"
+    width="450"
+    height="auto"
+    persistent
+    transition="dialog-bottom-transition"
+  >
+    <div class="py-2 text-center">
+      <!-- أيقونة تحذير كبيرة -->
+      <div class="mb-5 d-flex justify-center">
+        <v-avatar color="error-lighten-4" size="90" class="elevation-1">
+          <v-icon color="error" size="50" class="animate-shake">mdi-alert-outline</v-icon>
+        </v-avatar>
+      </div>
 
-      <v-card-text class="pa-8 pb-4 text-center">
-        <!-- أيقونة تحذير كبيرة -->
-        <div class="mb-5 d-flex justify-center">
-          <v-avatar color="error-lighten-4" size="90" class="elevation-1">
-            <v-icon color="error" size="50" class="animate-shake">mdi-alert-outline</v-icon>
-          </v-avatar>
-        </div>
+      <p class="text-body-1 text-grey-darken-1 lh-relaxed mb-0">
+        أنت على وشك حذف الحقل
+        <span class="text-error font-weight-bold" v-if="fieldToDelete !== null">
+          "{{ fields[fieldToDelete]?.label_ar || fields[fieldToDelete]?.name }}"
+        </span>.
+        هذا الإجراء لا يمكن التراجع عنه.
+      </p>
+    </div>
 
-        <h3 class="text-h5 font-weight-bold mb-3">هل أنت متأكد؟</h3>
-        <p class="text-body-1 text-grey-darken-1 lh-relaxed">
-          أنت على وشك حذف الحقل
-          <span class="text-error font-weight-bold" v-if="fieldToDelete !== null">
-            "{{ fields[fieldToDelete]?.label_ar || fields[fieldToDelete]?.name }}"
-          </span>.
-          هذا الإجراء لا يمكن التراجع عنه.
-        </p>
-      </v-card-text>
-
-      <v-card-actions class="pa-8 pt-0 ga-3">
+    <template #actions>
+      <div class="d-flex ga-3 w-100">
         <v-btn @click="deleteDialog = false" variant="outlined" color="grey-darken-1"
-          class="flex-grow-1 py-3 rounded-lg text-none" height="48">
+          class="flex-grow-1 py-3 rounded-lg text-none" height="44">
           إلغاء
         </v-btn>
         <v-btn @click="confirmDelete" color="error" variant="elevated"
-          class="flex-grow-1 py-3 rounded-lg text-none elevation-4" height="48">
+          class="flex-grow-1 py-3 rounded-lg text-none elevation-4" height="44">
           نعم، احذف
         </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+      </div>
+    </template>
+  </custom-dialog>
 
   <!-- الإشعارات المحسنة (Premium Floating Snackbar) -->
   <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="4500" location="bottom center" variant="tonal"

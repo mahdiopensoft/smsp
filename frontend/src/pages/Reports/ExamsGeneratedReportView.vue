@@ -19,7 +19,7 @@
           v-model="filterYear"
           name="AcademicYear"
           placeholder="العام الدراسي"
-          cols="2"
+          cols="3"
           :add="false"
         />
 
@@ -31,7 +31,7 @@
               v-model="filterStage"
               name="Stage"
               placeholder="المرحلة الدراسية"
-              cols="2"
+              cols="3"
               :add="false"
               @update:model-value="onStageChange"
             />
@@ -40,7 +40,7 @@
               name="ClassTrackByStage"
               :param="filterStage"
               placeholder="الصف والمسار"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterStage"
               @update:model-value="onClassTrackChange"
@@ -50,7 +50,7 @@
               name="Subject"
               :param="subjectFilterParam"
               placeholder="المادة الدراسية"
-              cols="2"
+              cols="3"
               :add="false"
               @update:model-value="onSubjectChange"
             />
@@ -62,7 +62,7 @@
               v-model="filterCollege"
               name="College"
               placeholder="الكلية الجامعية"
-              cols="2"
+              cols="3"
               :add="false"
               @update:model-value="onCollegeChange"
             />
@@ -71,7 +71,7 @@
               name="DepartmentByCollege"
               :param="filterCollege"
               placeholder="القسم الأكاديمي"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterCollege"
               @update:model-value="onDepartmentChange"
@@ -81,7 +81,7 @@
               name="Specialization"
               :param="filterDepartment"
               placeholder="التخصص والبرنامج"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterDepartment"
               @update:model-value="onSpecializationChange"
@@ -91,7 +91,7 @@
               name="SemesterSubject"
               :param="filterSpecialization"
               placeholder="المقرر الجامعي"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterSpecialization"
               @update:model-value="onSemesterSubjectChange"
@@ -104,7 +104,7 @@
               v-model="filterInstituteField"
               name="InstituteField"
               placeholder="المجال المهني / التقني"
-              cols="2"
+              cols="3"
               :add="false"
               @update:model-value="onInstituteFieldChange"
             />
@@ -113,7 +113,7 @@
               name="InstituteEducationSystem"
               :param="filterInstituteField"
               placeholder="نظام التعليم والتدريب"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterInstituteField"
               @update:model-value="onInstituteEducationSystemChange"
@@ -123,7 +123,7 @@
               name="InstituteSpecialization"
               :param="instituteSpecParam"
               placeholder="التخصص المهني"
-              cols="2"
+              cols="3"
               :add="false"
               :disabled="!filterInstituteEducationSystem"
               @update:model-value="onInstituteSpecializationChange"
@@ -133,7 +133,7 @@
               name="InstituteSubject"
               :param="instituteSubjectParam"
               placeholder="المادة الدراسية للمعهد"
-              cols="2"
+              cols="3"
               :add="false"
               @update:model-value="onInstituteSubjectChange"
             />
@@ -147,7 +147,7 @@
             { text: 'معتمد', value: 'true' },
             { text: 'غير معتمد', value: 'false' }
           ]"
-          cols="2"
+          cols="3"
           label="حالة الاعتماد"
           icon="check-decagram-outline"
           :add="false"
@@ -157,14 +157,14 @@
         <custom-date
           v-model="filterDateFrom"
           label="من تاريخ"
-          cols="2"
+          cols="3"
           hide-details
         />
 
         <custom-date
           v-model="filterDateTo"
           label="إلى تاريخ"
-          cols="2"
+          cols="3"
           hide-details
         />
 
@@ -287,7 +287,6 @@ const onInstitutionTypeChange = () => {
   filterInstituteSpecialization.value = null
   filterInstituteSubject.value = null
   filterSubject.value = null
-  applyFilters()
 }
 
 const onStageChange = () => {

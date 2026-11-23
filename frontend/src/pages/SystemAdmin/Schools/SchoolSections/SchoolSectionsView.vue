@@ -7,7 +7,7 @@
       <!-- الصف 1: التبعية الجغرافية والمؤسسية (المحافظة والمديرية والمدرسة) -->
       <v-row dense class="align-center mb-1">
         <!-- 1. المحافظة -->
-        <v-col cols="12" sm="6" md="4">
+        <v-col cols="12" sm="6" md="3">
           <auto-list
             v-model="filterGovernorate"
             name="Governorate"
@@ -20,7 +20,7 @@
         </v-col>
 
         <!-- 2. المديرية -->
-        <v-col cols="12" sm="6" md="4">
+        <v-col cols="12" sm="6" md="3">
           <auto-list
             v-model="filterDirectorate"
             name="Directorate"
@@ -35,7 +35,7 @@
         </v-col>
 
         <!-- 3. المدرسة -->
-        <v-col cols="12" sm="12" md="4">
+        <v-col cols="12" sm="6" md="3">
           <auto-list
             v-model="filterOrganization"
             name="Organization"
@@ -45,15 +45,11 @@
             cols="12"
             :add="false"
             :disabled="isOrgDisabled"
-            @update:model-value="applyFilters"
           />
         </v-col>
-      </v-row>
 
-      <!-- الصف 2: المسار الأكاديمي، العام الدراسي، الحالة وأزرار الإجراءات -->
-      <v-row dense class="align-center">
         <!-- مسار الصف -->
-        <v-col cols="12" sm="6" md="4">
+        <v-col cols="12" sm="6" md="3">
           <auto-list
             v-model="filterClassTrack"
             name="SchoolClassTrack"
@@ -61,7 +57,6 @@
             label="مسار الصف"
             cols="12"
             :add="false"
-            @update:model-value="applyFilters"
           />
         </v-col>
 
@@ -74,7 +69,6 @@
             label="العام الدراسي"
             cols="12"
             :add="false"
-            @update:model-value="applyFilters"
           />
         </v-col>
 
@@ -83,15 +77,14 @@
           v-model="filterActive"
           name="LocalTextOption"
           :objects="activeOptions"
-          cols="2"
+          cols="3"
           label="حالة التفعيل"
           icon="check-circle-outline"
           :add="false"
-          @update:model-value="applyFilters"
         />
 
         <!-- أزرار الإجراءات -->
-        <v-col cols="12" sm="6" md="3" class="d-flex align-center gap-2 mb-3">
+        <v-col cols="auto" class="d-flex align-center gap-2">
           <custom-btn
             type="show"
             label="تصفية"
@@ -113,6 +106,7 @@
 
     <!-- Data Table -->
     <custom-data-table
+      actionList
       v-bind="{
         headers,
         items,
@@ -128,32 +122,20 @@
       <template v-slot:item-slot="{ item, key }">
         <!-- كود الشعبة -->
         <template v-if="key === 'section_code'">
-          <v-chip size="small" color="primary" variant="tonal" class="font-weight-bold font-mono" v-if="item.section_code">
-            <v-icon start size="14">mdi-barcode</v-icon>
-            {{ item.section_code }}
-          </v-chip>
+          <span class="font-weight-bold font-mono text-primary" v-if="item.section_code">{{ item.section_code }}</span>
           <span v-else class="text-medium-emphasis">-</span>
         </template>
 
         <!-- اسم المدرسة -->
         <template v-else-if="key === 'organization_name'">
-          <div class="d-flex align-center gap-1">
-            <v-icon size="16" color="teal">mdi-school-outline</v-icon>
-            <span class="font-weight-bold text-body-2">{{ item.organization_name || '-' }}</span>
-          </div>
+          <span class="font-weight-bold text-body-2">{{ item.organization_name || '-' }}</span>
         </template>
 
         <!-- نوع الشعبة (جنس) -->
         <template v-else-if="key === 'gender'">
-          <v-chip
-            size="small"
-            :color="item.gender === 2 ? 'pink' : item.gender === 3 ? 'purple' : 'teal'"
-            variant="tonal"
-            class="font-weight-bold"
-          >
-            <v-icon start size="12">{{ item.gender === 2 ? 'mdi-gender-female' : item.gender === 3 ? 'mdi-gender-transgender' : 'mdi-gender-male' }}</v-icon>
+          <span class="text-body-2 font-weight-medium">
             {{ item.gender_display || (item.gender === 2 ? 'بنات' : item.gender === 3 ? 'مشترك' : 'بنين') }}
-          </v-chip>
+          </span>
         </template>
 
         <!-- حالة التفعيل -->
@@ -161,6 +143,7 @@
           <v-chip
             :color="item.is_active ? 'success' : 'error'"
             size="small"
+            variant="tonal"
             class="font-weight-bold"
           >
             {{ item.is_active ? 'مفعل' : 'معطل' }}
@@ -249,12 +232,10 @@ export default {
       this.filterGovernorate = val;
       this.filterDirectorate = null;
       this.filterOrganization = null;
-      this.applyFilters();
     },
     onDirectorateChange(val) {
       this.filterDirectorate = val;
       this.filterOrganization = null;
-      this.applyFilters();
     },
     applyFilters() {
       this.getData();
