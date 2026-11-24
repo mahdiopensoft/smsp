@@ -143,7 +143,7 @@
                     <v-row dense>
                       <auto-list v-model="exam.yearId" name="AcademicYear" label="السنة الدراسية" placeholder="اختر السنة الدراسية" cols="3" :add="false"
                         :rules="requiredRule" />
-                      <auto-list v-model="exam.examPeriodId" name="Period" label="الفترة الامتحانية" placeholder="اختر الفترة الامتحانية" cols="3" :add="false"
+                      <auto-list v-model="exam.examPeriodId" name="Period" :param="exam.institution_type" label="الفترة الامتحانية" placeholder="اختر الفترة الامتحانية" cols="3" :add="false"
                         :rules="requiredRule" />
 
                       <!-- 🏫 School Classification Fields -->
@@ -182,7 +182,7 @@
                         <auto-list
                           v-model="exam.instituteSpecializationId"
                           name="InstituteSpecialization"
-                          :param="{ field: exam.instituteFieldId, education_system: exam.instituteEducationSystemId }"
+                          :param="exam.instituteFieldId && exam.instituteEducationSystemId ? `${exam.instituteFieldId}_${exam.instituteEducationSystemId}` : null"
                           placeholder="اختر التخصص المهني"
                           cols="3"
                           :add="false"
@@ -193,7 +193,7 @@
                         <auto-list
                           v-model="exam.instituteCurriculumId"
                           name="InstituteCurriculum"
-                          :param="{ specialization: exam.instituteSpecializationId }"
+                          :param="exam.instituteSpecializationId"
                           placeholder="اختر الخطة الدراسية / المنهج"
                           cols="3"
                           :add="false"
@@ -204,7 +204,7 @@
                         <auto-list
                           v-model="exam.instituteSubjectId"
                           name="InstituteSubject"
-                          :param="{ curriculum: exam.instituteCurriculumId }"
+                          :param="exam.instituteCurriculumId"
                           placeholder="اختر المادة التدريبية"
                           cols="3"
                           :add="false"

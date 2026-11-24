@@ -8,6 +8,9 @@ from academic.apis.institutes.InstituteSemesterMVS import InstituteSemesterMVS
 from academic.apis.institutes.InstituteCurriculumMVS import InstituteCurriculumMVS
 from academic.apis.institutes.InstituteSubjectMVS import InstituteSubjectMVS
 from academic.apis.institutes.InstituteCurriculumSubjectMVS import InstituteCurriculumSubjectMVS
+from academic.apis.institutes.InstituteUnitMVS import InstituteUnitMVS
+from academic.apis.institutes.InstituteLessonMVS import InstituteLessonMVS
+from academic.apis.institutes.InstituteExamPeriodMVS import InstituteExamPeriodMVS
 
 """
 Institute URL Routes
@@ -29,4 +32,12 @@ router_institutes.register(r'institutes/semesters', InstituteSemesterMVS, basena
 router_institutes.register(r'institutes/subjects', InstituteSubjectMVS, basename='institute-subject')
 router_institutes.register(r'institutes/curricula', InstituteCurriculumMVS, basename='institute-curriculum')
 router_institutes.register(r'institutes/curriculum-subjects', InstituteCurriculumSubjectMVS, basename='institute-curriculum-subject')
+
+# 4. الوحدات والدروس والامتحانات المهنية للمعاهد
+router_institutes.register(r'institute-units', InstituteUnitMVS, basename='institute-unit')
+router_institutes.register(r'institutes/units', InstituteUnitMVS, basename='institute-unit-slash')
+router_institutes.register(r'institute-lessons', InstituteLessonMVS, basename='institute-lesson')
+router_institutes.register(r'institutes/lessons', InstituteLessonMVS, basename='institute-lesson-slash')
+router_institutes.register(r'institute-exam-periods', InstituteExamPeriodMVS, basename='institute-exam-period')
+router_institutes.register(r'institutes/exam-periods', InstituteExamPeriodMVS, basename='institute-exam-period-slash')
 

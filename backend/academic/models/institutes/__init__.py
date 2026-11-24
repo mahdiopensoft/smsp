@@ -6,6 +6,9 @@ from .InstituteSemester import InstituteSemester
 from .InstituteCurriculum import InstituteCurriculum
 from .InstituteSubject import InstituteSubject
 from .InstituteCurriculumSubject import InstituteCurriculumSubject
+from .InstituteUnit import InstituteUnit
+from .InstituteLesson import InstituteLesson
+from .InstituteExamPeriod import InstituteExamPeriod
 
 __all__ = [
     'InstituteField',
@@ -16,5 +19,8 @@ __all__ = [
     'InstituteCurriculum',
     'InstituteSubject',
     'InstituteCurriculumSubject',
+    'InstituteUnit',
+    'InstituteLesson',
+    'InstituteExamPeriod',
 ]
 

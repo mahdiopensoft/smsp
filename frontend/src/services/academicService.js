@@ -290,7 +290,7 @@ export const academicService = {
     },
 
     // Exam Periods
-    async getExamPeriods() {
-        return await fetchAllPages(`${BASE}exam-periods/`)
+    async getExamPeriods(params = {}) {
+        return await fetchAllPages(`${BASE}exam-periods/`, params)
     },
 }

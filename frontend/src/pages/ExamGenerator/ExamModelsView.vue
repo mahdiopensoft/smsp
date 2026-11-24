@@ -297,7 +297,7 @@
           size="small"
           prepend-icon="mdi-plus-circle"
           class="font-weight-bold px-4"
-          @click="$router.push('/ExamGenerator/ExamCreateView')"
+          @click="$router.push('/exams-create')"
         >
           الانتقال لتوليد نماذج جديدة
         </v-btn>
@@ -1025,7 +1025,7 @@ export default {
         const routeData = this.$router.resolve({ name: 'exams-print-questions', query })
         window.open(routeData.href, '_blank')
       } catch (e) {
-        this.$router.push({ path: '/ExamGenerator/ExamPrintQuestionsView', query })
+        this.$router.push({ path: '/exams-print-questions', query })
       }
     },
 
@@ -1037,7 +1037,7 @@ export default {
         const routeData = this.$router.resolve({ name: 'exams-print-key', query })
         window.open(routeData.href, '_blank')
       } catch (e) {
-        this.$router.push({ path: '/ExamGenerator/ExamPrintKeyView', query })
+        this.$router.push({ path: '/exams-print-key', query })
       }
     },
 
@@ -1047,12 +1047,12 @@ export default {
         const routeData = this.$router.resolve({ name: 'exams-print-sheets', query: { examId: this.exam.id } })
         window.open(routeData.href, '_blank')
       } catch (e) {
-        this.$router.push({ path: '/ExamGenerator/ExamPrintSheetsView', query: { examId: this.exam.id } })
+        this.$router.push({ path: '/exams-print-sheets', query: { examId: this.exam.id } })
       }
     },
 
     goToArchive() {
-      this.$router.push('/ExamGenerator/ExamArchiveView').catch(() => {
+      this.$router.push('/exams-archive').catch(() => {
         this.$router.push({ name: 'exams-archive' })
       })
     },

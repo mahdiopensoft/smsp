@@ -142,13 +142,16 @@ class QuestionListSerializer(serializers.ModelSerializer):
 
     def get_subject_name(self, obj):
         try:
-            if obj.lesson:
-                if getattr(obj.lesson, 'subject', None):
-                    return obj.lesson.subject.name_ar
-                unit = getattr(obj.lesson, 'unit', None)
+            active_lesson = getattr(obj, 'school_lesson', None) or getattr(obj, 'institute_lesson', None) or getattr(obj, 'lesson', None)
+            if active_lesson:
+                if getattr(active_lesson, 'subject', None):
+                    return active_lesson.subject.name_ar
+                unit = getattr(active_lesson, 'unit', None)
                 if unit:
                     if hasattr(unit, 'class_subject') and unit.class_subject and getattr(unit.class_subject, 'subject', None):
                         return unit.class_subject.subject.name_ar
+                    if hasattr(unit, 'subject') and unit.subject:
+                        return unit.subject.name_ar
                     ss = getattr(unit, 'semester_subject', None)
                     if ss:
                         if getattr(ss, 'fk_subject', None):
@@ -161,13 +164,15 @@ class QuestionListSerializer(serializers.ModelSerializer):
 
     def get_unit_name(self, obj):
         try:
-            return obj.lesson.unit.name_ar if (obj.lesson and obj.lesson.unit) else None
+            active_lesson = getattr(obj, 'school_lesson', None) or getattr(obj, 'institute_lesson', None) or getattr(obj, 'lesson', None)
+            return active_lesson.unit.name_ar if (active_lesson and getattr(active_lesson, 'unit', None)) else None
         except Exception:
             return None
 
     def get_lesson_name(self, obj):
         try:
-            return obj.lesson.name_ar if obj.lesson else None
+            active_lesson = getattr(obj, 'school_lesson', None) or getattr(obj, 'institute_lesson', None) or getattr(obj, 'lesson', None)
+            return active_lesson.name_ar if active_lesson else None
         except Exception:
             return None
 
@@ -182,7 +187,7 @@ class QuestionListSerializer(serializers.ModelSerializer):
 class QuestionSerializer(serializers.ModelSerializer):
     image = Base64ImageField(required=False, allow_null=True)
     options = AnswerSerializer(many=True, required=False)
-    
+
     # Read-only relational fields for fast rendering
     subject_name = serializers.SerializerMethodField(read_only=True)
     subject_id = serializers.SerializerMethodField(read_only=True)
@@ -226,6 +231,37 @@ class QuestionSerializer(serializers.ModelSerializer):
         model = Question
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at', 'deleted_at', 'is_deleted']
+
+    def to_internal_value(self, data):
+        """
+        Dynamically route polymorphic 'lesson' parameter from frontend to the
+        appropriate educational sector relation (school_lesson, institute_lesson, lesson).
+        """
+        data = data.copy() if hasattr(data, 'copy') else dict(data)
+        inst_type = data.get('institution_type') or (getattr(self.instance, 'institution_type', None) or 'school')
+        lesson_val = data.get('lesson')
+
+        if lesson_val is not None:
+            if inst_type == 'school':
+                data['school_lesson'] = lesson_val
+                data['lesson'] = None
+                data['institute_lesson'] = None
+            elif inst_type == 'institute':
+                data['institute_lesson'] = lesson_val
+                data['lesson'] = None
+                data['school_lesson'] = None
+            else:  # university
+                data['lesson'] = lesson_val
+                data['school_lesson'] = None
+                data['institute_lesson'] = None
+
+        return super().to_internal_value(data)
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        # Always return the active sector lesson ID in the canonical 'lesson' field for frontend compatibility
+        ret['lesson'] = instance.school_lesson_id or instance.institute_lesson_id or instance.lesson_id
+        return ret
 
     def create(self, validated_data):
         options_data = validated_data.pop('options', None)
@@ -336,13 +372,16 @@ class QuestionSerializer(serializers.ModelSerializer):
 
     def get_subject_name(self, obj):
         try:
-            if obj.lesson:
-                if getattr(obj.lesson, 'subject', None):
-                    return obj.lesson.subject.name_ar
-                unit = getattr(obj.lesson, 'unit', None)
+            active_lesson = getattr(obj, 'school_lesson', None) or getattr(obj, 'institute_lesson', None) or getattr(obj, 'lesson', None)
+            if active_lesson:
+                if getattr(active_lesson, 'subject', None):
+                    return active_lesson.subject.name_ar
+                unit = getattr(active_lesson, 'unit', None)
                 if unit:
                     if hasattr(unit, 'class_subject') and unit.class_subject and getattr(unit.class_subject, 'subject', None):
                         return unit.class_subject.subject.name_ar
+                    if hasattr(unit, 'subject') and unit.subject:
+                        return unit.subject.name_ar
                     ss = getattr(unit, 'semester_subject', None)
                     if ss:
                         if getattr(ss, 'fk_subject', None):
@@ -355,13 +394,16 @@ class QuestionSerializer(serializers.ModelSerializer):
 
     def get_subject_id(self, obj):
         try:
-            if obj.lesson:
-                if getattr(obj.lesson, 'subject_id', None):
-                    return obj.lesson.subject_id
-                unit = getattr(obj.lesson, 'unit', None)
+            active_lesson = getattr(obj, 'school_lesson', None) or getattr(obj, 'institute_lesson', None) or getattr(obj, 'lesson', None)
+            if active_lesson:
+                if getattr(active_lesson, 'subject_id', None):
+                    return active_lesson.subject_id
+                unit = getattr(active_lesson, 'unit', None)
                 if unit:
                     if hasattr(unit, 'class_subject') and unit.class_subject:
                         return getattr(unit.class_subject, 'subject_id', None)
+                    if hasattr(unit, 'subject_id') and unit.subject_id:
+                        return unit.subject_id
                     ss = getattr(unit, 'semester_subject', None)
                     if ss:
                         if getattr(ss, 'fk_subject_id', None):
@@ -374,19 +416,22 @@ class QuestionSerializer(serializers.ModelSerializer):
 
     def get_unit_name(self, obj):
         try:
-            return obj.lesson.unit.name_ar
+            active_lesson = getattr(obj, 'school_lesson', None) or getattr(obj, 'institute_lesson', None) or getattr(obj, 'lesson', None)
+            return active_lesson.unit.name_ar if (active_lesson and getattr(active_lesson, 'unit', None)) else None
         except Exception:
             return None
 
     def get_unit_id(self, obj):
         try:
-            return obj.lesson.unit_id
+            active_lesson = getattr(obj, 'school_lesson', None) or getattr(obj, 'institute_lesson', None) or getattr(obj, 'lesson', None)
+            return active_lesson.unit_id if active_lesson else None
         except Exception:
             return None
 
     def get_lesson_name(self, obj):
         try:
-            return obj.lesson.name_ar
+            active_lesson = getattr(obj, 'school_lesson', None) or getattr(obj, 'institute_lesson', None) or getattr(obj, 'lesson', None)
+            return active_lesson.name_ar if active_lesson else None
         except Exception:
             return None
 
@@ -493,25 +538,29 @@ class QuestionSerializer(serializers.ModelSerializer):
 
     def get_stage_name(self, obj):
         try:
-            return obj.lesson.unit.class_subject.class_track.level.stage.name_ar
+            lesson = getattr(obj, 'school_lesson', None) or getattr(obj, 'lesson', None)
+            return lesson.unit.class_subject.class_track.level.stage.name_ar
         except Exception:
             return None
 
     def get_stage_id(self, obj):
         try:
-            return obj.lesson.unit.class_subject.class_track.level.stage_id
+            lesson = getattr(obj, 'school_lesson', None) or getattr(obj, 'lesson', None)
+            return lesson.unit.class_subject.class_track.level.stage_id
         except Exception:
             return None
 
     def get_class_track_name(self, obj):
         try:
-            return obj.lesson.unit.class_subject.class_track.full_name
+            lesson = getattr(obj, 'school_lesson', None) or getattr(obj, 'lesson', None)
+            return lesson.unit.class_subject.class_track.full_name
         except Exception:
             return None
 
     def get_class_track_id(self, obj):
         try:
-            return obj.lesson.unit.class_subject.class_track_id
+            lesson = getattr(obj, 'school_lesson', None) or getattr(obj, 'lesson', None)
+            return lesson.unit.class_subject.class_track_id
         except Exception:
             return None
 
@@ -565,7 +614,11 @@ class QuestionSerializer(serializers.ModelSerializer):
 
     def get_institute_field_name(self, obj):
         try:
-            if obj.institution_type == 'institute' and obj.lesson and obj.lesson.subject:
+            if getattr(obj, 'institute_lesson', None) and getattr(obj.institute_lesson, 'unit', None):
+                unit = obj.institute_lesson.unit
+                if getattr(unit, 'subject', None) and getattr(unit.subject, 'field', None):
+                    return unit.subject.field.name_ar
+            if obj.institution_type == 'institute' and obj.lesson and getattr(obj.lesson, 'subject', None):
                 from academic.models.institutes.InstituteSubject import InstituteSubject
                 inst_sub = InstituteSubject.objects.filter(name_ar=obj.lesson.subject.name_ar).first()
                 if inst_sub and inst_sub.field:
@@ -576,7 +629,11 @@ class QuestionSerializer(serializers.ModelSerializer):
 
     def get_institute_field_id(self, obj):
         try:
-            if obj.institution_type == 'institute' and obj.lesson and obj.lesson.subject:
+            if getattr(obj, 'institute_lesson', None) and getattr(obj.institute_lesson, 'unit', None):
+                unit = obj.institute_lesson.unit
+                if getattr(unit, 'subject', None) and getattr(unit.subject, 'field_id', None):
+                    return unit.subject.field_id
+            if obj.institution_type == 'institute' and obj.lesson and getattr(obj.lesson, 'subject', None):
                 from academic.models.institutes.InstituteSubject import InstituteSubject
                 inst_sub = InstituteSubject.objects.filter(name_ar=obj.lesson.subject.name_ar).first()
                 if inst_sub and inst_sub.field:

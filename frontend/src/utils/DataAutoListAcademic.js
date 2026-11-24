@@ -57,7 +57,7 @@ export default function DataAutoListAcademic(param) {
             queryParams.class_track = raw;
           }
         }
-        
+
         // إذا تم تمرير كائن محدد فارغ، لا تجلب كافة المواد
         if (raw !== undefined && !Object.keys(queryParams).length) {
           return Promise.resolve([]);
@@ -342,10 +342,13 @@ export default function DataAutoListAcademic(param) {
         const raw = (p !== undefined && p !== null) ? p : param;
         const queryParams = {};
         let isUniversity = false;
+        let isInstitute = false;
         if (raw) {
           if (typeof raw === 'object') {
             if (raw.institution_type === 'university' || raw.institutionType === 'university') {
               isUniversity = true;
+            } else if (raw.institution_type === 'institute' || raw.institutionType === 'institute') {
+              isInstitute = true;
             }
             if (raw.semester_subject || raw.semesterSubjectId) {
               queryParams.semester_subject = raw.semester_subject || raw.semesterSubjectId;
@@ -360,6 +363,7 @@ export default function DataAutoListAcademic(param) {
             }
             if (raw.institute_subject || raw.instituteSubjectId) {
               queryParams.subject = raw.institute_subject || raw.instituteSubjectId;
+              isInstitute = true;
             }
             if (raw.class_subject || raw.classSubjectId) {
               queryParams.class_subject = raw.class_subject || raw.classSubjectId;
@@ -385,6 +389,12 @@ export default function DataAutoListAcademic(param) {
         if (isUniversity) {
           return (queryParams.semester_subject || queryParams.subject) ? shared.getData({
             path: "api/academic/university-units/all/",
+            params: queryParams,
+          }) : Promise.resolve([]);
+        }
+        if (isInstitute) {
+          return queryParams.subject ? shared.getData({
+            path: "api/academic/institute-units/all/",
             params: queryParams,
           }) : Promise.resolve([]);
         }
@@ -429,10 +439,13 @@ export default function DataAutoListAcademic(param) {
         const raw = (p !== undefined && p !== null) ? p : param;
         let unitId = null;
         let isUniversity = false;
+        let isInstitute = false;
         if (raw && typeof raw === 'object') {
           unitId = raw.unit || raw.unitId || raw.id || raw.value;
           if (raw.institution_type === 'university' || raw.institutionType === 'university') {
             isUniversity = true;
+          } else if (raw.institution_type === 'institute' || raw.institutionType === 'institute') {
+            isInstitute = true;
           }
         } else {
           unitId = raw;
@@ -441,6 +454,12 @@ export default function DataAutoListAcademic(param) {
         if (isUniversity) {
           return shared.getData({
             path: "api/academic/university-lessons/all/",
+            params: { unit: unitId }
+          });
+        }
+        if (isInstitute) {
+          return shared.getData({
+            path: "api/academic/institute-lessons/all/",
             params: { unit: unitId }
           });
         }
@@ -790,10 +809,29 @@ export default function DataAutoListAcademic(param) {
       icon: "calendar-range",
       method: (p) => {
         const raw = (p !== undefined && p !== null) ? p : param;
-        const semId = (raw && typeof raw === 'object') ? (raw.semester || raw.semesterId || raw.fk_semester || raw.id || raw.value) : raw;
+        let semId = null;
+        let instType = null;
+        if (raw && typeof raw === 'object') {
+          semId = raw.semester || raw.semesterId || raw.fk_semester;
+          instType = raw.institution_type || raw.institutionType;
+          if (!semId && !instType && (raw.id || raw.value)) {
+            semId = raw.id || raw.value;
+          }
+        } else if (typeof raw === 'string') {
+          if (['school', 'university', 'institute'].includes(raw.toLowerCase())) {
+            instType = raw;
+          } else {
+            semId = raw;
+          }
+        } else if (raw) {
+          semId = raw;
+        }
+        const queryParams = {};
+        if (semId) queryParams.semester = semId;
+        if (instType) queryParams.institution_type = instType;
         return shared.getData({
           path: "api/academic/exam-periods/all/",
-          params: semId ? { semester: semId } : undefined,
+          params: Object.keys(queryParams).length ? queryParams : undefined,
         });
       },
       title: "name_ar",
@@ -805,9 +843,66 @@ export default function DataAutoListAcademic(param) {
       icon: "calendar-range",
       method: (p) => {
         const raw = (p !== undefined && p !== null) ? p : param;
-        const semId = (raw && typeof raw === 'object') ? (raw.semester || raw.semesterId || raw.fk_semester || raw.id || raw.value) : raw;
+        let semId = null;
+        let instType = null;
+        if (raw && typeof raw === 'object') {
+          semId = raw.semester || raw.semesterId || raw.fk_semester;
+          instType = raw.institution_type || raw.institutionType;
+          if (!semId && !instType && (raw.id || raw.value)) {
+            semId = raw.id || raw.value;
+          }
+        } else if (typeof raw === 'string') {
+          if (['school', 'university', 'institute'].includes(raw.toLowerCase())) {
+            instType = raw;
+          } else {
+            semId = raw;
+          }
+        } else if (raw) {
+          semId = raw;
+        }
+        const queryParams = {};
+        if (semId) queryParams.semester = semId;
+        if (instType) queryParams.institution_type = instType;
         return shared.getData({
           path: "api/academic/exam-periods/all/",
+          params: Object.keys(queryParams).length ? queryParams : undefined,
+        });
+      },
+      title: "name_ar",
+      value: "id",
+    },
+
+    SchoolExamPeriod: {
+      label: "الفترة الامتحانية المدرسية",
+      icon: "calendar-range",
+      method: () => shared.getData({ path: "api/academic/school-exam-periods/all/" }),
+      title: "name_ar",
+      value: "id",
+    },
+
+    InstituteExamPeriod: {
+      label: "الفترة الامتحانية للمعاهد",
+      icon: "calendar-range",
+      method: (p) => {
+        const raw = (p !== undefined && p !== null) ? p : param;
+        const semId = (raw && typeof raw === 'object') ? (raw.semester || raw.semesterId || raw.fk_semester || raw.id || raw.value) : raw;
+        return shared.getData({
+          path: "api/academic/institute-exam-periods/all/",
+          params: semId ? { semester: semId } : undefined,
+        });
+      },
+      title: "name_ar",
+      value: "id",
+    },
+
+    UniversityExamPeriod: {
+      label: "الفترة الامتحانية الجامعية",
+      icon: "calendar-range",
+      method: (p) => {
+        const raw = (p !== undefined && p !== null) ? p : param;
+        const semId = (raw && typeof raw === 'object') ? (raw.semester || raw.semesterId || raw.fk_semester || raw.id || raw.value) : raw;
+        return shared.getData({
+          path: "api/academic/university-exam-periods/all/",
           params: semId ? { semester: semId } : undefined,
         });
       },
@@ -1135,7 +1230,13 @@ export default function DataAutoListAcademic(param) {
             queryParams.education_system = raw.education_system || raw.educationSystemId;
           }
         } else if (raw) {
-          queryParams.education_system = raw;
+          if (typeof raw === "string" && raw.includes("_")) {
+            const [f, es] = raw.split("_");
+            if (f) queryParams.field = f;
+            if (es) queryParams.education_system = es;
+          } else {
+            queryParams.education_system = raw;
+          }
         }
         return shared.getData({
           path: "api/academic/institutes/specializations/all/",
@@ -1180,8 +1281,9 @@ export default function DataAutoListAcademic(param) {
         const queryParams = {};
         if (raw && typeof raw === "object") {
           if (raw.field || raw.fieldId) queryParams.field = raw.field || raw.fieldId;
+          if (raw.curriculum || raw.curriculumId) queryParams.curriculum = raw.curriculum || raw.curriculumId;
         } else if (raw) {
-          queryParams.field = raw;
+          queryParams.curriculum = raw;
         }
         return shared.getData({
           path: "api/academic/institutes/subjects/all/",
@@ -1231,6 +1333,41 @@ export default function DataAutoListAcademic(param) {
           path: "api/academic/institutes/curriculum-subjects/all/",
           params: Object.keys(queryParams).length ? queryParams : undefined,
         });
+      },
+      title: "name_ar",
+      value: "id",
+    },
+
+    InstituteUnit: {
+      label: "الوحدة الدراسية للمعهد",
+      icon: "folder-outline",
+      method: (p) => {
+        const raw = (p !== undefined && p !== null) ? p : param;
+        const queryParams = {};
+        if (raw && typeof raw === 'object') {
+          if (raw.subject || raw.institute_subject) queryParams.subject = raw.subject || raw.institute_subject;
+        } else if (raw) {
+          queryParams.subject = raw;
+        }
+        return shared.getData({
+          path: "api/academic/institute-units/all/",
+          params: Object.keys(queryParams).length ? queryParams : undefined,
+        });
+      },
+      title: "name_ar",
+      value: "id",
+    },
+
+    InstituteLesson: {
+      label: "الدرس المهني للمعهد",
+      icon: "file-document-outline",
+      method: (p) => {
+        const raw = (p !== undefined && p !== null) ? p : param;
+        let unitId = (raw && typeof raw === 'object') ? (raw.unit || raw.unitId || raw.id) : raw;
+        return unitId ? shared.getData({
+          path: "api/academic/institute-lessons/all/",
+          params: { unit: unitId },
+        }) : Promise.resolve([]);
       },
       title: "name_ar",
       value: "id",

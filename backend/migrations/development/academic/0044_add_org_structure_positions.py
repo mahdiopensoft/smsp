@@ -15,10 +15,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.SeparateDatabaseAndState(
-<<<<<<< HEAD
-=======
             database_operations=[],
->>>>>>> b5332571a9f61eb24941adad49925d3cdd6e7a70
             state_operations=[
                 migrations.AddField(
                     model_name="universityunit",
@@ -45,10 +42,6 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-<<<<<<< HEAD
-            database_operations=[],
-=======
->>>>>>> b5332571a9f61eb24941adad49925d3cdd6e7a70
         ),
         migrations.CreateModel(
             name="OrgUnit",

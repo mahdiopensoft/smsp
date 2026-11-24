@@ -20,3 +20,10 @@ class InstituteSubjectMVS(AllMVS):
         'name_ar': ['icontains'],
     }
     search_fields = ['name_ar', 'name_en', 'subject_code']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        curriculum_id = self.request.query_params.get('curriculum') or self.request.query_params.get('curriculum_id')
+        if curriculum_id:
+            qs = qs.filter(curriculum_subjects__curriculum_id=curriculum_id).distinct()
+        return qs

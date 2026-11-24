@@ -8,6 +8,7 @@ from academic.apis.schools.SchoolClassSubjectMVS import SchoolClassSubjectMVS
 from academic.apis.schools.SchoolSubjectMVS import SchoolSubjectMVS
 from academic.apis.schools.SchoolUnitMVS import SchoolUnitMVS
 from academic.apis.schools.SchoolLessonMVS import SchoolLessonMVS
+from academic.apis.schools.SchoolExamPeriodMVS import SchoolExamPeriodMVS
 from academic.apis.schools.SchoolLearningOutcomeMVS import SchoolLearningOutcomeMVS
 from academic.apis.schools.SchoolSectionMVS import SchoolSectionMVS
 
@@ -24,5 +25,6 @@ router_schools.register(r'class-subjects', SchoolClassSubjectMVS, basename='clas
 router_schools.register(r'school-subjects', SchoolSubjectMVS, basename='school-subject')
 router_schools.register(r'school-units', SchoolUnitMVS, basename='school-unit')
 router_schools.register(r'school-lessons', SchoolLessonMVS, basename='school-lesson')
+router_schools.register(r'school-exam-periods', SchoolExamPeriodMVS, basename='school-exam-period')
 router_schools.register(r'school-learning-outcomes', SchoolLearningOutcomeMVS, basename='school-learning-outcome')
 router_schools.register(r'school-sections', SchoolSectionMVS, basename='school-section')

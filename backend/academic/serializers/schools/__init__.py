@@ -6,6 +6,7 @@ from .SchoolSubject import SchoolSubjectSerializer
 from .SchoolClassSubject import SchoolClassSubjectSerializer
 from .SchoolUnit import SchoolUnitSerializer
 from .SchoolLesson import SchoolLessonSerializer
+from .SchoolExamPeriod import SchoolExamPeriodSerializer
 from .SchoolLearningOutcome import SchoolLearningOutcomeSerializer
 from .SchoolSection import SchoolSectionSerializer
 
@@ -26,6 +27,7 @@ __all__ = [
     'SchoolClassSubjectSerializer',
     'SchoolUnitSerializer',
     'SchoolLessonSerializer',
+    'SchoolExamPeriodSerializer',
     'SchoolLearningOutcomeSerializer',
     'SchoolSectionSerializer',
     # Aliases

@@ -6,6 +6,9 @@ from .InstituteSemester import InstituteSemesterSerializer
 from .InstituteCurriculum import InstituteCurriculumSerializer
 from .InstituteSubject import InstituteSubjectSerializer
 from .InstituteCurriculumSubject import InstituteCurriculumSubjectSerializer
+from .InstituteUnit import InstituteUnitSerializer
+from .InstituteLesson import InstituteLessonSerializer
+from .InstituteExamPeriod import InstituteExamPeriodSerializer
 
 __all__ = [
     'InstituteFieldSerializer',
@@ -16,5 +19,8 @@ __all__ = [
     'InstituteCurriculumSerializer',
     'InstituteSubjectSerializer',
     'InstituteCurriculumSubjectSerializer',
+    'InstituteUnitSerializer',
+    'InstituteLessonSerializer',
+    'InstituteExamPeriodSerializer',
 ]
 

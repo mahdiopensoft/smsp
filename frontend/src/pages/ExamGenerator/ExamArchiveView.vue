@@ -1783,7 +1783,7 @@ export default {
         query: { edit_exam_id: item.id }
       }).catch(() => {
         this.$router.push({
-          path: '/ExamGenerator/ExamCreateView',
+          name: 'exams-create',
           query: { edit_exam_id: item.id }
         })
       }).finally(() => {

@@ -43,8 +43,24 @@ class Question(SoftDeleteModel):
         'academic.UniversityLesson', 
         on_delete=models.CASCADE, 
         related_name='questions', 
-        verbose_name=_("الدرس"), 
+        verbose_name=_("الدرس الجامعي"), 
         null=True, 
+        blank=True
+    )
+    school_lesson = models.ForeignKey(
+        'academic.SchoolLesson',
+        on_delete=models.CASCADE,
+        related_name='questions',
+        verbose_name=_("الدرس المدرسي"),
+        null=True,
+        blank=True
+    )
+    institute_lesson = models.ForeignKey(
+        'academic.InstituteLesson',
+        on_delete=models.CASCADE,
+        related_name='questions',
+        verbose_name=_("درس / تدريب المعهد"),
+        null=True,
         blank=True
     )
     import_session = models.ForeignKey(
@@ -119,6 +135,14 @@ class Question(SoftDeleteModel):
         ordering = ['-created_at']
         verbose_name = _('سؤال')
         verbose_name_plural = _('الأسئلة')
+
+    @property
+    def target_lesson(self):
+        if self.institution_type == 'school':
+            return self.school_lesson or self.lesson
+        elif self.institution_type == 'institute':
+            return self.institute_lesson or self.lesson
+        return self.lesson or self.school_lesson or self.institute_lesson
 
     def __str__(self):
         import re

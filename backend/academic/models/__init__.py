@@ -34,6 +34,7 @@ from .schools.SchoolSubject import SchoolSubject
 from .schools.SchoolClassSubject import SchoolClassSubject
 from .schools.SchoolUnit import SchoolUnit
 from .schools.SchoolLesson import SchoolLesson
+from .schools.SchoolExamPeriod import SchoolExamPeriod
 from .schools.SchoolLearningOutcome import SchoolLearningOutcome
 from .schools.SchoolSection import SchoolSection
 
@@ -111,6 +112,7 @@ __all__ = [
     'SchoolClassSubject',
     'SchoolUnit',
     'SchoolLesson',
+    'SchoolExamPeriod',
     'SchoolLearningOutcome',
     'SchoolSection',
     # Schools (Aliases)
@@ -164,5 +166,7 @@ __all__ = [
     'InstituteCurriculum',
     'InstituteSubject',
     'InstituteCurriculumSubject',
+    'InstituteUnit',
+    'InstituteLesson',
 ]
 

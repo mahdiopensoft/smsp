@@ -67,6 +67,15 @@ class QuestionFastEntryMVS(AllMVS):
                         except Exception:
                             image_file = None
 
+                    # Route lesson to proper sector foreign key
+                    extra_lesson_kwargs = {}
+                    if institution_type == 'school':
+                        extra_lesson_kwargs['school_lesson_id'] = lesson_id
+                    elif institution_type == 'institute':
+                        extra_lesson_kwargs['institute_lesson_id'] = lesson_id
+                    else:
+                        extra_lesson_kwargs['lesson_id'] = lesson_id
+
                     q = Question.objects.create(
                         content=q_data.get('content', ''),
                         image=image_file,
@@ -77,8 +86,8 @@ class QuestionFastEntryMVS(AllMVS):
                         expected_time_minutes=q_data.get('expected_time_minutes') or q_data.get('expectedTimeMinutes', 1),
                         status=q_data.get('status', 'قيد المراجعة'),
                         institution_type=institution_type,
-                        lesson_id=lesson_id,
-                        createdBy=created_by
+                        createdBy=created_by,
+                        **extra_lesson_kwargs
                     )
                     
                     # Prepare answers

@@ -26,6 +26,13 @@ class QuestionNewMVS(AllMVS):
         'lesson__unit__semester_subject__fk_specialization__fk_college',
         'lesson__unit__semester_subject__fk_specialization__fk_section',
         'lesson__unit__semester_subject__semester',
+        'school_lesson',
+        'school_lesson__unit',
+        'school_lesson__unit__class_subject__subject',
+        'school_lesson__unit__class_subject__class_track__level__stage',
+        'institute_lesson',
+        'institute_lesson__unit',
+        'institute_lesson__unit__subject__field',
         'createdBy',
         'reviewer'
     ).prefetch_related('options', 'matching_pairs', 'ordering_items', 'blank_answers', 'case_study_sub_questions')
@@ -131,9 +138,15 @@ class QuestionNewMVS(AllMVS):
             'lesson': None,
         }
 
-        lesson = getattr(question, 'lesson', None)
         target_inst = getattr(question, 'institution_type', None) or 'school'
         data['institution_type'] = target_inst
+
+        if target_inst == 'school':
+            lesson = getattr(question, 'school_lesson', None) or getattr(question, 'lesson', None)
+        elif target_inst == 'institute':
+            lesson = getattr(question, 'institute_lesson', None) or getattr(question, 'lesson', None)
+        else:
+            lesson = getattr(question, 'lesson', None) or getattr(question, 'school_lesson', None) or getattr(question, 'institute_lesson', None)
 
         if lesson:
             data['lesson'] = lesson.id
@@ -166,6 +179,15 @@ class QuestionNewMVS(AllMVS):
                 elif school_sub:
                     data['fk_subject'] = school_sub.id
                     data['subject_id'] = school_sub.id
+
+                # Check institute-specific relations
+                inst_sub = getattr(unit, 'subject', None)
+                if target_inst == 'institute' and inst_sub:
+                    data['fk_subject'] = inst_sub.id
+                    data['subject_id'] = inst_sub.id
+                    data['institute_subject_id'] = inst_sub.id
+                    if getattr(inst_sub, 'field_id', None):
+                        data['institute_field_id'] = inst_sub.field_id
 
                 # Check university-specific relations
                 sem_sub = getattr(unit, 'semester_subject', None)

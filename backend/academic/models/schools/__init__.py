@@ -6,6 +6,7 @@ from .SchoolSubject import SchoolSubject
 from .SchoolClassSubject import SchoolClassSubject
 from .SchoolUnit import SchoolUnit
 from .SchoolLesson import SchoolLesson
+from .SchoolExamPeriod import SchoolExamPeriod
 from .SchoolLearningOutcome import SchoolLearningOutcome
 from .SchoolSection import SchoolSection
 
@@ -26,6 +27,7 @@ __all__ = [
     'SchoolClassSubject',
     'SchoolUnit',
     'SchoolLesson',
+    'SchoolExamPeriod',
     'SchoolLearningOutcome',
     'SchoolSection',
     # Aliases

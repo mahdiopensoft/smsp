@@ -10,6 +10,7 @@ import sys
 import django
 
 # إعداد بيئة جانغو
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
@@ -533,6 +534,24 @@ def update_academic_screens():
                 {"icon": "check-circle-outline", "name": "is_active", "index": 6, "label": "مفعل"}
             ]
         },
+        {
+            "id": None,
+            "route": "school-exam-periods",
+            "component": "SchoolExamPeriodsView",
+            "path": "school-exam-periods",
+            "name_ar": "الفترات الامتحانية المدرسية",
+            "name_en": "School Exam Periods",
+            "icon": "calendar-range",
+            "view": "SchoolExamPeriodMVS",
+            "main_model": "SchoolExamPeriod",
+            "order": 10,
+            "fields": [
+                {"icon": "abjad-arabic", "name": "name_ar", "index": 1, "label": "اسم الفترة الامتحانية (عربي)", "required": True},
+                {"icon": "alpha-e", "name": "name_en", "index": 2, "label": "اسم الفترة الامتحانية (إنجليزي)"},
+                {"icon": "sort-numeric-ascending", "name": "order", "index": 3, "label": "الترتيب"},
+                {"icon": "check-circle-outline", "name": "is_active", "index": 4, "label": "مفعل"}
+            ]
+        },
     ]
 
     for cfg in schools_screens:
@@ -544,7 +563,7 @@ def update_academic_screens():
         if not screen:
             screen = Screen.objects.filter(component=cfg["component"]).first()
 
-        if not screen and cfg["route"] == "school-sections":
+        if not screen:
             screen = Screen.objects.create(
                 route=cfg["route"],
                 name_ar=cfg["name_ar"],
@@ -1059,6 +1078,63 @@ def update_academic_screens():
                 {"icon": "sort-numeric-ascending", "name": "order", "index": 10, "label": "ترتيب المادة في الخطة"},
                 {"icon": "note-text", "name": "note", "index": 11, "label": "ملاحظات"},
                 {"icon": "check-circle-outline", "name": "is_active", "index": 12, "label": "نشط"}
+            ]
+        },
+        {
+            "id": None,
+            "route": "institutes-units",
+            "component": "InstituteUnitsView",
+            "path": "institutes-units",
+            "name_ar": "وحدات المعاهد الدراسية",
+            "name_en": "Institute Units",
+            "icon": "folder-outline",
+            "view": "InstituteUnitMVS",
+            "main_model": "InstituteUnit",
+            "order": 9,
+            "fields": [
+                {"icon": "book-open-page-variant", "name": "subject", "index": 1, "label": "المادة الدراسية للمعهد", "name_list": "InstituteSubject", "required": True},
+                {"icon": "abjad-arabic", "name": "name_ar", "index": 2, "label": "اسم الوحدة (عربي)", "required": True},
+                {"icon": "alpha-e", "name": "name_en", "index": 3, "label": "اسم الوحدة (إنجليزي)"},
+                {"icon": "sort-numeric-ascending", "name": "order", "index": 4, "label": "ترتيب الوحدة"},
+                {"icon": "check-circle-outline", "name": "is_active", "index": 5, "label": "نشط"}
+            ]
+        },
+        {
+            "id": None,
+            "route": "institutes-lessons",
+            "component": "InstituteLessonsView",
+            "path": "institutes-lessons",
+            "name_ar": "دروس وتدريبات المعاهد",
+            "name_en": "Institute Lessons",
+            "icon": "file-document-outline",
+            "view": "InstituteLessonMVS",
+            "main_model": "InstituteLesson",
+            "order": 10,
+            "fields": [
+                {"icon": "folder-outline", "name": "unit", "index": 1, "label": "الوحدة الدراسية", "name_list": "InstituteUnit", "required": True},
+                {"icon": "abjad-arabic", "name": "name_ar", "index": 2, "label": "اسم الدرس / التدريب (عربي)", "required": True},
+                {"icon": "alpha-e", "name": "name_en", "index": 3, "label": "اسم الدرس / التدريب (إنجليزي)"},
+                {"icon": "sort-numeric-ascending", "name": "order", "index": 4, "label": "ترتيب الدرس"},
+                {"icon": "check-circle-outline", "name": "is_active", "index": 5, "label": "نشط"}
+            ]
+        },
+        {
+            "id": None,
+            "route": "institutes-exam-periods",
+            "component": "InstituteExamPeriodsView",
+            "path": "institutes-exam-periods",
+            "name_ar": "الفترات الامتحانية للمعاهد",
+            "name_en": "Institute Exam Periods",
+            "icon": "calendar-range",
+            "view": "InstituteExamPeriodMVS",
+            "main_model": "InstituteExamPeriod",
+            "order": 11,
+            "fields": [
+                {"icon": "calendar-range", "name": "fk_semester", "index": 1, "label": "الفصل / الفترة التدريبية", "name_list": "InstituteSemester"},
+                {"icon": "abjad-arabic", "name": "name_ar", "index": 2, "label": "اسم الفترة الامتحانية (عربي)", "required": True},
+                {"icon": "alpha-e", "name": "name_en", "index": 3, "label": "اسم الفترة الامتحانية (إنجليزي)"},
+                {"icon": "sort-numeric-ascending", "name": "order", "index": 4, "label": "ترتيب الفترة"},
+                {"icon": "check-circle-outline", "name": "is_active", "index": 5, "label": "نشط"}
             ]
         },
     ]

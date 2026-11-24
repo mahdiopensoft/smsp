@@ -1243,6 +1243,7 @@ const goToStep1Section = (sectionId) => {
 
 
 const onInstitutionTypeToggle = () => {
+  exam.value.examPeriodId = null
   exam.value.stageId = null
   exam.value.classTrackId = null
   exam.value.subjectId = null
@@ -1482,7 +1483,7 @@ const exitEditMode = () => {
   editingExamId.value = null
   editingExamCode.value = ''
   router.replace({ path: '/exams-create' }).catch(() => {
-    router.replace({ path: '/ExamGenerator/ExamCreateView' })
+    router.replace({ name: 'exams-create' })
   })
   exam.value.title = ''
   exam.value.questionsCount = 20
@@ -2624,7 +2625,7 @@ const performGenerationSequence = async () => {
     if (proxy && proxy.$alert) {
       proxy.$alert("success", { message: "تم إنشاء وتوليد الاختبار بنجاح وتم تحويله إلى أرشيف الاختبارات", title: "عملية ناجحة" })
     }
-    router.push('/ExamGenerator/ExamArchiveView').catch(() => {
+    router.push('/exams-archive').catch(() => {
       router.push({ name: 'exams-archive' })
     })
   } catch (e) {
@@ -3128,9 +3129,7 @@ const commitFinalExam = async () => {
       }
       setTimeout(() => {
         router.push('/exams-archive').catch(() => {
-          router.push({ path: '/ExamGenerator/ExamArchiveView' }).catch(() => {
-            router.push({ name: 'exams-archive' })
-          })
+          router.push({ name: 'exams-archive' })
         })
       }, 1200)
     } else {

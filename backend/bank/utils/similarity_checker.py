@@ -73,7 +73,8 @@ def check_question_similarity(content_text, lesson_id=None, threshold=0.80, excl
 
     qs = Question.objects.exclude(status='مرفوض')
     if lesson_id:
-        qs = qs.filter(lesson_id=lesson_id)
+        from django.db.models import Q
+        qs = qs.filter(Q(lesson_id=lesson_id) | Q(school_lesson_id=lesson_id) | Q(institute_lesson_id=lesson_id))
     if exclude_question_id:
         qs = qs.exclude(id=exclude_question_id)
 
