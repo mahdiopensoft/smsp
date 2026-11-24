@@ -881,7 +881,7 @@
                       :hasFilter="false"
                       :log="false"
                       :restore="false"
-                      :search="false"
+                      :search="true"
                       class="bg-transparent"
                     
         :actionList="(item) => ([ { label: 'معاينة الورقة الضوئية', icon: 'eye-outline', color: 'primary', onClick: () => openSheetPreview(item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
@@ -963,7 +963,7 @@
                     :hasFilter="false"
                     :log="false"
                     :restore="false"
-                    :search="false"
+                    :search="true"
                     class="bg-transparent"
                   
         :actionList="(item) => ([ { label: 'معاينة الورقة الممسوحة', icon: 'eye-outline', color: 'primary', show: Boolean(item.matchedSheet), onClick: () => openSheetPreview(item.matchedSheet) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
@@ -1065,7 +1065,7 @@
                   :hasFilter="false"
                   :log="false"
                   :restore="false"
-                  :search="false"
+                  :search="true"
                   class="bg-transparent"
                 
         :actionList="(item) => ([ { label: 'معاينة وتدقيق', icon: 'eye-outline', color: 'primary', onClick: () => openSheetPreview(item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
@@ -1215,7 +1215,7 @@
                 :numbering="false"
                 :showSelect="false"
                 :actions="false"
-                :search="false"
+                :search="true"
                 class="bg-transparent"
               >
                 <template v-slot:item-slot="{ item, key }">

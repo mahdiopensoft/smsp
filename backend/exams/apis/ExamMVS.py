@@ -8,7 +8,6 @@ class ExamMVS(AllMVS):
     serializer_class = ExamSerializer
     enable_actions = ['all', 'select', 'list', 'second_list', 'filter', 'filter_paginate', 'create', 'update', 'destroy', 'retrieve']
     filterset_fields = {
-        'subject': ['exact'],
         'year': ['exact'],
         'institution_type': ['exact'],
         'examSchedule': ['exact'],
@@ -27,11 +26,17 @@ class ExamMVS(AllMVS):
 
         subject_id = self.request.query_params.get('subject') or self.request.query_params.get('subject_id') or self.request.query_params.get('institute_subject')
         if subject_id:
-            qs = qs.filter(
+            from academic.models.schools.SchoolSubject import SchoolSubject
+            matched_subj_q = (
                 Q(subject_id=subject_id) |
                 Q(subject__class_subjects__id=subject_id) |
-                Q(subject__class_subjects__subject_id=subject_id)
+                Q(subject__class_subjects__subject_id=subject_id) |
+                Q(subject__class_subjects__school_subject_id=subject_id)
             )
+            ss = SchoolSubject.objects.filter(id=subject_id).first()
+            if ss and ss.name_ar:
+                matched_subj_q |= Q(subject__name_ar=ss.name_ar)
+            qs = qs.filter(matched_subj_q)
 
         # School Filters
         stage_id = self.request.query_params.get('stage') or self.request.query_params.get('stage_id')

@@ -78,6 +78,8 @@
         :current-step="step"
         :wizard-steps="wizardSteps"
         :wizard-progress-percentage="wizardProgressPercentage"
+        :exam-title="exam.title"
+        :is-editing="isEditing"
         :get-step-node-classes="getStepNodeClasses"
         :get-step-status="getStepStatus"
         @step-click="handleStepClick"
@@ -360,10 +362,10 @@ const step1ComponentRef = ref(null)
 const generating = ref(false)
 
 const wizardSteps = [
-  { value: 1, title: 'إعدادات الاختبار', subtitle: 'البيانات والنطاق والنماذج', icon: 'mdi-tune-variant' },
-  { value: 2, title: 'مصفوفة المعايير', subtitle: 'الوحدات والصعوبة والدرجات', icon: 'mdi-chart-pie' },
+  { value: 1, title: 'إعدادات الاختبار', subtitle: 'البيانات والنطاق والنماذج', icon: 'mdi-file-cog-outline' },
+  { value: 2, title: 'مصفوفة المعايير', subtitle: 'الوحدات والصعوبة والدرجات', icon: 'mdi-scale-balance' },
   { value: 3, title: 'المعاينة والتأكيد', subtitle: 'مطابقة ملخص المواصفات', icon: 'mdi-clipboard-check-outline' },
-  { value: 4, title: 'استعراض وضبط النماذج', subtitle: 'المسودة التفاعلية والتحكيم', icon: 'mdi-file-document-edit-outline' },
+  { value: 4, title: 'استعراض وضبط النماذج', subtitle: 'المسودة التفاعلية والتحكيم', icon: 'mdi-file-document-multiple-outline' },
 ]
 
 const validatedStep2Once = ref(false)

@@ -454,50 +454,54 @@
               </div>
             </div>
 
-            <!-- Inline Filters Bar -->
-            <v-card class="pa-3 rounded-xl border bg-slate-50 mb-3" elevation="0">
+            <!-- Unified Filter Fields Bar -->
+            <filter-fields label="خيارات تصفية المؤسسات والمدارس المستهدفة" class="main-card border-0 pa-4 rounded-2xl mb-4">
               <v-row dense class="align-center">
                 <!-- Filter by Governorate -->
-                <v-col cols="12" :md="isSchoolTarget ? 6 : 12">
-                  <v-autocomplete
-                    v-model="step2FilterGovernorate"
-                    :items="governoratesList"
-                    item-title="name"
-                    item-value="id"
-                    label="المحافظة"
-                    placeholder="كل المحافظات"
-                    variant="outlined"
-                    density="compact"
-                    prepend-inner-icon="mdi-map-marker-outline"
-                    clearable
-                    hide-details
-                    bg-color="white"
-                    :loading="loadingGeoData"
-                    @update:model-value="onStep2GovernorateChanged"
-                  />
-                </v-col>
+                <auto-list
+                  v-model="step2FilterGovernorate"
+                  name="Governorate"
+                  :objects="governoratesList"
+                  cols="3"
+                  label="المحافظة"
+                  placeholder="كل المحافظات"
+                  :add="false"
+                  @update:model-value="step2FilterDirectorate = null"
+                />
 
                 <!-- Filter by Directorate (Only shown if isSchoolTarget is true) -->
-                <v-col v-if="isSchoolTarget" cols="12" md="6">
-                  <v-autocomplete
-                    v-model="step2FilterDirectorate"
-                    :items="directoratesList"
-                    item-title="name"
-                    item-value="id"
-                    label="المديرية"
-                    placeholder="كل المديريات"
-                    variant="outlined"
-                    density="compact"
-                    prepend-inner-icon="mdi-domain"
-                    clearable
-                    hide-details
-                    bg-color="white"
-                    :loading="loadingGeoData"
-                    @update:model-value="onStep2DirectorateChanged"
+                <auto-list
+                  v-if="isSchoolTarget"
+                  v-model="step2FilterDirectorate"
+                  name="Directorate"
+                  :objects="directoratesList"
+                  cols="3"
+                  label="المديرية"
+                  placeholder="كل المديريات"
+                  :add="false"
+                />
+
+                <!-- Filter Actions -->
+                <v-col cols="auto" class="d-flex align-center gap-2 mb-6">
+                  <custom-btn
+                    type="show"
+                    label="عرض"
+                    color="primary"
+                    class="font-weight-bold px-5"
+                    :loading="loadingSchools"
+                    :click="() => getResolvedSchoolsData({ page: 1 })"
+                  />
+                  <custom-btn
+                    type="cancel_filter"
+                    label="إلغاء الفلترة"
+                    color="error"
+                    variant="tonal"
+                    class="font-weight-bold"
+                    :click="resetStep2Filters"
                   />
                 </v-col>
               </v-row>
-            </v-card>
+            </filter-fields>
           </div>
 
           <!-- Targeted Schools Table using custom-data-table Component -->
@@ -608,19 +612,15 @@
           </v-card>
 
           <!-- Mission Title Input -->
-          <div class="mb-5">
-            <label class="text-caption font-weight-bold text-slate-700 d-block mb-1">
-              مسمى مهمة التصدير والجدولة:
-            </label>
-            <v-text-field
+          <v-row dense class="mb-2">
+            <custom-text-field
               v-model="dispatchForm.title"
-              variant="outlined"
-              density="compact"
+              cols="12"
+              label="مسمى مهمة التصدير والجدولة"
               placeholder="مثال: تصدير الاختبار النصفي الموحد - الرياضيات"
-              prepend-inner-icon="mdi-format-title"
-              hide-details
+              icon="format-title"
             />
-          </div>
+          </v-row>
 
           <v-row>
             <!-- Timing Milestones Card -->
@@ -653,78 +653,51 @@
                 </div>
 
                 <!-- Milestone 1: Dispatch Time -->
-                <div class="mb-4 pa-3 rounded-xl border bg-white">
-                  <div class="d-flex align-center gap-2 mb-1">
-                    <v-avatar size="22" color="indigo" class="text-white text-caption font-weight-bold">1</v-avatar>
-                    <label class="text-caption font-weight-bold text-slate-800">
-                      موعد إرسال الحزمة المشفرة للمؤسسات (Dispatch Time):
-                    </label>
-                  </div>
-                  <v-text-field
-                    v-model="dispatchForm.dispatch_at"
-                    type="datetime-local"
-                    density="compact"
-                    variant="outlined"
-                    prepend-inner-icon="mdi-cloud-upload-outline"
-                    hide-details
-                    class="mb-1"
-                  />
-                  <div class="text-caption text-medium-emphasis">تصل الحزمة مؤمنة ومشفرة لمخدم المدرسة وتُحفظ دون فتح.</div>
+                <div class="mb-3 pa-3 rounded-xl border bg-white">
+                  <v-row dense>
+                    <custom-date
+                      v-model="dispatchForm.dispatch_at"
+                      :withTime="true"
+                      cols="12"
+                      label="1. موعد إرسال الحزمة المشفرة للمؤسسات (Dispatch Time)"
+                    />
+                  </v-row>
+                  <div class="text-caption text-medium-emphasis mt-n2">تصل الحزمة مؤمنة ومشفرة لمخدم المدرسة وتُحفظ دون فتح.</div>
                 </div>
 
                 <!-- Milestone 2: Accessible Time -->
-                <div class="mb-4 pa-3 rounded-xl border bg-white">
-                  <div class="d-flex align-center gap-2 mb-1">
-                    <v-avatar size="22" color="amber-darken-3" class="text-white text-caption font-weight-bold">2</v-avatar>
-                    <label class="text-caption font-weight-bold text-amber-darken-4">
-                      موعد فك الحجب والإتاحة للطباعة (Accessible Time):
-                    </label>
-                  </div>
-                  <v-text-field
-                    v-model="dispatchForm.accessible_from"
-                    type="datetime-local"
-                    density="compact"
-                    variant="outlined"
-                    prepend-inner-icon="mdi-printer-eye"
-                    hide-details
-                    class="mb-1"
-                  />
-                  <div class="text-caption text-medium-emphasis">يُفتح التشفير تلقائياً لكادر الكنترول بالمدرسة لبدء طباعة الكراسات وأوراق OMR.</div>
+                <div class="mb-3 pa-3 rounded-xl border bg-white">
+                  <v-row dense>
+                    <custom-date
+                      v-model="dispatchForm.accessible_from"
+                      :withTime="true"
+                      cols="12"
+                      label="2. موعد فك الحجب والإتاحة للطباعة (Accessible Time)"
+                    />
+                  </v-row>
+                  <div class="text-caption text-medium-emphasis mt-n2">يُفتح التشفير تلقائياً لكادر الكنترول بالمدرسة لبدء طباعة الكراسات وأوراق OMR.</div>
                 </div>
 
                 <!-- Milestone 3: Exam Duration -->
                 <div class="pa-3 rounded-xl border bg-white">
-                  <div class="d-flex align-center gap-2 mb-1">
-                    <v-avatar size="22" color="teal" class="text-white text-caption font-weight-bold">3</v-avatar>
-                    <label class="text-caption font-weight-bold text-teal-darken-3">
-                      فترة انعقاد الامتحان الفعلي (Exam Session):
-                    </label>
+                  <div class="text-caption font-weight-bold text-teal-darken-3 mb-2">
+                    3. فترة انعقاد الامتحان الفعلي (Exam Session):
                   </div>
                   <v-row dense>
-                    <v-col cols="6">
-                      <v-text-field
-                        v-model="dispatchForm.exam_start_at"
-                        type="datetime-local"
-                        density="compact"
-                        variant="outlined"
-                        prepend-inner-icon="mdi-play-outline"
-                        label="بدء الامتحان"
-                        hide-details
-                      />
-                    </v-col>
-                    <v-col cols="6">
-                      <v-text-field
-                        v-model="dispatchForm.exam_end_at"
-                        type="datetime-local"
-                        density="compact"
-                        variant="outlined"
-                        prepend-inner-icon="mdi-stop-outline"
-                        label="انتهاء الامتحان"
-                        hide-details
-                      />
-                    </v-col>
+                    <custom-date
+                      v-model="dispatchForm.exam_start_at"
+                      :withTime="true"
+                      cols="6"
+                      label="بدء الامتحان"
+                    />
+                    <custom-date
+                      v-model="dispatchForm.exam_end_at"
+                      :withTime="true"
+                      cols="6"
+                      label="انتهاء الامتحان"
+                    />
                   </v-row>
-                  <div class="text-caption text-medium-emphasis mt-1">وقت دخول الطلاب القاعات ووقت جمع الأوراق وسحب الإجابات.</div>
+                  <div class="text-caption text-medium-emphasis mt-n2">وقت دخول الطلاب القاعات ووقت جمع الأوراق وسحب الإجابات.</div>
                 </div>
               </v-card>
             </v-col>
@@ -742,10 +715,9 @@
                     v-model="dispatchForm.is_encrypted"
                     color="primary"
                     label="تشفير محتوى الحزمة والأسئلة (AES-256 GCM)"
-                    hide-details
                     density="compact"
                   />
-                  <div class="text-caption text-medium-emphasis ms-8">
+                  <div class="text-caption text-medium-emphasis ms-8 mt-n3">
                     يضمن عدم إمكانية استعراض أو تسريب نماذج الأسئلة قبل حلول موعد الإتاحة المحدد رسمياً.
                   </div>
                 </div>
@@ -755,10 +727,9 @@
                     v-model="dispatchForm.auto_unlock"
                     color="teal"
                     label="فك التشفير التلقائي فور حلول موعد الإتاحة"
-                    hide-details
                     density="compact"
                   />
-                  <div class="text-caption text-medium-emphasis ms-8">
+                  <div class="text-caption text-medium-emphasis ms-8 mt-n3">
                     توليد وتوفير مفتاح فك التشفير ذاتياً لنظام المدرسة عند الوقت المحدد دون تدخل يدوي.
                   </div>
                 </div>
@@ -773,20 +744,15 @@
                   </div>
                 </div>
 
-                <div>
-                  <label class="text-caption font-weight-bold text-slate-700 d-block mb-1">
-                    توجيهات وملاحظات للكنترول المدرسي (اختياري):
-                  </label>
-                  <v-textarea
+                <v-row dense>
+                  <custom-text-note
                     v-model="dispatchForm.notes"
-                    variant="outlined"
-                    density="compact"
-                    rows="3"
-                    class="rounded-lg"
+                    cols="12"
+                    label="توجيهات وملاحظات للكنترول المدرسي (اختياري)"
                     placeholder="اكتب أي تعليمات خاصة بتسليم النماذج أو لجان الامتحان..."
-                    hide-details
+                    icon="note-text-outline"
                   />
-                </div>
+                </v-row>
               </v-card>
             </v-col>
           </v-row>
@@ -944,58 +910,39 @@
             </div>
 
             <v-row dense class="align-center">
-              <v-col cols="12" md="4">
-                <v-select
-                  v-model="simulatorForm.school_id"
-                  :items="liveMonitorData?.schools || []"
-                  item-title="school_name_ar"
-                  item-value="school"
-                  placeholder="اختر المدرسة لمحاكاتها"
-                  variant="outlined"
-                  density="compact"
-                  hide-details
-                  class="bg-white rounded-lg"
-                />
-              </v-col>
-              <v-col cols="12" sm="4" md="2">
-                <v-text-field
-                  v-model.number="simulatorForm.printed_booklets"
-                  label="كراسات الأسئلة"
-                  type="number"
-                  variant="outlined"
-                  density="compact"
-                  hide-details
-                  class="bg-white rounded-lg"
-                />
-              </v-col>
-              <v-col cols="12" sm="4" md="2">
-                <v-text-field
-                  v-model.number="simulatorForm.printed_sheets"
-                  label="أوراق OMR"
-                  type="number"
-                  variant="outlined"
-                  density="compact"
-                  hide-details
-                  class="bg-white rounded-lg"
-                />
-              </v-col>
-              <v-col cols="12" sm="4" md="2">
-                <v-text-field
-                  v-model.number="simulatorForm.attended_students"
-                  label="الطلاب الحاضرين"
-                  type="number"
-                  variant="outlined"
-                  density="compact"
-                  hide-details
-                  class="bg-white rounded-lg"
-                />
-              </v-col>
-              <v-col cols="12" md="2" class="d-flex justify-end">
+              <auto-list
+                v-model="simulatorForm.school_id"
+                name="LocalSchoolOption"
+                :objects="(liveMonitorData?.schools || []).map(s => ({ id: s.school, name: s.school_name_ar }))"
+                cols="3"
+                label="اختر المدرسة لمحاكاتها"
+                placeholder="اختر المدرسة لمحاكاتها"
+                :add="false"
+              />
+              <custom-text-field
+                v-model.number="simulatorForm.printed_booklets"
+                label="كراسات الأسئلة"
+                type="number"
+                cols="3"
+              />
+              <custom-text-field
+                v-model.number="simulatorForm.printed_sheets"
+                label="أوراق OMR"
+                type="number"
+                cols="3"
+              />
+              <custom-text-field
+                v-model.number="simulatorForm.attended_students"
+                label="الطلاب الحاضرين"
+                type="number"
+                cols="3"
+              />
+              <v-col cols="auto" class="d-flex align-center mb-6">
                 <custom-btn
                   type="save"
                   label="تنفيذ المحاكاة"
                   color="indigo"
-                  class="font-weight-bold w-100"
+                  class="font-weight-bold px-5"
                   :loading="simulating"
                   :disabled="!simulatorForm.school_id"
                   :click="runSimulator"

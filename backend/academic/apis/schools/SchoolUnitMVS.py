@@ -12,9 +12,7 @@ class SchoolUnitMVS(AllMVS):
     ]
     filterset_fields = {
         'is_active': ['exact'],
-        'school_subject': ['exact'],
         'class_subject': ['exact'],
-        'semester': ['exact'],
     }
 
     def get_queryset(self):
@@ -26,7 +24,11 @@ class SchoolUnitMVS(AllMVS):
 
         subject_id = self.request.query_params.get('school_subject') or self.request.query_params.get('subject') or self.request.query_params.get('subject_id')
         if subject_id:
-            qs = qs.filter(Q(school_subject_id=subject_id) | Q(class_subject__school_subject_id=subject_id))
+            qs = qs.filter(
+                Q(school_subject_id=subject_id) |
+                Q(class_subject__school_subject_id=subject_id) |
+                Q(class_subject__subject_id=subject_id)
+            )
 
         class_subject_id = self.request.query_params.get('class_subject') or self.request.query_params.get('class_subject_id')
         if class_subject_id:
@@ -41,7 +43,7 @@ class SchoolUnitMVS(AllMVS):
 
         semester_id = self.request.query_params.get('semester') or self.request.query_params.get('semester_id')
         if semester_id:
-            qs = qs.filter(semester_id=semester_id)
+            qs = qs.filter(Q(semester_id=semester_id) | Q(semester__isnull=True))
 
         search = self.request.query_params.get('search')
         if search:

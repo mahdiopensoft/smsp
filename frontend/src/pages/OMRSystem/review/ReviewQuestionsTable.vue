@@ -49,7 +49,7 @@
         :numbering="false"
         :showSelect="false"
         :actions="false"
-        :search="false"
+        :search="true"
         :showTop="false"
         :rowClass="getRowClass"
         itemValue="question_number"

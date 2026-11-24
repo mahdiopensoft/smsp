@@ -966,8 +966,6 @@ export default {
         if (this.filterSubject) {
           if (this.filterInstitutionType === "university") {
             filters.push({ field: "lesson__unit__semester_subject__fk_subject", value: this.filterSubject });
-          } else if (this.filterInstitutionType === "school") {
-            filters.push({ field: "lesson__unit__class_subject__subject", value: this.filterSubject });
           } else {
             queryParams.subject = this.filterSubject;
           }

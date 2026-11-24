@@ -3,7 +3,7 @@
     <filter-fields label="معايير التصفية والبحث في سجل الأسئلة المرفوضة" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
       <template #fields>
         <!-- 1. اختيار نوع المؤسسة التعليمية الموحد بنمط النظام -->
-        <v-col cols="12" sm="6" md="3">
+        <v-col cols="3">
           <auto-list
             v-model="filterInstitutionType"
             name="InstitutionType"
@@ -23,9 +23,7 @@
             name="Stage"
             placeholder="المرحلة الدراسية"
             label="المرحلة الدراسية"
-            cols="12"
-            sm="6"
-            md="3"
+            cols="3"
             :add="false"
             @update:model-value="onStageChange"
           />
@@ -35,9 +33,7 @@
             :param="filterStage"
             placeholder="الصف والمسار"
             label="الصف والمسار"
-            cols="12"
-            sm="6"
-            md="3"
+            cols="3"
             :add="false"
             :disabled="!filterStage"
             @update:model-value="onClassTrackChange"
@@ -48,9 +44,7 @@
             :param="subjectFilterParam"
             placeholder="المادة الدراسية"
             label="المادة الدراسية"
-            cols="12"
-            sm="6"
-            md="3"
+            cols="3"
             :add="false"
             @update:model-value="onSubjectChange"
           />
@@ -60,9 +54,7 @@
             :param="unitFilterParam"
             placeholder="الوحدة الدراسية"
             label="الوحدة الدراسية"
-            cols="12"
-            sm="6"
-            md="3"
+            cols="3"
             :add="false"
             :disabled="!filterSubject"
           />
@@ -75,9 +67,7 @@
             name="College"
             placeholder="الكلية الجامعية"
             label="الكلية الجامعية"
-            cols="12"
-            sm="6"
-            md="3"
+            cols="3"
             :add="false"
             @update:model-value="onCollegeChange"
           />
@@ -87,9 +77,7 @@
             :param="filterCollege"
             placeholder="القسم الأكاديمي"
             label="القسم الأكاديمي"
-            cols="12"
-            sm="6"
-            md="3"
+            cols="3"
             :add="false"
             :disabled="!filterCollege"
             @update:model-value="onDepartmentChange"
@@ -100,9 +88,7 @@
             :param="filterDepartment"
             placeholder="التخصص والبرنامج"
             label="التخصص والبرنامج"
-            cols="12"
-            sm="6"
-            md="3"
+            cols="3"
             :add="false"
             :disabled="!filterDepartment"
             @update:model-value="onSpecializationChange"
@@ -113,9 +99,7 @@
             :param="filterSpecialization"
             placeholder="مقرر الفصل الجامعي"
             label="مقرر الفصل الجامعي"
-            cols="12"
-            sm="6"
-            md="3"
+            cols="3"
             :add="false"
             :disabled="!filterSpecialization"
             @update:model-value="onSemesterSubjectChange"
@@ -126,9 +110,7 @@
             :param="unitFilterParam"
             placeholder="مفردة / موضوع المقرر"
             label="مفردة / موضوع المقرر"
-            cols="12"
-            sm="6"
-            md="3"
+            cols="3"
             :add="false"
             :disabled="!filterSemesterSubject"
           />
@@ -141,9 +123,7 @@
             name="InstituteField"
             placeholder="المجال المهني / التقني"
             label="المجال المهني / التقني"
-            cols="12"
-            sm="6"
-            md="3"
+            cols="3"
             :add="false"
             @update:model-value="onInstituteFieldChange"
           />
@@ -153,9 +133,7 @@
             :param="filterInstituteField"
             placeholder="نظام التعليم والتدريب"
             label="نظام التعليم والتدريب"
-            cols="12"
-            sm="6"
-            md="3"
+            cols="3"
             :add="false"
             :disabled="!filterInstituteField"
             @update:model-value="onInstituteEducationSystemChange"
@@ -166,9 +144,7 @@
             :param="instituteSpecParam"
             placeholder="التخصص المهني"
             label="التخصص المهني"
-            cols="12"
-            sm="6"
-            md="3"
+            cols="3"
             :add="false"
             :disabled="!filterInstituteEducationSystem"
             @update:model-value="onInstituteSpecializationChange"
@@ -179,9 +155,7 @@
             :param="instituteSubjectParam"
             placeholder="المادة الدراسية للمعهد"
             label="المادة الدراسية للمعهد"
-            cols="12"
-            sm="6"
-            md="3"
+            cols="3"
             :add="false"
             @update:model-value="onInstituteSubjectChange"
           />
@@ -191,9 +165,7 @@
             :param="unitFilterParam"
             placeholder="الوحدة / التدريب العملي"
             label="الوحدة / التدريب العملي"
-            cols="12"
-            sm="6"
-            md="3"
+            cols="3"
             :add="false"
             :disabled="!filterInstituteSubject"
           />
@@ -203,28 +175,22 @@
         <custom-date
           v-model="filterDateFrom"
           label="من تاريخ"
-          cols="12"
-          sm="6"
-          md="3"
-          hide-details
+          cols="3"
         />
 
         <custom-date
           v-model="filterDateTo"
           label="إلى تاريخ"
-          cols="12"
-          sm="6"
-          md="3"
-          hide-details
+          cols="3"
         />
 
         <!-- أزرار الإجراءات الموحدة -->
-        <v-col cols="auto" class="d-flex align-center gap-2 py-2">
+        <v-col cols="auto" class="d-flex align-center gap-2 mb-6">
           <custom-btn
             type="show"
-            label="تصفية النتائج"
-            icon="mdi-filter"
-            class="font-weight-bold px-4"
+            label="عرض"
+            color="primary"
+            class="font-weight-bold px-5"
             :loading="loading"
             :click="applyFilters"
           />
@@ -232,8 +198,7 @@
             type="cancel_filter"
             variant="tonal"
             color="error"
-            label="تفريغ الفلاتر"
-            icon="mdi-filter-off"
+            label="إلغاء الفلترة"
             class="font-weight-bold"
             :click="resetFilters"
           />

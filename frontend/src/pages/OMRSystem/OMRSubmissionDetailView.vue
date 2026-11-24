@@ -556,6 +556,7 @@
 
 <script>
 import { submissionsAPI } from '@/services/omr/endpoints'
+import settings from '../../../settings'
 
 export default {
   name: 'OMRSubmissionDetailView',
@@ -632,10 +633,23 @@ export default {
     },
 
     mcqQuestions() {
-      if (Array.isArray(this.submission?.omr_result)) {
-        return this.submission.omr_result
-      }
-      return this.submission?.omr_result?.questions || this.submission?.omr_result?.data?.questions || []
+      const raw = Array.isArray(this.submission?.omr_result)
+        ? this.submission.omr_result
+        : (this.submission?.omr_result?.questions || this.submission?.omr_result?.data?.questions || [])
+      return raw.map((q, idx) => {
+        if (!q || typeof q !== 'object') return q
+        const qId = q.question_id ?? q.question_number ?? (idx + 1)
+        const marked = q.marked_choice ?? q.final_marked_choice ?? q.candidate_choice ?? null
+        const maxMark = q.max_mark ?? q.assigned_weight ?? 1
+        const awarded = q.marks_awarded != null ? q.marks_awarded : (q.is_correct ? maxMark : 0)
+        return {
+          ...q,
+          question_id: qId,
+          marked_choice: marked,
+          max_mark: maxMark,
+          marks_awarded: awarded,
+        }
+      })
     },
 
     correctCount() {
@@ -745,9 +759,28 @@ export default {
 
     getMediaUrl(path) {
       if (!path) return ''
-      if (path.startsWith('http')) return path
-      if (path.startsWith('data:')) return path
-      return `http://localhost:5001${path.startsWith('/') ? '' : '/'}${path}`
+      if (typeof path !== 'string') return ''
+      if (path.startsWith('data:') || path.startsWith('blob:')) return path
+      let cleanUrl = path
+      if (path.startsWith('http://') || path.startsWith('https://')) {
+        cleanUrl = path
+      } else {
+        const normalizedPath = path.startsWith('/media/')
+          ? path
+          : (path.startsWith('media/') ? `/${path}` : `/media/${path.replace(/^\/+/, '')}`)
+        const base = (this.setting?.url || settings?.url || '').replace(/\/+$/, '')
+        cleanUrl = base ? `${base}${normalizedPath}` : normalizedPath
+      }
+      const token =
+        localStorage.getItem('token') ||
+        localStorage.getItem('access_token') ||
+        sessionStorage.getItem('token') ||
+        sessionStorage.getItem('access_token') ||
+        ''
+      if (token && cleanUrl.includes('/media/') && !cleanUrl.includes('token=')) {
+        cleanUrl = `${cleanUrl}${cleanUrl.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`
+      }
+      return cleanUrl
     },
 
     getStatusColor(status) {

@@ -41,7 +41,6 @@ class ExamArchiveMVS(AllMVS):
     
     serializer_class = ExamSerializer
     filterset_fields = {
-        'subject': ['exact'],
         'year': ['exact'],
         'institution_type': ['exact'],
         'examSchedule': ['exact'],
@@ -56,12 +55,20 @@ class ExamArchiveMVS(AllMVS):
 
         subject_id = self.request.query_params.get('subject') or self.request.query_params.get('subject_id') or self.request.query_params.get('institute_subject')
         if subject_id:
-            qs = qs.filter(
+            from academic.models.schools.SchoolSubject import SchoolSubject
+            subj_q = (
                 Q(subject_id=subject_id) |
+                Q(subject__class_subjects__school_subject_id=subject_id) |
+                Q(versions__question_orders__question__lesson__unit__school_subject_id=subject_id) |
+                Q(versions__question_orders__question__lesson__unit__class_subject__school_subject_id=subject_id) |
                 Q(versions__question_orders__question__lesson__unit__class_subject__subject_id=subject_id) |
                 Q(versions__question_orders__question__lesson__unit__semester_subject__fk_subject_id=subject_id) |
                 Q(versions__question_orders__question__lesson__subject_id=subject_id)
             )
+            ss = SchoolSubject.objects.filter(id=subject_id).first()
+            if ss and ss.name_ar:
+                subj_q |= Q(subject__name_ar=ss.name_ar)
+            qs = qs.filter(subj_q)
 
         # University Filters
         college_id = self.request.query_params.get('college') or self.request.query_params.get('fk_college')

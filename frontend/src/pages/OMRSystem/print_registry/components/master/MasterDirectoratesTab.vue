@@ -12,7 +12,7 @@
     :restore="false"
     :numbering="true"
     :showSelect="true"
-    :search="false"
+    :search="true"
     class="bg-transparent"
   
         :actionList="(item) => ([ { label: 'المراكز والمدارس', icon: 'school', color: 'teal', onClick: () => $emit('drill-down', item) }, { label: 'استوديو الطباعة', icon: 'printer-outline', color: 'primary', onClick: () => $emit('open-studio', item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">

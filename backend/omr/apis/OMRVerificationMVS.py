@@ -193,13 +193,23 @@ class OMRVerificationMVS(ViewSet):
             .values_list('examVersion__exam_id', 'cnt')
         )
 
-        # تجميع التسليمات وحالاتها
-        submissions_by_exam = {}
-        for sub in Submission.objects.filter(exam_id__in=exam_ids, is_deleted=False).select_related('registration'):
+        # تجميع التسليمات المرتبطة بطلاب مقيدين فقط (بدون تكرار لكل طالب)
+        active_reg_ids_by_exam = {}
+        printed_reg_ids_by_exam = {}
+        for eid, rid, is_prn in StudentExamRegistration.objects.filter(
+            examVersion__exam_id__in=exam_ids, is_deleted=False
+        ).values_list('examVersion__exam_id', 'id', 'is_printed'):
+            active_reg_ids_by_exam.setdefault(eid, set()).add(rid)
+            if is_prn:
+                printed_reg_ids_by_exam.setdefault(eid, set()).add(rid)
+
+        latest_sub_by_exam_reg = {}
+        for sub in Submission.objects.filter(
+            exam_id__in=exam_ids, is_deleted=False, registration_id__isnull=False
+        ).select_related('registration').order_by('id'):
             eid = sub.exam_id
-            if eid not in submissions_by_exam:
-                submissions_by_exam[eid] = []
-            submissions_by_exam[eid].append(sub)
+            if sub.registration_id in active_reg_ids_by_exam.get(eid, set()):
+                latest_sub_by_exam_reg.setdefault(eid, {})[sub.registration_id] = sub
 
         gov_to_office_map = {
             o.fk_governorate_id: o.id 
@@ -220,9 +230,13 @@ class OMRVerificationMVS(ViewSet):
         exams_list = []
         for exam in exams:
             total_reg = reg_counts.get(exam.id, 0)
-            subs = submissions_by_exam.get(exam.id, [])
-            total_scn = len(subs)
-            total_prn = max(printed_counts.get(exam.id, 0), total_scn)
+            reg_sub_map = latest_sub_by_exam_reg.get(exam.id, {})
+            subs = list(reg_sub_map.values())
+            scanned_reg_ids = set(reg_sub_map.keys())
+            printed_reg_ids = printed_reg_ids_by_exam.get(exam.id, set())
+
+            total_scn = len(scanned_reg_ids)
+            total_prn = len(printed_reg_ids)
 
             completed_cnt = 0
             needs_review_cnt = 0
@@ -249,8 +263,8 @@ class OMRVerificationMVS(ViewSet):
                 if is_cheat:
                     cheating_cnt += 1
 
-            # المفقود: أوراق طُبعت ولكن لم تصل للماسح
-            missing_cnt = max(0, total_prn - total_scn)
+            # المفقود الحقيقي: أوراق طُبعت لطلاب مقيدين ولم تُمسح ضوئياً
+            missing_cnt = len(printed_reg_ids - scanned_reg_ids)
             absent_cnt = max(0, total_reg - total_scn)
             pass_rate = round((passed_cnt / max(1, completed_cnt)) * 100, 1) if completed_cnt > 0 else 0.0
             scan_rate = round((total_scn / max(1, total_reg)) * 100, 1) if total_reg > 0 else 0.0
@@ -380,12 +394,12 @@ class OMRVerificationMVS(ViewSet):
             subjs = [s for s in regs.values_list('examVersion__exam__subject__name_ar', flat=True).distinct() if s]
 
             subs = Submission.objects.filter(is_deleted=False, registration__in=regs)
-            scanned = subs.count()
-            printed = max(printed, scanned)
-            completed = subs.filter(status=Submission.Status.COMPLETED).count()
-            needs_review = subs.filter(status=Submission.Status.NEEDS_REVIEW).count()
-            failed_scan = subs.filter(status=Submission.Status.FAILED).count()
-            missing = max(0, printed - scanned)
+            scanned_reg_ids = set(subs.values_list('registration_id', flat=True).distinct())
+            scanned = len(scanned_reg_ids)
+            completed = subs.filter(status=Submission.Status.COMPLETED).values('registration_id').distinct().count()
+            needs_review = subs.filter(status=Submission.Status.NEEDS_REVIEW).values('registration_id').distinct().count()
+            failed_scan = subs.filter(status=Submission.Status.FAILED).values('registration_id').distinct().count()
+            missing = regs.filter(is_printed=True).exclude(id__in=scanned_reg_ids).count()
             absent = max(0, tot - scanned)
 
             results.append({
@@ -438,8 +452,12 @@ class OMRVerificationMVS(ViewSet):
 
             regs = StudentExamRegistration.objects.filter(is_deleted=False, examVersion__exam__is_deleted=False).filter(
                 Q(student_profile__organization__name_ar__in=school_names) |
-                Q(student_profile__directorate__name_ar__icontains=clean_dir_name) |
-                Q(student_profile__directorate__name_ar__icontains=d.name_ar)
+                (
+                    Q(student_profile__organization__isnull=True) & (
+                        Q(student_profile__directorate__name_ar__icontains=clean_dir_name) |
+                        Q(student_profile__directorate__name_ar__icontains=d.name_ar)
+                    )
+                )
             )
             if subj_filter and subj_filter != 'all':
                 if str(subj_filter).isdigit():
@@ -453,10 +471,10 @@ class OMRVerificationMVS(ViewSet):
             subjs = [s for s in regs.values_list('examVersion__exam__subject__name_ar', flat=True).distinct() if s]
 
             subs = Submission.objects.filter(is_deleted=False, registration__in=regs)
-            scanned = subs.count()
-            printed = max(printed, scanned)
-            completed = subs.filter(status=Submission.Status.COMPLETED).count()
-            missing = max(0, printed - scanned)
+            scanned_reg_ids = set(subs.values_list('registration_id', flat=True).distinct())
+            scanned = len(scanned_reg_ids)
+            completed = subs.filter(status=Submission.Status.COMPLETED).values('registration_id').distinct().count()
+            missing = regs.filter(is_printed=True).exclude(id__in=scanned_reg_ids).count()
             absent = max(0, tot - scanned)
 
             results.append({
@@ -543,44 +561,67 @@ class OMRVerificationMVS(ViewSet):
         org_ids = [s['student_profile__organization_id'] for s in schools_agg]
         subs_qs = Submission.objects.filter(
             is_deleted=False,
+            registration__in=regs_qs,
             registration__student_profile__organization_id__in=org_ids
         )
+        scanned_reg_ids = set(subs_qs.values_list('registration_id', flat=True).distinct())
         subs_scanned = dict(
             subs_qs.values('registration__student_profile__organization_id')
-            .annotate(cnt=Count('id'))
+            .annotate(cnt=Count('registration_id', distinct=True))
             .values_list('registration__student_profile__organization_id', 'cnt')
         )
         subs_completed = dict(
             subs_qs.filter(status=Submission.Status.COMPLETED)
             .values('registration__student_profile__organization_id')
-            .annotate(cnt=Count('id'))
+            .annotate(cnt=Count('registration_id', distinct=True))
             .values_list('registration__student_profile__organization_id', 'cnt')
         )
         subs_printed = dict(
-            StudentExamRegistration.objects.filter(
-                is_deleted=False,
-                examVersion__exam__is_deleted=False,
+            regs_qs.filter(
                 student_profile__organization_id__in=org_ids,
                 is_printed=True
             ).values('student_profile__organization_id')
-            .annotate(cnt=Count('id'))
+            .annotate(cnt=Count('id', distinct=True))
             .values_list('student_profile__organization_id', 'cnt')
         )
+        subs_missing = dict(
+            regs_qs.filter(
+                student_profile__organization_id__in=org_ids,
+                is_printed=True
+            ).exclude(id__in=scanned_reg_ids)
+            .values('student_profile__organization_id')
+            .annotate(cnt=Count('id', distinct=True))
+            .values_list('student_profile__organization_id', 'cnt')
+        )
+
+        # خريطة احتياطية للمديرية والمحافظة من CoreOrg عند غيابها في ملف الطالب
+        core_school_map = {}
+        for co in CoreOrg.objects.filter(company_level=50, is_deleted=False).select_related('fk_parent_organization__fk_parent_organization'):
+            dir_org = co.fk_parent_organization
+            off_org = dir_org.fk_parent_organization if dir_org else None
+            d_clean = dir_org.name_ar.replace('إدارة التربية والتعليم - مديرية ', '').replace('إدارة التربية والتعليم - ', '').strip() if dir_org else "—"
+            g_clean = off_org.name_ar.replace('مكتب التربية والتعليم - ', '').strip() if off_org else "—"
+            core_school_map[co.name_ar] = (d_clean, g_clean)
 
         results = []
         for s in schools_agg:
             oid = s['student_profile__organization_id']
+            sch_name = s['student_profile__organization__name_ar'] or "مؤسسة غير محددة"
             tot = s['total_students']
             scn = subs_scanned.get(oid, 0)
-            prn = max(subs_printed.get(oid, 0), scn)
+            prn = subs_printed.get(oid, 0)
             comp = subs_completed.get(oid, 0)
-            missing = max(0, prn - scn)
+            missing = subs_missing.get(oid, 0)
             absent = max(0, tot - scn)
 
-            # استخراج المديرية والمحافظة
+            # استخراج المديرية والمحافظة (مع الاحتياطي من CoreOrg)
             one_reg = regs_qs.filter(student_profile__organization_id=oid).select_related('student_profile__directorate__fk_governorate').first()
-            d_name = one_reg.student_profile.directorate.name_ar if (one_reg and one_reg.student_profile and one_reg.student_profile.directorate) else "—"
-            g_name = one_reg.student_profile.directorate.fk_governorate.name_ar if (one_reg and one_reg.student_profile and one_reg.student_profile.directorate and one_reg.student_profile.directorate.fk_governorate) else "—"
+            d_name = one_reg.student_profile.directorate.name_ar if (one_reg and one_reg.student_profile and one_reg.student_profile.directorate) else None
+            g_name = one_reg.student_profile.directorate.fk_governorate.name_ar if (one_reg and one_reg.student_profile and one_reg.student_profile.directorate and one_reg.student_profile.directorate.fk_governorate) else None
+            if not d_name or not g_name:
+                fb_d, fb_g = core_school_map.get(sch_name, ("—", "—"))
+                d_name = d_name or fb_d
+                g_name = g_name or fb_g
 
             results.append({
                 "id": oid,

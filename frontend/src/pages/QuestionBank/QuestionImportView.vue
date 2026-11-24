@@ -78,14 +78,17 @@
                   cols="12"
                   :add="false"
                   :disabled="!form.stageId"
+                  @update:model-value="onClassTrackChange"
                 />
 
                 <auto-list
                   v-model="form.subjectId"
                   name="Subject"
+                  :param="schoolSubjectParam"
                   label="المادة الدراسية"
                   cols="12"
                   :add="false"
+                  :disabled="!form.classTrackId"
                   @update:model-value="onSubjectChange"
                 />
 
@@ -211,7 +214,7 @@
               <auto-list
                 v-model="form.lessonId"
                 name="LessonByUnit"
-                :param="form.unitId"
+                :param="formLessonParam"
                 :label="form.institution_type === 'university' ? 'المحاضرة' : (form.institution_type === 'institute' ? 'الدرس العملي' : 'الدرس')"
                 cols="12"
                 :add="false"
@@ -743,6 +746,12 @@ export default {
       return Object.keys(p).length ? p : null;
     },
 
+    schoolSubjectParam() {
+      if (this.form.classTrackId) return { class_track: this.form.classTrackId };
+      if (this.form.stageId) return { stage: this.form.stageId };
+      return null;
+    },
+
     formUnitParam() {
       if (this.form.institution_type === "university") {
         return this.form.semesterSubjectId ? { semester_subject: this.form.semesterSubjectId } : null;
@@ -750,7 +759,16 @@ export default {
       if (this.form.institution_type === "institute") {
         return this.form.instituteSubjectId ? { institute_subject: this.form.instituteSubjectId } : null;
       }
-      return this.form.subjectId ? { subject: this.form.subjectId } : null;
+      if (!this.form.subjectId) return null;
+      const p = { school_subject: this.form.subjectId, subject: this.form.subjectId };
+      if (this.form.classTrackId) p.class_track = this.form.classTrackId;
+      if (this.form.semesterId) p.semester = this.form.semesterId;
+      return p;
+    },
+
+    formLessonParam() {
+      if (!this.form.unitId) return null;
+      return { unit: this.form.unitId, institution_type: this.form.institution_type || "school" };
     },
 
     isHierarchyValid() {
@@ -813,6 +831,15 @@ export default {
 
     onStageChange() {
       this.form.classTrackId = null;
+      this.form.subjectId = null;
+      this.form.unitId = null;
+      this.form.lessonId = null;
+    },
+
+    onClassTrackChange() {
+      this.form.subjectId = null;
+      this.form.unitId = null;
+      this.form.lessonId = null;
     },
 
     onSubjectChange() {

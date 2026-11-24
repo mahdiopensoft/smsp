@@ -50,81 +50,144 @@
 }
 
 /* ==========================================================================
-   2. Connected Stepper Wizard Pipeline (Executive 4-Step Progress)
+   2. Executive Circular Stepper Pipeline (Unified with OMR Live Pipeline Console)
    ========================================================================== */
-.premium-wizard-wrapper {
+.exam-pipeline-console {
   position: relative;
-  padding: 24px 36px 20px 36px;
-  background: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.05) 0%, rgb(var(--v-theme-surface)) 100%) !important;
-  border-bottom: 1.5px solid rgba(var(--v-theme-primary), 0.12) !important;
-}
-
-.premium-wizard-container {
-  position: relative;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  max-width: 1080px;
-  margin: 0 auto;
-}
-
-.wizard-progress-track {
-  position: absolute;
-  top: 23px;
-  left: 60px;
-  right: 60px;
-  height: 4px;
-  background: rgba(var(--v-theme-primary), 0.1) !important;
-  z-index: 1;
-  border-radius: 999px;
+  padding: 20px 28px 22px 28px;
+  background: linear-gradient(135deg, rgba(var(--v-theme-primary), 0.045) 0%, rgba(var(--v-theme-surface), 0.98) 100%) !important;
+  border-bottom: 1.5px solid rgba(var(--v-theme-primary), 0.14) !important;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
   overflow: hidden;
 }
 
-.wizard-progress-fill {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, #10b981 0%, rgb(var(--v-theme-primary)) 100%) !important;
-  transition: width 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
-  border-radius: 999px;
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+.exam-pipeline-header {
+  padding-bottom: 14px;
+  border-bottom: 1px dashed rgba(var(--v-theme-primary), 0.14);
 }
 
-.wizard-beam-glow {
-  position: absolute;
-  left: 0;
-  top: -2px;
-  bottom: -2px;
-  width: 16px;
-  background: #ffffff;
-  border-radius: 50%;
-  filter: blur(3px);
-  opacity: 0.9;
-  animation: wizard-beam-pulse 1.5s ease-in-out infinite alternate;
+.pipeline-header-avatar {
+  border: 1px solid rgba(var(--v-theme-primary), 0.18);
 }
 
-@keyframes wizard-beam-pulse {
-  from { opacity: 0.5; transform: scaleX(0.8); }
-  to { opacity: 1; transform: scaleX(1.3); }
+.pipeline-header-title {
+  line-height: 1.3;
+  letter-spacing: -0.01em;
 }
 
-.premium-wizard-node {
+.exam-step-counter-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  background: rgba(var(--v-theme-surface-variant), 0.1);
+  border: 1px solid rgba(var(--v-border-color), 0.22);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.exam-percentage-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  padding: 5px 11px;
+  background: rgb(var(--v-theme-primary));
+  color: #ffffff;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  box-shadow: 0 2px 8px rgba(var(--v-theme-primary), 0.28);
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.exam-percentage-pill.is-complete-pill {
+  background: #10b981;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.exam-percentage-pill.is-error-pill {
+  background: rgb(var(--v-theme-error));
+  box-shadow: 0 2px 8px rgba(var(--v-theme-error), 0.3);
+}
+
+/* Circular Pipeline Track */
+.exam-stepper-pipeline {
+  padding: 4px 6px 0 6px;
+}
+
+.exam-stepper-track {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   position: relative;
-  z-index: 2;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.exam-stepper-node {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
-  cursor: pointer;
   flex: 1;
-  max-width: 250px;
-  transition: all 0.25s ease;
+  z-index: 2;
   user-select: none;
+  outline: none;
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
-/* Stepper Circle Anchor & Geometry */
-.stepper-circle-anchor {
+.exam-stepper-node.is-clickable {
+  cursor: pointer;
+}
+
+/* Clean Segmented Connector Bars Between Circles (RTL Default — Clean Gap, Never Cuts Circles) */
+.exam-stepper-node:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  top: 25px;
+  right: calc(-50% + 38px);
+  width: calc(100% - 76px);
+  height: 4px;
+  background: rgba(var(--v-theme-on-surface), 0.12);
+  border-radius: 999px;
+  z-index: 1;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+[dir='ltr'] .exam-stepper-node:not(:first-child)::before {
+  right: auto;
+  left: calc(-50% + 38px);
+}
+
+/* Completed segment */
+.exam-stepper-node.is-completed:not(:first-child)::before {
+  background: #10b981 !important;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.28);
+}
+
+/* Active segment flowing from completed emerald -> active primary */
+.exam-stepper-node.is-active:not(:first-child)::before {
+  background: linear-gradient(to left, rgb(var(--v-theme-primary)), #10b981) !important;
+  box-shadow: 0 0 6px rgba(var(--v-theme-primary), 0.22);
+}
+
+[dir='ltr'] .exam-stepper-node.is-active:not(:first-child)::before {
+  background: linear-gradient(to right, #10b981, rgb(var(--v-theme-primary))) !important;
+}
+
+/* Error segment */
+.exam-stepper-node.is-error:not(:first-child)::before {
+  background: linear-gradient(to left, rgb(var(--v-theme-error)), #10b981) !important;
+  box-shadow: 0 0 6px rgba(var(--v-theme-error), 0.22);
+}
+
+.exam-stepper-node.prev-error:not(:first-child)::before {
+  background: rgba(var(--v-theme-error), 0.35) !important;
+}
+
+/* Circle Anchor & Geometry */
+.exam-circle-anchor {
   position: relative;
   display: flex;
   align-items: center;
@@ -132,235 +195,178 @@
   z-index: 3;
 }
 
-.stepper-circle {
-  width: 46px;
-  height: 46px;
+.exam-stepper-circle {
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgb(var(--v-theme-surface)) !important;
-  border: 2px solid rgba(var(--v-theme-primary), 0.2);
-  color: rgba(var(--v-theme-on-surface), 0.55);
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 0 0 6px rgb(var(--v-theme-surface)), 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 2px solid rgba(var(--v-border-color), 0.35);
+  color: rgba(var(--v-theme-on-surface), 0.5);
+  transition: border-color 0.25s ease, background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.22s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
-.node-step-number {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: rgb(var(--v-theme-surface));
-  color: rgba(var(--v-theme-on-surface), 0.7);
-  font-size: 11px;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1.5px solid rgba(var(--v-theme-primary), 0.25);
-  z-index: 4;
-  transition: all 0.25s ease;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+/* 1. Pending Node */
+.exam-stepper-node.is-pending .exam-stepper-circle {
+  background: rgb(var(--v-theme-surface)) !important;
+  border-color: rgba(var(--v-border-color), 0.32);
+  color: rgba(var(--v-theme-on-surface), 0.45);
 }
 
-/* 1. Active State (قيد الضبط) */
-.premium-wizard-node.is-active .stepper-circle {
+.exam-stepper-node.is-pending.is-clickable:hover .exam-stepper-circle {
+  border-color: rgba(var(--v-theme-primary), 0.6);
+  color: rgb(var(--v-theme-primary));
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.14);
+}
+
+/* 2. Active Node (Clean Calm Executive Framing — No Pulse) */
+.exam-stepper-node.is-active .exam-stepper-circle {
   background: rgb(var(--v-theme-primary)) !important;
-  border-color: rgb(var(--v-theme-primary)) !important;
+  border: 2.5px solid rgb(var(--v-theme-primary)) !important;
   color: #ffffff !important;
-  transform: scale(1.1);
-  box-shadow: 0 0 0 6px rgb(var(--v-theme-surface)), 0 0 0 9px rgba(var(--v-theme-primary), 0.18), 0 4px 14px rgba(var(--v-theme-primary), 0.35);
+  box-shadow:
+    0 0 0 3px rgb(var(--v-theme-surface)),
+    0 0 0 5.5px rgba(var(--v-theme-primary), 0.22),
+    0 6px 16px rgba(var(--v-theme-primary), 0.28);
 }
 
-.premium-wizard-node.is-active .node-step-number {
-  background: rgb(var(--v-theme-primary));
-  color: #ffffff;
-  border-color: #ffffff;
-}
-
-/* Active Pulsing Wave Ring */
-.stepper-pulse-ring {
-  position: absolute;
-  top: -6px;
-  left: -6px;
-  right: -6px;
-  bottom: -6px;
-  border-radius: 50%;
-  opacity: 0.8;
-  pointer-events: none;
-}
-
-.pulse-primary {
-  border: 2px solid rgb(var(--v-theme-primary));
-  animation: stepper-ring-expand-blue 1.8s cubic-bezier(0.24, 0, 0.38, 1) infinite;
-}
-
-@keyframes stepper-ring-expand-blue {
-  0% { transform: scale(0.92); opacity: 0.85; }
-  50% { transform: scale(1.22); opacity: 0.3; }
-  100% { transform: scale(1.4); opacity: 0; }
-}
-
-.pulse-error {
-  border: 2px solid rgb(var(--v-theme-error));
-  animation: stepper-ring-expand-error 1.4s cubic-bezier(0.24, 0, 0.38, 1) infinite;
-}
-
-@keyframes stepper-ring-expand-error {
-  0% { transform: scale(0.92); opacity: 0.9; }
-  50% { transform: scale(1.25); opacity: 0.35; }
-  100% { transform: scale(1.42); opacity: 0; }
-}
-
-.icon-active-breath {
-  animation: icon-breath-subtle 1.5s ease-in-out infinite alternate;
-}
-
-@keyframes icon-breath-subtle {
-  from { transform: scale(0.94); opacity: 0.9; }
-  to { transform: scale(1.08); opacity: 1; }
-}
-
-/* 2. Completed State (نجاح / مكتمل - علامة الصح والحدود خضراء زمردية) */
-.premium-wizard-node.is-completed .stepper-circle {
-  background: rgb(var(--v-theme-surface)) !important;
-  border-color: #10b981 !important;
+/* 3. Completed Node (Emerald Ring + Green Checkmark) */
+.exam-stepper-node.is-completed .exam-stepper-circle {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border: 2.5px solid #10b981 !important;
   color: #10b981 !important;
-  box-shadow: 0 0 0 6px rgb(var(--v-theme-surface)), 0 0 0 7px rgba(16, 185, 129, 0.25), 0 3px 10px rgba(16, 185, 129, 0.18);
+  box-shadow:
+    0 0 0 3px rgb(var(--v-theme-surface)),
+    0 3px 10px rgba(16, 185, 129, 0.18);
 }
 
-.premium-wizard-node.is-completed .node-step-number {
-  background: #10b981;
-  color: #ffffff;
-  border-color: rgb(var(--v-theme-surface));
+.exam-stepper-node.is-completed:hover .exam-stepper-circle {
+  transform: translateY(-2px);
+  background: rgba(16, 185, 129, 0.14) !important;
+  box-shadow:
+    0 0 0 3px rgb(var(--v-theme-surface)),
+    0 5px 14px rgba(16, 185, 129, 0.25);
 }
 
 .checkmark-pop {
-  animation: checkmark-pop-anim 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: checkmark-pop-anim 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 @keyframes checkmark-pop-anim {
-  0% { transform: scale(0.3); opacity: 0; }
-  70% { transform: scale(1.25); }
+  0% { transform: scale(0.5); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
 }
 
-/* 3. Error / Failure State (فشل / تنبيه / غير مكتمل) */
-.premium-wizard-node.is-error .stepper-circle {
-  background: rgba(var(--v-theme-error), 0.08) !important;
-  border-color: rgb(var(--v-theme-error)) !important;
+/* 4. Error Node (Calm High-Contrast Error Framing — No Pulse) */
+.exam-stepper-node.is-error .exam-stepper-circle {
+  background: rgba(var(--v-theme-error), 0.1) !important;
+  border: 2.5px solid rgb(var(--v-theme-error)) !important;
   color: rgb(var(--v-theme-error)) !important;
-  box-shadow: 0 0 0 3px rgba(var(--v-theme-error), 0.16), 0 3px 12px rgba(var(--v-theme-error), 0.2);
+  box-shadow:
+    0 0 0 3px rgb(var(--v-theme-surface)),
+    0 0 0 5.5px rgba(var(--v-theme-error), 0.18),
+    0 4px 12px rgba(var(--v-theme-error), 0.2);
 }
 
-.premium-wizard-node.is-error .node-step-number {
-  background: rgb(var(--v-theme-error));
-  color: #ffffff;
-  border-color: rgb(var(--v-theme-surface));
+/* Node Typography */
+.exam-node-text {
+  max-width: 220px;
+  padding: 0 8px;
 }
 
-.error-icon-shake {
-  animation: error-shake-subtle 0.6s ease-in-out;
-}
-
-@keyframes error-shake-subtle {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-3px); }
-  40%, 80% { transform: translateX(3px); }
-}
-
-/* 4. Pending State */
-.premium-wizard-node.is-pending {
-  opacity: 0.72;
-}
-
-.premium-wizard-node.is-pending:hover {
-  opacity: 0.95;
-}
-
-.premium-wizard-node.is-pending:hover .stepper-circle {
-  border-color: rgba(var(--v-theme-primary), 0.4);
-  transform: translateY(-2px);
-}
-
-/* Stepper Node Typography & Titles */
-.node-content {
-  width: 100%;
-}
-
-.node-title {
+.exam-node-title {
   font-size: 0.88rem;
-  line-height: 1.3;
-  color: rgb(var(--v-theme-on-surface));
+  line-height: 1.35;
   transition: color 0.2s ease;
-  white-space: nowrap;
 }
 
-.premium-wizard-node.is-active .node-title {
-  color: rgb(var(--v-theme-primary)) !important;
+.exam-stepper-node.is-active .exam-node-title {
+  color: rgb(var(--v-theme-primary));
   font-weight: 900;
 }
 
-.premium-wizard-node.is-error .node-title {
-  color: rgb(var(--v-theme-error)) !important;
+.exam-stepper-node.is-completed .exam-node-title {
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.exam-stepper-node.is-error .exam-node-title {
+  color: rgb(var(--v-theme-error));
   font-weight: 900;
 }
 
-.node-subtitle {
-  font-size: 0.72rem;
-  line-height: 1.25;
-  color: rgba(var(--v-theme-on-surface), 0.65);
-  margin-top: 2px;
+.exam-stepper-node.is-pending .exam-node-title {
+  color: rgba(var(--v-theme-on-surface), 0.55);
+  font-weight: 700;
 }
 
-/* Explicit Status Badges (نجاح / فشل / قيد الضبط / انتظار) */
-.node-status-badge-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.exam-node-desc {
+  font-size: 0.74rem;
+  line-height: 1.3;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+  margin-top: 3px;
 }
 
-.node-status-pill {
+.exam-node-status {
+  font-size: 0.74rem;
+  line-height: 1.3;
+}
+
+.status-completed-text {
+  color: #10b981 !important;
+  font-weight: 700;
   display: inline-flex;
   align-items: center;
-  font-size: 0.7rem;
-  padding: 2px 8px;
-  border-radius: 6px !important;
-  transition: all 0.25s ease;
-  line-height: 1.2;
+  justify-content: center;
 }
 
-.node-status-pill.status-completed {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.node-status-pill.status-active {
-  background: rgba(var(--v-theme-primary), 0.12);
+.status-active-text {
   color: rgb(var(--v-theme-primary));
-  border: 1px solid rgb(var(--v-theme-primary));
-  animation: pulse-text-glow 1.4s ease-in-out infinite alternate;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-@keyframes pulse-text-glow {
-  from { opacity: 0.75; }
-  to { opacity: 1; }
+.status-error-text {
+  color: rgb(var(--v-theme-error)) !important;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.node-status-pill.status-error {
-  background: rgba(var(--v-theme-error), 0.1);
-  color: rgb(var(--v-theme-error));
-  border: 1px solid rgba(var(--v-theme-error), 0.35);
+.status-pending-text {
+  color: rgba(var(--v-theme-on-surface), 0.45);
+  font-weight: 600;
 }
 
-.node-status-pill.status-pending {
-  background: rgba(var(--v-theme-on-surface), 0.05);
-  color: rgba(var(--v-theme-on-surface), 0.5);
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+@media (max-width: 768px) {
+  .exam-pipeline-console {
+    padding: 14px 16px 16px 16px;
+  }
+  .exam-stepper-circle {
+    width: 42px;
+    height: 42px;
+  }
+  .exam-stepper-node:not(:first-child)::before {
+    top: 19px;
+    right: calc(-50% + 28px);
+    width: calc(100% - 56px);
+  }
+  [dir='ltr'] .exam-stepper-node:not(:first-child)::before {
+    right: auto;
+    left: calc(-50% + 28px);
+  }
+  .exam-node-title {
+    font-size: 0.76rem;
+  }
+  .exam-node-status {
+    font-size: 0.68rem;
+  }
 }
 
 /* ==========================================================================

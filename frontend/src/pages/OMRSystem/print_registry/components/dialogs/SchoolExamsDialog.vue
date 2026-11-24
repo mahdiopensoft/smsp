@@ -43,7 +43,7 @@
           :log="false"
           :restore="false"
           :showSelect="false"
-          :search="false"
+          :search="true"
           :actionList="(item) => ([ { label: 'طباعة الاختبار', icon: 'printer', color: 'primary', onClick: () => $emit('select-exam', item, school) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))"
         >
           <template v-slot:item-slot="{ item, key }">
