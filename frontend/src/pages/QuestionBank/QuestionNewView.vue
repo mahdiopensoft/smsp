@@ -794,7 +794,7 @@
                 :label="academicContext.institution_type === 'university' ? 'مفردة / موضوع المقرر' : (academicContext.institution_type === 'institute' ? 'الوحدة / التدريب العملي' : 'الوحدة الدراسية')"
                 cols="12"
                 :add="false"
-                :disabled="academicContext.institution_type === 'university' ? !academicContext.semesterSubjectId : (academicContext.institution_type === 'institute' ? !academicContext.instituteSubjectId : !academicContext.subjectId)"
+                :disabled="academicContext.institution_type === 'university' ? !(academicContext.semesterSubjectId || (isEditMode && academicContext.subjectId)) : (academicContext.institution_type === 'institute' ? !academicContext.instituteSubjectId : !academicContext.subjectId)"
                 @update:model-value="onUnitChange"
               />
               <auto-list
@@ -1121,6 +1121,9 @@ export default {
     },
 
     isContextComplete() {
+      if (this.isEditMode && this.academicContext.lessonId) {
+        return true;
+      }
       if (this.academicContext.institution_type === "university") {
         return !!(this.academicContext.semesterSubjectId && this.academicContext.unitId && this.academicContext.lessonId);
       } else if (this.academicContext.institution_type === "institute") {
@@ -1162,10 +1165,11 @@ export default {
       let key = null;
       let paramObj = null;
       if (this.academicContext.institution_type === "university") {
-        key = `univ_${this.academicContext.semesterSubjectId || ""}`;
-        paramObj = this.academicContext.semesterSubjectId ? {
+        key = `univ_${this.academicContext.semesterSubjectId || ""}_${this.isEditMode ? (this.academicContext.subjectId || "") : ""}`;
+        paramObj = (this.academicContext.semesterSubjectId || (this.isEditMode && this.academicContext.subjectId)) ? {
           institution_type: "university",
           semester_subject: this.academicContext.semesterSubjectId,
+          subject: this.academicContext.subjectId,
         } : null;
       } else if (this.academicContext.institution_type === "institute") {
         key = `inst_${this.academicContext.instituteSubjectId || ""}`;
@@ -1950,14 +1954,14 @@ export default {
         };
         firstQ.type = typeMap[q.questionType] || "single_choice";
 
-        if (q.institution_type === "institute") {
-          this.academicContext.institution_type = "institute";
+        if (q.institution_type === "institute" || q.institution_type === "university" || q.institution_type === "school") {
+          this.academicContext.institution_type = q.institution_type;
         } else if (q.semester_subject_id || q.college_id) {
           this.academicContext.institution_type = "university";
         } else if (q.stage_id || q.class_track_id) {
           this.academicContext.institution_type = "school";
         } else {
-          this.academicContext.institution_type = q.institution_type || "school";
+          this.academicContext.institution_type = "school";
         }
 
         if (this.academicContext.institution_type === "school") {
@@ -1969,6 +1973,7 @@ export default {
           this.academicContext.instituteFieldId = q.institute_field_id ? Number(q.institute_field_id) : null;
           this.academicContext.instituteEducationSystemId = q.institute_education_system_id ? Number(q.institute_education_system_id) : null;
           this.academicContext.instituteSpecializationId = q.institute_specialization_id ? Number(q.institute_specialization_id) : null;
+          this.academicContext.instituteCurriculumId = q.institute_curriculum_id ? Number(q.institute_curriculum_id) : null;
           this.academicContext.instituteSubjectId = (q.institute_subject_id || q.subject_id || q.fk_subject) ? Number(q.institute_subject_id || q.subject_id || q.fk_subject) : null;
           this.academicContext.subjectId = this.academicContext.instituteSubjectId;
         } else {
@@ -1982,6 +1987,80 @@ export default {
         this.academicContext.unitId = (q.unit_id || q.fk_unit) ? Number(q.unit_id || q.fk_unit) : null;
         this.academicContext.lessonId = q.lesson ? Number(q.lesson) : null;
         this.academicContext.learningOutcomeId = (q.learningOutcome || q.learning_outcome_id) ? Number(q.learningOutcome || q.learning_outcome_id) : null;
+
+        if (this.academicContext.institution_type === "school") {
+          this.schoolState = {
+            stageId: this.academicContext.stageId,
+            classTrackId: this.academicContext.classTrackId,
+            subjectId: this.academicContext.subjectId,
+            semesterId: this.academicContext.semesterId,
+            unitId: this.academicContext.unitId,
+            lessonId: this.academicContext.lessonId,
+            learningOutcomeId: this.academicContext.learningOutcomeId,
+          };
+        } else if (this.academicContext.institution_type === "institute") {
+          this.instituteState = {
+            instituteFieldId: this.academicContext.instituteFieldId,
+            instituteEducationSystemId: this.academicContext.instituteEducationSystemId,
+            instituteSpecializationId: this.academicContext.instituteSpecializationId,
+            instituteCurriculumId: this.academicContext.instituteCurriculumId,
+            instituteSubjectId: this.academicContext.instituteSubjectId,
+            unitId: this.academicContext.unitId,
+            lessonId: this.academicContext.lessonId,
+            learningOutcomeId: this.academicContext.learningOutcomeId,
+          };
+        } else {
+          this.universityState = {
+            collegeId: this.academicContext.collegeId,
+            departmentId: this.academicContext.departmentId,
+            specializationId: this.academicContext.specializationId,
+            semesterSubjectId: this.academicContext.semesterSubjectId,
+            unitId: this.academicContext.unitId,
+            lessonId: this.academicContext.lessonId,
+            learningOutcomeId: this.academicContext.learningOutcomeId,
+          };
+        }
+
+        this._currentActiveType = this.academicContext.institution_type;
+        this._lastCollegeId = this.academicContext.collegeId;
+        this._lastDepartmentId = this.academicContext.departmentId;
+        this._lastSpecializationId = this.academicContext.specializationId;
+        this._lastSemesterSubjectId = this.academicContext.semesterSubjectId;
+        this._lastStageId = this.academicContext.stageId;
+        this._lastClassTrackId = this.academicContext.classTrackId;
+        this._lastSubjectId = this.academicContext.subjectId;
+        this._lastSemesterId = this.academicContext.semesterId;
+        this._lastUnitId = this.academicContext.unitId;
+
+        if (this.academicContext.institution_type === "university") {
+          this._lastUnitParamKey = `univ_${this.academicContext.semesterSubjectId || ""}_${this.academicContext.subjectId || ""}`;
+          this._stableUnitParam = (this.academicContext.semesterSubjectId || this.academicContext.subjectId) ? {
+            institution_type: "university",
+            semester_subject: this.academicContext.semesterSubjectId,
+            subject: this.academicContext.subjectId,
+          } : null;
+        } else if (this.academicContext.institution_type === "institute") {
+          this._lastUnitParamKey = `inst_${this.academicContext.instituteSubjectId || ""}`;
+          this._stableUnitParam = this.academicContext.instituteSubjectId ? {
+            institution_type: "institute",
+            subject: this.academicContext.instituteSubjectId,
+          } : null;
+        } else {
+          this._lastUnitParamKey = `school_${this.academicContext.subjectId || ""}_${this.academicContext.semesterId || ""}_${this.academicContext.classTrackId || ""}_${this.academicContext.stageId || ""}`;
+          this._stableUnitParam = (this.academicContext.subjectId || this.academicContext.classTrackId) ? {
+            institution_type: "school",
+            school_subject: this.academicContext.subjectId,
+            subject: this.academicContext.subjectId,
+            semester: this.academicContext.semesterId,
+            class_track: this.academicContext.classTrackId,
+            stage: this.academicContext.stageId,
+          } : null;
+        }
+        this._lastLessonParamKey = this.academicContext.unitId ? `${this.academicContext.institution_type}_${this.academicContext.unitId}` : null;
+        this._stableLessonParam = this.academicContext.unitId ? {
+          unit: this.academicContext.unitId,
+          institution_type: this.academicContext.institution_type,
+        } : null;
 
         const answers = q.answers || q.options || [];
         if (answers.length > 0) {

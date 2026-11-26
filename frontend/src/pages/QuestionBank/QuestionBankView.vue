@@ -900,12 +900,19 @@ export default {
 
     unitFilterParam() {
       if (this.filterInstitutionType === 'university') {
-        return this.filterSemesterSubject ? { semester_subject: this.filterSemesterSubject } : null;
+        return this.filterSemesterSubject ? { institution_type: 'university', semester_subject: this.filterSemesterSubject } : null;
       }
       if (this.filterInstitutionType === 'institute') {
-        return this.filterInstituteSubject ? { subject: this.filterInstituteSubject } : null;
+        return this.filterInstituteSubject ? { institution_type: 'institute', institute_subject: this.filterInstituteSubject } : null;
       }
-      return this.filterSubject || null;
+      if (this.filterSubject) {
+        return {
+          institution_type: 'school',
+          school_subject: this.filterSubject,
+          ...(this.filterClassTrack ? { class_track: this.filterClassTrack } : {}),
+        };
+      }
+      return null;
     },
   },
 
@@ -954,57 +961,32 @@ export default {
         if (this.search) queryParams.search = this.search;
         if (queryParams.page) this.currentPage = queryParams.page;
 
-        // Map local filters to backend API fields
-        let filters = [];
-        if (this.filterInstitutionType) {
-          filters.push({ field: "institution_type", value: this.filterInstitutionType });
-        }
-        if (this.filterStatus) filters.push({ field: "status", value: this.filterStatus });
-        if (this.filterDifficulty) filters.push({ field: "difficulty", value: this.filterDifficulty });
-        if (this.filterType) filters.push({ field: "questionType", value: this.filterType });
-        if (this.filterBloom) filters.push({ field: "bloomLevel", value: this.filterBloom });
-        if (this.filterSubject) {
-          if (this.filterInstitutionType === "university") {
-            filters.push({ field: "lesson__unit__semester_subject__fk_subject", value: this.filterSubject });
-          } else if (this.filterInstitutionType === "school") {
-            filters.push({ field: "lesson__unit__class_subject__subject", value: this.filterSubject });
-          } else {
-            queryParams.subject = this.filterSubject;
-          }
-        }
-        if (this.filterUnit) filters.push({ field: "lesson__unit", value: this.filterUnit });
+        if (this.filterInstitutionType) queryParams.institution_type = this.filterInstitutionType;
+        if (this.filterStatus) queryParams.status = this.filterStatus;
+        if (this.filterDifficulty) queryParams.difficulty = this.filterDifficulty;
+        if (this.filterType) queryParams.questionType = this.filterType;
+        if (this.filterBloom) queryParams.bloomLevel = this.filterBloom;
+        if (this.filterSubject) queryParams.subject = this.filterSubject;
+        if (this.filterUnit) queryParams.unit = this.filterUnit;
 
         // School filters
-        if (this.filterStage) filters.push({ field: "lesson__unit__class_subject__class_track__level__stage", value: this.filterStage });
-        if (this.filterClassTrack) filters.push({ field: "lesson__unit__class_subject__class_track", value: this.filterClassTrack });
+        if (this.filterStage) queryParams.stage = this.filterStage;
+        if (this.filterClassTrack) queryParams.class_track = this.filterClassTrack;
 
         // University filters
-        if (this.filterSemesterSubject) {
-          filters.push({ field: "lesson__unit__semester_subject", value: this.filterSemesterSubject });
-        } else if (this.filterSpecialization) {
-          filters.push({ field: "lesson__unit__semester_subject__fk_specialization", value: this.filterSpecialization });
-        } else if (this.filterDepartment) {
-          filters.push({ field: "lesson__unit__semester_subject__fk_specialization__fk_section", value: this.filterDepartment });
-        } else if (this.filterCollege) {
-          filters.push({ field: "lesson__unit__semester_subject__fk_specialization__fk_college", value: this.filterCollege });
-        }
+        if (this.filterCollege) queryParams.college = this.filterCollege;
+        if (this.filterDepartment) queryParams.department = this.filterDepartment;
+        if (this.filterSpecialization) queryParams.specialization = this.filterSpecialization;
+        if (this.filterSemesterSubject) queryParams.semester_subject = this.filterSemesterSubject;
 
         // Institute filters
-        if (this.filterInstituteSubject) {
-          filters.push({ field: "lesson__subject", value: this.filterInstituteSubject });
-        }
+        if (this.filterInstituteField) queryParams.institute_field = this.filterInstituteField;
+        if (this.filterInstituteEducationSystem) queryParams.institute_education_system = this.filterInstituteEducationSystem;
+        if (this.filterInstituteSpecialization) queryParams.institute_specialization = this.filterInstituteSpecialization;
+        if (this.filterInstituteSubject) queryParams.institute_subject = this.filterInstituteSubject;
 
-        if (filters.length > 0) {
-          const response = await this.$axios.post(
-            "api/bank/questions/filter-paginate/",
-            { filters },
-            { params: queryParams }
-          );
-          this.items = response.data || response?.data?.data || { results: [], pagination: {} };
-        } else {
-          const response = await this.$axios.get("api/bank/questions/", { params: queryParams });
-          this.items = response.data || response?.data?.data || { results: [], pagination: {} };
-        }
+        const response = await this.$axios.get("api/bank/questions/", { params: queryParams });
+        this.items = response.data || response?.data?.data || { results: [], pagination: {} };
       } catch (err) {
         console.error("فشل في تحميل بيانات الأسئلة:", err);
       } finally {

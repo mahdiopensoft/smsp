@@ -144,12 +144,19 @@ class QuestionListSerializer(serializers.ModelSerializer):
         try:
             active_lesson = getattr(obj, 'school_lesson', None) or getattr(obj, 'institute_lesson', None) or getattr(obj, 'lesson', None)
             if active_lesson:
+                if getattr(active_lesson, 'school_subject', None):
+                    return active_lesson.school_subject.name_ar
                 if getattr(active_lesson, 'subject', None):
                     return active_lesson.subject.name_ar
                 unit = getattr(active_lesson, 'unit', None)
                 if unit:
-                    if hasattr(unit, 'class_subject') and unit.class_subject and getattr(unit.class_subject, 'subject', None):
-                        return unit.class_subject.subject.name_ar
+                    if hasattr(unit, 'class_subject') and unit.class_subject:
+                        if getattr(unit.class_subject, 'school_subject', None):
+                            return unit.class_subject.school_subject.name_ar
+                        if getattr(unit.class_subject, 'subject', None):
+                            return unit.class_subject.subject.name_ar
+                    if hasattr(unit, 'school_subject') and unit.school_subject:
+                        return unit.school_subject.name_ar
                     if hasattr(unit, 'subject') and unit.subject:
                         return unit.subject.name_ar
                     ss = getattr(unit, 'semester_subject', None)
@@ -374,12 +381,19 @@ class QuestionSerializer(serializers.ModelSerializer):
         try:
             active_lesson = getattr(obj, 'school_lesson', None) or getattr(obj, 'institute_lesson', None) or getattr(obj, 'lesson', None)
             if active_lesson:
+                if getattr(active_lesson, 'school_subject', None):
+                    return active_lesson.school_subject.name_ar
                 if getattr(active_lesson, 'subject', None):
                     return active_lesson.subject.name_ar
                 unit = getattr(active_lesson, 'unit', None)
                 if unit:
-                    if hasattr(unit, 'class_subject') and unit.class_subject and getattr(unit.class_subject, 'subject', None):
-                        return unit.class_subject.subject.name_ar
+                    if hasattr(unit, 'class_subject') and unit.class_subject:
+                        if getattr(unit.class_subject, 'school_subject', None):
+                            return unit.class_subject.school_subject.name_ar
+                        if getattr(unit.class_subject, 'subject', None):
+                            return unit.class_subject.subject.name_ar
+                    if hasattr(unit, 'school_subject') and unit.school_subject:
+                        return unit.school_subject.name_ar
                     if hasattr(unit, 'subject') and unit.subject:
                         return unit.subject.name_ar
                     ss = getattr(unit, 'semester_subject', None)

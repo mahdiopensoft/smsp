@@ -19,29 +19,78 @@ class QuestionMVS(AllMVS):
     Endpoint: /api/bank/questions/
     Used by: QuestionBankView.vue
     """
-    queryset = Question.objects.select_related(
-        'lesson',
-        'lesson__subject',
-        'lesson__unit',
-        'lesson__unit__semester',
-        'lesson__unit__semester_subject__fk_subject',
-        'lesson__unit__semester_subject__course',
-        'lesson__unit__semester_subject__fk_specialization__fk_college',
-        'lesson__unit__semester_subject__fk_specialization__fk_section',
-        'lesson__unit__semester_subject__semester',
-        'createdBy',
-        'reviewer'
-    ).prefetch_related('options', 'metrics', 'distractor_analyses')
+    LIST_ACTIONS = (
+        'list', 'filter_paginate', 'filter_by_field_paginate',
+        'filter', 'filter_by_fields', 'second_list', 'all', 'select',
+    )
+
+    queryset = Question.objects.all()
     serializer_class = QuestionSerializer
+    fields_4_search = ['content', 'description']
     enable_actions = [
         'all', 'select', 'list', 'second_list', 'filter', 'filter_paginate',
         'create', 'update', 'destroy', 'retrieve', 'partial_update'
     ]
 
     def get_serializer_class(self):
-        if getattr(self, 'action', None) in ['list', 'filter_paginate', 'filter', 'second_list', 'all', 'select']:
+        if getattr(self, 'action', None) in self.LIST_ACTIONS:
             return QuestionListSerializer
         return QuestionSerializer
+
+    def get_serializer(self, *args, **kwargs):
+        # AllMVS's CustomListRetrieveMixin hardcodes self.serializer_class and
+        # ignores get_serializer_class(); bypass it for lightweight list payloads.
+        if getattr(self, 'action', None) in self.LIST_ACTIONS:
+            kwargs.setdefault('context', self.get_serializer_context(None))
+            return QuestionListSerializer(*args, **kwargs)
+        return super().get_serializer(*args, **kwargs)
+
+    def _with_optimized_relations(self, qs):
+        """Attach only the relations required by the current action."""
+        action_name = getattr(self, 'action', None)
+        if action_name in self.LIST_ACTIONS:
+            return qs.select_related(
+                'school_lesson__school_subject',
+                'school_lesson__unit__school_subject',
+                'school_lesson__unit__class_subject__school_subject',
+                'school_lesson__unit__class_subject__subject',
+                'institute_lesson__subject',
+                'institute_lesson__unit__subject',
+                'lesson__subject',
+                'lesson__unit__semester_subject__fk_subject',
+                'lesson__unit__semester_subject__course',
+                'createdBy',
+                'reviewer',
+                'metrics',
+            )
+        return qs.select_related(
+            'lesson',
+            'lesson__subject',
+            'lesson__unit',
+            'lesson__unit__semester',
+            'lesson__unit__semester_subject__fk_subject',
+            'lesson__unit__semester_subject__course',
+            'lesson__unit__semester_subject__fk_specialization__fk_college',
+            'lesson__unit__semester_subject__fk_specialization__fk_section',
+            'lesson__unit__semester_subject__semester',
+            'school_lesson',
+            'school_lesson__school_subject',
+            'school_lesson__unit',
+            'school_lesson__unit__school_subject',
+            'school_lesson__unit__class_subject__subject',
+            'school_lesson__unit__class_subject__school_subject',
+            'school_lesson__unit__class_subject__class_track',
+            'school_lesson__unit__class_subject__class_track__level',
+            'school_lesson__unit__class_subject__class_track__level__stage',
+            'institute_lesson',
+            'institute_lesson__subject',
+            'institute_lesson__unit',
+            'institute_lesson__unit__subject__field',
+            'institute_lesson__unit__curriculum__specialization',
+            'createdBy',
+            'reviewer',
+            'metrics',
+        ).prefetch_related('options', 'distractor_analyses')
 
     def perform_create(self, serializer):
         user = self.request.user if (self.request and self.request.user and self.request.user.is_authenticated) else None
@@ -89,8 +138,101 @@ class QuestionMVS(AllMVS):
         'lesson__unit__semester_subject__fk_specialization__fk_section': ['exact'],
     }
 
+    def _apply_school_filters(self, qs, stage, class_track):
+        """Filter school questions by stage/class_track via pre-resolved lesson IDs (avoids reverse-FK DISTINCT joins)."""
+        if not stage and not class_track:
+            return qs
+
+        from academic.models.schools.SchoolClassSubject import SchoolClassSubject
+        from academic.models.schools.SchoolLesson import SchoolLesson
+        from academic.models.universities.UniversityLesson import UniversityLesson
+
+        scs_qs = SchoolClassSubject.objects.filter(is_deleted=False)
+        if stage:
+            scs_qs = scs_qs.filter(class_track__level__stage_id=stage)
+        if class_track:
+            scs_qs = scs_qs.filter(class_track_id=class_track)
+
+        scs_rows = list(scs_qs.values_list('id', 'school_subject_id'))
+        if not scs_rows:
+            return qs.none()
+
+        cs_ids = [row[0] for row in scs_rows]
+        school_subj_ids = list({row[1] for row in scs_rows if row[1]})
+
+        sl_query = Q(unit__class_subject_id__in=cs_ids)
+        ul_query = Q(unit__class_subject_id__in=cs_ids)
+        if school_subj_ids:
+            sl_query |= Q(unit__school_subject_id__in=school_subj_ids) | Q(school_subject_id__in=school_subj_ids)
+            ul_query |= Q(unit__school_subject_id__in=school_subj_ids)
+
+        sl_ids = list(SchoolLesson.objects.filter(sl_query).values_list('id', flat=True))
+        ul_ids = list(UniversityLesson.objects.filter(ul_query).values_list('id', flat=True))
+        if not sl_ids and not ul_ids:
+            return qs.none()
+
+        match_q = Q()
+        if sl_ids:
+            match_q |= Q(school_lesson_id__in=sl_ids)
+        if ul_ids:
+            match_q |= Q(lesson_id__in=ul_ids)
+        return qs.filter(match_q)
+
+    def _apply_institute_filters(self, qs, params):
+        """Filter institute questions via pre-resolved InstituteLesson IDs (avoids reverse-FK DISTINCT joins)."""
+        inst_field = params.get('field') or params.get('institute_field')
+        inst_edu_system = params.get('institute_education_system') or params.get('education_system')
+        inst_specialization = params.get('institute_specialization')
+        inst_subject = params.get('institute_subject')
+
+        if not any([inst_field, inst_edu_system, inst_specialization, inst_subject]):
+            return qs
+
+        from academic.models.institutes.InstituteLesson import InstituteLesson
+        from academic.models.institutes.InstituteCurriculumSubject import InstituteCurriculumSubject
+
+        qs = qs.filter(institution_type='institute')
+        il_qs = InstituteLesson.objects.all()
+
+        if inst_field:
+            il_qs = il_qs.filter(
+                Q(unit__subject__field_id=inst_field) |
+                Q(subject__field_id=inst_field) |
+                Q(unit__curriculum__specialization__field_id=inst_field)
+            )
+
+        if inst_edu_system or inst_specialization:
+            ics_qs = InstituteCurriculumSubject.objects.filter(is_deleted=False)
+            if inst_edu_system:
+                ics_qs = ics_qs.filter(curriculum__specialization__education_system_id=inst_edu_system)
+            if inst_specialization:
+                ics_qs = ics_qs.filter(curriculum__specialization_id=inst_specialization)
+            matching_subj_ids = list(ics_qs.values_list('subject_id', flat=True).distinct())
+
+            spec_q = Q()
+            if inst_edu_system:
+                spec_q &= Q(unit__curriculum__specialization__education_system_id=inst_edu_system)
+            if inst_specialization:
+                spec_q &= Q(unit__curriculum__specialization_id=inst_specialization)
+            if matching_subj_ids:
+                spec_q = spec_q | Q(unit__subject_id__in=matching_subj_ids) | Q(subject_id__in=matching_subj_ids)
+            elif not (inst_edu_system or inst_specialization):
+                return qs.none()
+            il_qs = il_qs.filter(spec_q)
+
+        if inst_subject:
+            il_qs = il_qs.filter(Q(unit__subject_id=inst_subject) | Q(subject_id=inst_subject))
+
+        il_ids = list(il_qs.values_list('id', flat=True))
+        if inst_subject and not any([inst_field, inst_edu_system, inst_specialization]):
+            match_q = Q(lesson__subject_id=inst_subject)
+            if il_ids:
+                match_q |= Q(institute_lesson_id__in=il_ids)
+            return qs.filter(match_q)
+        return qs.filter(institute_lesson_id__in=il_ids) if il_ids else qs.none()
+
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = self._with_optimized_relations(super().get_queryset())
         params = self.request.query_params
 
         # 1. Institution Type Filter
@@ -98,70 +240,81 @@ class QuestionMVS(AllMVS):
         if inst_type and inst_type != 'all':
             qs = qs.filter(institution_type=inst_type)
 
+        # Standard attribute filters (also used directly by QuestionBankView GET queries)
+        for param_key in ('status', 'difficulty', 'questionType', 'bloomLevel'):
+            val = params.get(param_key)
+            if val not in (None, ''):
+                qs = qs.filter(**{param_key: val})
+
         # 2. University Filters
         college = params.get('college') or params.get('fk_college')
         if college:
-            qs = qs.filter(
-                Q(lesson__unit__semester_subject__fk_specialization__fk_college_id=college)
-            )
+            qs = qs.filter(lesson__unit__semester_subject__fk_specialization__fk_college_id=college)
 
         department = params.get('department') or params.get('fk_department') or params.get('section')
         if department:
-            qs = qs.filter(
-                Q(lesson__unit__semester_subject__fk_specialization__fk_section_id=department)
-            )
+            qs = qs.filter(lesson__unit__semester_subject__fk_specialization__fk_section_id=department)
 
         specialization = params.get('specialization') or params.get('fk_specialization')
         if specialization:
-            qs = qs.filter(
-                Q(lesson__unit__semester_subject__fk_specialization_id=specialization)
-            )
+            qs = qs.filter(lesson__unit__semester_subject__fk_specialization_id=specialization)
 
         semester_subject = params.get('semester_subject') or params.get('fk_semester_subject')
         if semester_subject:
             qs = qs.filter(lesson__unit__semester_subject_id=semester_subject)
 
         # 3. School Filters
-        stage = params.get('stage')
-        if stage:
-            qs = qs.filter(
-                Q(lesson__unit__class_subject__class_track__level__stage_id=stage)
-            )
-
-        class_track = params.get('class_track')
-        if class_track:
-            qs = qs.filter(
-                Q(lesson__unit__class_subject__class_track_id=class_track) |
-                Q(lesson__unit__school_subject__class_subjects__class_track_id=class_track)
-            )
+        qs = self._apply_school_filters(qs, params.get('stage'), params.get('class_track'))
 
         # 4. Institute Filters
-        inst_field = params.get('field') or params.get('institute_field')
-        if inst_field:
-            qs = qs.filter(institution_type='institute')
+        qs = self._apply_institute_filters(qs, params)
 
-        # 5. Subject & Unit Filter
-        subject = params.get('subject') or params.get('school_subject') or params.get('institute_subject')
+        # 5. Subject & Unit Filters (strictly Many-to-One forward FKs -> no row multiplication or DISTINCT)
+        subject = params.get('subject') or params.get('school_subject')
         if subject:
-            qs = qs.filter(
-                Q(lesson__unit__semester_subject__fk_subject_id=subject) |
-                Q(lesson__subject_id=subject) |
+            school_subject_q = (
+                Q(school_lesson__unit__class_subject__school_subject_id=subject) |
+                Q(school_lesson__unit__class_subject__subject_id=subject) |
+                Q(school_lesson__unit__school_subject_id=subject) |
+                Q(school_lesson__school_subject_id=subject) |
                 Q(lesson__unit__school_subject_id=subject) |
                 Q(lesson__unit__class_subject__school_subject_id=subject) |
+                Q(lesson__unit__class_subject__subject_id=subject) |
+                Q(lesson__subject_id=subject)
+            )
+            univ_subject_q = (
+                Q(lesson__unit__semester_subject__fk_subject_id=subject) |
+                Q(lesson__subject_id=subject) |
                 Q(lesson__unit__semester_subject__course_id=subject)
             )
+            inst_subject_q = (
+                Q(institute_lesson__unit__subject_id=subject) |
+                Q(institute_lesson__subject_id=subject) |
+                Q(lesson__subject_id=subject)
+            )
+            if inst_type == 'school':
+                qs = qs.filter(school_subject_q)
+            elif inst_type == 'university':
+                qs = qs.filter(univ_subject_q)
+            elif inst_type == 'institute':
+                qs = qs.filter(inst_subject_q)
+            else:
+                qs = qs.filter(school_subject_q | univ_subject_q | inst_subject_q)
 
         unit = params.get('unit')
         if unit:
-            qs = qs.filter(lesson__unit_id=unit)
-
-        # 5. Search Filter
-        search = params.get('search')
-        if search:
-            qs = qs.filter(
-                Q(content__icontains=search) |
-                Q(description__icontains=search)
-            )
+            if inst_type == 'school':
+                qs = qs.filter(Q(school_lesson__unit_id=unit) | Q(lesson__unit_id=unit))
+            elif inst_type == 'institute':
+                qs = qs.filter(Q(institute_lesson__unit_id=unit) | Q(lesson__unit_id=unit))
+            elif inst_type == 'university':
+                qs = qs.filter(lesson__unit_id=unit)
+            else:
+                qs = qs.filter(
+                    Q(school_lesson__unit_id=unit) |
+                    Q(institute_lesson__unit_id=unit) |
+                    Q(lesson__unit_id=unit)
+                )
 
         return qs
 
@@ -205,23 +358,29 @@ class QuestionMVS(AllMVS):
             for d in distractors
         ]
 
-        lesson = question.lesson
+        lesson = question.school_lesson or question.institute_lesson or question.lesson
         if lesson and getattr(lesson, 'unit', None):
             unit = lesson.unit
             data['fk_unit'] = unit.id
             class_sub = getattr(unit, 'class_subject', None)
             sem_sub = getattr(unit, 'semester_subject', None)
             if class_sub:
-                data['fk_subject'] = class_sub.subject_id
+                data['fk_subject'] = class_sub.school_subject_id or class_sub.subject_id
+            elif getattr(unit, 'school_subject_id', None):
+                data['fk_subject'] = unit.school_subject_id
             elif sem_sub:
                 data['fk_subject'] = sem_sub.fk_subject_id
+            elif getattr(lesson, 'school_subject_id', None):
+                data['fk_subject'] = lesson.school_subject_id
             elif getattr(lesson, 'subject_id', None):
                 data['fk_subject'] = lesson.subject_id
             else:
                 data['fk_subject'] = None
         else:
             data['fk_unit'] = None
-            data['fk_subject'] = getattr(lesson, 'subject_id', None) if lesson else None
+            data['fk_subject'] = (
+                getattr(lesson, 'school_subject_id', None) or getattr(lesson, 'subject_id', None)
+            ) if lesson else None
             
         return Response(data)
 
@@ -257,7 +416,10 @@ class QuestionMVS(AllMVS):
             new_q = Question.objects.create(
                 content=f"{original.content}",
                 description=original.description,
+                institution_type=original.institution_type,
                 lesson=original.lesson,
+                school_lesson=original.school_lesson,
+                institute_lesson=original.institute_lesson,
                 difficulty=original.difficulty,
                 bloomLevel=original.bloomLevel,
                 questionType=original.questionType,
@@ -344,7 +506,10 @@ class QuestionMVS(AllMVS):
             new_q = Question.objects.create(
                 content=original.content,
                 description=original.description,
+                institution_type=original.institution_type,
                 lesson=original.lesson,
+                school_lesson=original.school_lesson,
+                institute_lesson=original.institute_lesson,
                 difficulty=original.difficulty,
                 bloomLevel=original.bloomLevel,
                 questionType=original.questionType,
