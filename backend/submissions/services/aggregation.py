@@ -118,11 +118,18 @@ class SubmissionAggregationService:
                         has_page_review = True
 
                     all_question_data.append({
+                        "question_id": q_num,
                         "question_number": q_num,
                         "candidate_choice": q.candidate_choice,
+                        "marked_choice": q.final_marked_choice or q.marked_choice,
                         "final_marked_choice": q.final_marked_choice,
+                        "correct_choice": q.correct_choice,
                         "is_correct": q.is_correct,
                         "assigned_weight": float(weight),
+                        "max_mark": float(weight),
+                        "marks_awarded": float(awarded),
+                        "final_confidence": float(q.final_confidence) if q.final_confidence is not None else None,
+                        "bubble_state": q.bubble_state,
                         "page_number": page.page_number,
                     })
 

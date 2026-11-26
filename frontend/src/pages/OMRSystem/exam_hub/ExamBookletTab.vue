@@ -59,27 +59,6 @@
           </div>
         </div>
       </v-alert>
-
-      <!-- VERIFIED & COMPLETE STATE: شريط هادئ ورسمي بدون زحام أو ألوان متضاربة -->
-      <div
-        v-else
-        class="bg-white border rounded-xl px-4 py-2.5 d-flex align-center justify-space-between flex-wrap gap-2 text-caption elevation-1"
-      >
-        <div class="d-flex align-center gap-2 flex-wrap">
-          <v-icon color="success" size="18">mdi-check-decagram-outline</v-icon>
-          <span class="font-weight-bold text-success-darken-2">بيانات الاختبار معتمدة ومكتملة:</span>
-          <span class="text-medium-emphasis">
-            {{ examDetails?.versions?.length || 1 }} نماذج •
-            {{ currentVersionObj?.questions?.length || 0 }} سؤالاً بالنموذج •
-            {{ totalRegisteredCount }} طالب مسجل
-            <template v-if="uniqueSchoolsCount"> • {{ uniqueSchoolsCount }} {{ labels.pluralEntities }}</template>
-            <template v-if="effectiveGovernorate"> • {{ effectiveGovernorate }}</template>
-          </span>
-        </div>
-        <v-chip size="x-small" color="success" variant="tonal" class="font-weight-bold" prepend-icon="mdi-shield-check">
-          جاهز للطباعة والتصحيح
-        </v-chip>
-      </div>
     </div>
 
     <!-- 2. شريط التصفية الجغرافية (اختياري - مخفي افتراضياً) -->

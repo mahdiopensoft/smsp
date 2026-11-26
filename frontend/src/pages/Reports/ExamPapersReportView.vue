@@ -3,7 +3,7 @@
     <filter-fields label="معايير التصفية والتقرير" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
       <template #fields>
         <!-- 1. اختيار نوع المؤسسة التعليمية الموحد -->
-        <v-col cols="12" sm="6" md="3">
+        <v-col cols="3">
           <auto-list
             v-model="filterInstitutionType"
             name="InstitutionType"
@@ -155,14 +155,15 @@
           :add="false"
         />
 
-        <v-col cols="auto" class="d-flex align-center gap-2 py-2">
-          <custom-btn type="filter" :loading="loading" :click="applyFilters" />
+        <v-col cols="auto" class="d-flex align-center gap-2 mb-6">
+          <custom-btn type="show" label="عرض" color="primary" class="font-weight-bold px-5" :loading="loading" :click="applyFilters" />
           <custom-btn
-            color="primary"
+            type="cancel_filter"
+            color="error"
             variant="tonal"
             :click="resetFilters"
-            label="إعادة ضبط"
-            icon="mdi-refresh"
+            label="إلغاء الفلترة"
+            class="font-weight-bold"
           />
         </v-col>
       </template>

@@ -360,21 +360,6 @@
                               prepend-inner-icon="mdi-file-multiple"
                             />
                           </v-col>
-                          <v-col cols="12" md="6" class="d-flex align-center gap-1.5 flex-wrap pt-md-2">
-                            <span class="text-caption font-weight-bold text-medium-emphasis me-1">اختيار سريع:</span>
-                            <v-btn
-                              v-for="mCount in [1, 2, 3, 4]"
-                              :key="mCount"
-                              size="small"
-                              rounded="pill"
-                              :color="exam.modelsCount === mCount ? 'primary' : undefined"
-                              :variant="exam.modelsCount === mCount ? 'flat' : 'tonal'"
-                              class="font-weight-bold px-2.5"
-                              @click="setModelsCount(mCount)"
-                            >
-                              {{ mCount }} {{ mCount === 1 ? 'نموذج' : mCount === 2 ? 'نموذجان' : 'نماذج' }}
-                            </v-btn>
-                          </v-col>
                         </v-row>
                       </div>
                     </v-expand-transition>
@@ -438,7 +423,7 @@
                               </div>
                             </div>
 
-                          <v-row dense class="mb-4">
+                          <v-row dense class="mb-4 align-center">
                             <v-col cols="12" md="4">
                               <v-text-field
                                 v-model="group.name"
@@ -466,20 +451,18 @@
                                 prepend-inner-icon="mdi-file-multiple"
                               />
                             </v-col>
-                            <v-col cols="12" md="4">
-                              <v-select
-                                v-model="group.difficulty_profile"
-                                :items="difficultyProfiles"
-                                item-title="label"
-                                item-value="value"
-                                label="ملف الصعوبة المعتمد"
-                                variant="outlined"
-                                density="compact"
-                                rounded="lg"
-                                hide-details
-                                @update:model-value="applyDifficultyPreset(group)"
-                              />
-                            </v-col>
+                            <auto-list
+                              v-model="group.difficulty_profile"
+                              name="LocalLabelOption"
+                              :objects="difficultyProfiles"
+                              label="ملف الصعوبة المعتمد"
+                              icon="speedometer"
+                              cols="4"
+                              :add="false"
+                              :clearable="false"
+                              :hideDetails="'auto'"
+                              @update:model-value="applyDifficultyPreset(group)"
+                            />
                           </v-row>
 
                           <!-- Question Variation Mode for this Group -->
@@ -691,128 +674,93 @@
 
                             <!-- Level 2: Specific Governorates -->
                             <div v-else-if="group.scope_level === 'governorate'">
-                              <v-autocomplete
-                                v-model="group.target_ids"
-                                :items="governoratesList"
-                                item-title="name_ar"
-                                item-value="id"
-                                label="المحافظات المستهدفة لهذه المجموعة *"
-                                placeholder="اختر المحافظات المستهدفة (مثال: أمانة العاصمة، صنعاء، تعز، عدن...)"
-                                multiple
-                                chips
-                                closable-chips
-                                variant="outlined"
-                                density="compact"
-                                rounded="lg"
-                                hide-details="auto"
-                                prepend-inner-icon="mdi-city-variant-outline"
-                                :rules="[v => (Array.isArray(v) && v.length > 0) || 'يرجى تحديد محافظة واحدة على الأقل لهذه المجموعة']"
-                                :loading="loadingGeoData"
-                              />
+                              <v-row dense>
+                                <auto-list
+                                  v-model="group.target_ids"
+                                  name="LocalNameArOption"
+                                  :objects="governoratesList"
+                                  label="المحافظات المستهدفة لهذه المجموعة *"
+                                  icon="city-variant-outline"
+                                  cols="12"
+                                  :multiple="true"
+                                  :maxChips="3"
+                                  :add="false"
+                                  :hideDetails="'auto'"
+                                  :rules="[v => (Array.isArray(v) && v.length > 0) || 'يرجى تحديد محافظة واحدة على الأقل لهذه المجموعة']"
+                                />
+                              </v-row>
                             </div>
 
                             <!-- Level 3: Specific Directorates -->
                             <div v-else-if="group.scope_level === 'directorate'">
                               <v-row dense>
-                                <v-col cols="12" md="4">
-                                  <v-autocomplete
-                                    v-model="group.filter_governorate_id"
-                                    :items="governoratesList"
-                                    item-title="name_ar"
-                                    item-value="id"
-                                    label="تصفية بالمحافظة (اختياري)"
-                                    placeholder="اختر المحافظة لتصفية المديريات..."
-                                    clearable
-                                    variant="outlined"
-                                    density="compact"
-                                    rounded="lg"
-                                    hide-details="auto"
-                                    prepend-inner-icon="mdi-filter-variant"
-                                    :loading="loadingGeoData"
-                                  />
-                                </v-col>
-                                <v-col cols="12" md="8">
-                                  <v-autocomplete
-                                    v-model="group.target_ids"
-                                    :items="getDirectoratesForGroup(group)"
-                                    item-title="name_ar"
-                                    item-value="id"
-                                    label="المديريات المستهدفة لهذه المجموعة *"
-                                    placeholder="اختر المديريات..."
-                                    multiple
-                                    chips
-                                    closable-chips
-                                    variant="outlined"
-                                    density="compact"
-                                    rounded="lg"
-                                    hide-details="auto"
-                                    prepend-inner-icon="mdi-map-marker-radius"
-                                    :rules="[v => (Array.isArray(v) && v.length > 0) || 'يرجى تحديد مديرية واحدة على الأقل']"
-                                    :loading="loadingGeoData"
-                                  />
-                                </v-col>
+                                <auto-list
+                                  v-model="group.filter_governorate_id"
+                                  name="LocalNameArOption"
+                                  :objects="governoratesList"
+                                  label="تصفية بالمحافظة (اختياري)"
+                                  icon="filter-variant"
+                                  cols="4"
+                                  :add="false"
+                                  :hideDetails="'auto'"
+                                />
+                                <auto-list
+                                  v-model="group.target_ids"
+                                  name="LocalNameArOption"
+                                  :objects="getDirectoratesForGroup(group)"
+                                  label="المديريات المستهدفة لهذه المجموعة *"
+                                  icon="map-marker-radius"
+                                  cols="8"
+                                  :multiple="true"
+                                  :maxChips="3"
+                                  :add="false"
+                                  :hideDetails="'auto'"
+                                  :rules="[v => (Array.isArray(v) && v.length > 0) || 'يرجى تحديد مديرية واحدة على الأقل']"
+                                />
                               </v-row>
                             </div>
 
                             <!-- Level 4: Specific Schools / Institutions -->
                             <div v-else-if="group.scope_level === 'school'">
                               <v-row dense>
-                                <v-col cols="12" :md="exam.institution_type === 'school' ? 3 : 4">
-                                  <v-autocomplete
-                                    v-model="group.filter_governorate_id"
-                                    :items="governoratesList"
-                                    item-title="name_ar"
-                                    item-value="id"
-                                    label="المحافظة *"
-                                    placeholder="المحافظة..."
-                                    clearable
-                                    variant="outlined"
-                                    density="compact"
-                                    rounded="lg"
-                                    hide-details="auto"
-                                    :loading="loadingGeoData"
-                                    @update:model-value="onGroupFilterGovForSchool(group)"
-                                  />
-                                </v-col>
-                                <v-col cols="12" md="3" v-if="exam.institution_type === 'school'">
-                                  <v-autocomplete
-                                    v-model="group.filter_directorate_id"
-                                    :items="getDirectoratesForFilterGov(group.filter_governorate_id)"
-                                    item-title="name_ar"
-                                    item-value="id"
-                                    label="المديرية *"
-                                    :placeholder="group.filter_governorate_id ? 'المديرية...' : 'اختر المحافظة أولاً'"
-                                    clearable
-                                    variant="outlined"
-                                    density="compact"
-                                    rounded="lg"
-                                    hide-details="auto"
-                                    :disabled="!group.filter_governorate_id"
-                                    :loading="loadingGeoData"
-                                    @update:model-value="onGroupFilterDirForSchool(group)"
-                                  />
-                                </v-col>
-                                <v-col cols="12" :md="exam.institution_type === 'school' ? 6 : 8">
-                                  <v-autocomplete
-                                    v-model="group.target_ids"
-                                    :items="group.availableSchools || []"
-                                    item-title="name_ar"
-                                    item-value="id"
-                                    :label="exam.institution_type === 'university' ? 'الجامعات / الكليات المستهدفة *' : exam.institution_type === 'institute' ? 'المعاهد المستهدفة *' : 'المدارس المستهدفة *'"
-                                    placeholder="اختر المؤسسات المستهدفة..."
-                                    :disabled="isGroupSchoolDisabled(group)"
-                                    multiple
-                                    chips
-                                    closable-chips
-                                    variant="outlined"
-                                    density="compact"
-                                    rounded="lg"
-                                    hide-details="auto"
-                                    :rules="[v => (Array.isArray(v) && v.length > 0) || 'يرجى تحديد مؤسسة واحدة على الأقل']"
-                                    :prepend-inner-icon="exam.institution_type === 'university' ? 'mdi-domain' : 'mdi-school'"
-                                    :loading="group.loadingSchools"
-                                  />
-                                </v-col>
+                                <auto-list
+                                  v-model="group.filter_governorate_id"
+                                  name="LocalNameArOption"
+                                  :objects="governoratesList"
+                                  label="المحافظة *"
+                                  icon="city-variant-outline"
+                                  :cols="exam.institution_type === 'school' ? '3' : '4'"
+                                  :add="false"
+                                  :hideDetails="'auto'"
+                                  @update:model-value="onGroupFilterGovForSchool(group)"
+                                />
+                                <auto-list
+                                  v-if="exam.institution_type === 'school'"
+                                  v-model="group.filter_directorate_id"
+                                  name="LocalNameArOption"
+                                  :objects="getDirectoratesForFilterGov(group.filter_governorate_id)"
+                                  label="المديرية *"
+                                  icon="map-marker-radius"
+                                  cols="3"
+                                  :add="false"
+                                  :disabled="!group.filter_governorate_id"
+                                  :hideDetails="'auto'"
+                                  @update:model-value="onGroupFilterDirForSchool(group)"
+                                />
+                                <auto-list
+                                  v-model="group.target_ids"
+                                  name="LocalNameArOption"
+                                  :objects="group.availableSchools || []"
+                                  :label="exam.institution_type === 'university' ? 'الجامعات / الكليات المستهدفة *' : exam.institution_type === 'institute' ? 'المعاهد المستهدفة *' : 'المدارس المستهدفة *'"
+                                  :icon="exam.institution_type === 'university' ? 'domain' : 'school'"
+                                  :cols="exam.institution_type === 'school' ? '6' : '8'"
+                                  :multiple="true"
+                                  :maxChips="3"
+                                  :add="false"
+                                  :disabled="isGroupSchoolDisabled(group)"
+                                  :hideDetails="'auto'"
+                                  :rules="[v => (Array.isArray(v) && v.length > 0) || 'يرجى تحديد مؤسسة واحدة على الأقل']"
+                                />
                               </v-row>
                             </div>
                           </div>

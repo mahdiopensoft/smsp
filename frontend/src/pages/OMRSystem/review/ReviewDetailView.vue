@@ -148,7 +148,7 @@
           headers: detailHeaders,
           customLoading: loadingDetail,
           hasFilter: false,
-          search: false,
+          search: true,
           numbering: true,
           actions: false,
           log: false,

@@ -155,7 +155,16 @@
 
           <!-- Subject Filter (Filtered by School or University) -->
           <auto-list
-            v-if="filterInstitutionType !== 'institute'"
+            v-if="filterInstitutionType === 'school'"
+            v-model="filterSubject"
+            name="SchoolSubject"
+            :param="subjectFilterParam"
+            :placeholder="subjectPlaceholder"
+            cols="3"
+            :add="false"
+          />
+          <auto-list
+            v-else-if="filterInstitutionType === 'university'"
             v-model="filterSubject"
             name="Subject"
             :param="subjectFilterParam"
@@ -303,18 +312,42 @@
           />
         </v-col>
 
-        <!-- School Subject -->
-        <v-col cols="12" md="6" v-if="formData.institution_type === 'school'">
-          <auto-list
-            v-model="formData.subject"
-            name="Subject"
-            :param="schoolSubjectParam"
-            placeholder="المادة الدراسية *"
-            cols="12"
-            :add="false"
-            @update:model-value="onSubjectSelected"
-          />
-        </v-col>
+        <!-- School Hierarchy (Stage -> ClassTrack -> Subject) -->
+        <template v-if="formData.institution_type === 'school'">
+          <v-col cols="12" md="6">
+            <auto-list
+              v-model="formStage"
+              name="Stage"
+              placeholder="المرحلة الدراسية"
+              cols="12"
+              :add="false"
+              @update:model-value="onFormStageChange"
+            />
+          </v-col>
+          <v-col cols="12" md="6">
+            <auto-list
+              v-model="formClassTrack"
+              name="ClassTrackByStage"
+              :param="formStage"
+              placeholder="الصف والمسار"
+              cols="12"
+              :add="false"
+              :disabled="!formStage"
+              @update:model-value="onFormClassTrackChange"
+            />
+          </v-col>
+          <v-col cols="12" md="6">
+            <auto-list
+              v-model="formData.subject"
+              name="SchoolSubject"
+              :param="schoolSubjectParam"
+              placeholder="المادة الدراسية *"
+              cols="12"
+              :add="false"
+              @update:model-value="onSubjectSelected"
+            />
+          </v-col>
+        </template>
 
         <!-- University Hierarchy -->
         <template v-if="formData.institution_type === 'university'">
@@ -616,6 +649,8 @@ export default {
       blueprintDialog: false,
       deleteDialog: false,
 
+      formStage: null,
+      formClassTrack: null,
       formCollege: null,
       formDepartment: null,
       formSpecialization: null,
@@ -654,13 +689,13 @@ export default {
 
     subjectFilterParam() {
       if (this.filterInstitutionType === 'school') {
-        const p = { institution_type: 'school' }
+        const p = {}
         if (this.filterClassTrack) {
           p.class_track = this.filterClassTrack
         } else if (this.filterStage) {
           p.stage = this.filterStage
         }
-        return p
+        return Object.keys(p).length ? p : null
       }
       if (this.filterInstitutionType === 'university') {
         const p = { institution_type: 'university' }
@@ -692,7 +727,13 @@ export default {
     },
 
     schoolSubjectParam() {
-      return { institution_type: 'school' }
+      const p = {}
+      if (this.formClassTrack) {
+        p.class_track = this.formClassTrack
+      } else if (this.formStage) {
+        p.stage = this.formStage
+      }
+      return Object.keys(p).length ? p : null
     },
 
     formInstituteSpecParam() {
@@ -783,10 +824,23 @@ export default {
       this.filterSubject = null
     },
 
+    onFormStageChange() {
+      this.formClassTrack = null
+      this.formData.subject = null
+      this.matrixRows = []
+    },
+
+    onFormClassTrackChange() {
+      this.formData.subject = null
+      this.matrixRows = []
+    },
+
     onFormInstitutionTypeToggle() {
       this.formData.subject = null
       this.formData.semesterSubject = null
       this.formData.instituteSubject = null
+      this.formStage = null
+      this.formClassTrack = null
       this.formCollege = null
       this.formDepartment = null
       this.formSpecialization = null
@@ -833,8 +887,16 @@ export default {
         return
       }
       try {
-        const res = await academicService.getUnits({ subject_id: subjectId })
-        const units = res.results || res || []
+        let res
+        if (this.formData.institution_type === 'school') {
+          const params = { school_subject: subjectId }
+          if (this.formClassTrack) params.class_track = this.formClassTrack
+          else if (this.formStage) params.stage = this.formStage
+          res = await academicService.getSchoolUnits(params)
+        } else {
+          res = await academicService.getUnits({ subject_id: subjectId })
+        }
+        const units = res?.results || res || []
         this.matrixRows = units.map(u => ({
           unit_id: u.id,
           unit_name: u.name_ar || u.name_en || u.name || `وحدة #${u.id}`,
@@ -896,6 +958,8 @@ export default {
     openNewTOSDialog() {
       this.isEditing = false
       this.formData = { id: null, name: '', institution_type: 'school', subject: null, semesterSubject: null, instituteSubject: null, total_questions_count: 30, total_marks: 100.0 }
+      this.formStage = null
+      this.formClassTrack = null
       this.formCollege = null
       this.formDepartment = null
       this.formSpecialization = null
@@ -941,6 +1005,10 @@ export default {
           total_questions_count: this.formData.total_questions_count,
           total_marks: this.formData.total_marks,
           matrix_data: this.matrixRows,
+        }
+        if (this.formData.institution_type === 'school') {
+          payload.school_subject = this.formData.subject
+          if (this.formClassTrack) payload.class_track = this.formClassTrack
         }
         if (this.formData.institution_type === 'institute') {
           payload.institute_subject = this.formData.instituteSubject || this.formData.subject

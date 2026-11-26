@@ -12,7 +12,7 @@
     :restore="false"
     :numbering="true"
     :showSelect="true"
-    :search="false"
+    :search="true"
     class="bg-transparent"
   
         :actionList="(item) => ([ { label: 'استعراض تفاصيل الاختبارات والمواد', icon: 'format-list-text', color: 'secondary', onClick: () => $emit('open-exams-dialog', item) }, { label: 'سحب وطباعة', icon: 'printer-check', color: 'primary', onClick: () => $emit('open-studio', item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">

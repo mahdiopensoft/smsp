@@ -175,7 +175,7 @@
                 editItem,
                 pagination: false,
                 log: false,
-                search: false,
+                search: true,
                 restore: false,
               }"
             />
@@ -199,7 +199,7 @@
                 getData: getServicePermissions,
                 pagination: false,
                 log: false,
-                search: false,
+                search: true,
                 restore: false,
               }"
             />

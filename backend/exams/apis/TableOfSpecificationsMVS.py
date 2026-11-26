@@ -17,7 +17,6 @@ class TableOfSpecificationsMVS(AllMVS):
     queryset = TableOfSpecifications.objects.select_related('subject', 'level', 'createdBy').all().distinct()
     serializer_class = TableOfSpecificationsSerializer
     filterset_fields = {
-        'subject': ['exact'],
         'level': ['exact'],
         'institution_type': ['exact'],
         'is_active': ['exact'],
@@ -50,7 +49,25 @@ class TableOfSpecificationsMVS(AllMVS):
 
         subject_id = self.request.query_params.get('subject') or self.request.query_params.get('subject_id')
         if subject_id:
-            qs = qs.filter(subject_id=subject_id)
+            if inst_type == 'school' or not inst_type:
+                from academic.models.schools.SchoolSubject import SchoolSubject
+                from academic.models.universities.UniversitySubject import UniversitySubject as Subject
+                resolved_ids = set()
+                try:
+                    ssub = SchoolSubject.objects.filter(id=int(subject_id)).first()
+                    if ssub:
+                        matched = Subject.objects.filter(name_ar=ssub.name_ar).values_list('id', flat=True)
+                        resolved_ids.update(matched)
+                        if ssub.subject_code:
+                            resolved_ids.update(Subject.objects.filter(subject_code=ssub.subject_code).values_list('id', flat=True))
+                except Exception:
+                    pass
+                if resolved_ids:
+                    qs = qs.filter(subject_id__in=list(resolved_ids))
+                else:
+                    qs = qs.filter(subject_id=subject_id)
+            else:
+                qs = qs.filter(subject_id=subject_id)
 
         institute_subject_id = self.request.query_params.get('institute_subject') or self.request.query_params.get('institute_subject_id')
         if institute_subject_id:

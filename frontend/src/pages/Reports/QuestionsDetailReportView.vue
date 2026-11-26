@@ -3,7 +3,7 @@
     <filter-fields label="معايير التصفية والبحث في بنك الأسئلة التفصيلي" class="main-card border-0 pa-5 rounded-2xl mb-6 elevation-1">
       <template #fields>
         <!-- 1. اختيار نوع المؤسسة التعليمية الموحد -->
-        <v-col cols="12" sm="6" md="3">
+        <v-col cols="3">
           <auto-list
             v-model="filterInstitutionType"
             name="InstitutionType"
@@ -204,23 +204,21 @@
           v-model="filterDateFrom"
           label="من تاريخ"
           cols="3"
-          hide-details
         />
 
         <custom-date
           v-model="filterDateTo"
           label="إلى تاريخ"
           cols="3"
-          hide-details
         />
 
         <!-- أزرار الإجراءات الموحدة -->
-        <v-col cols="auto" class="d-flex align-center gap-2 py-2">
+        <v-col cols="auto" class="d-flex align-center gap-2 mb-6">
           <custom-btn
             type="show"
-            label="تصفية النتائج"
-            icon="mdi-filter"
-            class="font-weight-bold px-4"
+            label="عرض"
+            color="primary"
+            class="font-weight-bold px-5"
             :loading="loading"
             :click="applyFilters"
           />
@@ -228,8 +226,7 @@
             type="cancel_filter"
             variant="tonal"
             color="error"
-            label="تفريغ الفلاتر"
-            icon="mdi-filter-off"
+            label="إلغاء الفلترة"
             class="font-weight-bold"
             :click="resetFilters"
           />

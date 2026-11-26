@@ -1,42 +1,5 @@
 <template>
   <div class="exam-students-roster-tab">
-    <!-- Quick Actions & Info Bar -->
-    <div class="d-flex align-center justify-space-between flex-wrap gap-3 mb-4">
-      <div class="d-flex align-center gap-2">
-        <v-avatar size="36" color="primary" variant="tonal" class="rounded-lg">
-          <v-icon size="20">mdi-account-group-outline</v-icon>
-        </v-avatar>
-        <div>
-          <div class="text-subtitle-2 font-weight-black text-on-surface">كشف الطلاب المقيدين للاختبار</div>
-          <div class="text-caption text-medium-emphasis">إدارة أرقام الجلوس والنماذج المسندة ومعاينة أوراق التظليل</div>
-        </div>
-      </div>
-
-      <div class="d-flex align-center gap-2 flex-wrap">
-        <custom-btn
-          type="show"
-          icon="file-document-multiple-outline"
-          label="معاينة وتوليد أوراق التظليل للجميع"
-          color="primary"
-          variant="tonal"
-          class="font-weight-bold"
-          :disabled="!totalStudentsCount"
-          :click="() => $emit('switch-to-template', 'all_students')"
-        />
-        <custom-btn
-          v-if="!totalStudentsCount"
-          type="create"
-          icon="account-multiple-plus"
-          label="تسجيل الطلاب المقيدين في الاختبار"
-          color="primary"
-          variant="tonal"
-          class="font-weight-bold"
-          :loading="seedingStudents"
-          :click="() => $emit('seed-students')"
-        />
-      </div>
-    </div>
-
     <!-- Unified Filter Fields for Students (Backend Filtering) -->
     <filter-fields label="خيارات تصفية كشف الطلاب والبيانات الامتحانية" class="main-card border-0 pa-4 rounded-2xl mb-4">
       <template #fields>

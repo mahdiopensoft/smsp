@@ -55,7 +55,7 @@
         :restore="false"
         :numbering="true"
         :showSelect="false"
-        :search="false"
+        :search="true"
         class="bg-transparent"
       
         :actionList="(item) => ([ { label: 'معاينة النموذج', icon: 'eye-outline', color: 'secondary', onClick: () => openPreview(item.versionCode) }, { label: 'طباعة النموذج', icon: 'printer', color: 'primary', onClick: () => $emit('print-model', item.versionCode) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">

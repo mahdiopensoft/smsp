@@ -12,7 +12,7 @@
     :restore="false"
     :numbering="true"
     :showSelect="true"
-    :search="false"
+    :search="true"
     class="bg-transparent"
   
         :actionList="(item) => ([ { label: 'تفاصيل الدفعة', icon: 'eye-outline', color: 'secondary', onClick: () => $emit('view-batch', item) }, ]).filter((a) => a && a.show !== false).map((a) => ({ title_ar: a.label, title_en: a.label, click: a.onClick }))">
