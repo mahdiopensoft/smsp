@@ -1,26 +1,5 @@
 <template>
   <div class="qb-tos-page-v4">
-    <!-- Header Controls -->
-    <div class="d-flex flex-column flex-md-row align-start align-md-center justify-space-between gap-4 mb-6">
-      <div>
-        <h2 class="text-h5 font-weight-black mb-1">جدول المواصفات (Table of Specifications)</h2>
-        <span class="text-caption text-medium-emphasis">
-          تحديد وتوزيع الأوزان النسبية للوحدات ومستويات بلوم المعرفية قبل توليد الاختبارات
-        </span>
-      </div>
-
-      <div class="d-flex align-center gap-3">
-        <custom-btn
-          type="add"
-          icon="mdi-plus"
-          label="إنشاء جدول مواصفات جديد"
-          color="primary"
-          class="font-weight-bold px-6"
-          :click="openNewTOSDialog"
-        />
-      </div>
-    </div>
-
     <!-- Filters Control Bar (Theme Compatible) -->
     <filter-fields label="خيارات التصفية والبحث في جداول المواصفات" class="main-card border-0 pa-5 rounded-2xl mb-6">
       <v-row dense class="align-center">
@@ -181,7 +160,7 @@
             label="عرض"
             color="primary"
             class="font-weight-bold px-6 mb-6"
-            :click="loadTables"
+            :click="applyFilters"
           />
           <custom-btn
             type="cancel_filter"
@@ -195,77 +174,80 @@
       </v-row>
     </filter-fields>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="text-center pa-12">
-      <v-progress-circular indeterminate color="primary" size="48" />
-      <div class="text-caption mt-3 text-medium-emphasis">جاري جلب جداول المواصفات...</div>
-    </div>
-
-    <!-- Empty State -->
-    <div v-else-if="filteredTables.length === 0" class="text-center pa-12 main-card rounded-2xl border mb-6">
-      <v-icon size="56" color="primary" class="mb-3">mdi-table-network</v-icon>
-      <h3 class="text-h6 font-weight-bold mb-1">لا توجد جداول مواصفات مسجلة</h3>
-      <p class="text-caption text-medium-emphasis mb-4">
-        قم بإنشاء جدول مواصفات لتوزيع أوزان الوحدات ومستويات بلوم المعرفية آلياً
-      </p>
-      <custom-btn
-        type="add"
-        label="إنشاء أول جدول مواصفات"
-        color="primary"
-        :click="openNewTOSDialog"
-      />
-    </div>
-
-    <!-- Saved Tables Cards Grid -->
-    <v-row v-else class="mb-6">
-      <v-col v-for="tos in filteredTables" :key="tos.id" cols="12" md="6" lg="4">
-        <v-card elevation="0" class="main-card pa-5 rounded-2xl border h-100 d-flex flex-column justify-space-between">
-          <div>
-            <div class="d-flex align-center justify-space-between mb-3">
-              <v-chip color="primary" size="small" variant="tonal" class="font-weight-bold text-white">
-                {{ tos.subject_name || `مادة #${tos.subject}` }}
-              </v-chip>
-              <v-chip size="small" color="secondary" variant="tonal" class="font-weight-bold">
-                {{ tos.total_questions_count }} سؤالاً
-              </v-chip>
+    <!-- Data Table View -->
+    <div class="main-card rounded-2xl overflow-hidden mb-8">
+      <custom-data-table
+        ref="tableRef"
+        v-bind="{
+          items,
+          getData,
+          headers,
+          delItem: url,
+          create: openNewTOSDialog,
+        }"
+        :customLoading="loading"
+        class="bg-transparent"
+        :hasFilter="false"
+        :log="false"
+        :restore="false"
+        :actionList="(item) => [
+          { title_ar: 'استعراض المخطط', title_en: 'Preview Blueprint', click: () => viewBlueprint(item) },
+          { title_ar: 'تعديل جدول المواصفات', title_en: 'Edit', click: () => editTOS(item) },
+          { title_ar: 'حذف', title_en: 'Delete', click: () => confirmDeleteTOS(item) },
+        ]"
+      >
+        <template v-slot:item-slot="{ item, key }">
+          <template v-if="key === 'name'">
+            <div class="font-weight-bold text-body-2 text-primary cursor-pointer" @click="viewBlueprint(item)">
+              {{ item.name }}
             </div>
+          </template>
 
-            <h3 class="text-subtitle-1 font-weight-black mb-2">{{ tos.name }}</h3>
-            <p class="text-caption text-medium-emphasis mb-4">
-              الدرجة الكلية: <strong>{{ tos.total_marks }}</strong> درجة • الوحدات المشمولة: <strong>{{ (tos.matrix_data || []).length }}</strong> وحدة
-            </p>
-          </div>
+          <template v-else-if="key === 'institution_type'">
+            <span class="text-body-2 font-weight-medium">
+              {{ item.institution_type_display || getInstitutionTypeLabel(item.institution_type) }}
+            </span>
+          </template>
 
-          <div class="d-flex align-center justify-end gap-2 pt-3 border-t">
-            <custom-btn
-              label="استعراض المخطط"
-              icon="mdi-blueprint"
-              color="indigo"
+          <template v-else-if="key === 'subject_name'">
+            <v-chip color="primary" size="small" variant="tonal" class="font-weight-bold">
+              {{ item.subject_name || `مادة #${item.subject}` }}
+            </v-chip>
+          </template>
+
+          <template v-else-if="key === 'level_name'">
+            <span class="text-body-2 text-medium-emphasis">{{ item.level_name || '-' }}</span>
+          </template>
+
+          <template v-else-if="key === 'total_questions_count'">
+            <v-chip size="small" color="secondary" variant="tonal" class="font-weight-bold">
+              {{ item.total_questions_count }} سؤالاً
+            </v-chip>
+          </template>
+
+          <template v-else-if="key === 'total_marks'">
+            <span class="text-body-2 font-weight-bold">{{ item.total_marks }} درجة</span>
+          </template>
+
+          <template v-else-if="key === 'units_count'">
+            <span class="text-body-2">
+              {{ item.units_count ?? (item.matrix_data || []).length }} وحدة
+            </span>
+          </template>
+
+          <template v-else-if="key === 'is_active'">
+            <v-chip
+              size="x-small"
+              :color="item.is_active ? 'success' : 'error'"
               variant="tonal"
-              size="small"
               class="font-weight-bold"
-              :click="() => viewBlueprint(tos)"
-            />
-            <custom-btn
-              is-icon
-              icon="pencil-outline"
-              color="primary"
-              variant="tonal"
-              size="small"
-              :click="() => editTOS(tos)"
-            />
-            <custom-btn
-              is-icon
-              icon="trash-can-outline"
-              color="error"
-              variant="tonal"
-              size="small"
-              :click="() => confirmDeleteTOS(tos)"
-            />
-          </div>
-        </v-card>
-      </v-col>
-    </v-row>
+            >
+              {{ item.is_active ? 'نشط' : 'معطل' }}
+            </v-chip>
+          </template>
+        </template>
+      </custom-data-table>
+    </div>
 
     <!-- Create / Edit TOS Dialog (CustomDialog Component) -->
     <CustomDialog
@@ -358,7 +340,7 @@
               placeholder="الكلية الجامعية"
               cols="12"
               :add="false"
-              @update:model-value="formDepartment = null"
+              @update:model-value="() => { if (!isLoadingEdit) { formDepartment = null; formSpecialization = null; formData.semesterSubject = null; formData.subject = null; matrixRows = []; } }"
             />
           </v-col>
           <v-col cols="12" md="6">
@@ -370,7 +352,7 @@
               cols="12"
               :add="false"
               :disabled="!formCollege"
-              @update:model-value="formSpecialization = null"
+              @update:model-value="() => { if (!isLoadingEdit) { formSpecialization = null; formData.semesterSubject = null; formData.subject = null; matrixRows = []; } }"
             />
           </v-col>
           <v-col cols="12" md="6">
@@ -382,6 +364,7 @@
               cols="12"
               :add="false"
               :disabled="!formDepartment"
+              @update:model-value="() => { if (!isLoadingEdit) { formData.semesterSubject = null; formData.subject = null; matrixRows = []; } }"
             />
           </v-col>
           <v-col cols="12" md="6">
@@ -523,7 +506,7 @@
           </tbody>
         </v-table>
       </div>
-      <div v-else-if="formData.subject" class="pa-6 text-center text-medium-emphasis">
+      <div v-else-if="formData.subject || formData.semesterSubject || formData.instituteSubject" class="pa-6 text-center text-medium-emphasis">
         لا توجد وحدات دراسية مسجلة لهذه المادة
       </div>
 
@@ -619,10 +602,21 @@ export default {
 
   data() {
     return {
+      url: 'api/exams/table-of-specifications/',
       loading: false,
       saving: false,
-      tables: [],
+      items: { results: [], pagination: {} },
       subjects: [],
+      headers: [
+        { title: 'عنوان جدول المواصفات', key: 'name', sortable: true },
+        { title: 'نوع المؤسسة', key: 'institution_type', sortable: true },
+        { title: 'المادة / المقرر', key: 'subject_name', sortable: false },
+        { title: 'الصف / المستوى', key: 'level_name', sortable: false },
+        { title: 'عدد الأسئلة', key: 'total_questions_count', sortable: true, align: 'center' },
+        { title: 'الدرجة الكلية', key: 'total_marks', sortable: true, align: 'center' },
+        { title: 'الوحدات', key: 'units_count', sortable: false, align: 'center' },
+        { title: 'الحالة', key: 'is_active', sortable: true, align: 'center' },
+      ],
 
       // Filters
       filterInstitutionType: null,
@@ -662,6 +656,7 @@ export default {
       selectedBlueprint: null,
       tosToDelete: null,
       isEditing: false,
+      isLoadingEdit: false,
 
       formData: {
         id: null,
@@ -679,10 +674,6 @@ export default {
   },
 
   computed: {
-    filteredTables() {
-      return this.tables
-    },
-
     totalWeightSum() {
       return this.matrixRows.reduce((sum, row) => sum + this.calculateRowTotal(row), 0)
     },
@@ -757,10 +748,28 @@ export default {
       )
     },
 
-    async loadTables() {
+    getInstitutionTypeLabel(type) {
+      const map = {
+        school: 'تعليم مدرسي',
+        university: 'تعليم جامعي',
+        institute: 'معاهد وتدريب مهني',
+      }
+      return map[type] || type || '-'
+    },
+
+    async getData(tableParams = null) {
       this.loading = true
       try {
-        const params = {}
+        const rawParams = tableParams?.params ? tableParams.params : (tableParams || {})
+        const params = {
+          page: rawParams.page || 1,
+          page_size: rawParams.page_size || 10,
+          hasPagination: true,
+        }
+        if (rawParams.sort_by) params.sort_by = rawParams.sort_by
+        if (rawParams.search) params.search = rawParams.search
+        else if (this.searchQuery) params.search = this.searchQuery
+
         if (this.filterInstitutionType && this.filterInstitutionType !== 'all') params.institution_type = this.filterInstitutionType
         if (this.filterCollege) params.college = this.filterCollege
         if (this.filterDepartment) params.department = this.filterDepartment
@@ -771,14 +780,42 @@ export default {
         if (this.filterStage) params.stage = this.filterStage
         if (this.filterClassTrack) params.class_track = this.filterClassTrack
         if (this.filterSubject) params.subject = this.filterSubject
-        if (this.searchQuery) params.search = this.searchQuery
+
         const data = await examsService.getTablesOfSpecifications(params)
-        this.tables = Array.isArray(data) ? data : (data.results || [])
+        if (data && Array.isArray(data.results)) {
+          this.items = data
+        } else if (Array.isArray(data)) {
+          this.items = {
+            results: data,
+            pagination: { count: data.length, current_page: 1, num_pages: 1, page_size: data.length || 10 },
+          }
+        } else {
+          this.items = { results: [], pagination: {} }
+        }
+        return this.items
       } catch (err) {
         console.error('Error loading TOS tables:', err)
+        this.items = { results: [], pagination: {} }
       } finally {
         this.loading = false
       }
+    },
+
+    async reloadTable(resetPage = false) {
+      if (this.$refs.tableRef) {
+        if (resetPage && this.$refs.tableRef.params) {
+          this.$refs.tableRef.params.page = 1
+        }
+        if (typeof this.$refs.tableRef.fetchData === 'function') {
+          await this.$refs.tableRef.fetchData()
+          return
+        }
+      }
+      await this.getData()
+    },
+
+    applyFilters() {
+      this.reloadTable(true)
     },
 
     onInstitutionTypeChange() {
@@ -794,7 +831,7 @@ export default {
       this.filterInstituteCurriculum = null
       this.filterInstituteSubject = null
       this.filterSubject = null
-      this.loadTables()
+      this.reloadTable(true)
     },
 
     onStageChange() {
@@ -866,7 +903,7 @@ export default {
       this.filterClassTrack = null
       this.filterSubject = null
       this.searchQuery = ''
-      this.loadTables()
+      this.reloadTable(true)
     },
 
     async loadSubjects() {
@@ -882,6 +919,7 @@ export default {
     },
 
     async onSubjectSelected(subjectId) {
+      if (this.isLoadingEdit) return
       if (!subjectId) {
         this.matrixRows = []
         return
@@ -908,6 +946,7 @@ export default {
     },
 
     async onSemesterSubjectSelected(semSubjectId) {
+      if (this.isLoadingEdit) return
       if (!semSubjectId) {
         this.matrixRows = []
         this.formData.subject = null
@@ -934,6 +973,7 @@ export default {
     },
 
     async onInstituteSubjectSelected(instSubjectId) {
+      if (this.isLoadingEdit) return
       if (!instSubjectId) {
         this.matrixRows = []
         this.formData.subject = null
@@ -971,19 +1011,58 @@ export default {
       this.formDialog = true
     },
 
-    editTOS(tos) {
+    async editTOS(tos) {
       this.isEditing = true
+      this.isLoadingEdit = true
+      const instType = tos.institution_type || 'school'
+
+      // Reset parent params first so AutoList param watchers see oldVal=null when re-populating
+      this.formStage = null
+      this.formClassTrack = null
+      this.formCollege = null
+      this.formDepartment = null
+      this.formSpecialization = null
+      this.formInstituteField = null
+      this.formInstituteEducationSystem = null
+      this.formInstituteSpecialization = null
+      this.formInstituteCurriculum = null
+
       this.formData = {
         id: tos.id,
         name: tos.name,
-        institution_type: tos.institution_type || 'school',
-        subject: tos.subject,
-        semesterSubject: tos.semester_subject,
+        institution_type: instType,
+        subject: instType === 'school' ? (tos.school_subject_id || tos.subject) : tos.subject,
+        semesterSubject: null,
+        instituteSubject: null,
         total_questions_count: tos.total_questions_count,
         total_marks: tos.total_marks,
       }
       this.matrixRows = JSON.parse(JSON.stringify(tos.matrix_data || []))
       this.formDialog = true
+
+      await this.$nextTick()
+
+      if (instType === 'university') {
+        this.formCollege = tos.college_id || null
+        this.formDepartment = tos.department_id || null
+        this.formSpecialization = tos.specialization_id || null
+        await this.$nextTick()
+        this.formData.semesterSubject = tos.semester_subject || null
+      } else if (instType === 'school') {
+        this.formStage = tos.stage_id || null
+        this.formClassTrack = tos.class_track_id || null
+        await this.$nextTick()
+        this.formData.subject = tos.school_subject_id || tos.subject || null
+      } else if (instType === 'institute') {
+        this.formInstituteField = tos.institute_field_id || null
+        this.formInstituteEducationSystem = tos.institute_education_system_id || null
+        this.formInstituteSpecialization = tos.institute_specialization_id || null
+        this.formInstituteCurriculum = tos.institute_curriculum_id || null
+        await this.$nextTick()
+        this.formData.instituteSubject = tos.institute_subject_id || tos.subject || null
+      }
+
+      this.isLoadingEdit = false
     },
 
     async saveTOS() {
@@ -1019,7 +1098,7 @@ export default {
           await examsService.createTableOfSpecifications(payload)
         }
         this.formDialog = false
-        await this.loadTables()
+        await this.reloadTable()
       } catch (err) {
         console.error('Error saving TOS:', err)
       } finally {
@@ -1038,7 +1117,7 @@ export default {
         await examsService.deleteTableOfSpecifications(this.tosToDelete.id)
         this.deleteDialog = false
         this.tosToDelete = null
-        await this.loadTables()
+        await this.reloadTable()
       } catch (err) {
         console.error('Error deleting TOS:', err)
       }
@@ -1056,7 +1135,7 @@ export default {
   },
 
   mounted() {
-    this.loadTables()
+    this.getData()
     this.loadSubjects()
   },
 }

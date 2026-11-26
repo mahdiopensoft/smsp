@@ -101,7 +101,7 @@ export const examsService = {
     // ========================================================
     async getTablesOfSpecifications(params = {}) {
         const { data } = await api.get(`${BASE}table-of-specifications/`, { params })
-        return data.results || data
+        return data
     },
 
     async getTableOfSpecificationsById(id) {

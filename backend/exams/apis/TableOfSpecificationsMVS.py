@@ -14,30 +14,39 @@ class TableOfSpecificationsMVS(AllMVS):
     Endpoint: /api/exams/table-of-specifications/
     Used by: TableOfSpecificationsView.vue / ExamCreateView.vue
     """
-    queryset = TableOfSpecifications.objects.select_related('subject', 'level', 'createdBy').all().distinct()
+    queryset = TableOfSpecifications.objects.select_related('subject', 'level', 'level__stage', 'createdBy').filter(is_deleted=False)
     serializer_class = TableOfSpecificationsSerializer
+    fields_4_search = ['name', 'subject__name_ar', 'subject__name_en', 'level__name_ar']
     filterset_fields = {
         'level': ['exact'],
+        'subject': ['exact'],
         'institution_type': ['exact'],
         'is_active': ['exact'],
     }
 
     def get_queryset(self):
         qs = super().get_queryset()
+        params = self.request.query_params
 
-        inst_type = self.request.query_params.get('institution_type')
+        inst_type = params.get('institution_type')
         if inst_type and inst_type != 'all':
             qs = qs.filter(institution_type=inst_type)
-        
-        stage_id = self.request.query_params.get('stage') or self.request.query_params.get('stage_id')
+
+        is_active = params.get('is_active')
+        if is_active in ('true', 'True', '1'):
+            qs = qs.filter(is_active=True)
+        elif is_active in ('false', 'False', '0'):
+            qs = qs.filter(is_active=False)
+
+        stage_id = params.get('stage') or params.get('stage_id')
         if stage_id:
             qs = qs.filter(level__stage_id=stage_id)
 
-        level_id = self.request.query_params.get('level') or self.request.query_params.get('level_id')
+        level_id = params.get('level') or params.get('level_id')
         if level_id:
             qs = qs.filter(level_id=level_id)
 
-        class_track_id = self.request.query_params.get('class_track') or self.request.query_params.get('class_track_id')
+        class_track_id = params.get('class_track') or params.get('class_track_id')
         if class_track_id:
             from academic.models.schools.SchoolClassTrack import SchoolClassTrack
             try:
@@ -47,7 +56,7 @@ class TableOfSpecificationsMVS(AllMVS):
             except Exception:
                 pass
 
-        subject_id = self.request.query_params.get('subject') or self.request.query_params.get('subject_id')
+        subject_id = params.get('subject') or params.get('subject_id')
         if subject_id:
             if inst_type == 'school' or not inst_type:
                 from academic.models.schools.SchoolSubject import SchoolSubject
@@ -69,7 +78,7 @@ class TableOfSpecificationsMVS(AllMVS):
             else:
                 qs = qs.filter(subject_id=subject_id)
 
-        institute_subject_id = self.request.query_params.get('institute_subject') or self.request.query_params.get('institute_subject_id')
+        institute_subject_id = params.get('institute_subject') or params.get('institute_subject_id')
         if institute_subject_id:
             from academic.models.institutes.InstituteSubject import InstituteSubject
             try:
@@ -78,7 +87,7 @@ class TableOfSpecificationsMVS(AllMVS):
             except Exception:
                 pass
 
-        semester_subject_id = self.request.query_params.get('semester_subject') or self.request.query_params.get('semester_subject_id')
+        semester_subject_id = params.get('semester_subject') or params.get('semester_subject_id')
         if semester_subject_id:
             from academic.models.universities.UniversitySemesterSubject import UniversitySemesterSubject
             try:
@@ -88,16 +97,10 @@ class TableOfSpecificationsMVS(AllMVS):
             except Exception:
                 pass
 
-        search = self.request.query_params.get('search')
-        if search:
-            qs = qs.filter(
-                Q(name__icontains=search) |
-                Q(subject__name_ar__icontains=search) |
-                Q(subject__name_en__icontains=search) |
-                Q(level__name_ar__icontains=search)
-            )
+        if not params.get('sort_by'):
+            qs = qs.order_by('-created_at')
 
-        return qs.order_by('-created_at').distinct()
+        return qs
 
     def perform_create(self, serializer):
         user = self.request.user if self.request.user.is_authenticated else None
